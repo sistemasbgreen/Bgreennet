@@ -1,0 +1,52 @@
+<div class="login-container">
+    <div class="login-card">
+        <h2>Iniciar Sesión</h2>
+
+        <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+            <!-- Campo Usuario -->
+            <div class="form-group">
+                <label for="usuario">Usuario</label>
+                <input id="usuario" type="text" formControlName="usuario" placeholder="Ingresa tu usuario"
+                    [class.error]="usuario?.invalid && usuario?.touched" />
+                <div class="error-message" *ngIf="usuario?.invalid && usuario?.touched">
+                    <span *ngIf="usuario?.errors?.['required']">El usuario es requerido</span>
+                    <span *ngIf="usuario?.errors?.['minlength']">
+                        Mínimo 3 caracteres
+                    </span>
+                </div>
+            </div>
+
+            <!-- Campo Contraseña -->
+            <div class="form-group">
+                <label for="contrasena">Contraseña</label>
+                <div class="password-wrapper">
+                    <input id="contrasena" [type]="showPassword ? 'text' : 'password'" formControlName="contrasena"
+                        placeholder="Ingresa tu contraseña"
+                        [class.error]="contrasena?.invalid && contrasena?.touched" />
+                    <button type="button" class="toggle-password" (click)="togglePasswordVisibility()" tabindex="-1">
+                        {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+                    </button>
+                </div>
+                <div class="error-message" *ngIf="contrasena?.invalid && contrasena?.touched">
+                    <span *ngIf="contrasena?.errors?.['required']">La contraseña es requerida</span>
+                    <span *ngIf="contrasena?.errors?.['minlength']">
+                        Mínimo 6 caracteres
+                    </span>
+                </div>
+            </div>
+
+            <!-- Mensaje de error global -->
+            <div class="alert alert-error"                                                                                                                                                                                    *ngIf="errorMessage">
+                {{ errorMessage }}
+            </div>
+
+            <!-- Botón de envío -->
+            <button type="submit" class="btn-submit" [disabled]="loginForm.invalid || isLoading">
+                <span *ngIf="!isLoading">Iniciar Sesión</span>
+                <span *ngIf="isLoading" class="loader">Cargando...</span>
+            </button>
+        </form>
+
+       
+    </div>
+</div>
