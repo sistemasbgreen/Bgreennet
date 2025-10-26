@@ -7,7 +7,9 @@ use [BgreenNet_Dev]
 CREATE TABLE Direccion (
     id_direccion INT IDENTITY(1,1) PRIMARY KEY,
     nombre NVARCHAR(100) NOT NULL,
-    activo BIT NOT NULL DEFAULT 1
+    activo BIT NOT NULL DEFAULT 1,
+	date_create DATETIME NOT NULL DEFAULT GETDATE(),
+	date_Modify DATETIME NOT NULL DEFAULT GETDATE()
 );
 
 CREATE TABLE Area (
@@ -15,7 +17,9 @@ CREATE TABLE Area (
     descripcionArea NVARCHAR(100) NOT NULL,
     id_direccion_fk INT NOT NULL,
     activo BIT NOT NULL DEFAULT 1,
-    FOREIGN KEY (id_direccion_fk) REFERENCES Direccion(id_direccion)
+    FOREIGN KEY (id_direccion_fk) REFERENCES Direccion(id_direccion),
+	date_create DATETIME NOT NULL DEFAULT GETDATE(),
+	date_Modify DATETIME NOT NULL DEFAULT GETDATE()
 );
 
 CREATE TABLE Cargo (
