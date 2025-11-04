@@ -20,6 +20,7 @@ public class LoginResponseDTO {
     private String area_descripcion;
     private String cargo_descripcion;
     private String correo;
+    private String token;
     
     
 	public Integer getId_usuario() {
@@ -106,8 +107,14 @@ public class LoginResponseDTO {
 	public void setCorreo(String correo) {
 		this.correo = correo;
 	}
+	
+	
+	// getter y setter
+    public String getToken()
+    { return token; }
     
-    
+    public void setToken(String token)
+    { this.token = token; }  
     
     
  

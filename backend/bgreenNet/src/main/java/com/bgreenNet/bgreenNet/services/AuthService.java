@@ -1,6 +1,7 @@
 package com.bgreenNet.bgreenNet.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.sql.DataSource;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -10,24 +11,20 @@ import com.bgreenNet.bgreenNet.dto.LoginResponseDTO;
 import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService {
 
-	 private final JdbcTemplate jdbcTemplate;
-
-	    @Autowired
-	    public AuthService(JdbcTemplate jdbcTemplate) {
-	        this.jdbcTemplate = jdbcTemplate;
-	    }
-	    
-
-	    
+	private final JdbcTemplate jdbcTemplate ;
+	
+	
+    public AuthService(DataSource dataSource) {
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    }
 	    @SuppressWarnings("deprecation")
 		public LoginResponseDTO login(LoginRequestDTO request) {
-	        String sql = "{call sp_login_usuario(?, ?)}";
+	        String sql = "{call sp_login_usuario(?)}";
 
 	        return jdbcTemplate.queryForObject(sql,
-	            new Object[]{request.getUsuario(), request.getContrasena()},
+	            new Object[]{request.getUsuario()},
 	            (rs, rowNum) -> {
 	            	 LoginResponseDTO dto = new LoginResponseDTO();
 	                    dto.setId_usuario(rs.getInt("Id_usuario"));	                    

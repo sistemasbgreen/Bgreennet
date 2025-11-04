@@ -16,7 +16,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
 
-        config.setAllowedOriginPatterns(Arrays.asList("http://localhost:*", "https://tudominio.com"));
+        config.setAllowedOriginPatterns(Arrays.asList("http://localhost:*", "http://172.30.72.200"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
 

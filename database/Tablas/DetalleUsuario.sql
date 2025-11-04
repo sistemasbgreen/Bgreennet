@@ -11,11 +11,26 @@ VERSION  AUTHOR         DATE            Description
 ***************************/
 use BgreenNet_Dev;
 
-CREATE TABLE Modulo (
-    id_modulo INT IDENTITY(1,1) PRIMARY KEY,
-    nombre NVARCHAR(100) NOT NULL,
-    descripcion NVARCHAR(255) NULL,
-	date_create DATETIME NOT NULL DEFAULT GETDATE(),
-	date_Modify DATETIME NOT NULL DEFAULT GETDATE(),
-    activo BIT NOT NULL DEFAULT 1
+CREATE TABLE [dbo].[DetalleUsuario] (
+    [id_detalle_usuario] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [id_usuario_fk] INT NOT NULL,
+    [id_tipoidentificacion_fk] INT NOT NULL,
+    [identificacion] NVARCHAR(50) NOT NULL,
+    [nombre] NVARCHAR(100) NOT NULL,
+    [apellido] NVARCHAR(100) NOT NULL,
+    [razon_social] NVARCHAR(150) NOT NULL,
+    [correo] NVARCHAR(100) NOT NULL,
+    [celular] NVARCHAR(20) NOT NULL,
+    [activo] BIT NOT NULL DEFAULT 1,
+    [fecha_nacimiento] DATE NULL,
+    [date_create] DATETIME NOT NULL DEFAULT GETDATE(),
+    [date_modify] DATETIME NOT NULL DEFAULT GETDATE(),
+    [id_direccion_fk] INT NULL, -- <-- agregado si quieres relacionar con la tabla Direccion
+    CONSTRAINT [FK_DetalleUsuario_Usuario] FOREIGN KEY ([id_usuario_fk]) 
+        REFERENCES [dbo].[Usuario]([id_usuario]),
+    CONSTRAINT [FK_DetalleUsuario_TipoIdentificacion] FOREIGN KEY ([id_tipoidentificacion_fk]) 
+        REFERENCES [dbo].[TipoIdentificacion]([id_tipoidentificacion]),
+    CONSTRAINT [FK_DetalleUsuario_Direccion] FOREIGN KEY ([id_direccion_fk]) 
+        REFERENCES [dbo].[Direccion]([id_direccion])
 );
+
