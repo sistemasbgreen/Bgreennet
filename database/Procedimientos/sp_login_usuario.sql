@@ -11,9 +11,8 @@ VERSION  AUTHOR         DATE            Description
 ***************************/
 
 
-alter PROCEDURE sp_login_usuario
-    @usuario NVARCHAR(50),
-    @contrasena NVARCHAR(255)
+ALTER PROCEDURE [dbo].[sp_login_usuario]
+    @usuario NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -42,7 +41,5 @@ BEGIN
     LEFT JOIN DetalleUsuario du ON du.id_usuario_fk = u.id_usuario
     WHERE 
         u.usuario = @usuario
-        AND u.contrasena = @contrasena
         AND u.activo = 1;
 END;
-GO
