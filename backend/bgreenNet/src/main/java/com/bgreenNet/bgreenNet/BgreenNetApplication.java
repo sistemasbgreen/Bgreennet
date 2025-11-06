@@ -16,14 +16,16 @@ public class BgreenNetApplication {
 	@Bean
 	CommandLineRunner testJdbc(JdbcTemplate jdbcTemplate) {
 	    return args -> {
-	        System.out.println("✅ Probando conexión con la base de datos...");
+	        System.out.println("Probando conexión con la base de datos...");
 	        try {
 	            Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-	            System.out.println("✅ Conexión establecida correctamente, resultado: " + result);
+	            System.out.println("Conexión establecida correctamente, resultado: " + result);
 	        } catch (Exception e) {
-	            System.err.println("❌ Error al conectar con la base de datos: " + e.getMessage());
+	            System.err.println("Error al conectar con la base de datos: " + e.getMessage());
 	        }
 	    };
 	}
+	
+	
 
 }
