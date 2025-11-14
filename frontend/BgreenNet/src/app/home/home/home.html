@@ -1,19 +1,84 @@
-<div class="h-screen flex flex-col justify-center items-center bg-gray-100">
-      <h1 class="text-3xl font-bold text-gray-800 mb-8">Bienvenido al sistema</h1>
+<!DOCTYPE html>
+<html lang="es">
 
-      <div class="flex gap-4">
-        <button
-          class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-          (click)="irAUsuarios()">
-          Ir a Usuarios
-        </button>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BGREENNET</title>
 
+</head>
 
-         <button
-          class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-          (click)="logout()">
-         Salir
-        </button>
-        
+<body>
+  <header class="header">
+    <div class="logo-section">
+      <img src="http://172.30.72.200/Imagenes/Img/bgreen_Logo.jpg" width="100px" alt="">
+      <div class="stats">
+        <div class="stat-item">
+          <span>📊 TRM: $ 3,877.26</span>
+        </div>
+        <div class="stat-item">
+          <span>💰 CPD FEP: $ 4,929.994</span>
+        </div>
+        <div class="stat-item">
+          <span>📈 BTCD: $ 19,367.00</span>
+        </div>
       </div>
     </div>
+    <div class="brand">
+      <h1>BGREEN<span>NET</span></h1>
+    </div>
+    <div class="nav">
+      <a href="#">📧 Contactos</a>
+      <a href="#">📋 Formatos</a>
+      <span class="user-info">Bienvenido , {{ this.user }}</span>
+      <button class="search-btn">🔍</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section>
+      <img src="http://172.30.72.200/Imagenes/Img/JLF_1190%20(1).JPG" width="800px" height="500px" alt="">
+    </section>
+
+    <section>
+      <div class="apps-grid">
+        <div class="apps-container">
+
+          <div class="app-item">
+            <div class="app-icon m365">⊞</div>
+            <span class="app-name">Microsoft 365</span>
+          </div>
+
+          <div class="app-item">
+            <div class="app-icon outlook">📧</div>
+            <span class="app-name">Outlook</span>
+          </div>
+
+          <div *ngFor="let s of sistemaInformacionData" class="app-item">
+            <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="app-link">
+              <img [src]="s.imagenUrl" [alt]="s.nombre" width="100" height="100" />
+              <span class="app-name">{{ s.nombre }}</span>
+            </a>
+          </div>
+
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+
+</html>
+
+
+
+<div class="h-screen flex flex-col justify-center items-center bg-gray-100">
+
+  <div class="flex gap-4">
+    <button class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition" (click)="logout()">
+      Salir
+    </button>
+
+  </div>
+</div>
