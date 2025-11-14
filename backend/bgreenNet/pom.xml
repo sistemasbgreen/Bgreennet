@@ -94,7 +94,12 @@
 		    <version>0.11.5</version>
 		    <scope>runtime</scope>
 		</dependency>
-		
+
+		<dependency>
+			<groupId>com.bgreen</groupId>
+			<artifactId>BgreenBakend</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
     </dependencies>
 
     <build>
