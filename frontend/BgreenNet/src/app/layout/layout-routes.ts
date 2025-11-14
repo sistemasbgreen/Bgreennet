@@ -5,12 +5,17 @@ import { Home } from '../home/home/home';
 
 
 export const layoutRoutes: Routes = [
-  {
-    path: 'home',
-    component: Home // Página inicial sin layout
+   {
+    path: '',
+    redirectTo: 'home',
+    pathMatch: 'full'
   },
   {
-    path: '',
+    path: 'home',
+    component: Home 
+  },
+  {
+    path: 'app',
     component: Main,
     children: [
       {
