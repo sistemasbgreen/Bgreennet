@@ -4,6 +4,8 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
+
 
 
 export interface LoginRequest {
@@ -58,7 +60,7 @@ export class AuthService {
   login(credentials: LoginRequest): Observable<LoginResponse> {
     console.log('🔐 Intentando login:', credentials.usuario);
 
-    return this.http.post<LoginResponse>('/api/auth/login', credentials).pipe(
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/login`, credentials).pipe(
       tap(response => {
         console.log('✅ Login exitoso:', response);
         

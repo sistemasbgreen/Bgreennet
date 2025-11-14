@@ -51,7 +51,6 @@ public class AuthController {
 	        try {
 	            System.out.println("🔐 Intentando autenticar usuario: " + request.getUsuario());
 	            
-	            // ✅ Paso 1: Valida credenciales con Spring Security (usa BCrypt)
 	            authenticationManager.authenticate(
 	                new UsernamePasswordAuthenticationToken(
 	                    request.getUsuario(),
@@ -76,13 +75,11 @@ public class AuthController {
 	        }
 
 	        try {
-	            // ✅ Paso 2: Genera el token JWT
+	     
 	            UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getUsuario());
 	            String token = jwtUtil.generateToken(userDetails);
 	            
-	            System.out.println("🎫 Token generado exitosamente");
-
-	            // ✅ Paso 3: Obtiene datos completos del usuario
+	            System.out.println("🎫 Token generado exitosamente");	   
 	            LoginResponseDTO response = authService.login(request);
 	            response.setToken(token);
 	            
