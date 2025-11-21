@@ -46,7 +46,7 @@ public class BgreenNetApplication {
 	                    System.out.println("Versión: " + dbVersion);
 	                    System.out.println("Usuario: " + userName);
 	                    System.out.println("Base de datos actual: " + actualDatabaseName);
-	                    System.out.println("URL de conexión: " + url);
+
 	                }
 
 	            } catch (SQLException e) {

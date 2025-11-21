@@ -30,29 +30,39 @@
     <div class="nav">
       <a href="#">📧 Contactos</a>
       <a href="#">📋 Formatos</a>
-      <span class="user-info">Bienvenido , {{ this.user }}</span>
       <button class="search-btn">🔍</button>
+
+      <button class="user-avatar" (click)="toggleMenu()">
+        {{ initials }}
+      </button>
     </div>
   </header>
 
+     <div class="dropdown-menu" *ngIf="isMenuOpen">
+        <div class="headername">
+          <div class="avatar">{{ initials }}</div>
+          <div class="greeting">
+            <p>¡Hola, {{ fullName }}!</p>
+            <p>{{ nameempresa }}</p>
+          </div>
+        </div>
+        <div class="footer" (click)="logout()">
+          <span>→</span> Cerrar sesión
+        </div>
+      </div>
+
   <main class="main-content">
+
+<!--
     <section>
       <img src="http://172.30.72.200/Imagenes/Img/JLF_1190%20(1).JPG" width="800px" height="500px" alt="">
     </section>
+-->    
 
     <section>
       <div class="apps-grid">
         <div class="apps-container">
 
-          <div class="app-item">
-            <div class="app-icon m365">⊞</div>
-            <span class="app-name">Microsoft 365</span>
-          </div>
-
-          <div class="app-item">
-            <div class="app-icon outlook">📧</div>
-            <span class="app-name">Outlook</span>
-          </div>
 
           <div *ngFor="let s of sistemaInformacionData" class="app-item">
             <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="app-link">
@@ -67,18 +77,29 @@
     </section>
 
   </main>
+<footer>
+  <div class="carousel">
+    <img
+      *ngFor="let img of images"
+      [src]="img"
+      [alt]="'Imagen'"
+      (click)="openModal(img)"
+    />
+  </div>
+</footer>
+
+<!-- Modal -->
+<div
+  *ngIf="showModal"
+  class="modal"
+  (click)="onModalClick($event)"
+>
+  <span class="close" (click)="closeModal()">&times;</span>
+  <img [src]="selectedImage!" alt="Imagen ampliada" />
+</div>
+
 </body>
 
 </html>
 
 
-
-<div class="h-screen flex flex-col justify-center items-center bg-gray-100">
-
-  <div class="flex gap-4">
-    <button class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition" (click)="logout()">
-      Salir
-    </button>
-
-  </div>
-</div>

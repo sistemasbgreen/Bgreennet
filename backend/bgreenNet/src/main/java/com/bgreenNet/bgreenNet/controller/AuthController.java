@@ -11,7 +11,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,7 +48,7 @@ public class AuthController {
 	    @PostMapping("/login")
 	    public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
 	        try {
-	            System.out.println("🔐 Intentando autenticar usuario: " + request.getUsuario());
+	            System.out.println("Intentando autenticar usuario: " + request.getUsuario());
 	            
 	            authenticationManager.authenticate(
 	                new UsernamePasswordAuthenticationToken(
@@ -58,16 +57,16 @@ public class AuthController {
 	                )
 	            );
 	            
-	            System.out.println("✅ Autenticación exitosa");
+	            System.out.println("Autenticación exitosa");
 	            
 	        } catch (BadCredentialsException e) {
-	            System.err.println("❌ Credenciales inválidas para: " + request.getUsuario());
+	            System.err.println("Credenciales inválidas para: " + request.getUsuario());
 	            Map<String, String> error = new HashMap<>();
 	            error.put("error", "Usuario o contraseña incorrectos");
 	            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
 	            
 	        } catch (Exception e) {
-	            System.err.println("❌ Error de autenticación: " + e.getMessage());
+	            System.err.println("Error de autenticación: " + e.getMessage());
 	            e.printStackTrace();
 	            Map<String, String> error = new HashMap<>();
 	            error.put("error", "Error de autenticación: " + e.getMessage());
@@ -79,16 +78,16 @@ public class AuthController {
 	            UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getUsuario());
 	            String token = jwtUtil.generateToken(userDetails);
 	            
-	            System.out.println("🎫 Token generado exitosamente");	   
+	            System.out.println("Token generado exitosamente");	   
 	            LoginResponseDTO response = authService.login(request);
 	            response.setToken(token);
 	            
-	            System.out.println("✅ Login completado exitosamente para: " + request.getUsuario());
+	            System.out.println("Login completado exitosamente para: " + request.getUsuario());
 	            
 	            return ResponseEntity.ok(response);
 	            
 	        } catch (Exception e) {
-	            System.err.println("❌ Error al generar token o obtener datos: " + e.getMessage());
+	            System.err.println("Error al generar token o obtener datos: " + e.getMessage());
 	            e.printStackTrace();
 	            Map<String, String> error = new HashMap<>();
 	            error.put("error", "Error al procesar el login: " + e.getMessage());

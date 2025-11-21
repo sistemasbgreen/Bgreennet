@@ -1,41 +1,102 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
-import { Router } from "@angular/router";
+import { ChangeDetectorRef, Component, Injectable, OnInit } from '@angular/core';
+import { NavigationEnd, Router } from "@angular/router";
 import { ElementRef, HostListener, Inject, PLATFORM_ID, ViewChild } from '@angular/core';
 import { SistemaInformacion } from '../../models/sistemasinformacion';
 import { homeservices } from '../../servicios/homeservices';
 import { NgIf, NgForOf } from "@angular/common";
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Usuarios } from '../../modulos/configuracion/usuarios/usuarios';
+import { filter } from 'rxjs';
+
 
 @Component({
   selector: 'app-home',
- imports: [NgForOf, FormsModule, ReactiveFormsModule],
+  imports: [NgForOf, NgIf, FormsModule, ReactiveFormsModule],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
-export class Home  implements OnInit{
+export class Home implements OnInit {
+
+  @Injectable({
+    providedIn: 'root'
+  })
 
 
-  user: string = '';
+
+  fullName: string = '';
   sistemaInformacionData: SistemaInformacion[] = [];
+  sistemacontactosData: Usuarios[] = [];
+  subscription: any;
+  isMenuOpen = false;
+  nameempresa = '';
+  initials = '';
+
+  images = [
+    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso5.png',
+    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso14.png',
+    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso15.png',
+    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso10.png'
+  ];
+
+  selectedImage: string | null = null;
+  showModal = false;
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object, private router: Router,
-    private homeservice: homeservices) { }
+    private homeservice: homeservices,private cdr: ChangeDetectorRef) { }
 
   ngOnInit(): void {
-    this.guardarname();
     this.sistemasinformacion();
+    this.guardarname();
+    this.loadUserData();
+
+    this.subscription = this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      // Opcional: verifica que la ruta actual es la correcta
+      if (this.router.url === '/home' || this.router.url.startsWith('/home')) {
+        this.sistemasinformacion();
+      }
+    });
+  }
 
 
+  toggleMenu(): void {
+    this.isMenuOpen = !this.isMenuOpen;
+  }
+
+  logout(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    // Redirigir a login
+    window.location.href = '/login'; // o usa Router si prefieres
+  }
+
+
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
+  }
+
+
+
+  loadUserData(): void {
+    const userString = localStorage.getItem('usuario');
+
+    if (userString) {
+      const user = JSON.parse(userString);
+      this.fullName = `${user.nombre} ${user.apellido}`.toUpperCase();
+      this.nameempresa = user.empresa_descripcion || 'N/A';
+      this.initials = `${user.nombre.charAt(0)}${user.apellido.charAt(0)}`.toUpperCase();
+    }
   }
 
 
   irAUsuarios() {
-    this.router.navigate(['/configuracion/usuarios']);
+    this.router.navigate(['app/configuracion/usuarios']);
   }
 
 
-  logout() {
+  logout1() {
 
     console.log('Cerrando sesión...');
 
@@ -52,7 +113,7 @@ export class Home  implements OnInit{
 
       if (usuarioString) {
         const usuario = JSON.parse(usuarioString);
-        this.user = usuario.usuario; // 👈 Asignamos el nombre al atributo público
+        this.fullName = usuario.usuario; // Asignamos el nombre al atributo público
 
       } else {
         console.log('No se encontró el usuario en localStorage');
@@ -67,11 +128,39 @@ export class Home  implements OnInit{
     this.homeservice.getAll().subscribe({
       next: (data) => {
         this.sistemaInformacionData = data;
-        console.log(data)
+          this.cdr.detectChanges();
+          console.log(this.sistemaInformacionData)
       },
       error: (err) => console.error('Error al cargar sistemas de informacion', err)
     });
   }
 
+
+  openModal(imageSrc: string): void {
+    this.selectedImage = imageSrc;
+    this.showModal = true;
+  }
+
+  closeModal(): void {
+    this.showModal = false;
+    this.selectedImage = null;
+  }
+
+  /* Cerrar con tecla ESC
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent): void {
+    if (this.showModal) {
+      this.closeModal();
+    }
+  }
+    */
+
+  onModalClick(event: MouseEvent): void {
+    // Cierra solo si se hace clic en el fondo (no en la imagen)
+    const target = event.target as HTMLElement;
+    if (target.classList.contains('modal')) {
+      this.closeModal();
+    }
+  }
 
 }

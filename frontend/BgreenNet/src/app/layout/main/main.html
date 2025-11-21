@@ -1,2 +1,75 @@
-<p>main works!</p>
- 
+<div class="app-container">
+  <!-- Header -->
+<header class="header">
+  <!-- Icono del menú -->
+  <div class="menu-toggle" (click)="toggleSidebar()">
+    <i class="bi bi-list icon-menu"></i>
+  </div>
+
+  <!-- Logo -->
+  <div class="logo">
+    <i class="bi bi-speedometer2"></i> BGREEN
+  </div>
+
+  <!-- Menú desplegable del icono -->
+  <div class="menu-dropdown" *ngIf="isMenuDropdownOpen">
+    <button class="menu-option" (click)="goToHome()">
+      <i class="bi bi-house-door"></i> Inicio
+    </button>
+
+
+    <button class="menu-option" (click)="openReports()">
+      <i class="bi bi-bar-chart-line"></i> Reportes
+    </button>
+    <button class="menu-option" (click)="openSettings()">
+      <i class="bi bi-gear"></i> Configuración
+    </button>
+  </div>
+
+  <!-- Sección usuario -->
+  <div class="user-info">
+    
+ <span> {{ this.user }} </span>
+
+    <div class="user-dropdown" (click)="toggleUserMenu()" #userDropdown>
+      <i class="bi bi-person-circle icon-user"></i>
+      <div class="dropdown-menu" *ngIf="isUserMenuOpen">
+        <button (click)="logout()" class="dropdown-item">Cerrar Sesión</button>
+        <button (click)="changePassword()" class="dropdown-item">Cambio de Clave</button>
+        <button (click)="home()" class="dropdown-item">Home</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Contenedor principal con sidebar y contenido -->
+  <div class="main-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
+      <ul class="menu-list">
+        <li *ngFor="let modulo of modulos" class="menu-item" [class.expanded]="modulo.expandido">
+          <div class="menu-header" (click)="toggleSubmodulos(modulo)">
+            <i class="icon">{{ modulo.icono }}</i>
+            <span class="module-name" *ngIf="!isSidebarCollapsed">{{ modulo.nombre }}</span>
+            <i class="arrow" [class.down]="modulo.expandido">▼</i>
+          </div>
+          <ul *ngIf="modulo.expandido" class="submenu">
+            <li *ngFor="let sub of modulo.submodulos">
+              <a [routerLink]="['/', modulo.ruta, sub.ruta]" class="submenu-item">
+                {{ sub.nombre }}
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="content-wrapper">
+      <router-outlet></router-outlet>
+    </main>
+
+  </div>
+</div>

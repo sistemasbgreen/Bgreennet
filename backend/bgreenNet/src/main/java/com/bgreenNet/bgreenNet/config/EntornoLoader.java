@@ -16,8 +16,8 @@ public class EntornoLoader {
 	    public void init() {
 	        ConfiguracionEntorno entorno = entornoService.obtenerConfiguracionActiva();
 
-	        System.out.println("🔧 Entorno activo: " + entorno.getEntorno());
-	        System.out.println("📦 DB URL: " + entorno.getDbUrl());
+	        System.out.println("Entorno activo: " + entorno.getEntorno());
+	        System.out.println(" DB URL: " + entorno.getDbUrl());
 
 	        // Si deseas, puedes registrar estas propiedades en el entorno de Spring:
 	        System.setProperty("app.entorno", entorno.getEntorno());
