@@ -30,6 +30,8 @@ public class SecurityConfig {
 	            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 	            .authorizeHttpRequests(authz -> authz
 	                .requestMatchers("/api/auth/**").permitAll()
+	                .requestMatchers("/api/listas/**").permitAll()
+	                .requestMatchers("/api/home/**").permitAll()
 	                .anyRequest().authenticated()
 	            )
 	            .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);

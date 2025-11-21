@@ -20,7 +20,15 @@ public class LoginResponseDTO {
     private String area_descripcion;
     private String cargo_descripcion;
     private String correo;
-    private String token;
+    public String getCelular() {
+		return celular;
+	}
+	public void setCelular(String celular) {
+		this.celular = celular;
+	}
+
+	private String token;
+    private String celular;
     
     
 	public Integer getId_usuario() {

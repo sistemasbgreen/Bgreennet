@@ -18,7 +18,7 @@ public class TokenGenerator implements CommandLineRunner {
 	    @Override
 	    public void run(String... args) throws Exception {
 	        // Simula un usuario autenticado
-	        String username = "jangulo"; // ← Usa un nombre de usuario que exista en tu BD
+	        String username = "admin"; // ← Usa un nombre de usuario que exista en tu BD
 	        
 	        // Simula roles (debe coincidir con tu lógica de CustomUserDetailsService)
 	        var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"));
@@ -30,7 +30,7 @@ public class TokenGenerator implements CommandLineRunner {
 
 	        // Muestra el token en la consola
 	        System.out.println("==================================================");
-	        System.out.println("🔐 TOKEN JWT GENERADO PARA PRUEBAS:");
+	        System.out.println("TOKEN JWT GENERADO PARA PRUEBAS:");
 	        System.out.println(token);
 	        System.out.println("==================================================");
 	        System.out.println("Usa este token en Postman con:");

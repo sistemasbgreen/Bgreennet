@@ -17,7 +17,8 @@ public class SistemasInformacionService {
     private SistemaInformacionRepository repository;
 
     public List<SistemasInformacion> getAll() {
-        return repository.findAll();
+        // return repository.findAll();
+        return repository.findByActivoTrue();
     }
 
     public List<SistemasInformacion> getActivos() {
