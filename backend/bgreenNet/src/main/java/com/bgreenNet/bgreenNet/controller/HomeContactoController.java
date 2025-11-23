@@ -1,10 +1,14 @@
 package com.bgreenNet.bgreenNet.controller;
 
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bgreenNet.bgreenNet.models.HomeContacto;
+import com.bgreenNet.bgreenNet.models.Perfil;
 import com.bgreenNet.bgreenNet.services.HomeContactoService;
 
 @RestController
@@ -19,7 +23,9 @@ public class HomeContactoController {
 
 	    @GetMapping("/contacto")
 	    public HomeContacto getContacto() {
+            System.out.println("contactos " + service.getContacto());
 	        return service.getContacto();
 	    }
 	    
+
 }

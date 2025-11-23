@@ -8,6 +8,7 @@ import { NgIf, NgForOf } from "@angular/common";
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Usuarios } from '../../modulos/configuracion/usuarios/usuarios';
 import { filter } from 'rxjs';
+import { Usuario } from '../../models/usuario';
 
 
 @Component({
@@ -18,19 +19,17 @@ import { filter } from 'rxjs';
 })
 export class Home implements OnInit {
 
-  @Injectable({
-    providedIn: 'root'
-  })
-
-
-
   fullName: string = '';
   sistemaInformacionData: SistemaInformacion[] = [];
-  sistemacontactosData: Usuarios[] = [];
+  sistemacontactosData: any[] = [];
   subscription: any;
   isMenuOpen = false;
   nameempresa = '';
   initials = '';
+  isModalOpen = false;
+  modalTitle = '';
+  modalType: any;
+  modalData: any = [];
 
   images = [
     'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso5.png',
@@ -41,44 +40,154 @@ export class Home implements OnInit {
 
   selectedImage: string | null = null;
   showModal = false;
+  formatosData: any = [];
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object, private router: Router,
-    private homeservice: homeservices,private cdr: ChangeDetectorRef) { }
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private router: Router,
+    private homeservice: homeservices,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
     this.sistemasinformacion();
     this.guardarname();
     this.loadUserData();
 
+    // Cargar contactos al inicio
+    this.cargarContactosIniciales();
+
     this.subscription = this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
-      // Opcional: verifica que la ruta actual es la correcta
       if (this.router.url === '/home' || this.router.url.startsWith('/home')) {
         this.sistemasinformacion();
       }
     });
   }
 
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
+  }
 
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
   }
 
-  logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-    // Redirigir a login
-    window.location.href = '/login'; // o usa Router si prefieres
+  // ========================================
+  // GESTIÓN DE MODALES
+  // ========================================
+  openModalformatos(type: string) {
+    this.modalType = type;
+    
+    if (type === 'contactos') {
+      this.modalTitle = 'Directorio de Contactos';
+      // Si no hay datos cargados, cargarlos
+      if (this.sistemacontactosData.length === 0) {
+        this.contactos();
+      }
+    } else if (type === 'formatos') {
+      this.modalTitle = 'Lista de Formatos';
+      this.cargarFormatos();
+    }
+    
+    // Abrir el modal
+    this.isModalOpen = true;
   }
 
-
-  ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
+  closeModalformatos() {
+    this.isModalOpen = false;
   }
 
+  // ========================================
+  // CARGA DE DATOS
+  // ========================================
+  cargarContactosIniciales(): void {
+    this.homeservice.contactos().subscribe({
+      next: (response) => {
+        console.log("RESPUESTA CONTACTOS INICIALES => ", response);
+        this.sistemacontactosData = Array.isArray(response) ? response : [response];
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cargar contactos iniciales', err);
+        this.sistemacontactosData = [];
+      }
+    });
+  }
 
+  contactos(): void {
+    this.homeservice.contactos().subscribe({
+      next: (data) => {
+        this.sistemacontactosData = Array.isArray(data) ? data : [data];
+        this.cdr.detectChanges();
+        console.log('Contactos cargados para modal:', this.sistemacontactosData);
+      },
+      error: (err) => {
+        console.error('Error al cargar los contactos', err);
+        this.sistemacontactosData = [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
+  cargarFormatos() {
+    // Si tienes un servicio real, descomenta esto:
+    // this.homeservice.formatos().subscribe({
+    //   next: (data) => {
+    //     this.formatosData = Array.isArray(data) ? data : [data];
+    //     this.cdr.detectChanges();
+    //   },
+    //   error: (err) => {
+    //     console.error('Error al cargar formatos', err);
+    //     this.formatosData = [];
+    //   }
+    // });
+
+    // Datos de ejemplo mientras tanto:
+    this.formatosData = [
+      { 
+        nombre: 'Solicitud de Vacaciones', 
+        descripcion: 'Formato para solicitar días de vacaciones',
+        url: '/assets/formatos/vacaciones.pdf' 
+      },
+      { 
+        nombre: 'Reporte de Gastos', 
+        descripcion: 'Formato para reportar gastos de viaje y representación',
+        url: '/assets/formatos/gastos.pdf' 
+      },
+      { 
+        nombre: 'Permiso Laboral', 
+        descripcion: 'Formato para solicitar permisos temporales',
+        url: '/assets/formatos/permisos.pdf' 
+      },
+      { 
+        nombre: 'Certificado Laboral', 
+        descripcion: 'Solicitud de certificado laboral',
+        url: '/assets/formatos/certificado.pdf' 
+      },
+      { 
+        nombre: 'Formato de Incapacidad', 
+        descripcion: 'Reporte de incapacidad médica',
+        url: '/assets/formatos/incapacidad.pdf' 
+      }
+    ];
+    this.cdr.detectChanges();
+  }
+
+  sistemasinformacion(): void {
+    this.homeservice.getAll().subscribe({
+      next: (data) => {
+        this.sistemaInformacionData = data;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error al cargar sistemas de información', err)
+    });
+  }
+
+  // ========================================
+  // GESTIÓN DE USUARIO
+  // ========================================
   loadUserData(): void {
     const userString = localStorage.getItem('usuario');
 
@@ -90,31 +199,13 @@ export class Home implements OnInit {
     }
   }
 
-
-  irAUsuarios() {
-    this.router.navigate(['app/configuracion/usuarios']);
-  }
-
-
-  logout1() {
-
-    console.log('Cerrando sesión...');
-
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-
-    this.router.navigate(['/login']);
-  }
-
   guardarname() {
-    // Verificamos que el código se ejecuta en el navegador
     if (isPlatformBrowser(this.platformId)) {
       const usuarioString = localStorage.getItem('usuario');
 
       if (usuarioString) {
         const usuario = JSON.parse(usuarioString);
-        this.fullName = usuario.usuario; // Asignamos el nombre al atributo público
-
+        this.fullName = usuario.usuario;
       } else {
         console.log('No se encontró el usuario en localStorage');
       }
@@ -123,19 +214,26 @@ export class Home implements OnInit {
     }
   }
 
-
-  sistemasinformacion(): void {
-    this.homeservice.getAll().subscribe({
-      next: (data) => {
-        this.sistemaInformacionData = data;
-          this.cdr.detectChanges();
-          console.log(this.sistemaInformacionData)
-      },
-      error: (err) => console.error('Error al cargar sistemas de informacion', err)
-    });
+  logout(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    window.location.href = '/login';
   }
 
+  logout1() {
+    console.log('Cerrando sesión...');
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    this.router.navigate(['/login']);
+  }
 
+  irAUsuarios() {
+    this.router.navigate(['app/configuracion/usuarios']);
+  }
+
+  // ========================================
+  // MODAL DE IMÁGENES
+  // ========================================
   openModal(imageSrc: string): void {
     this.selectedImage = imageSrc;
     this.showModal = true;
@@ -146,21 +244,10 @@ export class Home implements OnInit {
     this.selectedImage = null;
   }
 
-  /* Cerrar con tecla ESC
-  @HostListener('document:keydown.escape', ['$event'])
-  onEscapeKey(event: KeyboardEvent): void {
-    if (this.showModal) {
-      this.closeModal();
-    }
-  }
-    */
-
   onModalClick(event: MouseEvent): void {
-    // Cierra solo si se hace clic en el fondo (no en la imagen)
     const target = event.target as HTMLElement;
     if (target.classList.contains('modal')) {
       this.closeModal();
     }
   }
-
 }

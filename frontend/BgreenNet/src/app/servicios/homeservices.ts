@@ -4,6 +4,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { SistemaInformacion } from '../models/sistemasinformacion';
+import { Usuario } from '../models/usuario';
 
 
 
@@ -14,6 +15,7 @@ import { SistemaInformacion } from '../models/sistemasinformacion';
 export class homeservices {
 
   private baseUrl = `${environment.apiUrl}/api/sistemasinformacion`;
+    private urlrecursos = `${environment.apiUrl}/api/home/contacto`;
 
   headers = new HttpHeaders({
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -47,6 +49,10 @@ export class homeservices {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
+
+   contactos(): Observable<Usuario[]> {
+    return this.http.get<Usuario[]>(this.urlrecursos, { headers: this.headers });
+  }
 
 
 }
