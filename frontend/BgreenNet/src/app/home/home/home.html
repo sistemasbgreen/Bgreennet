@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BGREENNET</title>
+  <title>BGREENNET - Sistema Completo</title>
 
 </head>
 
@@ -27,79 +27,185 @@
     <div class="brand">
       <h1>BGREEN<span>NET</span></h1>
     </div>
-    <div class="nav">
-      <a href="#">📧 Contactos</a>
-      <a href="#">📋 Formatos</a>
-      <button class="search-btn">🔍</button>
 
+    <div class="nav">
+      <a (click)="openModalformatos('contactos')">📧 Contactos</a>
+      <a (click)="openModalformatos('formatos')">📋 Formatos</a>
+      <button class="search-btn">🔍</button>
       <button class="user-avatar" (click)="toggleMenu()">
         {{ initials }}
       </button>
     </div>
+
+    <!-- Modal Mejorado -->
+    <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModalformatos()">
+      <div class="modal-container" (click)="$event.stopPropagation()">
+        
+        <!-- Header del Modal -->
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-icon">
+              <span *ngIf="modalType === 'contactos'">📧</span>
+              <span *ngIf="modalType === 'formatos'">📋</span>
+            </div>
+            <h2 class="modal-title">{{ modalTitle }}</h2>
+          </div>
+          <button class="btn-close" (click)="closeModalformatos()">
+            ×
+          </button>
+        </div>
+
+        <!-- Cuerpo del Modal -->
+        <div class="modal-body">
+          
+          <!-- Tabla de Contactos -->
+          <div *ngIf="modalType === 'contactos'">
+            <table class="tabla-contactos" *ngIf="sistemacontactosData.length > 0">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Cargo</th>
+                  <th>Correo</th>
+                  <th>Extensión</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let contacto of sistemacontactosData; let i = index">
+                  <td>
+                    <div class="nombre-cell">
+                      <div class="avatar avatar-{{(i % 5) + 1}}">
+                        {{ contacto.nombre?.charAt(0) || '?' }}
+                      </div>
+                      <div class="nombre-info">
+                        <strong>{{ contacto.nombre }}</strong>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="cargo-badge">{{ contacto.cargo }}</span>
+                  </td>
+                  <td>
+                    <a [href]="'mailto:' + contacto.correo" class="correo-link">
+                      <span>✉</span>
+                      {{ contacto.correo }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="ext-badge">
+                      <span>📞</span>
+                      {{ contacto.ext }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Estado vacío -->
+            <div class="empty-state" *ngIf="sistemacontactosData.length === 0">
+              <div class="empty-state-icon">📭</div>
+              <p>No hay contactos disponibles en este momento</p>
+            </div>
+          </div>
+
+          <!-- Tabla de Formatos -->
+          <div *ngIf="modalType === 'formatos'">
+            <table class="tabla-contactos" *ngIf="formatosData.length > 0">
+              <thead>
+                <tr>
+                  <th>Formato</th>
+                  <th>Descripción</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let formato of formatosData; let i = index">
+                  <td>
+                    <div class="nombre-cell">
+                      <div class="avatar avatar-{{(i % 5) + 1}}">
+                        📄
+                      </div>
+                      <div class="nombre-info">
+                        <strong>{{ formato.nombre }}</strong>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ formato.descripcion || 'Documento descargable' }}</td>
+                  <td>
+                    <a [href]="formato.url" target="_blank" class="formato-link">
+                      <span>⬇</span>
+                      Descargar
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Estado vacío -->
+            <div class="empty-state" *ngIf="formatosData.length === 0">
+              <div class="empty-state-icon">📂</div>
+              <p>No hay formatos disponibles en este momento</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer del Modal -->
+        <div class="modal-footer">
+          <span class="footer-info">
+            <strong *ngIf="modalType === 'contactos'">{{ sistemacontactosData.length }}</strong>
+            <strong *ngIf="modalType === 'formatos'">{{ formatosData.length }}</strong>
+            {{ modalType === 'contactos' ? 'contacto(s)' : 'formato(s)' }} disponible(s)
+          </span>
+          <button class="btn-cerrar" (click)="closeModalformatos()">
+            Cerrar
+          </button>
+        </div>
+
+      </div>
+    </div>
+
   </header>
 
-     <div class="dropdown-menu" *ngIf="isMenuOpen">
-        <div class="headername">
-          <div class="avatar">{{ initials }}</div>
-          <div class="greeting">
-            <p>¡Hola, {{ fullName }}!</p>
-            <p>{{ nameempresa }}</p>
-          </div>
-        </div>
-        <div class="footer" (click)="logout()">
-          <span>→</span> Cerrar sesión
-        </div>
+  <div class="dropdown-menu" *ngIf="isMenuOpen">
+    <div class="headername">
+      <div class="avatar">{{ initials }}</div>
+      <div class="greeting">
+        <p>¡Hola, {{ fullName }}!</p>
+        <p>{{ nameempresa }}</p>
       </div>
+    </div>
+    <div class="footer" (click)="logout()">
+      <span>→</span> Cerrar sesión
+    </div>
+  </div>
 
   <main class="main-content">
-
-<!--
-    <section>
-      <img src="http://172.30.72.200/Imagenes/Img/JLF_1190%20(1).JPG" width="800px" height="500px" alt="">
-    </section>
--->    
-
     <section>
       <div class="apps-grid">
         <div class="apps-container">
-
-
           <div *ngFor="let s of sistemaInformacionData" class="app-item">
             <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="app-link">
               <img [src]="s.imagenUrl" [alt]="s.nombre" width="100" height="100" />
               <span class="app-name">{{ s.nombre }}</span>
             </a>
           </div>
-
-
         </div>
       </div>
     </section>
-
   </main>
-<footer>
-  <div class="carousel">
-    <img
-      *ngFor="let img of images"
-      [src]="img"
-      [alt]="'Imagen'"
-      (click)="openModal(img)"
-    />
-  </div>
-</footer>
 
-<!-- Modal -->
-<div
-  *ngIf="showModal"
-  class="modal"
-  (click)="onModalClick($event)"
->
-  <span class="close" (click)="closeModal()">&times;</span>
-  <img [src]="selectedImage!" alt="Imagen ampliada" />
-</div>
+  <footer>
+    <div class="carousel">
+      <img *ngFor="let img of images" [src]="img" [alt]="'Imagen'" (click)="openModal(img)" />
+    </div>
+  </footer>
+
+  <!-- Modal de imágenes -->
+  <div *ngIf="showModal" class="modal" (click)="onModalClick($event)">
+    <span class="close" (click)="closeModal()">&times;</span>
+    <img [src]="selectedImage!" alt="Imagen ampliada" />
+  </div>
 
 </body>
 
 </html>
-
-
