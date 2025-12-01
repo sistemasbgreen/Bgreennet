@@ -250,4 +250,13 @@ export class Home implements OnInit {
       this.closeModal();
     }
   }
+
+  
+
+
+
+
+
+
+
 }
