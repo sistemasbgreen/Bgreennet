@@ -9,6 +9,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Usuarios } from '../../modulos/configuracion/usuarios/usuarios';
 import { filter } from 'rxjs';
 import { Usuario } from '../../models/usuario';
+import { Console } from 'console';
 
 
 @Component({
@@ -228,6 +229,7 @@ export class Home implements OnInit {
   }
 
   irAUsuarios() {
+   console.log('Activo')
     this.router.navigate(['app/configuracion/usuarios']);
   }
 

@@ -1,1 +1,264 @@
-<p>usuarios works!</p>
+<div class="container-usuarios">
+  <div class="header-section">
+    <h2><i class="bi bi-people-fill"></i> Gestión de Usuarios</h2>
+    <button class="btn-crear" (click)="openCrearModal()">
+      <i class="bi bi-plus-circle"></i> Crear Usuario
+    </button>
+  </div>
+
+  <!-- Tabla de usuarios -->
+  <div class="table-container">
+    <table class="table-usuarios">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Nombre Completo</th>
+          <th>Correo</th>
+          <th>Empresa</th>
+          <th>Perfil</th>
+          <th>Área</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of usuarios" class="table-row">
+          <td class="usuario-column">
+            <i class="bi bi-person-circle"></i> {{ u.usuario }}
+          </td>
+          <td>{{ u.nombre }} {{ u.apellido }}</td>
+          <td class="email-column">{{ u.correo }}</td>
+          <td>{{ u.descripcionEmpresa }}</td>
+          <td>{{ u.descripcionPerfil }}</td>
+          <td><span class="area-badge">{{ u.descripcionArea }}</span></td>
+          <td>
+            <span class="badge" [class.badge-activo]="u.estado" [class.badge-inactivo]="!u.estado">
+              {{ u.estado ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-editar" (click)="abrirEditarModal(u)" title="Editar usuario">
+                <i class="bi bi-pencil-fill">Editar</i>
+              </button>
+              <button class="btn-eliminar" (click)="eliminar(u.idUsuario!)" title="Eliminar usuario">
+                <i class="bi bi-trash-fill">Delete</i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="usuarios.length === 0">
+          <td colspan="7" class="no-data">
+            <i class="bi bi-inbox"></i>
+            <p>No hay usuarios registrados</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal de Crear/Editar Usuario -->
+<div class="modal-overlay" *ngIf="showModal" (click)="cerrarModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="bi" [class.bi-person-plus-fill]="!isEditMode" [class.bi-pencil-square]="isEditMode"></i>
+        {{ isEditMode ? 'Editar Usuario' : 'Crear Nuevo Usuario' }}
+      </h3>
+      <button type="button" class="btn-close" (click)="cerrarModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <form [formGroup]="usuarioForm" (ngSubmit)="onSubmit()">
+        <div class="form-grid">
+          <!-- Columna Izquierda -->
+          <div class="form-column">
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-person"></i> Usuario *
+              </label>
+              <input formControlName="usuario" type="text" class="form-input" placeholder="Ingrese nombre de usuario"
+                [class.input-invalid]="f['usuario'].touched && f['usuario'].invalid">
+              <span class="error-message" *ngIf="f['usuario'].touched && f['usuario'].errors?.['required']">
+                El usuario es requerido
+              </span>
+              <span class="error-message" *ngIf="f['usuario'].touched && f['usuario'].errors?.['minlength']">
+                Mínimo 4 caracteres
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-lock"></i> Contraseña {{ isEditMode ? '' : '*' }}
+              </label>
+              <input formControlName="contrasena" type="password" class="form-input"
+                [placeholder]="isEditMode ? 'Dejar vacío para mantener actual' : 'Mínimo 6 caracteres'"
+                [class.input-invalid]="f['contrasena'].touched && f['contrasena'].invalid">
+              <span class="error-message" *ngIf="f['contrasena'].touched && f['contrasena'].errors?.['required']">
+                La contraseña es requerida
+              </span>
+              <span class="error-message" *ngIf="f['contrasena'].touched && f['contrasena'].errors?.['minlength']">
+                Mínimo 6 caracteres
+              </span>
+            </div>
+            <!--
+          
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-briefcase"></i> Área *
+              </label>
+              <input formControlName="area" type="text" class="form-input"
+                placeholder="Ej: Recursos Humanos"
+                [class.input-invalid]="f['area'].touched && f['area'].invalid">
+              <span class="error-message" *ngIf="f['area'].touched && f['area'].invalid">
+                El área es requerida
+              </span>
+            </div>
+  -->
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-shield-check"></i> Area *
+              </label>
+              <select formControlName="id_area_fk" class="form-select">
+                <option *ngFor="let a of areas" [value]="a.idArea">{{ a.descripcionArea }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-shield-check"></i> Perfil *
+              </label>
+              <select formControlName="id_perfil_fk" class="form-select">
+                <option *ngFor="let p of perfiles" [value]="p.idPerfil">{{ p.descripcionPerfil }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-building"></i> Empresa *
+              </label>
+              <select formControlName="id_empresa_fk" class="form-select">
+                <option *ngFor="let e of empresas" [value]="e.idEmpresa">{{ e.descripcionEmpresa }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-file-text"></i> Razón Social
+              </label>
+              <input formControlName="razon_social" type="text" class="form-input" placeholder="Opcional">
+            </div>
+          </div>
+
+          <!-- Columna Derecha -->
+          <div class="form-column">
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-card-text"></i> Identificación *
+              </label>
+              <input formControlName="identificacion" type="text" class="form-input" placeholder="Solo números"
+                [class.input-invalid]="f['identificacion'].touched && f['identificacion'].invalid">
+              <span class="error-message" *ngIf="f['identificacion'].touched && f['identificacion'].invalid">
+                Solo se permiten números
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-person-badge"></i> Tipo Identificación *
+              </label>
+              <select formControlName="id_TipoIdentificacion" class="form-select">
+                <option *ngFor="let t of tiposIdentificacion" [value]="t.idTipoIdentificacion">{{ t.descripcion }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-fonts"></i> Nombre *
+              </label>
+              <input formControlName="nombre" type="text" class="form-input" placeholder="Solo letras"
+                [class.input-invalid]="f['nombre'].touched && f['nombre'].invalid">
+              <span class="error-message" *ngIf="f['nombre'].touched && f['nombre'].invalid">
+                Solo se permiten letras
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-fonts"></i> Apellido *
+              </label>
+              <input formControlName="apellido" type="text" class="form-input" placeholder="Solo letras"
+                [class.input-invalid]="f['apellido'].touched && f['apellido'].invalid">
+              <span class="error-message" *ngIf="f['apellido'].touched && f['apellido'].invalid">
+                Solo se permiten letras
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-envelope"></i> Correo *
+              </label>
+              <input formControlName="correo" type="email" class="form-input" placeholder="usuario@ejemplo.com"
+                [class.input-invalid]="f['correo'].touched && f['correo'].invalid">
+              <span class="error-message" *ngIf="f['correo'].touched && f['correo'].invalid">
+                Ingrese un correo válido
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-phone"></i> Celular *
+              </label>
+              <input formControlName="celular" type="text" class="form-input" placeholder="3001234567"
+                [class.input-invalid]="f['celular'].touched && f['celular'].invalid">
+              <span class="error-message" *ngIf="f['celular'].touched && f['celular'].invalid">
+                Ingrese un número válido (10-15 dígitos)
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-calendar-event"></i> Fecha Nacimiento *
+              </label>
+              <input formControlName="fechaNacimiento" type="date" class="form-input"
+                [class.input-invalid]="f['fechaNacimiento'].touched && f['fechaNacimiento'].invalid">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-award"></i> Cargo *
+              </label>
+              <select formControlName="id_cargo_fk" class="form-select">
+                <option *ngFor="let c of cargos" [value]="c.idCargo">{{ c.descripcionCargo }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-checkbox">
+                <input formControlName="estado" type="checkbox" class="checkbox-input">
+                <span class="checkbox-label">
+                  <i class="bi bi-check-circle"></i> Usuario Activo
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" (click)="cerrarModal()">
+            <i class="bi bi-x-circle"></i> Cancelar
+          </button>
+          <button type="submit" class="btn-guardar" [disabled]="usuarioForm.invalid">
+            <i class="bi" [class.bi-check-circle]="!isEditMode" [class.bi-arrow-repeat]="isEditMode"></i>
+            {{ isEditMode ? 'Actualizar Usuario' : 'Crear Usuario' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
