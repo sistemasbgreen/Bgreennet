@@ -27,8 +27,8 @@ public class TipoIdentificacion {
     @Column(name = "descripcion", nullable = false)
     private String descripcion;
 
-    @Column(name = "estado", nullable = false)
-    private Integer estado = 1;
+    @Column(name = "activo", nullable = false)
+    private Integer activo= 1;
 
 	public Integer getIdTipoIdentificacion() {
 		return idTipoIdentificacion;
@@ -46,12 +46,12 @@ public class TipoIdentificacion {
 		this.descripcion = descripcion;
 	}
 
-	public Integer getEstado() {
-		return estado;
+	public Integer getActivo() {
+		return activo;
 	}
 
-	public void setEstado(Integer estado) {
-		this.estado = estado;
+	public void setEstado(Integer activo) {
+		this.activo = activo;
 	}
 
 }

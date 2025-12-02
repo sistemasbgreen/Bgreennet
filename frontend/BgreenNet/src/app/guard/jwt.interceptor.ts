@@ -6,40 +6,26 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from '../auth/authservices';
 
 
+
 @Injectable()
 export class JwtInterceptor implements HttpInterceptor {
 
-  constructor(
-    private authService: AuthService,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  constructor(private authService: AuthService) {}
 
-  intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    
-    // Solo agregar token en el navegador
-    if (isPlatformBrowser(this.platformId)) {
-      const token = this.authService.getToken();
-      
-      // Si existe token y NO es la petición de login, agregar header Authorization
-      if (token && !request.url.includes('/auth/login')) {
-        request = request.clone({
-          setHeaders: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        console.log('🔑 Token agregado al request:', request.url);
-      }
+  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+
+    const token = this.authService.getToken();
+
+    if (token && !request.url.includes('/auth/login')) {
+      request = request.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      console.log('🔑 Token agregado:', token);
     }
 
-    return next.handle(request).pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
-          // Token inválido o expirado
-          console.error('❌ Error 401: Token inválido o expirado');
-          this.authService.logout();
-        }
-        return throwError(() => error);
-      })
-    );
+    return next.handle(request);
   }
 }

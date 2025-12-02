@@ -12,23 +12,24 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class CorsConfig {
 	
 	@Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
+	public CorsConfigurationSource corsConfigurationSource() {
+	    CorsConfiguration config = new CorsConfiguration();
+	    config.setAllowCredentials(false); //
 
-        config.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:*",          
-                "https://infos.bgreen.com.co",      
-                "https://infos.bgreen.com.co:*",   
-                "http://172.30.72.200"
-            ));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("*"));
+	
+	    config.setAllowedOrigins(Arrays.asList(
+	        "http://localhost:4200",          // Dpp Angular en desarrollo
+	        "https://infos.bgreen.com.co",    // Dominio en producción
+	        "http://172.30.72.200"
+	    ));
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+	    config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+	    config.setAllowedHeaders(Arrays.asList("*"));
+
+	    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+	    source.registerCorsConfiguration("/**", config);
+	    return source;
+	}
 	
 
 }

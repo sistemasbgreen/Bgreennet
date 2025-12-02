@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { environment } from "../../environments/environment";
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { Usuario } from "../models/usuario";
 import { Observable } from "rxjs";
 import { CrearUsuario } from "../models/CrearUsuario";
@@ -21,10 +21,10 @@ export class UsuarioService {
     return this.http.get<Usuario[]>(this.baseUrl+'/listar');
   }
 
-  // Crear un nuevo usuario
-  createUsuario(usuario: CrearUsuario): Observable<CrearUsuario> {
-    return this.http.post<CrearUsuario>(this.baseUrl+'/crear', usuario);
-  }
+// Crear un nuevo usuario
+createUsuario(usuario: CrearUsuario): Observable<CrearUsuario> {
+  return this.http.post<CrearUsuario>(this.baseUrl + '/crear', usuario);
+}
 
   // Obtener usuario por ID
   getUsuarioById(id: number): Observable<Usuario> {

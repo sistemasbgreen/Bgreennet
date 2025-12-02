@@ -99,7 +99,6 @@
                 </tr>
               </tbody>
             </table>
-
             <!-- Estado vacío -->
             <div class="empty-state" *ngIf="sistemacontactosData.length === 0">
               <div class="empty-state-icon">📭</div>
@@ -107,7 +106,7 @@
             </div>
           </div>
 
-          <!-- Tabla de Formatos -->
+          <!-- Tabla de Formatos --> 
           <div *ngIf="modalType === 'formatos'">
             <table class="tabla-contactos" *ngIf="formatosData.length > 0">
               <thead>
@@ -174,9 +173,13 @@
         <p>{{ nameempresa }}</p>
       </div>
     </div>
+     <div class="footer" (click)="irAUsuarios()">
+      <span>→</span> Configuración
+    </div>
     <div class="footer" (click)="logout()">
       <span>→</span> Cerrar sesión
     </div>
+
   </div>
 
   <main class="main-content">

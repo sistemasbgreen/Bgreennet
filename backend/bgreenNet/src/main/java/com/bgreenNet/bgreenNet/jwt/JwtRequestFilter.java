@@ -10,79 +10,88 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.bgreenNet.bgreenNet.services.CustomUserDetailsService;
 
-import io.jsonwebtoken.io.IOException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
 
-	 @Autowired
-	    private JwtUtil jwtUtil;
+    @Autowired
+    private JwtUtil jwtUtil;
 
-	    @Autowired
-	    private CustomUserDetailsService customUserDetailsService;
-	    
-	    private static final String[] EXCLUDED_PATHS = {
-	            "/api/auth/login",
-	            "/api/auth/register",
-	            "/api/home/contacto",
-	          //  "/api/usuarios/crear"
-	        };
-	    
-	    @Override
-	    protected boolean shouldNotFilter(HttpServletRequest request) {
-	        String path = request.getRequestURI();
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
 
-	        for (String excluded : EXCLUDED_PATHS) {
-	            if (path.equals(excluded)) {
-	                return true;  // No aplicar el filtro en esta ruta
-	            }
-	        }
+    // Rutas públicas: las que terminan con "/" se tratan como prefijos,
+    // las demás se tratan como rutas exactas.
+    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
+        "/api/auth/",          
+        "/api/listas/",         
+        "/api/home/contacto",
+        "/api/usuarios/"
+    );
 
-	        return false; // Aplicar filtro al resto
-	    }
-	    
-	    
-	    @Override
-	    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-	            throws ServletException, java.io.IOException {
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
 
-	        final String authorizationHeader = request.getHeader("Authorization");
-	        String username = null;
-	        String jwt = null;
+        for (String excluded : EXCLUDED_PATHS) {
+            if (excluded.endsWith("/")) {
+                if (path.startsWith(excluded)) {
+                    // ✅ Limpia cualquier autenticación previa
+                    SecurityContextHolder.clearContext();
+                    return true;
+                }
+            } else {
+                if (path.equals(excluded)) {
+                    SecurityContextHolder.clearContext();
+                    return true;
+                }
+            }
+        }
 
-	        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-	            jwt = authorizationHeader.substring(7);
-	            try {
-	                username = jwtUtil.extractUsername(jwt);
-	            } catch (Exception e) {
-	                System.out.println("❌ Error token: " + e.getMessage());
-	            }
-	        }
+        return false;
+    }
 
-	        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-	            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, java.io.IOException {
 
-	            if (jwtUtil.validateToken(jwt, userDetails)) {
-	                UsernamePasswordAuthenticationToken authToken =
-	                        new UsernamePasswordAuthenticationToken(
-	                                userDetails, null, userDetails.getAuthorities()
-	                        );
-	                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-	                SecurityContextHolder.getContext().setAuthentication(authToken);
-	            }
-	        }
+        final String authorizationHeader = request.getHeader("Authorization");
+        String username = null;
+        String jwt = null;
 
-	        chain.doFilter(request, response);
-	    }
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            jwt = authorizationHeader.substring(7);
+            try {
+                username = jwtUtil.extractUsername(jwt);
+            } catch (Exception e) {
+                System.out.println("❌ Error al procesar el token JWT: " + e.getMessage());
+            }
+        }
 
+        // Si ya hay un usuario autenticado, no hacer nada
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 
+                if (jwtUtil.validateToken(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                        );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception e) {
+                System.out.println("❌ Error al cargar el usuario o validar el token: " + e.getMessage());
+            }
+        }
 
-
-	   
-
+        chain.doFilter(request, response);
+    }
 }
-
