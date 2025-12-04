@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-main',
-imports: [LayoutRoutingModule, FormsModule, CommonModule, NgFor, NgIf, RouterOutlet, NgForOf, RouterLink],
+imports: [FormsModule, CommonModule, RouterOutlet, NgForOf, RouterLink],
   templateUrl: './main.html',
   styleUrl: './main.css',
 })
@@ -15,31 +15,28 @@ export class Main {
    isSidebarCollapsed = false;
    isMenuDropdownOpen = false;
 
-
-
-   modulos = [
+ modulos = [
   {
     nombre: 'Configuración',
-    ruta: '/app/configuracion', 
+    rutaBase: 'app/configuracion',
     icono: '⚙️',
     expandido: false,
     submodulos: [
-      { nombre: 'Usuarios', ruta: '/app/configuracion/usuarios' }, 
-      { nombre: 'Roles', ruta: '/app/configuracion/roles' },       
+      { nombre: 'Usuarios', ruta: 'usuarios' },
+      { nombre: 'Sistemas Información', ruta: 'sistemasinformacion' }
     ]
   },
   {
     nombre: 'CMR',
-    ruta: '/app/cmr',
+    rutaBase: 'app/cmr',
     icono: '📊',
     expandido: false,
     submodulos: [
-      { nombre: 'Reportes', ruta: '/app/cmr/reportes' },     
-      { nombre: 'Dashboard', ruta: '/app/cmr/dashboard' },   
+      { nombre: 'Reportes', ruta: 'reportes' },
+      { nombre: 'Dashboard', ruta: 'dashboard' }
     ]
   }
 ];
-
 
 
  user: string = '';
@@ -51,8 +48,7 @@ export class Main {
 
 ngOnInit(): void {
     this.guardarname();
-       this.isSidebarCollapsed = !this.isSidebarCollapsed;
-  
+       this.isSidebarCollapsed = !this.isSidebarCollapsed;  
   }
 
   toggleSidebar() {
@@ -68,7 +64,6 @@ ngOnInit(): void {
   }
 
 
-
   // Opcional: cerrar menú si se hace clic fuera
   @ViewChild('userDropdown') userDropdown!: ElementRef;
 
@@ -78,7 +73,6 @@ ngOnInit(): void {
       this.isUserMenuOpen = false;
     }
   }
-
 
 
  guardarname() {
@@ -104,7 +98,6 @@ ngOnInit(): void {
     if (this.isUserMenuOpen) this.isUserMenuOpen = false;
   }
 
-
   goToHome() {
     console.log('Ir a inicio');
   }
@@ -114,24 +107,20 @@ ngOnInit(): void {
     
     localStorage.removeItem('usuario');
     this.router.navigate(['/login']);
-
-
-
 }
 
 changePassword() {
     this.isUserMenuOpen = false;
     // Tu lógica para cambio de clave aquí
 
-  }
+}
+openSettings() {
+  this.router.navigate(['/app/configuracion/usuarios']);
+}
 
-  openReports() {
-
-  }
-
-  openSettings() {
-
-  }
+openReports() {
+  this.router.navigate(['/app/cmr/reportes']);
+}
 
   home() {
 

@@ -9,28 +9,41 @@ import org.springframework.stereotype.Service;
 import com.bgreenNet.bgreenNet.models.SistemasInformacion;
 import com.bgreenNet.bgreenNet.repository.SistemaInformacionRepository;
 
-
 @Service
 public class SistemasInformacionService {
-	
+
 	@Autowired
-    private SistemaInformacionRepository repository;
+	private SistemaInformacionRepository repository;
 
-    public List<SistemasInformacion> getAll() {
-        // return repository.findAll();
-        return repository.findByActivoTrue();
-    }
+	public List<SistemasInformacion> getAll() {
+		return repository.findAll();
+		// return repository.findByActivoTrue();
+	}
 
-    public List<SistemasInformacion> getActivos() {
-        return repository.findByActivoTrue();
-    }
 
-    public Optional<SistemasInformacion> getById(Long id) {
-        return repository.findById(id);
-    }	  
+	public SistemasInformacion crear(SistemasInformacion sistema) {
+		sistema.setEstado(true);
+		return repository.save(sistema);
+	}
 
-    public void deleteById(Long id) {
-        repository.deleteById(id);
-    }
+	public SistemasInformacion editar(Long id, SistemasInformacion sistemaActualizado) {
+		return repository.findById(id).map(sistemaExistente -> {
+			sistemaExistente.setNombre(sistemaActualizado.getNombre());
+			sistemaExistente.setUrl(sistemaActualizado.getUrl());
+			sistemaExistente.setImagenUrl(sistemaActualizado.getImagenUrl());
+//			sistemaExistente.setTipoSistema(sistemaActualizado.getTipoSistema());
+			sistemaExistente.setEstado(sistemaActualizado.getEstado());
+			return repository.save(sistemaExistente);
+		}).orElseThrow(() -> new RuntimeException("Sistema no encontrado con ID: " + id));
+	}
+
+	public void activarDesactivar(Long id, boolean activo) {
+		repository.findById(id).ifPresentOrElse(sistema -> {
+			sistema.setEstado(activo);
+			repository.save(sistema);
+		}, () -> {
+			throw new RuntimeException("Sistema no encontrado con ID: " + id);
+		});
+	}
 
 }

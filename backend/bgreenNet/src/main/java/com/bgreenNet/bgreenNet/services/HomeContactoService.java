@@ -1,5 +1,7 @@
 package com.bgreenNet.bgreenNet.services;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.bgreenNet.bgreenNet.models.HomeContacto;
@@ -15,8 +17,8 @@ public class HomeContactoService {
 	        this.repository = repository;
 	    }
 
-	    public HomeContacto getContacto() {
-	        return repository.obtenerContacto();
-	    }
+		public List<HomeContacto> getContacto() {
+			return repository.obtenerContacto();
+		}
 	    
 }

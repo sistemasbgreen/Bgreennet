@@ -8,7 +8,7 @@ export const configuracionRoutes: Routes = [
     path: '',
     children: [
       { path: 'usuarios', component: Usuarios },
-       { path: 'roles', component: Sistemasinformacion },
+       { path: 'SistemasInformacion', component: Sistemasinformacion },
     ]
   }
 ];
