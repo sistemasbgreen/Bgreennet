@@ -58,10 +58,9 @@ export class Usuarios implements OnInit {
       id_TipoIdentificacion: [1, Validators.required],
       estado: [true]
     });
-
-
   }
- ngOnInit(): void {
+
+  ngOnInit(): void {
     this.cargarUsuarios();
     this.CargarPerfil();
     this.CargarEmpresa();
@@ -157,7 +156,7 @@ export class Usuarios implements OnInit {
       correo: usuario.correo,
       celular: usuario.celular,
       fechaNacimiento: usuario.fechaNacimiento,
-      id_cargo_fk: usuario.id_cargo_fk,    
+      id_cargo_fk: usuario.id_cargo_fk,
       estado: usuario.estado
     });
 
@@ -168,58 +167,55 @@ export class Usuarios implements OnInit {
     this.showModal = true;
   }
 
-onSubmit(): void {
-  if (this.usuarioForm.invalid) {
-    this.usuarioForm.markAllAsTouched();
-    return;
-  }
+  onSubmit(): void {
 
-  // Convertimos los valores que vienen como string → number
-  const usuario = {
-    ...this.usuarioForm.value,
-    id_area_fk: Number(this.usuarioForm.value.id_area_fk),
-    id_cargo_fk: Number(this.usuarioForm.value.id_cargo_fk),
-    id_empresa_fk: Number(this.usuarioForm.value.id_empresa_fk),
-    id_perfil_fk: Number(this.usuarioForm.value.id_perfil_fk),
-    id_TipoIdentificacion: Number(this.usuarioForm.value.id_TipoIdentificacion)
-  };
+    if (this.usuarioForm.invalid) {
+      this.usuarioForm.markAllAsTouched();
+      return;
+    }
 
-  console.log("Datos listos para enviar:", usuario);
-
-  // ====== EDITAR ======
-  if (this.isEditMode && this.usuarioIdEditar) {
-    this.usuarioService.actualizarUsuario(this.usuarioIdEditar, usuario).subscribe({
+    // Convertimos los valores que vienen como string → number
+    const usuario = {
+      ...this.usuarioForm.value,
+      id_area_fk: Number(this.usuarioForm.value.id_area_fk),
+      id_cargo_fk: Number(this.usuarioForm.value.id_cargo_fk),
+      id_empresa_fk: Number(this.usuarioForm.value.id_empresa_fk),
+      id_perfil_fk: Number(this.usuarioForm.value.id_perfil_fk),
+      id_TipoIdentificacion: Number(this.usuarioForm.value.id_TipoIdentificacion)
+    };
+    console.log("Datos listos para enviar:", usuario);
+    // ====== EDITAR ======
+    if (this.isEditMode && this.usuarioIdEditar) {
+      this.usuarioService.actualizarUsuario(this.usuarioIdEditar, usuario).subscribe({
+        next: (response) => {
+          console.log('Usuario actualizado:', response);
+          alert('Usuario actualizado exitosamente');
+          this.cargarUsuarios();
+          this.cerrarModal();
+        },
+        error: (err) => {
+          console.error('Error al actualizar usuario:', err);
+          alert('Error al actualizar el usuario. Intenta nuevamente.');
+        }
+      });
+      return;
+    }
+    // ====== CREAR ======
+    this.usuarioService.createUsuario(usuario).subscribe({
       next: (response) => {
-        console.log('Usuario actualizado:', response);
-        alert('Usuario actualizado exitosamente');
+        console.log('Usuario creado:', response);
+        alert('Usuario creado exitosamente');
         this.cargarUsuarios();
         this.cerrarModal();
       },
       error: (err) => {
-        console.error('Error al actualizar usuario:', err);
-        alert('Error al actualizar el usuario. Intenta nuevamente.');
+        console.error('Error al crear usuario:', err);
+        console.log('Respuesta de error del backend:', err.error);
+        alert('Error al crear el usuario. Verifica los datos e intenta nuevamente.');
       }
     });
 
-    return;
   }
-
-  // ====== CREAR ======
-  this.usuarioService.createUsuario(usuario).subscribe({
-    next: (response) => {
-      console.log('Usuario creado:', response);
-      alert('Usuario creado exitosamente');
-      this.cargarUsuarios();
-      this.cerrarModal();
-    },
-    error: (err) => {
-      console.error('Error al crear usuario:', err);
-      console.log('Respuesta de error del backend:', err.error);
-      alert('Error al crear el usuario. Verifica los datos e intenta nuevamente.');
-    }
-  });
-
-}
 
 
   eliminar(id: number): void {
@@ -253,4 +249,5 @@ onSubmit(): void {
   get f() {
     return this.usuarioForm.controls;
   }
+
 }

@@ -14,6 +14,11 @@ import { CrearUsuario } from "../models/CrearUsuario";
 export class UsuarioService {
   private baseUrl = `${environment.apiUrl}/api/usuarios`;
 
+    headers = new HttpHeaders({
+    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    'Content-Type': 'application/json'
+  });
+
   constructor(private http: HttpClient) { }
 
   // Obtener todos los usuarios

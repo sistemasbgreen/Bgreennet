@@ -17,7 +17,9 @@ CREATE TABLE SistemaInformacion (
     url NVARCHAR(255) NULL,
     imagen_url NVARCHAR(255) NULL,
     activo BIT NOT NULL DEFAULT 1,
-	date_create DATETIME NOT NULL DEFAULT GETDATE(),
-	date_Modify DATETIME NOT NULL DEFAULT GETDATE(),
-    fecha_creacion DATETIME DEFAULT GETDATE()
+    date_create DATETIME NOT NULL DEFAULT GETDATE(),
+    date_modify DATETIME NOT NULL DEFAULT GETDATE(), 
+    fecha_creacion DATETIME DEFAULT GETDATE(),
+    FK_tipo_sistema INT NOT NULL,
+    FOREIGN KEY (id_tipo_sistema_fk)REFERENCES tipo_sistema(id_tipo_sistema)
 );

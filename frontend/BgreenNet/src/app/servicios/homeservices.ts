@@ -25,6 +25,8 @@ export class homeservices {
 
   constructor(private http: HttpClient) { }
 
+
+   //Sistemas de informacion
   getAll(): Observable<SistemaInformacion[]> {
     return this.http.get<SistemaInformacion[]>(this.baseUrl, { headers: this.headers });
   }
@@ -33,23 +35,18 @@ export class homeservices {
     return this.http.get<SistemaInformacion[]>(`${this.baseUrl}/activos`);
   }
 
-  getById(id: number): Observable<SistemaInformacion> {
-    return this.http.get<SistemaInformacion>(`${this.baseUrl}/${id}`);
-  }
 
   create(sistema: SistemaInformacion): Observable<SistemaInformacion> {
-    return this.http.post<SistemaInformacion>(this.baseUrl, sistema);
+    return this.http.post<SistemaInformacion>(this.baseUrl, sistema , { headers: this.headers });
   }
+
 
   update(id: number, sistema: SistemaInformacion): Observable<SistemaInformacion> {
     return this.http.put<SistemaInformacion>(`${this.baseUrl}/${id}`, sistema);
   }
 
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
-  }
 
-
+  //Home
    contactos(): Observable<Usuario[]> {
     return this.http.get<Usuario[]>(this.urlrecursos, { headers: this.headers });
   }

@@ -181,6 +181,7 @@ export class Home implements OnInit {
       next: (data) => {
         this.sistemaInformacionData = data;
         this.cdr.detectChanges();
+        console.log(data)
       },
       error: (err) => console.error('Error al cargar sistemas de información', err)
     });

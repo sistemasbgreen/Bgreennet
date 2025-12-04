@@ -1,1 +1,127 @@
-<p>sistemasinformacion works!</p>
+<div class="header-actions">
+  <button class="btn-crear" (click)="abrirModal()">
+    <i class="bi bi-plus-circle"></i> Crear Sistema
+  </button>
+</div>
+
+<div class="table-container">
+  <table class="table-usuarios">
+    <thead>
+      <tr>
+        <th>Imagen</th>
+        <th>Nombre</th>
+        <th>Estado</th>
+        <th>Opciones</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let s of sistemaInformacionData" class="table-row">
+        <td>
+          <img [src]="s.imagenUrl" [alt]="s.nombre" width="100" height="100">
+        </td>
+
+        <td class="usuario-column">
+          <i class="bi bi-person-circle"></i> {{ s.nombre }}
+        </td>
+
+        <td>
+          <span class="badge" [class.badge-activo]="s.activo" [class.badge-inactivo]="!s.activo">
+            {{ s.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+
+        <td>
+          <div class="action-buttons">
+            <button class="btn-editar" (click)="abrirModal(s)" title="Editar sistema">
+              <i class="bi bi-pencil-fill"></i> Editar
+            </button>
+            <button class="btn-eliminar" (click)="eliminarSistema(s.id)" title="Eliminar sistema">
+              <i class="bi bi-trash-fill"></i> Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+
+      <tr *ngIf="sistemaInformacionData.length === 0">
+        <td colspan="4" class="no-data">
+          <i class="bi bi-inbox"></i>
+          <p>No hay sistemas registrados</p>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ modoEdicion ? 'Editar Sistema' : 'Crear Sistema' }}</h2>
+      <button class="btn-close" (click)="cerrarModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form class="modal-body" (ngSubmit)="guardarSistema()">
+      <div class="form-group">
+        <label for="nombre">Nombre *</label>
+        <input 
+          type="text" 
+          id="nombre" 
+          [(ngModel)]="sistemaForm.nombre" 
+          name="nombre"
+          placeholder="Ingrese el nombre del sistema"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="url">URL *</label>
+        <input 
+          type="url" 
+          id="url" 
+          [(ngModel)]="sistemaForm.url" 
+          name="url"
+          placeholder="https://ejemplo.com"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="imagenUrl">URL de la Imagen *</label>
+        <input 
+          type="url" 
+          id="imagenUrl" 
+          [(ngModel)]="sistemaForm.imagenUrl" 
+          name="imagenUrl"
+          placeholder="https://ejemplo.com/logo.png"
+          required
+        >
+      </div>
+
+
+
+      <div class="form-group checkbox-group">
+        <label>
+          <input 
+            type="checkbox" 
+            [(ngModel)]="sistemaForm.activo" 
+            name="activo"
+          >
+          <span>Sistema activo</span>
+        </label>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancelar" (click)="cerrarModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-guardar">
+          <i class="bi bi-check-circle"></i>
+          {{ modoEdicion ? 'Actualizar' : 'Crear' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -21,10 +21,10 @@ public class HomeContactoController {
 	        this.service = service;
 	    }
 
+
 	    @GetMapping("/contacto")
-	    public HomeContacto getContacto() {
-            System.out.println("contactos " + service.getContacto());
-	        return service.getContacto();
+	    public ResponseEntity<List<HomeContacto>> getContacto() {
+	        return ResponseEntity.ok(service.getContacto());
 	    }
 	    
 

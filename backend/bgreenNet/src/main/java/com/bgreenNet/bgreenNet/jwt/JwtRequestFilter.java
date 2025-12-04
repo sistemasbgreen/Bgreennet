@@ -32,7 +32,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         "/api/auth/",          
         "/api/listas/",         
         "/api/home/contacto",
-        "/api/usuarios/"
+        "/api/usuarios/",
+        "/api/sistemasinformacion/"
     );
 
     @Override
