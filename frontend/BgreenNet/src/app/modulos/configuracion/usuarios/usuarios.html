@@ -1,78 +1,168 @@
-<div class="container-usuarios">
-  <div class="header-section">
-    <h2><i class="bi bi-people-fill"></i> Gestión de Usuarios</h2>
-    <button class="btn-crear" (click)="openCrearModal()">
-      <i class="bi bi-plus-circle"></i> Crear Usuario
-    </button>
+<div class="container-main">
+  <!-- GESTIÓN DE USUARIOS Y PERFIL -->
+  <div class="column-left">
+    <!-- Gestión de Usuarios -->
+    <div class="section-card">
+      <div class="header-section">
+        <h2><i class="bi bi-people-fill"></i> Gestión de Usuarios</h2>
+        <button class="btn-crear" (click)="openCrearModal()">
+          <i class="bi bi-plus-circle"></i> Crear Usuario
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="table-usuarios">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Nombre Completo</th>
+              <th>Correo</th>
+              <th>Perfil</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of usuarios" class="table-row">
+              <td class="usuario-column">
+                <i class="bi bi-person-circle"></i> {{ u.usuario }}
+              </td>
+              <td>{{ u.nombre }} {{ u.apellido }}</td>
+              <td class="email-column">{{ u.correo }}</td>
+              <td>{{ u.descripcionPerfil }}</td>
+              <td>
+                <span class="badge" [class.badge-activo]="u.estado" [class.badge-inactivo]="!u.estado">
+                  {{ u.estado ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-editar" (click)="abrirEditarModal(u)" title="Editar usuario">
+                    <i class="bi bi-pencil-fill">Editar</i>
+                  </button>
+                  <button class="btn-eliminar" (click)="eliminar(u.idUsuario!)" title="Eliminar usuario">
+                    <i class="bi bi-trash-fill">Delete</i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="usuarios.length === 0">
+              <td colspan="8" class="no-data">
+                <i class="bi bi-inbox"></i>
+                <p>No hay usuarios registrados</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Gestión de Perfil -->
+    <div class="section-card">
+      <div class="header-section">
+        <h2><i class="bi bi-shield-check"></i> Gestión de Perfiles</h2>
+        <button class="btn-crear" (click)="openCrearPerfilModal()">
+          <i class="bi bi-plus-circle"></i> Crear Perfil
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="table-perfil">
+          <thead>
+            <tr>
+              <th>Descripción</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+              <th>Check</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of perfiles" class="table-row">
+              <td class="usuario-column">
+                <i class="bi bi-person-circle"></i> {{ p.descripcionPerfil }}
+              </td>
+              <td>
+                <span class="badge" [class.badge-activo]="p.estado" [class.badge-inactivo]="!p.estado">
+                  {{ p.estado ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-editar" (click)="ModalEditarPerfil(p)" title="Editar perfil">
+                    <i class="bi bi-pencil-fill">Editar</i>
+                  </button>
+                </div>
+              </td>
+              <td>
+                <button (click)='verpermisos(p.idPerfil , p.descripcionPerfil)'>Check</button>
+              </td>
+
+
+            </tr>
+            <tr *ngIf="perfiles.length === 0">
+              <td colspan="3" class="no-data">
+                <i class="bi bi-inbox"></i>
+                <p>No hay perfiles registrados</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
-  <!-- Tabla de usuarios -->
-  <div class="table-container">
-    <table class="table-usuarios">
-      <thead>
-        <tr>
-          <th>Usuario</th>
-          <th>Nombre Completo</th>
-          <th>Correo</th>
-          <th>Empresa</th>
-          <th>Perfil</th>
-          <th>Área</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let u of usuarios" class="table-row">
-          <td class="usuario-column">
-            <i class="bi bi-person-circle"></i> {{ u.usuario }}
-          </td>
-          <td>{{ u.nombre }} {{ u.apellido }}</td>
-          <td class="email-column">{{ u.correo }}</td>
-          <td>{{ u.descripcionEmpresa }}</td>
-          <td>{{ u.descripcionPerfil }}</td>
-          <td><span class="area-badge">{{ u.descripcionArea }}</span></td>
-          <td>
-            <span class="badge" [class.badge-activo]="u.estado" [class.badge-inactivo]="!u.estado">
-              {{ u.estado ? 'Activo' : 'Inactivo' }}
-            </span>
-          </td>
-          <td>
-            <div class="action-buttons">
-              <button class="btn-editar" (click)="abrirEditarModal(u)" title="Editar usuario">
-                <i class="bi bi-pencil-fill">Editar</i>
-              </button>
-              <button class="btn-eliminar" (click)="eliminar(u.idUsuario!)" title="Eliminar usuario">
-                <i class="bi bi-trash-fill">Delete</i>
-              </button>
-            </div>
-          </td>
-        </tr>
-        <tr *ngIf="usuarios.length === 0">
-          <td colspan="7" class="no-data">
-            <i class="bi bi-inbox"></i>
-            <p>No hay usuarios registrados</p>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <!--VER LAS RELACIONES -->
+  <div class="column-right">
+    <div class="section-card">
+      <div class="header-section">
+        <h2><i class="bi bi-link-45deg"></i><span class="nombre_perfil">{{nombre_perfil}}</span>  </h2>
+      </div>
+
+      <div class="relations-content">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Sistema</th>
+              <th scope="col">Estado</th>
+
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of permisosXperfil" class="table-row">
+              <td>{{ u.nombreSistema }}</td>
+ 
+             
+
+              <td>
+                <div class="form-check d-flex justify-content-center">
+                  <input type="checkbox" class="form-check-input" [id]="'permiso-' + u.id" [checked]="u.tienePermiso"
+                    (change)="togglePermiso(u)" />
+                  <label class="form-check-label" [for]="'permiso-' + u.id"></label>
+                </div>
+              </td>
+
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Modal de Crear/Editar Usuario -->
-<div class="modal-overlay" *ngIf="showModal" (click)="cerrarModal()">
+<!-- MODAL DE USUARIO -->
+<div class="modal-overlay" *ngIf="showModalUsuario" (click)="cerrarModal('usuario')">
   <div class="modal-container" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>
-        <i class="bi" [class.bi-person-plus-fill]="!isEditMode" [class.bi-pencil-square]="isEditMode"></i>
-        {{ isEditMode ? 'Editar Usuario' : 'Crear Nuevo Usuario' }}
+        <i class="bi" [class.bi-person-plus-fill]="!isEditModeUsuario" [class.bi-pencil-square]="isEditModeUsuario"></i>
+        {{ isEditModeUsuario ? 'Editar Usuario' : 'Crear Nuevo Usuario' }}
       </h3>
-      <button type="button" class="btn-close" (click)="cerrarModal()">
+      <button type="button" class="btn-close" (click)="cerrarModal('usuario')">
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
-
     <div class="modal-body">
-      <form [formGroup]="usuarioForm" (ngSubmit)="onSubmit()">
+      <form [formGroup]="usuarioForm" (ngSubmit)="onSubmitUsuario()">
         <div class="form-grid">
           <!-- Columna Izquierda -->
           <div class="form-column">
@@ -92,10 +182,10 @@
 
             <div class="form-group">
               <label class="form-label">
-                <i class="bi bi-lock"></i> Contraseña {{ isEditMode ? '' : '*' }}
+                <i class="bi bi-lock"></i> Contraseña {{ isEditModeUsuario ? '' : '*' }}
               </label>
               <input formControlName="contrasena" type="password" class="form-input"
-                [placeholder]="isEditMode ? 'Dejar vacío para mantener actual' : 'Mínimo 6 caracteres'"
+                [placeholder]="isEditModeUsuario ? 'Dejar vacío para mantener actual' : 'Mínimo 6 caracteres'"
                 [class.input-invalid]="f['contrasena'].touched && f['contrasena'].invalid">
               <span class="error-message" *ngIf="f['contrasena'].touched && f['contrasena'].errors?.['required']">
                 La contraseña es requerida
@@ -104,24 +194,10 @@
                 Mínimo 6 caracteres
               </span>
             </div>
-            <!--
-          
-            <div class="form-group">
-              <label class="form-label">
-                <i class="bi bi-briefcase"></i> Área *
-              </label>
-              <input formControlName="area" type="text" class="form-input"
-                placeholder="Ej: Recursos Humanos"
-                [class.input-invalid]="f['area'].touched && f['area'].invalid">
-              <span class="error-message" *ngIf="f['area'].touched && f['area'].invalid">
-                El área es requerida
-              </span>
-            </div>
-  -->
 
             <div class="form-group">
               <label class="form-label">
-                <i class="bi bi-shield-check"></i> Area *
+                <i class="bi bi-shield-check"></i> Área *
               </label>
               <select formControlName="id_area_fk" class="form-select">
                 <option *ngFor="let a of areas" [value]="a.idArea">{{ a.descripcionArea }}</option>
@@ -250,12 +326,68 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-cancelar" (click)="cerrarModal()">
+          <button type="button" class="btn-cancelar" (click)="cerrarModal('usuario')">
             <i class="bi bi-x-circle"></i> Cancelar
           </button>
           <button type="submit" class="btn-guardar" [disabled]="usuarioForm.invalid">
-            <i class="bi" [class.bi-check-circle]="!isEditMode" [class.bi-arrow-repeat]="isEditMode"></i>
-            {{ isEditMode ? 'Actualizar Usuario' : 'Crear Usuario' }}
+            <i class="bi" [class.bi-check-circle]="!isEditModeUsuario" [class.bi-arrow-repeat]="isEditModeUsuario"></i>
+            {{ isEditModeUsuario ? 'Actualizar Usuario' : 'Crear Usuario' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE PERFIL (crear y editar) -->
+<div class="modal-overlay" *ngIf="showModalPerfil" (click)="cerrarModal('perfil')">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="bi" [class.bi-shield-plus]="!isEditModePerfil" [class.bi-shield-check]="isEditModePerfil">
+        </i>
+        {{ isEditModePerfil ? 'Editar Perfil' : 'Crear Nuevo Perfil' }}
+      </h3>
+      <button type="button" class="btn-close" (click)="cerrarModal('perfil')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="perfilForm" (ngSubmit)="onSubmitPerfil()">
+        <div class="form-grid">
+          <div class="form-column">
+            <div class="form-group">
+              <label class="form-label">
+                <i class="bi bi-shield-check"></i> Descripción del Perfil *
+              </label>
+              <input formControlName="descripcionPerfil" type="text" class="form-input"
+                placeholder="Ej: Administrador, Auditor, etc."
+                [class.input-invalid]="pf['descripcionPerfil']?.touched && pf['descripcionPerfil']?.invalid">
+              <span class="error-message"
+                *ngIf="pf['descripcionPerfil']?.touched && pf['descripcionPerfil']?.errors?.['required']">
+                La descripción es requerida
+              </span>
+              <span class="error-message"
+                *ngIf="pf['descripcionPerfil']?.touched && pf['descripcionPerfil']?.errors?.['minlength']">
+                Mínimo 4 caracteres
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-checkbox">
+                <input formControlName="estado" type="checkbox" class="checkbox-input">
+                <span class="checkbox-label">
+                  <i class="bi bi-check-circle"></i> Perfil Activo
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" (click)="cerrarModal('perfil')">Cancelar</button>
+          <button type="submit" class="btn-guardar" [disabled]="perfilForm.invalid">
+            {{ isEditModePerfil ? 'Actualizar Perfil' : 'Crear Perfil' }}
           </button>
         </div>
       </form>

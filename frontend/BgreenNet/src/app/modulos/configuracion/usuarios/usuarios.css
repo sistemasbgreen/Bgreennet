@@ -98,6 +98,42 @@
   font-family: monospace;
 }
 
+/* ===== TABLA DE PERFILES ===== */
+.table-perfil {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.table-perfil th {
+  background-color: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  text-align: left;
+  padding: 16px 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-perfil td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.table-perfil .table-row:hover {
+  background-color: #f8fafc;
+}
+
+/* Columna de descripción de perfil */
+.table-perfil .usuario-column {
+  font-weight: 600;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* ===== BADGES ===== */
 .badge {
   padding: 6px 12px;
@@ -383,8 +419,12 @@
 
 /* ===== ANIMACIONES ===== */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
@@ -419,7 +459,9 @@
   }
 
   .table-usuarios th,
-  .table-usuarios td {
+  .table-usuarios td,
+  .table-perfil th,
+  .table-perfil td {
     padding: 12px 10px;
     font-size: 14px;
   }
@@ -427,4 +469,131 @@
   .action-buttons {
     flex-direction: column;
   }
+
+  /* Estilo móvil para tabla de perfiles */
+  .table-perfil tr {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .table-perfil thead {
+    display: none;
+  }
+
+  .table-perfil td {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+
+  .table-perfil td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #475569;
+    width: 40%;
+  }
+}
+
+/* ===== ESTRUCTURA PRINCIPAL EN 3 COLUMNAS ===== */
+.container-main {
+  display: flex;
+  gap: 24px;
+  min-height: 100vh;
+}
+
+.column-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.column-right {
+  flex: 1;
+  min-width: 300px;
+}
+
+.section-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+}
+
+.section-card .header-section {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.relations-content {
+  padding: 24px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.placeholder-box {
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 32px;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.placeholder-box i {
+  font-size: 48px;
+  color: #cbd5e1;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 992px) {
+  .container-main {
+    flex-direction: column;
+  }
+
+  .column-right {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .container-main {
+    padding: 16px;
+  }
+
+  .section-card {
+    padding: 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-container {
+    width: 95%;
+    margin: 10px;
+  }
+
+  .table-usuarios th,
+  .table-usuarios td,
+  .table-perfil th,
+  .table-perfil td {
+    padding: 12px 10px;
+    font-size: 14px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+}
+
+.nombre_perfil {
+  font-size: 20px;
 }

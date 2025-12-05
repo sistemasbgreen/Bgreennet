@@ -15,7 +15,7 @@ import { Usuario } from '../models/usuario';
 export class homeservices {
 
   private baseUrl = `${environment.apiUrl}/api/sistemasinformacion`;
-    private urlrecursos = `${environment.apiUrl}/api/home/contacto`;
+  private urlrecursos = `${environment.apiUrl}/api/home/contacto`;
 
   headers = new HttpHeaders({
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -26,9 +26,13 @@ export class homeservices {
   constructor(private http: HttpClient) { }
 
 
-   //Sistemas de informacion
+  //Sistemas de informacion
   getAll(): Observable<SistemaInformacion[]> {
     return this.http.get<SistemaInformacion[]>(this.baseUrl, { headers: this.headers });
+  }
+
+  obtenerpermisos(id: number): Observable<SistemaInformacion> {
+    return this.http.get<SistemaInformacion>(`${this.baseUrl}/${id}`, { headers: this.headers });
   }
 
   getActivos(): Observable<SistemaInformacion[]> {
@@ -37,7 +41,7 @@ export class homeservices {
 
 
   create(sistema: SistemaInformacion): Observable<SistemaInformacion> {
-    return this.http.post<SistemaInformacion>(this.baseUrl, sistema , { headers: this.headers });
+    return this.http.post<SistemaInformacion>(this.baseUrl, sistema, { headers: this.headers });
   }
 
 
@@ -47,7 +51,7 @@ export class homeservices {
 
 
   //Home
-   contactos(): Observable<Usuario[]> {
+  contactos(): Observable<Usuario[]> {
     return this.http.get<Usuario[]>(this.urlrecursos, { headers: this.headers });
   }
 

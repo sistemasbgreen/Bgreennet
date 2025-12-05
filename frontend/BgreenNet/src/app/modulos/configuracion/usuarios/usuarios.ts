@@ -13,6 +13,7 @@ import { Area } from '../../../models/area';
 import { TiposIdentificacion } from '../../../models/tiposIdentificacion';
 import { ListasService } from '../../../servicios/listasServices';
 import { CrearUsuario } from '../../../models/CrearUsuario';
+import { Perfilservices } from '../../../servicios/perfilservices';
 
 @Component({
   selector: 'app-usuarios',
@@ -20,9 +21,12 @@ import { CrearUsuario } from '../../../models/CrearUsuario';
   templateUrl: './usuarios.html',
   styleUrl: './usuarios.css',
 })
+
 export class Usuarios implements OnInit {
 
   usuarioForm: FormGroup;
+  perfilForm: FormGroup;
+  permisosXperfil:any;
   usuarios: Usuario[] = [];
   perfiles: Perfil[] = [];
   empresas: Empresa[] = [];
@@ -30,22 +34,32 @@ export class Usuarios implements OnInit {
   areas: Area[] = [];
   tiposIdentificacion: TiposIdentificacion[] = [];
 
-  showModal = false;
-  isEditMode = false;
-  usuarioIdEditar: number | null = null;
+  // Estados de los modales
+  showModalUsuario = false;
+  showModalPerfil = false;
 
+  // Modos de edición
+  isEditModeUsuario = false;
+  isEditModePerfil = false;
+
+  // IDs a editar
+  usuarioIdEditar: number | null = null;
+  perfilIdEditar: number | null = null;
+nombre_perfil: string = "";
 
   constructor(
     private fb: FormBuilder,
+    private perf: FormBuilder,
     private usuarioService: UsuarioService,
     private listasServices: ListasService,
+    private perfilservices: Perfilservices,
     private router: Router
   ) {
     this.usuarioForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(4)]],
       contrasena: ['', [Validators.required, Validators.minLength(6)]],
       id_area_fk: ['', Validators.required],
-      id_perfil_fk: [, Validators.required],
+      id_perfil_fk: ['', Validators.required],
       identificacion: ['', [Validators.required, Validators.pattern('^[0-9]+$')]],
       nombre: ['', [Validators.required, Validators.pattern('^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$')]],
       apellido: ['', [Validators.required, Validators.pattern('^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$')]],
@@ -53,80 +67,74 @@ export class Usuarios implements OnInit {
       correo: ['', [Validators.required, Validators.email]],
       celular: ['', [Validators.required, Validators.pattern('^[+]?[0-9]{10,15}$')]],
       fechaNacimiento: ['', Validators.required],
-      id_cargo_fk: [, Validators.required],
-      id_empresa_fk: [, Validators.required],
+      id_cargo_fk: ['', Validators.required],
+      id_empresa_fk: ['', Validators.required],
       id_TipoIdentificacion: [1, Validators.required],
+      estado: [true]
+    });
+
+    this.perfilForm = this.perf.group({
+      descripcionPerfil: ['', [Validators.required, Validators.minLength(4)]],
       estado: [true]
     });
   }
 
   ngOnInit(): void {
     this.cargarUsuarios();
-    this.CargarPerfil();
+    this.CargarPerfil_Lista();
     this.CargarEmpresa();
     this.CargarCargo();
     this.CargarArea();
     this.CargarTipoidenrificacion();
   }
 
+  // ======== CARGA DE DATOS ========
   cargarUsuarios(): void {
     this.usuarioService.listarUsuarios().subscribe({
-      next: (data) => {
-        this.usuarios = data;
-      },
+      next: (data) => this.usuarios = data,
       error: (err) => console.error('Error al cargar usuarios', err)
+      
     });
   }
 
-  CargarPerfil(): void {
+  CargarPerfil_Lista(): void {
     this.listasServices.obtenerPerfiles().subscribe({
-      next: (data) => {
-        this.perfiles = data;
-      },
-      error: (err) => console.error('Error al cargar usuarios', err)
+      next: (data) => this.perfiles = data,
+      error: (err) => console.error('Error al cargar perfiles', err)
     });
   }
 
   CargarEmpresa(): void {
     this.listasServices.obtenerEmpresas().subscribe({
-      next: (data) => {
-        this.empresas = data;
-      },
-      error: (err) => console.error('Error al cargar usuarios', err)
+      next: (data) => this.empresas = data,
+      error: (err) => console.error('Error al cargar empresas', err)
     });
   }
 
   CargarCargo(): void {
     this.listasServices.obtenerCargos().subscribe({
-      next: (data) => {
-        this.cargos = data;
-      },
-      error: (err) => console.error('Error al cargar usuarios', err)
+      next: (data) => this.cargos = data,
+      error: (err) => console.error('Error al cargar cargos', err)
     });
   }
 
   CargarArea(): void {
     this.listasServices.obtenerAreas().subscribe({
-      next: (data) => {
-
-        this.areas = data;
-      },
-      error: (err) => console.error('Error al cargar usuarios', err)
+      next: (data) => this.areas = data,
+      error: (err) => console.error('Error al cargar áreas', err)
     });
   }
 
   CargarTipoidenrificacion(): void {
     this.listasServices.obtenerIdentificacion().subscribe({
-      next: (data) => {
-
-        this.tiposIdentificacion = data;
-      },
-      error: (err) => console.error('Error al cargar usuarios', err)
+      next: (data) => this.tiposIdentificacion = data,
+      error: (err) => console.error('Error al cargar tipos de identificación', err)
     });
   }
 
+  // ======== MODAL USUARIOS ========
   openCrearModal(): void {
-    this.isEditMode = false;
+    this.isEditModeUsuario = false;
     this.usuarioIdEditar = null;
     this.usuarioForm.reset({
       estado: true,
@@ -135,16 +143,16 @@ export class Usuarios implements OnInit {
       id_TipoIdentificacion: 1,
       id_cargo_fk: 1
     });
-    this.showModal = true;
+    this.showModalUsuario = true;
   }
 
   abrirEditarModal(usuario: Usuario): void {
-    this.isEditMode = true;
+    this.isEditModeUsuario = true;
     this.usuarioIdEditar = usuario.idUsuario!;
 
     this.usuarioForm.patchValue({
       usuario: usuario.usuario,
-      contrasena: '', // No mostramos la contraseña por seguridad
+      contrasena: '',
       id_area_fk: usuario.id_area_fk,
       id_perfil_fk: usuario.id_perfil_fk,
       id_empresa_fk: usuario.id_empresa_fk,
@@ -160,63 +168,11 @@ export class Usuarios implements OnInit {
       estado: usuario.estado
     });
 
-    // Hacer contraseña opcional en edición
+    // Contraseña opcional en edición
     this.usuarioForm.get('contrasena')?.clearValidators();
     this.usuarioForm.get('contrasena')?.updateValueAndValidity();
-
-    this.showModal = true;
+    this.showModalUsuario = true;
   }
-
-  onSubmit(): void {
-
-    if (this.usuarioForm.invalid) {
-      this.usuarioForm.markAllAsTouched();
-      return;
-    }
-
-    // Convertimos los valores que vienen como string → number
-    const usuario = {
-      ...this.usuarioForm.value,
-      id_area_fk: Number(this.usuarioForm.value.id_area_fk),
-      id_cargo_fk: Number(this.usuarioForm.value.id_cargo_fk),
-      id_empresa_fk: Number(this.usuarioForm.value.id_empresa_fk),
-      id_perfil_fk: Number(this.usuarioForm.value.id_perfil_fk),
-      id_TipoIdentificacion: Number(this.usuarioForm.value.id_TipoIdentificacion)
-    };
-    console.log("Datos listos para enviar:", usuario);
-    // ====== EDITAR ======
-    if (this.isEditMode && this.usuarioIdEditar) {
-      this.usuarioService.actualizarUsuario(this.usuarioIdEditar, usuario).subscribe({
-        next: (response) => {
-          console.log('Usuario actualizado:', response);
-          alert('Usuario actualizado exitosamente');
-          this.cargarUsuarios();
-          this.cerrarModal();
-        },
-        error: (err) => {
-          console.error('Error al actualizar usuario:', err);
-          alert('Error al actualizar el usuario. Intenta nuevamente.');
-        }
-      });
-      return;
-    }
-    // ====== CREAR ======
-    this.usuarioService.createUsuario(usuario).subscribe({
-      next: (response) => {
-        console.log('Usuario creado:', response);
-        alert('Usuario creado exitosamente');
-        this.cargarUsuarios();
-        this.cerrarModal();
-      },
-      error: (err) => {
-        console.error('Error al crear usuario:', err);
-        console.log('Respuesta de error del backend:', err.error);
-        alert('Error al crear el usuario. Verifica los datos e intenta nuevamente.');
-      }
-    });
-
-  }
-
 
   eliminar(id: number): void {
     if (confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
@@ -225,7 +181,7 @@ export class Usuarios implements OnInit {
           alert('Usuario eliminado exitosamente');
           this.cargarUsuarios();
         },
-        error: (err: any) => {
+        error: (err) => {
           console.error('Error al eliminar', err);
           alert('Error al eliminar el usuario.');
         }
@@ -233,21 +189,144 @@ export class Usuarios implements OnInit {
     }
   }
 
-  cerrarModal(): void {
-    this.showModal = false;
-    this.isEditMode = false;
-    this.usuarioIdEditar = null;
-    this.usuarioForm.reset();
-
-    // Restaurar validación de contraseña
-    this.usuarioForm.get('contrasena')?.setValidators([Validators.required, Validators.minLength(6)]);
-    this.usuarioForm.get('contrasena')?.updateValueAndValidity();
+  // ======== MODAL PERFILES ========
+  openCrearPerfilModal(): void {
+    this.isEditModePerfil = false;
+    this.perfilIdEditar = null;
+    this.perfilForm.reset({ estado: true });
+    this.showModalPerfil = true;
   }
 
+  ModalEditarPerfil(perfil: Perfil): void {
+    this.isEditModePerfil = true;
+    this.perfilIdEditar = perfil.idPerfil!;
+    this.perfilForm.patchValue({
+      descripcionPerfil: perfil.descripcionPerfil,
+      estado: perfil.estado
+    });
+    this.showModalPerfil = true;
+  }
 
-  // Helper para validación en plantilla
+  // ======== CIERRE DE MODAL ========
+  cerrarModal(tipo: 'usuario' | 'perfil'): void {
+    if (tipo === 'usuario') {
+      this.showModalUsuario = false;
+      this.usuarioForm.reset();
+      // Restaurar validación de contraseña
+      this.usuarioForm.get('contrasena')?.setValidators([Validators.required, Validators.minLength(6)]);
+      this.usuarioForm.get('contrasena')?.updateValueAndValidity();
+    } else {
+      this.showModalPerfil = false;
+      this.perfilForm.reset();
+    }
+
+    // Resetear estados
+    this.isEditModeUsuario = false;
+    this.isEditModePerfil = false;
+    this.usuarioIdEditar = null;
+    this.perfilIdEditar = null;
+  }
+
+  // ======== ENVÍO DE FORMULARIOS ========
+  onSubmitUsuario(): void {
+    if (this.usuarioForm.invalid) {
+      this.usuarioForm.markAllAsTouched();
+      return;
+    }
+
+    const usuario = {
+      ...this.usuarioForm.value,
+      id_area_fk: Number(this.usuarioForm.value.id_area_fk),
+      id_cargo_fk: Number(this.usuarioForm.value.id_cargo_fk),
+      id_empresa_fk: Number(this.usuarioForm.value.id_empresa_fk),
+      id_perfil_fk: Number(this.usuarioForm.value.id_perfil_fk),
+      id_TipoIdentificacion: Number(this.usuarioForm.value.id_TipoIdentificacion)
+    };
+
+    if (this.isEditModeUsuario && this.usuarioIdEditar) {
+      this.usuarioService.actualizarUsuario(this.usuarioIdEditar, usuario).subscribe({
+        next: () => {
+          alert('Usuario actualizado exitosamente');
+          this.cargarUsuarios();
+          this.cerrarModal('usuario');
+        },
+        error: () => {
+          alert('Error al actualizar el usuario.');
+        }
+      });
+      return;
+    }
+
+    this.usuarioService.createUsuario(usuario).subscribe({
+      next: () => {
+        alert('Usuario creado exitosamente');
+        this.cargarUsuarios();
+        this.cerrarModal('usuario');
+      },
+      error: () => {
+        alert('Error al crear el usuario.');
+      }
+    });
+  }
+
+  onSubmitPerfil(): void {
+    if (this.perfilForm.invalid) {
+      this.perfilForm.markAllAsTouched();
+      return;
+    }
+
+    const perfil = { ...this.perfilForm.value };
+
+    if (this.isEditModePerfil && this.perfilIdEditar) {
+      this.perfilservices.actualizarPerfil(this.perfilIdEditar, perfil).subscribe({
+        next: () => {
+          alert('Perfil actualizado exitosamente');
+          this.CargarPerfil_Lista();
+          this.cerrarModal('perfil');
+        },
+        error: () => {
+          alert('Error al actualizar el perfil.');
+        }
+      });
+      return;
+    }
+
+    this.perfilservices.crearPerfil(perfil).subscribe({
+      next: () => {
+        alert('Perfil creado exitosamente');
+        this.CargarPerfil_Lista();
+        this.cerrarModal('perfil');
+      },
+      error: () => {
+        alert('Error al crear el perfil.');
+      }
+    });
+  }
+
+verpermisos(id: any , name :any) {
+ this.nombre_perfil =  name ;
+  this.perfilservices.obtenerpermisos(id).subscribe({
+    next: (data) => {
+      this.permisosXperfil = data;
+      console.log('Permisos obtenidos:', data);
+    },
+    error: (err) => console.error('Error al cargar permisos:', err)
+  });
+}
+
+
+togglePermiso(permiso: any) {
+  permiso.tienePermiso = !permiso.tienePermiso;
+  // Aquí podrías llamar a un servicio para guardar el cambio en el backend
+  console.log('Nuevo estado de permiso:', permiso);
+}
+  
+  // ======== HELPERS PARA VALIDACIÓN ========
   get f() {
     return this.usuarioForm.controls;
   }
 
+  get pf() {
+    return this.perfilForm.controls;
+  }
 }

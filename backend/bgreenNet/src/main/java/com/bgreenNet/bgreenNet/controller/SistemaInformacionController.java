@@ -48,8 +48,6 @@ public class SistemaInformacionController {
 	    }
 	    
 	    
-
-
 	    // Opcional: un solo endpoint para activar/desactivar
 	    @PatchMapping("/{id}/estado")
 	    public ResponseEntity<Void> actualizarEstado(@PathVariable Long id, @RequestBody Map<String, Boolean> cuerpo) {
@@ -59,16 +57,12 @@ public class SistemaInformacionController {
 	        }
 	        service.activarDesactivar(id, estado);
 	        return ResponseEntity.noContent().build();
+	    }    
+	    
+	    @GetMapping("/{idPerfil}")
+	    public ResponseEntity<List<SistemasInformacion>> getSistemasPorPerfil(@PathVariable Long idPerfil) {
+	        List<SistemasInformacion> sistemas = service.getSistemasPorPerfil(idPerfil);
+	        return ResponseEntity.ok(sistemas);
 	    }
-	    
-
-	    
-	    
-	    
-
-	    
-	    
-	    
-	    
-	    
+  
 }
