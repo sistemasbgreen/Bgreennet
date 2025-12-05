@@ -25,6 +25,7 @@ export class Home implements OnInit {
   sistemacontactosData: any[] = [];
   subscription: any;
   isMenuOpen = false;
+  perfil_Fk : any;
   nameempresa = '';
   initials = '';
   isModalOpen = false;
@@ -51,21 +52,65 @@ export class Home implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.sistemasinformacion();
-    this.guardarname();
-    this.loadUserData();
+   // this.sistemasinformacion();
 
-    // Cargar contactos al inicio
     this.cargarContactosIniciales();
+    
+    if (isPlatformBrowser(this.platformId)) {
+      this.loadUserDataAndPermisos();
+    }
 
-    this.subscription = this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe(() => {
-      if (this.router.url === '/home' || this.router.url.startsWith('/home')) {
-        this.sistemasinformacion();
+  //  this.subscription = this.router.events.pipe(
+  //    filter(event => event instanceof NavigationEnd)
+  //  ).subscribe(() => {
+   //     this.sistemasinformacion();
+   //   }
+  //  });
+
+  }
+
+
+private loadUserDataAndPermisos(): void {
+    const userString = localStorage.getItem('usuario');
+    if (userString) {
+      try {
+        const user = JSON.parse(userString);
+        this.fullName = `${user.nombre} ${user.apellido}`.toUpperCase();
+        this.nameempresa = user.empresa_descripcion || 'N/A';
+        this.initials = `${user.nombre.charAt(0)}${user.apellido.charAt(0)}`.toUpperCase();
+        this.perfil_Fk = user.id_perfil_fk;
+
+        if (this.perfil_Fk) {
+          this.verpermisos(this.perfil_Fk);
+        }
+      } catch (e) {
+        console.error('Error al parsear usuario de localStorage', e);
+        this.logout();
+      }
+    } else {
+      // Si no hay usuario, redirigir (opcional)
+      this.router.navigate(['/login']);
+    }
+  }
+
+  // Elimina `guardarname()` y `loadUserData()` por separado
+
+  verpermisos(id: any): void {
+    this.homeservice.obtenerpermisos(id).subscribe({
+      next: (data) => {
+        // Asegúrate de que siempre sea un array
+        this.sistemaInformacionData = Array.isArray(data) ? data : [data];
+        console.log('Permisos obtenidos:', data);
+        this.cdr.detectChanges(); // 👈 Asegura la detección de cambios
+      },
+      error: (err) => {
+        console.error('Error al cargar permisos:', err);
+        this.sistemaInformacionData = [];
       }
     });
   }
+
+
 
   ngOnDestroy(): void {
     this.subscription?.unsubscribe();
@@ -80,7 +125,7 @@ export class Home implements OnInit {
   // ========================================
   openModalformatos(type: string) {
     this.modalType = type;
-    
+
     if (type === 'contactos') {
       this.modalTitle = 'Directorio de Contactos';
       // Si no hay datos cargados, cargarlos
@@ -91,7 +136,7 @@ export class Home implements OnInit {
       this.modalTitle = 'Lista de Formatos';
       this.cargarFormatos();
     }
-    
+
     // Abrir el modal
     this.isModalOpen = true;
   }
@@ -106,7 +151,7 @@ export class Home implements OnInit {
   cargarContactosIniciales(): void {
     this.homeservice.contactos().subscribe({
       next: (response) => {
-        console.log("RESPUESTA CONTACTOS INICIALES => ", response);
+
         this.sistemacontactosData = Array.isArray(response) ? response : [response];
         this.cdr.detectChanges();
       },
@@ -122,7 +167,6 @@ export class Home implements OnInit {
       next: (data) => {
         this.sistemacontactosData = Array.isArray(data) ? data : [data];
         this.cdr.detectChanges();
-        console.log('Contactos cargados para modal:', this.sistemacontactosData);
       },
       error: (err) => {
         console.error('Error al cargar los contactos', err);
@@ -147,74 +191,54 @@ export class Home implements OnInit {
 
     // Datos de ejemplo mientras tanto:
     this.formatosData = [
-      { 
-        nombre: 'Solicitud de Vacaciones', 
+      {
+        nombre: 'Solicitud de Vacaciones',
         descripcion: 'Formato para solicitar días de vacaciones',
-        url: '/assets/formatos/vacaciones.pdf' 
+        url: '/assets/formatos/vacaciones.pdf'
       },
-      { 
-        nombre: 'Reporte de Gastos', 
+      {
+        nombre: 'Reporte de Gastos',
         descripcion: 'Formato para reportar gastos de viaje y representación',
-        url: '/assets/formatos/gastos.pdf' 
+        url: '/assets/formatos/gastos.pdf'
       },
-      { 
-        nombre: 'Permiso Laboral', 
+      {
+        nombre: 'Permiso Laboral',
         descripcion: 'Formato para solicitar permisos temporales',
-        url: '/assets/formatos/permisos.pdf' 
+        url: '/assets/formatos/permisos.pdf'
       },
-      { 
-        nombre: 'Certificado Laboral', 
+      {
+        nombre: 'Certificado Laboral',
         descripcion: 'Solicitud de certificado laboral',
-        url: '/assets/formatos/certificado.pdf' 
+        url: '/assets/formatos/certificado.pdf'
       },
-      { 
-        nombre: 'Formato de Incapacidad', 
+      {
+        nombre: 'Formato de Incapacidad',
         descripcion: 'Reporte de incapacidad médica',
-        url: '/assets/formatos/incapacidad.pdf' 
+        url: '/assets/formatos/incapacidad.pdf'
       }
     ];
     this.cdr.detectChanges();
   }
 
+ /*
   sistemasinformacion(): void {
     this.homeservice.getAll().subscribe({
       next: (data) => {
         this.sistemaInformacionData = data;
         this.cdr.detectChanges();
-        console.log(data)
       },
       error: (err) => console.error('Error al cargar sistemas de información', err)
     });
   }
+    */
+
+
+
 
   // ========================================
   // GESTIÓN DE USUARIO
   // ========================================
-  loadUserData(): void {
-    const userString = localStorage.getItem('usuario');
 
-    if (userString) {
-      const user = JSON.parse(userString);
-      this.fullName = `${user.nombre} ${user.apellido}`.toUpperCase();
-      this.nameempresa = user.empresa_descripcion || 'N/A';
-      this.initials = `${user.nombre.charAt(0)}${user.apellido.charAt(0)}`.toUpperCase();
-    }
-  }
-
-  guardarname() {
-    if (isPlatformBrowser(this.platformId)) {
-      const usuarioString = localStorage.getItem('usuario');
-
-      if (usuarioString) {
-        const usuario = JSON.parse(usuarioString);
-        this.fullName = usuario.usuario;
-      } else {
-        console.log('No se encontró el usuario en localStorage');
-      }
-    } else {
-      console.log('No se puede acceder a localStorage desde el servidor.');
-    }
-  }
 
   logout(): void {
     localStorage.removeItem('token');
@@ -222,15 +246,8 @@ export class Home implements OnInit {
     window.location.href = '/login';
   }
 
-  logout1() {
-    console.log('Cerrando sesión...');
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-    this.router.navigate(['/login']);
-  }
-
   irAUsuarios() {
-   console.log('Activo')
+    console.log('Activo')
     this.router.navigate(['app/configuracion/usuarios']);
   }
 
@@ -240,7 +257,7 @@ export class Home implements OnInit {
   openModal(imageSrc: string): void {
     this.selectedImage = imageSrc;
     this.showModal = true;
-  }
+  } 
 
   closeModal(): void {
     this.showModal = false;
@@ -254,10 +271,9 @@ export class Home implements OnInit {
     }
   }
 
-  
-
-
-
+  // ========================================
+  // GESTIÓN DE MODALES
+  // ========================================
 
 
 
