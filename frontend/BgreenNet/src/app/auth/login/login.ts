@@ -32,7 +32,10 @@ export class Login {
       usuario: ['', [Validators.required, Validators.minLength(3)]],
       contrasena: ['', [Validators.required, Validators.minLength(6)]]
     });
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
+
+    //  NUEVO: Decodificar la returnUrl
+    const rawReturnUrl = this.route.snapshot.queryParams['returnUrl'];
+    this.returnUrl = rawReturnUrl ? decodeURIComponent(rawReturnUrl) : '/home';
   }
 
   get usuario() {
@@ -46,46 +49,51 @@ export class Login {
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
- 
+
   onLogin(): void {
-  if (this.loginForm.invalid) {
-    this.loginForm.markAllAsTouched();
-    return;
-  }
-  this.isLoading = true;
-  this.showError = false;
-  this.errorMessage = '';
-  
-  this.authService.login(this.loginForm.value).subscribe({
-    next: (response) => {
-      console.log('✅ Login exitoso, redirigiendo...');
-      this.isLoading = false;
-      this.router.navigate([this.returnUrl]);
-    },
-    error: (err) => {
-      this.isLoading = false;
-      
-      // Establecer el mensaje de error según el tipo
-      if (err.status === 401) {
-        this.errorMessage = err.error?.error || 'Usuario o contraseña incorrectos';
-      } else if (err.status === 500) {
-        this.errorMessage = 'Error en el servidor. Por favor, intenta más tarde';
-      } else if (err.status === 0) {
-        this.errorMessage = 'No se pudo conectar con el servidor';
-      } else {
-        this.errorMessage = err.error?.error || 'Error al iniciar sesión';
-      }
-      
-      // Mostrar el error
-      this.showError = true;
-      
-      // Ocultar automáticamente después de 3 segundos
-      setTimeout(() => {
-        this.showError = false;
-        this.errorMessage = '';
-      }, 3000);
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
     }
-  });
-}
+    this.isLoading = true;
+    this.showError = false;
+    this.errorMessage = '';
+
+    this.authService.login(this.loginForm.value).subscribe({
+      next: (response) => {
+        console.log(' Login exitoso, redirigiendo...');
+        this.isLoading = false;
+        this.router.navigate([this.returnUrl]);
+      },
+      error: (err) => {
+        this.isLoading = false;
+
+        // Establecer el mensaje de error según el tipo
+        if (err.status === 401) {
+          this.errorMessage = err.error?.error || 'Usuario o contraseña incorrectos';
+        } else if (err.status === 500) {
+          this.errorMessage = 'Error en el servidor. Por favor, intenta más tarde';
+        } else if (err.status === 0) {
+          this.errorMessage = 'No se pudo conectar con el servidor';
+        } else {
+          this.errorMessage = err.error?.error || 'Error al iniciar sesión';
+        }
+
+        // Mostrar el error
+        this.showError = true;
+
+        // Ocultar automáticamente después de 3 segundos
+        setTimeout(() => {
+          this.showError = false;
+          this.errorMessage = '';
+        }, 3000);
+      }
+    });
+  }
+
+
+  cargaimagnes(){
+
+  }
 
 }

@@ -28,7 +28,7 @@ export interface LoginResponse {
   area_descripcion: string;
   cargo_descripcion: string;
   correo: string;
-  token: string;  // ✅ JWT Token
+  token: string;  //  JWT Token
 }
 
 @Injectable({
@@ -58,11 +58,11 @@ export class AuthService {
   }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    console.log('🔐 Intentando login:', credentials.usuario);
+    console.log('Intentando login:', credentials.usuario);
 
     return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/login`, credentials).pipe(
       tap(response => {
-        console.log('✅ Login exitoso:', response);
+        console.log('Login exitoso:', response);
         
         if (isPlatformBrowser(this.platformId)) {
           // Guardar usuario y token
@@ -100,7 +100,7 @@ export class AuthService {
     return this.loggedIn.value;
   }
 
-  // ✅ Obtener el token JWT
+  //  Obtener el token JWT
   getToken(): string | null {
     if (isPlatformBrowser(this.platformId)) {
       return localStorage.getItem('token');
@@ -108,12 +108,12 @@ export class AuthService {
     return null;
   }
 
-  // ✅ Obtener datos del usuario actual
+  //  Obtener datos del usuario actual
   getCurrentUser(): LoginResponse | null {
     return this.usuarioData.value;
   }
 
-  // ✅ Observable del usuario (para suscribirse a cambios)
+  //  Observable del usuario (para suscribirse a cambios)
   getCurrentUser$(): Observable<LoginResponse | null> {
     return this.usuarioData.asObservable();
   }

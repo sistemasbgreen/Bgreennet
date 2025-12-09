@@ -1,54 +1,76 @@
-import { Component, ElementRef, HostListener, Inject, PLATFORM_ID, ViewChild } from '@angular/core';
+import { Component, OnInit, ElementRef, HostListener, Inject, PLATFORM_ID, ViewChild } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from "@angular/router";
 import { LayoutRoutingModule } from '../layout-routing-module';
 import { CommonModule, isPlatformBrowser, NgFor, NgForOf, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NavigationStart, NavigationEnd, NavigationError, NavigationCancel, Event as RouterEvent } from '@angular/router';
 
 @Component({
   selector: 'app-main',
-imports: [FormsModule, CommonModule, RouterOutlet, NgForOf, RouterLink],
+  imports: [FormsModule, CommonModule, RouterOutlet, RouterLink],
   templateUrl: './main.html',
   styleUrl: './main.css',
 })
 export class Main {
 
-   isSidebarCollapsed = false;
-   isMenuDropdownOpen = false;
-
- modulos = [
-  {
-    nombre: 'Configuración',
-    rutaBase: 'app/configuracion',
-    icono: '⚙️',
-    expandido: false,
-    submodulos: [
-      { nombre: 'Usuarios', ruta: 'usuarios' },
-      { nombre: 'Sistemas Información', ruta: 'sistemasinformacion' }
-    ]
-  },
-  {
-    nombre: 'CMR',
-    rutaBase: 'app/cmr',
-    icono: '📊',
-    expandido: false,
-    submodulos: [
-      { nombre: 'Reportes', ruta: 'reportes' },
-      { nombre: 'Dashboard', ruta: 'dashboard' }
-    ]
-  }
-];
-
-
- user: string = '';
-
-
-  constructor(@Inject(PLATFORM_ID) private platformId: Object , private router: Router,) {}
-
+  isSidebarCollapsed = false;
+  isMenuDropdownOpen = false;
+  user: string = '';
   isUserMenuOpen = false;
 
-ngOnInit(): void {
+  modulos = [
+    {
+      nombre: 'Configuración',
+      rutaBase: 'app/configuracion', // ✅ Volvemos a string
+      icono: '⚙️',
+      expandido: false,
+      submodulos: [
+        { nombre: 'Usuarios', ruta: 'usuarios' },
+        { nombre: 'Sistemas Información', ruta: 'sistemasinformacion' }
+      ]
+    },
+    {
+      nombre: 'CMR',
+      rutaBase: 'app/cmr', // ✅ Volvemos a string
+      icono: '📊',
+      expandido: false,
+      submodulos: [
+        { nombre: 'Reportes', ruta: 'reportes' },
+        { nombre: 'Dashboard', ruta: 'dashboard' }
+      ]
+    }
+  ];
+
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object, 
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
     this.guardarname();
-       this.isSidebarCollapsed = !this.isSidebarCollapsed;  
+    this.prueba();
+    this.router.events.subscribe((event: RouterEvent) => {
+      if (event instanceof NavigationStart) {
+        console.log('🧭 Navegación iniciada a:', event.url);
+      } else if (event instanceof NavigationEnd) {
+        console.log('✅ Navegación completada a:', event.url);
+      } else if (event instanceof NavigationError) {
+        console.error('❌ Error en navegación:', event.error);
+      } else if (event instanceof NavigationCancel) {
+        console.warn('⚠️ Navegación cancelada a:', (event as any).url);
+      }
+    });
+  }
+
+  prueba() {
+    console.log('🔍 Análisis de rutas generadas:');
+    this.modulos.forEach(modulo => {
+      console.log(`Módulo: ${modulo.nombre} → base:`, modulo.rutaBase);
+      modulo.submodulos.forEach(sub => {
+        const rutaCompleta = ['/', ...modulo.rutaBase, sub.ruta];
+        console.log(`  → Submódulo: ${sub.nombre} → Ruta:`, rutaCompleta);
+      });
+    });
   }
 
   toggleSidebar() {
@@ -63,8 +85,6 @@ ngOnInit(): void {
     this.isUserMenuOpen = !this.isUserMenuOpen;
   }
 
-
-  // Opcional: cerrar menú si se hace clic fuera
   @ViewChild('userDropdown') userDropdown!: ElementRef;
 
   @HostListener('document:click', ['$event'])
@@ -74,16 +94,12 @@ ngOnInit(): void {
     }
   }
 
-
- guardarname() {
-    // Verificamos que el código se ejecuta en el navegador
+  guardarname() {
     if (isPlatformBrowser(this.platformId)) {
       const usuarioString = localStorage.getItem('usuario');
-
       if (usuarioString) {
         const usuario = JSON.parse(usuarioString);
-        this.user = usuario.usuario; // 👈 Asignamos el nombre al atributo público
-
+        this.user = usuario.usuario;
       } else {
         console.log('No se encontró el usuario en localStorage');
       }
@@ -92,40 +108,29 @@ ngOnInit(): void {
     }
   }
 
-
-   toggleMenuDropdown() {
+  toggleMenuDropdown() {
     this.isMenuDropdownOpen = !this.isMenuDropdownOpen;
     if (this.isUserMenuOpen) this.isUserMenuOpen = false;
   }
 
-  goToHome() {
-    console.log('Ir a inicio');
+  openSettings() {
+    // ✅ Navegación programática con array
+    this.router.navigate(['/app', 'configuracion', 'usuarios']);
   }
 
-    logout() {
+  logout() {
+    this.isUserMenuOpen = false;
     localStorage.removeItem('token');
-    
     localStorage.removeItem('usuario');
     this.router.navigate(['/login']);
-}
-
-changePassword() {
-    this.isUserMenuOpen = false;
-    // Tu lógica para cambio de clave aquí
-
-}
-openSettings() {
-  this.router.navigate(['/app/configuracion/usuarios']);
-}
-
-openReports() {
-  this.router.navigate(['/app/cmr/reportes']);
-}
-
-  home() {
-
-    this.router.navigate(['/home']);
   }
 
-  
+  changePassword() {
+    this.isUserMenuOpen = false;
+  }
+
+  home() {
+    this.isUserMenuOpen = false;
+    this.router.navigate(['/home']);
+  }
 }

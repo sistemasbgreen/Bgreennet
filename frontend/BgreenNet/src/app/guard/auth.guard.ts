@@ -25,22 +25,20 @@ canActivate(
     state: RouterStateSnapshot
   ): boolean {
     if (isPlatformBrowser(this.platformId)) {
-      // ✅ Verificación directa en localStorage (más segura tras logout)
+      // Verificación directa en localStorage (más segura tras logout)
       const token = localStorage.getItem('token');
       const usuario = localStorage.getItem('usuario');
 
       if (token && usuario) {
-        console.log('✅ Usuario autenticado (localStorage), acceso permitido');
+        console.log('Usuario autenticado (localStorage), acceso permitido');
         return true;
       }
 
-      console.log('🚫 No autenticado, redirigiendo a login');
+      console.log('No autenticado, redirigiendo a login');
       this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
       return false;
     }
 
-    // En entornos SSR (Server-Side Rendering), permitimos temporalmente
-    // o puedes bloquear retornando `false` si no soportas SSR sin autenticación.
     return true;
   }
 

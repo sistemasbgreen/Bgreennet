@@ -29,7 +29,7 @@ export class Perfilservices {
 
 
   crearPerfil(usuario: Perfil): Observable<Perfil> {
-    return this.http.post<Perfil>(this.baseUrl + '/crear', usuario);
+    return this.http.post<Perfil>(this.baseUrl + '/crear', usuario , { headers: this.headers });
   }
 
   actualizarPerfil(id: number, usuario: Perfil): Observable<Perfil> {

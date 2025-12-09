@@ -12,17 +12,19 @@
   <header class="header">
     <div class="logo-section">
       <img src="http://172.30.72.200/Imagenes/Img/bgreen_Logo.jpg" width="100px" alt="">
+
       <div class="stats">
-        <div class="stat-item">
-          <span>📊 TRM: $ 3.773,60</span>
+        <div class="stat-item" (click)="openTrmModal()">
+          <span class="indicador_precios">📊 TRM: $ {{ currentTrmValue || 'Cargando...' }}</span>
         </div>
         <div class="stat-item">
-          <span>💰 CPD FEP: $ 4.483.399</span>
+          <span class="indicador_precios">💰 CPO FEP: $ 4.483,399</span>
         </div>
         <div class="stat-item">
-          <span>📈 BTCD: $ 20.192,53</span>
+          <span class="indicador_precios">📈 B100: $ 20.192,53</span>
         </div>
       </div>
+
     </div>
     <div class="brand">
       <h1>BGREEN<span>NET</span></h1>
@@ -40,7 +42,7 @@
     <!-- Modal Mejorado -->
     <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModalformatos()">
       <div class="modal-container" (click)="$event.stopPropagation()">
-        
+
         <!-- Header del Modal -->
         <div class="modal-header">
           <div class="modal-header-left">
@@ -57,7 +59,7 @@
 
         <!-- Cuerpo del Modal -->
         <div class="modal-body">
-          
+
           <!-- Tabla de Contactos -->
           <div *ngIf="modalType === 'contactos'">
             <table class="tabla-contactos" *ngIf="sistemacontactosData.length > 0">
@@ -106,7 +108,7 @@
             </div>
           </div>
 
-          <!-- Tabla de Formatos --> 
+          <!-- Tabla de Formatos -->
           <div *ngIf="modalType === 'formatos'">
             <table class="tabla-contactos" *ngIf="formatosData.length > 0">
               <thead>
@@ -173,7 +175,7 @@
         <p>{{ nameempresa }}</p>
       </div>
     </div>
-     <div class="footer" (click)="irAUsuarios()">
+    <div class="footer" (click)="irAUsuarios()">
       <span>→</span> Configuración
     </div>
     <div class="footer" (click)="logout()">
@@ -207,6 +209,56 @@
   <div *ngIf="showModal" class="modal" (click)="onModalClick($event)">
     <span class="close" (click)="closeModal()">&times;</span>
     <img [src]="selectedImage!" alt="Imagen ampliada" />
+  </div>
+
+
+
+
+  <!-- Modal TRM - con filtro de fecha -->
+  <div class="modal-overlay" *ngIf="isTrmModalOpen" (click)="closeTrmModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon">📊</div>
+          <h2 class="modal-title">Consulta TRM por Fecha</h2>
+        </div>
+        <button class="btn-close" (click)="closeTrmModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Selector de fecha -->
+        <div class="date-filter">
+          <label for="trm-date">Selecciona una fecha:</label>
+          <input type="date" id="trm-date" [(ngModel)]="selectedTrmDate" />
+          <button (click)="searchTrmByDate()" class="btn-search">🔍 Consultar</button>
+        </div>
+
+        <!-- Resultado -->
+        <div *ngIf="trmResult" class="trm-result">
+          <p><strong>Fecha:</strong> {{ formatDate(trmResult.vigenciadesde) }}</p>
+          <p><strong>TRM:</strong> $ {{ trmResult.valor }}</p>
+        </div>
+
+        <div *ngIf="!trmResult && selectedTrmDate" class="trm-result empty">
+          <p>⚠️ No se encontró un valor de TRM para esa fecha.</p>
+        </div>
+
+        <!-- Últimos 7 días (como referencia) -->
+        <div class="history-section">
+          <h3>Últimos 7 días:</h3>
+          <div class="history-list">
+            <div *ngFor="let item of trmHistory" class="history-item">
+              <span>{{ item.fecha }}: $ {{ item.valor }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cerrar" (click)="closeTrmModal()">Cerrar</button>
+      </div>
+    </div>
   </div>
 
 </body>
