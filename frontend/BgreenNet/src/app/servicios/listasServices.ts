@@ -16,6 +16,8 @@ import { Area } from '../models/area';
 export class ListasService {
 
   private baseUrl = `${environment.apiUrl}/api/listas`;
+   private apiUrl = 'https://www.datos.gov.co/resource/32sa-8pi3.json?$order=vigenciadesde%20DESC';
+
 
   constructor(private http: HttpClient) {}
 
@@ -38,4 +40,11 @@ export class ListasService {
     obtenerIdentificacion(): Observable<TiposIdentificacion[]> {
     return this.http.get<TiposIdentificacion[]>(`${this.baseUrl}/identificacion`);
   }
+
+
+  getTrmData(): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrl);
+  }
+
+
 }

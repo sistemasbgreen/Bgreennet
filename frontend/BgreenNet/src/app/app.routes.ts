@@ -5,15 +5,16 @@ import { AuthGuard } from './guard/auth.guard';
 
 export const routes: Routes = [
   {
-    path: 'login', component: Login
+    path: 'login',
+    component: Login
   },
   {
     path: '',
-    canActivate: [AuthGuard],  // ✅ Proteger todas las rutas del layout
+    canActivate: [AuthGuard],
     children: layoutRoutes
   },
   {
     path: '**',
-    redirectTo: 'login'
+    redirectTo: '/login'
   }
 ];

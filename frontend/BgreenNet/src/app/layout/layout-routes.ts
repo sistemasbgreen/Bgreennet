@@ -4,7 +4,6 @@ import { Home } from '../home/home/home';
 
 
 
-
 export const layoutRoutes: Routes = [
   {
     path: '',
@@ -23,21 +22,24 @@ export const layoutRoutes: Routes = [
         path: 'configuracion',
         children: [
           {
+            path: '', //  Ruta por defecto dentro de /configuracion
+            redirectTo: 'usuarios',
+            pathMatch: 'full'
+          },
+          {
             path: 'usuarios',
-            loadComponent: () =>
-              import('../modulos/configuracion/usuarios/usuarios').then(c => c.Usuarios)
+            loadComponent: () => import('../modulos/configuracion/usuarios/usuarios').then(c => c.Usuarios)
           },
           {
             path: 'sistemasinformacion',
-            loadComponent: () =>
-              import('../modulos/configuracion/sistemasinformacion/sistemasinformacion').then(c => c.Sistemasinformacion)
+            loadComponent: () => import('../modulos/configuracion/sistemasinformacion/sistemasinformacion').then(c => c.Sistemasinformacion)
           }
         ]
       },
       {
         path: 'cmr',
         children: [
-         
+
         ]
       }
     ]
