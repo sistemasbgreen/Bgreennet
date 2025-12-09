@@ -358,6 +358,8 @@ export class Home implements OnInit {
     this.router.navigate(['app/configuracion/usuarios']);
   }
 
+
+
   // ========================================
   // MODAL DE IMÁGENES
   // ========================================
