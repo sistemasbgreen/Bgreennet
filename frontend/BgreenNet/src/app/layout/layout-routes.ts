@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { Main } from './main/main';
 import { Home } from '../home/home/home';
+import { Cmiplanta } from '../home/cmiplanta/cmiplanta';
 
 
 
@@ -13,6 +14,10 @@ export const layoutRoutes: Routes = [
   {
     path: 'home',
     component: Home
+  },
+    {
+    path: 'cmiplanta',
+    component: Cmiplanta
   },
   {
     path: 'app',
@@ -37,7 +42,7 @@ export const layoutRoutes: Routes = [
         ]
       },
       {
-        path: 'cmr',
+        path: 'cmi',
         children: [
 
         ]
