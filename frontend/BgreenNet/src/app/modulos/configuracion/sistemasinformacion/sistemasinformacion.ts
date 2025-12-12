@@ -4,6 +4,7 @@ import { homeservices } from '../../../servicios/homeservices';
 import { SistemaInformacion } from '../../../models/sistemasinformacion';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgForOf, NgIf } from '@angular/common';
+import { CrearSistema } from '../../../models/CrearSistema';
 
 @Component({
   selector: 'app-sistemasinformacion',
@@ -13,10 +14,12 @@ import { NgForOf, NgIf } from '@angular/common';
 })
 export class Sistemasinformacion {
 
- sistemaInformacionData: SistemaInformacion[] = [];
+  sistemaInformacionData: SistemaInformacion[] = [];
   mostrarModal = false;
   modoEdicion = false;
-  sistemaForm: SistemaInformacion = this.getNuevoSistema();
+  sistemaForm: CrearSistema = this.getNuevoSistema();
+  sistemaIdEnEdicion: number | null = null; // ← Nueva propiedad
+
 
   constructor(
     private router: Router,
@@ -40,61 +43,68 @@ export class Sistemasinformacion {
   }
 
  abrirModal(sistema?: SistemaInformacion): void {
-    this.mostrarModal = true;
-    
-    if (sistema) {
-      // Modo edición
-      this.modoEdicion = true;
-      this.sistemaForm = { ...sistema }; // Copia el objeto
-    } else {
-      // Modo creación
-      this.modoEdicion = false;
-      this.sistemaForm = this.getNuevoSistema();
-    }
-  }
-
-  cerrarModal(): void {
-    this.mostrarModal = false;
-    this.sistemaForm = this.getNuevoSistema();
+  this.mostrarModal = true;
+  
+  if (sistema) {
+    this.modoEdicion = true;
+    this.sistemaIdEnEdicion = sistema.id; // ← Guarda el ID
+    this.sistemaForm = {
+      nombre: sistema.nombre,
+      url: sistema.url,
+      imagenUrl: sistema.imagenUrl,
+      estado: sistema.estado
+    };
+  } else {
     this.modoEdicion = false;
+    this.sistemaIdEnEdicion = null; // ← Resetea
+    this.sistemaForm = this.getNuevoSistema();
+  }
+}
+
+cerrarModal(): void {
+  this.mostrarModal = false;
+  this.sistemaForm = this.getNuevoSistema();
+  this.modoEdicion = false;
+  this.sistemaIdEnEdicion = null; // ← Importante
+}
+
+guardarSistema(): void {
+  if (!this.sistemaForm.nombre || !this.sistemaForm.url || !this.sistemaForm.imagenUrl) {
+    alert('Por favor complete todos los campos obligatorios');
+    return;
   }
 
-  guardarSistema(): void {
-    // Validación básica
-    if (!this.sistemaForm.nombre || !this.sistemaForm.url || !this.sistemaForm.imagenUrl) {
-      alert('Por favor complete todos los campos obligatorios');
-      return;
-    }
-
-    if (this.modoEdicion) {
-      // Actualizar sistema existente
-      this.homeservice.update(this.sistemaForm.id, this.sistemaForm).subscribe({
-        next: (resp) => {
-          alert('Sistema actualizado correctamente');
-          this.sistemasinformacion(); // Recarga la tabla
-          this.cerrarModal();
-        },
-        error: (err) => {
-          console.error('Error al actualizar sistema:', err);
-          alert('Error al actualizar el sistema');
-        }
-      });
-    } else {
-      // Crear nuevo sistema
-      this.homeservice.create(this.sistemaForm).subscribe({
-        next: (resp) => {
-          console.log(this.sistemaForm)
-          alert('Sistema creado correctamente');
-          this.sistemasinformacion(); // Recarga la tabla
-          this.cerrarModal();
-        },
-        error: (err) => {
-          console.error('Error al crear sistema:', err);
-          alert('Error al crear el sistema');
-        }
-      });
-    }
+ if (this.modoEdicion) {
+  if (this.sistemaIdEnEdicion === null) {
+    alert('Error: ID no disponible para actualización');
+    return;
   }
+
+  this.homeservice.update(this.sistemaIdEnEdicion, this.sistemaForm).subscribe({ // ✅ Aquí corregido
+    next: (resp) => {
+      alert('Sistema actualizado correctamente');
+      this.sistemasinformacion();
+      this.cerrarModal();
+    },
+    error: (err) => {
+      console.error('Error al actualizar sistema:', err);
+      alert('Error al actualizar el sistema');
+    }
+  });
+}else {
+    this.homeservice.Crearsistemainformacion(this.sistemaForm).subscribe({
+      next: (resp) => {
+        alert('Sistema creado correctamente');
+        this.sistemasinformacion();
+        this.cerrarModal();
+      },
+      error: (err) => {
+        console.error('Error al crear sistema:', err);
+        alert('Error al crear el sistema');
+      }
+    });
+  }
+}
 
   eliminarSistema(id: number): void {
     if (confirm('¿Está seguro de eliminar este sistema?')) {
@@ -105,17 +115,14 @@ export class Sistemasinformacion {
     }
   }
 
-  private getNuevoSistema(): SistemaInformacion {
+  private getNuevoSistema(): CrearSistema {
     return {
-      id: 0,
       nombre: '',
-      descripcion: '',
       url: '',
       imagenUrl: '',
-      activo: true
+      estado: true // valor por defecto
     };
   }
-
 
 
 }

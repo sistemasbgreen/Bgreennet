@@ -4,6 +4,8 @@ export interface SistemaInformacion {
   descripcion: string;
   url: string;
   imagenUrl: string;
-  activo: boolean;
+  estado: boolean;
   fechaCreacion?: string; // ISO string desde el backend
 }
+
+// sistema-informacion.model.ts

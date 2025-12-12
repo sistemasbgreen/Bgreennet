@@ -26,8 +26,8 @@
         </td>
 
         <td>
-          <span class="badge" [class.badge-activo]="s.activo" [class.badge-inactivo]="!s.activo">
-            {{ s.activo ? 'Activo' : 'Inactivo' }}
+          <span class="badge" [class.badge-activo]="s.estado" [class.badge-inactivo]="!s.estado">
+            {{ s.estado ? 'Activo' : 'Inactivo' }}
           </span>
         </td>
 
@@ -106,7 +106,7 @@
         <label>
           <input 
             type="checkbox" 
-            [(ngModel)]="sistemaForm.activo" 
+            [(ngModel)]="sistemaForm.estado" 
             name="activo"
           >
           <span>Sistema activo</span>

@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { SistemaInformacion } from '../models/sistemasinformacion';
 import { Usuario } from '../models/usuario';
+import { CrearSistema } from '../models/CrearSistema';
 
 
 
@@ -40,13 +41,13 @@ export class homeservices {
   }
 
 
-  create(sistema: SistemaInformacion): Observable<SistemaInformacion> {
-    return this.http.post<SistemaInformacion>(this.baseUrl, sistema, { headers: this.headers });
+  Crearsistemainformacion(sistema: CrearSistema): Observable<CrearSistema> {
+    return this.http.post<CrearSistema>(this.baseUrl, sistema, { headers: this.headers });
   }
 
 
-  update(id: number, sistema: SistemaInformacion): Observable<SistemaInformacion> {
-    return this.http.put<SistemaInformacion>(`${this.baseUrl}/${id}`, sistema);
+  update(id: number, sistema: CrearSistema): Observable<CrearSistema> {
+    return this.http.put<CrearSistema>(`${this.baseUrl}/${id}`, sistema);
   }
 
 

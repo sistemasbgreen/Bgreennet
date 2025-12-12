@@ -14,7 +14,7 @@ import { CrearUsuario } from "../models/CrearUsuario";
 export class UsuarioService {
   private baseUrl = `${environment.apiUrl}/api/usuarios`;
 
-    headers = new HttpHeaders({
+  headers = new HttpHeaders({
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
     'Content-Type': 'application/json'
   });
@@ -23,13 +23,13 @@ export class UsuarioService {
 
   // Obtener todos los usuarios
   listarUsuarios(): Observable<Usuario[]> {
-    return this.http.get<Usuario[]>(this.baseUrl+'/listar');
+    return this.http.get<Usuario[]>(this.baseUrl + '/listar');
   }
 
-// Crear un nuevo usuario
-createUsuario(usuario: CrearUsuario): Observable<CrearUsuario> {
-  return this.http.post<CrearUsuario>(this.baseUrl + '/crear', usuario);
-}
+  // Crear un nuevo usuario
+  createUsuario(usuario: CrearUsuario): Observable<CrearUsuario> {
+    return this.http.post<CrearUsuario>(this.baseUrl + '/crear', usuario, { headers: this.headers });
+  }
 
   // Obtener usuario por ID
   getUsuarioById(id: number): Observable<Usuario> {
@@ -38,11 +38,11 @@ createUsuario(usuario: CrearUsuario): Observable<CrearUsuario> {
 
   // Actualizar usuario
   actualizarUsuario(id: number, usuario: Usuario): Observable<Usuario> {
-    return this.http.put<Usuario>(`${this.baseUrl+'/actualizar'}/${id}`, usuario);
+    return this.http.put<Usuario>(`${this.baseUrl + '/actualizar'}/${id}`, usuario);
   }
 
   // Eliminar usuario
   deleteUsuario(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl+'/eliminar'}/${id}`);
+    return this.http.delete<void>(`${this.baseUrl + '/eliminar'}/${id}`);
   }
 }
