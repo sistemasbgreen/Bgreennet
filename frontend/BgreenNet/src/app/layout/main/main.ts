@@ -48,7 +48,9 @@ export class Main {
 
   ngOnInit(): void {
     this.guardarname();
-    this.prueba();
+   // this.prueba();
+
+    /*
     this.router.events.subscribe((event: RouterEvent) => {
       if (event instanceof NavigationStart) {
         console.log('🧭 Navegación iniciada a:', event.url);
@@ -60,8 +62,11 @@ export class Main {
         console.warn('⚠️ Navegación cancelada a:', (event as any).url);
       }
     });
-  }
 
+*/
+
+  }
+/*
   prueba() {
     console.log('🔍 Análisis de rutas generadas:');
     this.modulos.forEach(modulo => {
@@ -72,10 +77,18 @@ export class Main {
       });
     });
   }
+*/
+toggleSidebar() {
+  this.isSidebarCollapsed = !this.isSidebarCollapsed;
 
-  toggleSidebar() {
-    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+
+  if (this.isSidebarCollapsed) {
+    this.modulos.forEach(modulo => modulo.expandido = false);
   }
+
+
+  // this.modulos.forEach(modulo => modulo.expandido = false);
+}
 
   toggleSubmodulos(modulo: any) {
     modulo.expandido = !modulo.expandido;

@@ -40,9 +40,13 @@
                   <button class="btn-editar" (click)="abrirEditarModal(u)" title="Editar usuario">
                     <i class="bi bi-pencil-fill">Editar</i>
                   </button>
-                  <button class="btn-eliminar" (click)="eliminar(u.idUsuario!)" title="Eliminar usuario">
+                  
+                  <!--
+                                    <button class="btn-eliminar" (click)="eliminar(u.idUsuario!)" title="Eliminar usuario">
                     <i class="bi bi-trash-fill">Delete</i>
                   </button>
+                  -->
+
                 </div>
               </td>
             </tr>
@@ -82,8 +86,8 @@
                 <i class="bi bi-person-circle"></i> {{ p.descripcionPerfil }}
               </td>
               <td>
-                <span class="badge" [class.badge-activo]="p.estado" [class.badge-inactivo]="!p.estado">
-                  {{ p.estado ? 'Activo' : 'Inactivo' }}
+                <span class="badge" [class.badge-activo]="!p.estado" [class.badge-inactivo]="p.estado">
+                  {{ p.estado ?'Inactivo' :'Activo'  }}
                 </span>
               </td>
               <td>
@@ -94,7 +98,9 @@
                 </div>
               </td>
               <td>
-                <button (click)='verpermisos(p.idPerfil , p.descripcionPerfil)'>Check</button>
+                <div class="action-buttons">
+                  <button (click)='verpermisos(p.idPerfil , p.descripcionPerfil)'>Check</button>
+                </div>
               </td>
 
 
@@ -115,7 +121,7 @@
   <div class="column-right">
     <div class="section-card">
       <div class="header-section">
-        <h2><i class="bi bi-link-45deg"></i><span class="nombre_perfil">{{nombre_perfil}}</span>  </h2>
+        <h2><i class="bi bi-link-45deg"></i><span class="nombre_perfil">{{nombre_perfil}}</span> </h2>
       </div>
 
       <div class="relations-content">
@@ -130,8 +136,8 @@
           <tbody>
             <tr *ngFor="let u of permisosXperfil" class="table-row">
               <td>{{ u.nombreSistema }}</td>
- 
-             
+
+
 
               <td>
                 <div class="form-check d-flex justify-content-center">
@@ -247,7 +253,7 @@
               <label class="form-label">
                 <i class="bi bi-person-badge"></i> Tipo Identificación *
               </label>
-              <select formControlName="id_TipoIdentificacion" class="form-select">
+              <select formControlName="id_tipoidentificacion_fk" class="form-select">
                 <option *ngFor="let t of tiposIdentificacion" [value]="t.idTipoIdentificacion">{{ t.descripcion }}
                 </option>
               </select>
@@ -375,7 +381,7 @@
 
             <div class="form-group">
               <label class="form-checkbox">
-                <input formControlName="estado" type="checkbox" class="checkbox-input">
+                <input formControlName="activo" type="checkbox" class="checkbox-input">
                 <span class="checkbox-label">
                   <i class="bi bi-check-circle"></i> Perfil Activo
                 </span>

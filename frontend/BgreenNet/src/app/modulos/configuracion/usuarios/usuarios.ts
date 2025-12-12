@@ -14,6 +14,7 @@ import { TiposIdentificacion } from '../../../models/tiposIdentificacion';
 import { ListasService } from '../../../servicios/listasServices';
 import { CrearUsuario } from '../../../models/CrearUsuario';
 import { Perfilservices } from '../../../servicios/perfilservices';
+import { AsignarPermiso } from '../../../models/asignarpermisos';
 
 @Component({
   selector: 'app-usuarios',
@@ -26,7 +27,7 @@ export class Usuarios implements OnInit {
 
   usuarioForm: FormGroup;
   perfilForm: FormGroup;
-  permisosXperfil:any;
+  permisosXperfil: any;
   usuarios: Usuario[] = [];
   perfiles: Perfil[] = [];
   empresas: Empresa[] = [];
@@ -45,7 +46,9 @@ export class Usuarios implements OnInit {
   // IDs a editar
   usuarioIdEditar: number | null = null;
   perfilIdEditar: number | null = null;
-nombre_perfil: string = "";
+  nombre_perfil: string = "";
+
+  perfilIdSeleccionado: number | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -69,13 +72,13 @@ nombre_perfil: string = "";
       fechaNacimiento: ['', Validators.required],
       id_cargo_fk: ['', Validators.required],
       id_empresa_fk: ['', Validators.required],
-      id_TipoIdentificacion: [1, Validators.required],
+      id_tipoidentificacion_fk: [1, Validators.required],
       estado: [true]
     });
 
     this.perfilForm = this.perf.group({
       descripcionPerfil: ['', [Validators.required, Validators.minLength(4)]],
-      estado: [true]
+      activo: [true]
     });
   }
 
@@ -93,7 +96,7 @@ nombre_perfil: string = "";
     this.usuarioService.listarUsuarios().subscribe({
       next: (data) => this.usuarios = data,
       error: (err) => console.error('Error al cargar usuarios', err)
-      
+
     });
   }
 
@@ -140,7 +143,7 @@ nombre_perfil: string = "";
       estado: true,
       id_perfil_fk: 1,
       id_empresa_fk: 1,
-      id_TipoIdentificacion: 1,
+      id_tipoidentificacion_fk: 1,
       id_cargo_fk: 1
     });
     this.showModalUsuario = true;
@@ -158,7 +161,7 @@ nombre_perfil: string = "";
       id_empresa_fk: usuario.id_empresa_fk,
       razon_social: usuario.razon_social || '',
       identificacion: usuario.identificacion,
-      id_TipoIdentificacion: usuario.id_tipoidentificacion_fk,
+      id_tipoidentificacion_fk: usuario.id_tipoidentificacion_fk,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       correo: usuario.correo,
@@ -234,14 +237,18 @@ nombre_perfil: string = "";
       return;
     }
 
+
+
     const usuario = {
       ...this.usuarioForm.value,
       id_area_fk: Number(this.usuarioForm.value.id_area_fk),
       id_cargo_fk: Number(this.usuarioForm.value.id_cargo_fk),
       id_empresa_fk: Number(this.usuarioForm.value.id_empresa_fk),
       id_perfil_fk: Number(this.usuarioForm.value.id_perfil_fk),
-      id_TipoIdentificacion: Number(this.usuarioForm.value.id_TipoIdentificacion)
+      id_tipoidentificacion_fk: Number(this.usuarioForm.value.id_tipoidentificacion_fk)
     };
+
+    console.log(usuario)
 
     if (this.isEditModeUsuario && this.usuarioIdEditar) {
       this.usuarioService.actualizarUsuario(this.usuarioIdEditar, usuario).subscribe({
@@ -277,6 +284,8 @@ nombre_perfil: string = "";
 
     const perfil = { ...this.perfilForm.value };
 
+    console.log(perfil)
+
     if (this.isEditModePerfil && this.perfilIdEditar) {
       this.perfilservices.actualizarPerfil(this.perfilIdEditar, perfil).subscribe({
         next: () => {
@@ -303,24 +312,59 @@ nombre_perfil: string = "";
     });
   }
 
-verpermisos(id: any , name :any) {
- this.nombre_perfil =  name ;
-  this.perfilservices.obtenerpermisos(id).subscribe({
-    next: (data) => {
-      this.permisosXperfil = data;
-      console.log('Permisos obtenidos:', data);
+  verpermisos(id: any, name: any): void {
+    this.nombre_perfil = name;
+    this.perfilIdSeleccionado = id; // 👈 Guarda el ID aquí
+
+    this.perfilservices.obtenerpermisos(id).subscribe({
+      next: (data) => {
+        this.permisosXperfil = data;
+      },
+      error: (err) => console.error('Error al cargar permisos:', err)
+    });
+  }
+
+
+ togglePermiso(permiso: any): void {
+  const idPerfil = this.perfilIdSeleccionado;
+  if (!idPerfil) {
+    console.error('No se ha seleccionado un perfil');
+    return;
+  }
+
+  const dto: AsignarPermiso = {
+    idPerfilFk: idPerfil,
+    idSistemaFk: permiso.idSistema
+  };
+
+  // Guardar el estado actual para revertir en caso de fallo
+  const estadoOriginal = permiso.tienePermiso;
+
+  // Invertir visualmente (optimistic update)
+  permiso.tienePermiso = !permiso.tienePermiso;
+
+  const observable$ = permiso.tienePermiso
+    ? this.perfilservices.asignarPermiso(dto)
+    : this.perfilservices.eliminarPermiso(dto);
+
+  observable$.subscribe({
+    next: (exito: boolean) => {
+      if (!exito) {
+        // El backend respondió 200, pero lógicamente falló → revertir
+        permiso.tienePermiso = estadoOriginal;
+        alert('Operación rechazada por el servidor.');
+      }
+      // Si éxito === true, ya está actualizado en UI
     },
-    error: (err) => console.error('Error al cargar permisos:', err)
+    error: (err) => {
+      console.error('Error de red o servidor:', err);
+      // Revertir siempre en caso de error de red
+      permiso.tienePermiso = estadoOriginal;
+      alert('No se pudo realizar la operación. Intente nuevamente.');
+    }
   });
 }
 
-
-togglePermiso(permiso: any) {
-  permiso.tienePermiso = !permiso.tienePermiso;
-  // Aquí podrías llamar a un servicio para guardar el cambio en el backend
-  console.log('Nuevo estado de permiso:', permiso);
-}
-  
   // ======== HELPERS PARA VALIDACIÓN ========
   get f() {
     return this.usuarioForm.controls;

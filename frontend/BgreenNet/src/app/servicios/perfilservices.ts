@@ -4,42 +4,50 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Perfil } from '../models/perfil';
 import { Observable } from 'rxjs';
 import { PermisosXperfil } from '../models/permisosXperfil';
+import { AsignarPermiso } from '../models/asignarpermisos';
+
 
 @Injectable({
   providedIn: 'root'
 })
 export class Perfilservices {
-
   private baseUrl = `${environment.apiUrl}/api/perfil`;
 
   headers = new HttpHeaders({
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
     'Content-Type': 'application/json'
   });
-
-
   constructor(private http: HttpClient) { }
-
 
   Obtenerperfil(): Observable<Perfil[]> {
     return this.http.get<Perfil[]>(this.baseUrl, { headers: this.headers });
   }
 
+  crearPerfil(perfil: Perfil): Observable<Perfil> {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+    });
 
-
-
-  crearPerfil(usuario: Perfil): Observable<Perfil> {
-    return this.http.post<Perfil>(this.baseUrl + '/crear', usuario , { headers: this.headers });
+    return this.http.post<Perfil>(this.baseUrl, perfil, { headers });
   }
 
   actualizarPerfil(id: number, usuario: Perfil): Observable<Perfil> {
     return this.http.put<Perfil>(`${this.baseUrl + '/actualizar'}/${id}`, usuario);
   }
 
+  obtenerpermisos(id: number): Observable<PermisosXperfil> {
+    return this.http.get<PermisosXperfil>(`${this.baseUrl}/${id}`, { headers: this.headers });
+  }
 
-   obtenerpermisos(id: number ): Observable<PermisosXperfil> {
-      return this.http.get<PermisosXperfil>(`${this.baseUrl}/${id}`,{ headers: this.headers });
-    }
+eliminarPermiso(dto: AsignarPermiso): Observable<boolean> {
+  return this.http.delete<boolean>(`${this.baseUrl}/eliminar`, {
+    body: dto
+  });
+}
+
+asignarPermiso(dto: AsignarPermiso): Observable<boolean> {
+  return this.http.post<boolean>(`${this.baseUrl}/asignar`, dto);
+}
 
 
 }

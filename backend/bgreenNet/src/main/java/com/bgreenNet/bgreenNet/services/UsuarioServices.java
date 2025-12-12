@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.bgreenNet.bgreenNet.dto.UsuarioCompletoDTO;
@@ -20,20 +21,28 @@ public class UsuarioServices {
 
 	
 	private final JdbcTemplate jdbcTemplate;
+    private final PasswordEncoder passwordEncoder;
+
     @Autowired
-    public UsuarioServices(JdbcTemplate jdbcTemplate, LogsService logsService) {
+    public UsuarioServices(JdbcTemplate jdbcTemplate, 
+                          PasswordEncoder passwordEncoder, 
+                          LogsService logsService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.passwordEncoder = passwordEncoder; // ← Asigna
     }
     
    
  // CREAR
     @Transactional
     public void crearUsuario(UsuarioCompletoDTO dto) {
+        // ✅ Encriptar la contraseña
+        String contrasenaEncriptada = passwordEncoder.encode(dto.getContrasena());
+
         String sql = "{call sp_crear_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
         
         jdbcTemplate.update(sql,
             dto.getUsuario(),          
-            dto.getContrasena(),        
+            contrasenaEncriptada, 
             dto.getId_area_fk(),    
             dto.getId_perfil_fk(),
             dto.getId_cargo_fk(),

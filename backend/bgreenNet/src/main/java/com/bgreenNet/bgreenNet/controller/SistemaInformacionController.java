@@ -27,18 +27,24 @@ public class SistemaInformacionController {
 
 	 @Autowired
 	    private SistemasInformacionService service;
-
+	 
+	 
+	 //traer los sistemas de informacion
 	    @GetMapping
 	    public ResponseEntity<List<SistemasInformacion>> getAll() {
 	        return ResponseEntity.ok(service.getAll());
 	    }   
+	    
+		 
+		 // Crear los sistemas de informacion
 	    
 	    @PostMapping
 	    public ResponseEntity<SistemasInformacion> crear(@RequestBody SistemasInformacion sistema) {
 	    	SistemasInformacion nuevo = service.crear(sistema);
 	        return ResponseEntity.ok(nuevo);
 	    }  
-	    	    
+		 
+		 // Actualizar los sistemas de informacion
 	    @PutMapping("/{id}")
 	    public ResponseEntity<SistemasInformacion> editar(
 	            @PathVariable Long id,
