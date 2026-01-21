@@ -24,26 +24,38 @@
     </properties>
 
     <dependencies>
-        <!-- Web (controladores REST) -->
+		<!-- Web (controladores REST) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        
+        <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-configuration-processor</artifactId>
+    <optional>true</optional>
+</dependency>
 
-        <!-- Persistencia con JPA -->
+		<!-- Persistencia con JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- Driver de SQL Server -->
+		<!-- Driver de SQL Server -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
 			<version>12.10.2.jre11</version>
         </dependency>
+        
+        <dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
 
-        <!-- DevTools para recarga automática -->
+
+		<!-- DevTools para recarga automática -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -51,31 +63,31 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Lombok para reducir código repetitivo -->
+		<!-- Lombok para reducir código repetitivo -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- Tomcat provisto para WAR (no embebido) -->
+		<!-- Tomcat provisto para WAR (no embebido) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-tomcat</artifactId>
         </dependency>
 
-        <!-- Testing -->
+		<!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Security -->
+		<!-- Spring Security -->
 		<dependency>
 		    <groupId>org.springframework.boot</groupId>
 		    <artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
-		
+
 		<!-- JWT (usa una librería como jjwt) -->
 		<dependency>
 		    <groupId>io.jsonwebtoken</groupId>
@@ -95,12 +107,17 @@
 		    <scope>runtime</scope>
 		</dependency>
 
-		
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+			<optional>true</optional>
+		</dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Compilador de Java -->
+			<!-- Compilador de Java -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -116,7 +133,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Plugin de Spring Boot -->
+			<!-- Plugin de Spring Boot -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

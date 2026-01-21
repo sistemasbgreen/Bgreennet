@@ -4,11 +4,4 @@ import { Sistemasinformacion } from './configuracion/sistemasinformacion/sistema
 
 
 export const configuracionRoutes: Routes = [
-  {
-    path: '',
-    children: [
-      { path: 'usuarios', component: Usuarios },
-       { path: 'SistemasInformacion', component: Sistemasinformacion },
-    ]
-  }
 ];

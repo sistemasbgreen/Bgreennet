@@ -3,8 +3,6 @@ import { Main } from './main/main';
 import { Home } from '../home/home/home';
 import { Cmiplanta } from '../home/cmiplanta/cmiplanta';
 
-
-
 export const layoutRoutes: Routes = [
   {
     path: '',
@@ -15,7 +13,7 @@ export const layoutRoutes: Routes = [
     path: 'home',
     component: Home
   },
-    {
+  {
     path: 'cmiplanta',
     component: Cmiplanta
   },
@@ -27,7 +25,7 @@ export const layoutRoutes: Routes = [
         path: 'configuracion',
         children: [
           {
-            path: '', //  Ruta por defecto dentro de /configuracion
+            path: '',
             redirectTo: 'usuarios',
             pathMatch: 'full'
           },
@@ -41,10 +39,31 @@ export const layoutRoutes: Routes = [
           }
         ]
       },
+      // 👇 Rutas de CMI con loadComponent (sin módulos)
       {
         path: 'cmi',
         children: [
-
+          {
+            path: 'home',
+            loadComponent: () => import('../modulos/CMI/cmi-home/cmi-home').then(c => c.CmiHome)
+          },
+          {
+            path: 'cpo',
+            loadComponent: () => import('../modulos/CMI/cpo/cpo').then(c => c.Cpo)
+          },
+          {
+            path: 'metanol',
+            loadComponent: () => import('../modulos/CMI/metanol/metanol').then(c => c.Metanol)
+          },
+          {
+            path: 'metilato',
+            loadComponent: () => import('../modulos/CMI/metilato/metilato').then(c => c.Metilato)
+          },
+          {
+            path: '',
+            redirectTo: 'home',
+            pathMatch: 'full'
+          }
         ]
       }
     ]
