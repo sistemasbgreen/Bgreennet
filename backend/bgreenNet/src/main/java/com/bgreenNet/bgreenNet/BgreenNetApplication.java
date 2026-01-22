@@ -1,11 +1,11 @@
-
 package com.bgreenNet.bgreenNet;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -14,47 +14,51 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootApplication
 public class BgreenNetApplication {
-	public static void main(String[] args) {
-		SpringApplication.run(BgreenNetApplication.class, args);
-	}
-	
-	 @Bean
-	    CommandLineRunner testJdbc(JdbcTemplate jdbcTemplate, DataSource dataSource) {
-	        return args -> {
-	            System.out.println("Probando conexión con la base de datos...");
 
-	            try {
-	           
-	                Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-	                System.out.println("Conexión establecida correctamente, resultado: " + result);
+    public static void main(String[] args) {
+        SpringApplication.run(BgreenNetApplication.class, args);
+    }
 
-	     
-	                try (Connection connection = dataSource.getConnection()) {
-	                    DatabaseMetaData metaData = connection.getMetaData();
+    @Bean
+    CommandLineRunner testJdbcConnections(
+            @Qualifier("primaryJdbcTemplate") JdbcTemplate primaryJdbcTemplate,
+            @Qualifier("primaryDataSource") DataSource primaryDataSource,
+            @Qualifier("siesaJdbcTemplate") JdbcTemplate siesaJdbcTemplate,
+            @Qualifier("siesaDataSource") DataSource siesaDataSource
+    ) {
+        return args -> {
+            probarConexion("BASE DE DATOS PRINCIPAL", primaryJdbcTemplate, primaryDataSource);
+            probarConexion("BASE DE DATOS SIESA", siesaJdbcTemplate, siesaDataSource);
+        };
+    }
 
-	                    String dbName = metaData.getDatabaseProductName();       
-	                    String dbVersion = metaData.getDatabaseProductVersion();  
-	                    String url = metaData.getURL(); 
-	                    String userName = metaData.getUserName();
+    private void probarConexion(
+            String nombreConexion,
+            JdbcTemplate jdbcTemplate,
+            DataSource dataSource
+    ) {
 
-	                    String actualDatabaseName = jdbcTemplate.queryForObject(
-	                        "SELECT DB_NAME()", String.class
-	                    );
+        System.out.println("\n==============================");
+        System.out.println("Probando conexión: " + nombreConexion);
+        System.out.println("==============================");
 
-	                    System.out.println("=== Información de la conexión ===");
-	                    System.out.println("Producto de base de datos: " + dbName);
-	                    System.out.println("Versión: " + dbVersion);
-	                    System.out.println("Usuario: " + userName);
-	                    System.out.println("Base de datos actual: " + actualDatabaseName);
+        try {
+            Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
+            System.out.println("✅ Conexión OK (SELECT 1 = " + result + ")");
 
-	                }
+            try (Connection connection = dataSource.getConnection()) {
+                DatabaseMetaData metaData = connection.getMetaData();
+                System.out.println("Usuario     : " + metaData.getUserName());
 
-	            } catch (SQLException e) {
-	                System.err.println("Error al obtener metadatos de la base de datos: " + e.getMessage());
-	            } catch (Exception e) {
-	                System.err.println("Error general: " + e.getMessage());
-	            }
-	        };
-	    }
+                String actualDatabaseName =
+                        jdbcTemplate.queryForObject("SELECT DB_NAME()", String.class);
 
+                System.out.println("Base actual : " + actualDatabaseName);
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ ERROR en " + nombreConexion);
+            System.err.println("Motivo: " + e.getMessage());
+        }
+    }
 }
