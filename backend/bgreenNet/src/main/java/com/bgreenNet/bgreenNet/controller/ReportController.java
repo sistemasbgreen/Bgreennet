@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.bgreenNet.bgreenNet.dto.ConsumptionProductionRequest;
+import com.bgreenNet.bgreenNet.dto.ReportRequest;
 import com.bgreenNet.bgreenNet.dto.ReportResponse;
 import com.bgreenNet.bgreenNet.services.InventoryService;
 
@@ -23,17 +24,18 @@ public class ReportController {
     private InventoryService inventoryService;
 
     @PostMapping("/ComsumoProductos")
-    public ResponseEntity<?> getConsumptionProduction(@RequestBody @Valid ConsumptionProductionRequest request) {
-        try {
-            ReportResponse response = inventoryService.generateReport(
-                request.getStartDate(),
-                request.getEndDate(),
-                request.getConsumptionProductId(),
-                request.getProductionProductId()
-            );
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ReportResponse generateInventoryReport(@RequestBody ReportRequest request) {
+        return inventoryService.generateReport(
+            request.getStartDate(),
+            request.getEndDate(),
+            request.getConsumptionProductId(),
+            request.getProductionProductId(),
+            request.getConsumptionDocTypes(),
+            request.getProductionDocTypes()
+        );
     }
+    
+    
+    
+    
 }
