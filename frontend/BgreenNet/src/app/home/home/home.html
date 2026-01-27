@@ -5,15 +5,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BGREENNET - Sistema Completo</title>
-
 </head>
 
-<body>
+<body [class.dark-mode]="darkMode">
+
   <header class="header">
     <div class="logo-section">
-      <img src="http://172.30.72.200/Imagenes/Img/bgreen_Logo.jpg" width="100px" alt="">
+      <img src="http://172.30.72.200/Imagenes/Img/bgreen_Logo.png" width="100px" alt="BGREEN Logo">
 
-      <div class="stats">
+      <div class="stats" *ngIf="dashboardWidgets.stats">
         <div class="stat-item" (click)="openTrmModal()">
           <span class="indicador_precios">📊 TRM: $ {{ currentTrmValue || 'Cargando...' }}</span>
         </div>
@@ -24,193 +24,344 @@
           <span class="indicador_precios">📈 B100: $ 20.192,53</span>
         </div>
       </div>
-
     </div>
+
     <div class="brand">
       <h1>BGREEN<span>NET</span></h1>
+      <p class="clock-display">
+        <i class="bi bi-clock"></i> {{ currentTime | date:'HH:mm:ss' }}
+      </p>
     </div>
 
     <div class="nav">
+      <!-- Búsqueda mejorada -->
+      <div class="search-container">
+        <input type="text" class="search-input" placeholder="Buscar... (Ctrl+K)" [(ngModel)]="searchQuery" />
+        <button class="search-btn">
+          <i class="bi bi-search"></i>
+        </button>
+        <button *ngIf="searchQuery" class="clear-search-btn" (click)="clearSearch()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+
+      <!-- Botón modo oscuro -->
+      <button class="theme-toggle" (click)="toggleDarkMode()" title="Cambiar tema">
+        <i class="bi" [class.bi-moon-stars]="!darkMode" [class.bi-sun-fill]="darkMode"></i>
+      </button>
+
+      <!-- Notificaciones -->
+      <button class="notification-btn">
+        <i class="bi bi-bell"></i>
+        <span class="notification-badge">3</span>
+      </button>
+
       <a (click)="openModalformatos('contactos')">Contactos</a>
       <a (click)="openModalformatos('formatos')">Formatos</a>
-      <button class="search-btn">🔍</button>
-      <button class="user-avatar" (click)="toggleMenu()">
-        {{ initials }}
-      </button>
-    </div>
 
-    <!-- Modal Mejorado -->
-    <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModalformatos()">
-      <div class="modal-container" (click)="$event.stopPropagation()">
+      <!-- Menú de usuario mejorado -->
+      <div class="user-menu-container">
+        <button class="user-avatar" (click)="toggleUserMenu()">
+          {{ initials }}
+        </button>
 
-        <!-- Header del Modal -->
-        <div class="modal-header">
-          <div class="modal-header-left">
-            <div class="modal-icon">
-              <span *ngIf="modalType === 'contactos'">📧</span>
-              <span *ngIf="modalType === 'formatos'">📋</span>
-            </div>
-            <h2 class="modal-title">{{ modalTitle }}</h2>
-          </div>
-          <button class="btn-close" (click)="closeModalformatos()">
-            ×
-          </button>
-        </div>
-
-        <!-- Cuerpo del Modal -->
-        <div class="modal-body">
-
-          <!-- Tabla de Contactos -->
-          <div *ngIf="modalType === 'contactos'">
-            <table class="tabla-contactos" *ngIf="sistemacontactosData.length > 0">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Cargo</th>
-                  <th>Correo</th>
-                  <th>Extensión</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let contacto of sistemacontactosData; let i = index">
-                  <td>
-                    <div class="nombre-cell">
-                      <div class="avatar avatar-{{(i % 5) + 1}}">
-                        {{ contacto.nombre?.charAt(0) || '?' }}
-                      </div>
-                      <div class="nombre-info">
-                        <strong>{{ contacto.nombre }}</strong>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="cargo-badge">{{ contacto.cargo }}</span>
-                  </td>
-                  <td>
-                    <a [href]="'mailto:' + contacto.correo" class="correo-link">
-                      <span>✉</span>
-                      {{ contacto.correo }}
-                    </a>
-                  </td>
-                  <td>
-                    <span class="ext-badge">
-                      <span>📞</span>
-                      {{ contacto.ext }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <!-- Estado vacío -->
-            <div class="empty-state" *ngIf="sistemacontactosData.length === 0">
-              <div class="empty-state-icon">📭</div>
-              <p>No hay contactos disponibles en este momento</p>
+        <!-- Dropdown del usuario -->
+        <div class="user-dropdown" *ngIf="isUserMenuOpen">
+          <div class="user-dropdown-header">
+            <div class="user-avatar-large">{{ initials }}</div>
+            <div class="user-info">
+              <p class="user-name">{{ fullName }}</p>
+              <p class="user-email">{{ userEmail }}</p>
+              <p class="user-role">{{ userRole }} • {{ nameempresa }}</p>
             </div>
           </div>
 
-          <!-- Tabla de Formatos -->
-          <div *ngIf="modalType === 'formatos'">
-            <table class="tabla-contactos" *ngIf="formatosData.length > 0">
-              <thead>
-                <tr>
-                  <th>Formato</th>
-                  <th>Descripción</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let formato of formatosData; let i = index">
-                  <td>
-                    <div class="nombre-cell">
-                      <div class="avatar avatar-{{(i % 5) + 1}}">
-                        📄
-                      </div>
-                      <div class="nombre-info">
-                        <strong>{{ formato.nombre }}</strong>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{{ formato.descripcion || 'Documento descargable' }}</td>
-                  <td>
-                    <a [href]="formato.url" target="_blank" class="formato-link">
-                      <span>⬇</span>
-                      Descargar
-                    </a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="user-dropdown-menu">
+            <button class="dropdown-item" (click)="irAPerfil(); closeUserMenu()">
+              <i class="bi bi-person"></i>
+              <span>Mi Perfil</span>
+            </button>
 
-            <!-- Estado vacío -->
-            <div class="empty-state" *ngIf="formatosData.length === 0">
-              <div class="empty-state-icon">📂</div>
-              <p>No hay formatos disponibles en este momento</p>
-            </div>
+            <button class="dropdown-item" (click)="irAConfiguracion(); closeUserMenu()">
+              <i class="bi bi-gear"></i>
+              <span>Configuración</span>
+            </button>
+
+            <button class="dropdown-item" (click)="toggleAllWidgets(); closeUserMenu()">
+              <i class="bi bi-layout-sidebar"></i>
+              <span>Personalizar Dashboard</span>
+            </button>
+
+            <button class="dropdown-item">
+              <i class="bi bi-question-circle"></i>
+              <span>Ayuda</span>
+            </button>
+
+            <div class="dropdown-divider"></div>
+
+            <button class="dropdown-item logout-item" (click)="logout()">
+              <i class="bi bi-box-arrow-left"></i>
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
-
         </div>
-
-        <!-- Footer del Modal -->
-        <div class="modal-footer">
-          <span class="footer-info">
-            <strong *ngIf="modalType === 'contactos'">{{ sistemacontactosData.length }}</strong>
-            <strong *ngIf="modalType === 'formatos'">{{ formatosData.length }}</strong>
-            {{ modalType === 'contactos' ? 'contacto(s)' : 'formato(s)' }} disponible(s)
-          </span>
-          <button class="btn-cerrar" (click)="closeModalformatos()">
-            Cerrar
-          </button>
-        </div>
-
       </div>
     </div>
-
   </header>
 
-  <div class="dropdown-menu" *ngIf="isMenuOpen">
-    <div class="headername">
-      <div class="avatar">{{ initials }}</div>
-      <div class="greeting">
-        <p>¡Hola, {{ fullName }}!</p>
-        <p>{{ nameempresa }}</p>
+  <!-- Modal de Contactos/Formatos -->
+  <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModalformatos()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon">
+            <span *ngIf="modalType === 'contactos'">📧</span>
+            <span *ngIf="modalType === 'formatos'">📋</span>
+          </div>
+          <h2 class="modal-title">{{ modalTitle }}</h2>
+        </div>
+        <button class="btn-close" (click)="closeModalformatos()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tabla de Contactos -->
+        <div *ngIf="modalType === 'contactos'">
+          <table class="tabla-contactos" *ngIf="sistemacontactosData.length > 0">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Cargo</th>
+                <th>Correo</th>
+                <th>Extensión</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let contacto of sistemacontactosData; let i = index">
+                <td>
+                  <div class="nombre-cell">
+                    <div class="avatar avatar-{{(i % 5) + 1}}">
+                      {{ contacto.nombre?.charAt(0) || '?' }}
+                    </div>
+                    <div class="nombre-info">
+                      <strong>{{ contacto.nombre }}</strong>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="cargo-badge">{{ contacto.cargo }}</span>
+                </td>
+                <td>
+                  <a [href]="'mailto:' + contacto.correo" class="correo-link">
+                    <span>✉</span>
+                    {{ contacto.correo }}
+                  </a>
+                </td>
+                <td>
+                  <span class="ext-badge">
+                    <span>📞</span>
+                    {{ contacto.ext }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" *ngIf="sistemacontactosData.length === 0">
+            <div class="empty-state-icon">📭</div>
+            <p>No hay contactos disponibles en este momento</p>
+          </div>
+        </div>
+
+        <!-- Tabla de Formatos -->
+        <div *ngIf="modalType === 'formatos'">
+          <table class="tabla-contactos" *ngIf="formatosData.length > 0">
+            <thead>
+              <tr>
+                <th>Formato</th>
+                <th>Descripción</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let formato of formatosData; let i = index">
+                <td>
+                  <div class="nombre-cell">
+                    <div class="avatar avatar-{{(i % 5) + 1}}">📄</div>
+                    <div class="nombre-info">
+                      <strong>{{ formato.nombre }}</strong>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ formato.descripcion || 'Documento descargable' }}</td>
+                <td>
+                  <a [href]="formato.url" target="_blank" class="formato-link">
+                    <span>⬇</span>
+                    Descargar
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" *ngIf="formatosData.length === 0">
+            <div class="empty-state-icon">📂</div>
+            <p>No hay formatos disponibles en este momento</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="footer-info">
+          <strong *ngIf="modalType === 'contactos'">{{ sistemacontactosData.length }}</strong>
+          <strong *ngIf="modalType === 'formatos'">{{ formatosData.length }}</strong>
+          {{ modalType === 'contactos' ? 'contacto(s)' : 'formato(s)' }} disponible(s)
+        </span>
+        <button class="btn-cerrar" (click)="closeModalformatos()">Cerrar</button>
       </div>
     </div>
-    <!--
-    <div class="footer">
-      <span>X</span> Contactos
-    </div>
-    <div class="footer">
-      <span>X</span> Formatos
-    </div>
-    <div class="footer" (click)="irAUsuarios()">
-      <span><i class="bi bi-sliders"></i></span> Configuración
-    </div>
-    -->
-
-    
-
-    <div class="footer" (click)="logout()">
-      <span><i class="bi bi-box-arrow-left"></i></span> Cerrar sesión
-    </div>
-
   </div>
 
+  <!-- Contenido Principal -->
   <main class="main-content">
-    <section>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h2 class="hero-greeting">{{ greeting }}, {{ fullName.split(' ')[0] }}</h2>
+          <p class="hero-subtitle">Bienvenido a tu centro de control empresarial</p>
+        </div>
+        <button class="customize-btn" (click)="toggleAllWidgets()">
+          <i class="bi bi-gear"></i>
+          Personalizar Vista
+        </button>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat-card">
+          <i class="bi bi-people"></i>
+          <div>
+            <p class="stat-value">248</p>
+            <p class="stat-label">Usuarios activos</p>
+          </div>
+        </div>
+        <div class="hero-stat-card">
+          <i class="bi bi-file-text"></i>
+          <div>
+            <p class="stat-value">1,432</p>
+            <p class="stat-label">Documentos</p>
+          </div>
+        </div>
+        <div class="hero-stat-card">
+          <i class="bi bi-activity"></i>
+          <div>
+            <p class="stat-value">98.5%</p>
+            <p class="stat-label">Uptime</p>
+          </div>
+        </div>
+        <div class="hero-stat-card">
+          <i class="bi bi-calendar-check"></i>
+          <div>
+            <p class="stat-value">12</p>
+            <p class="stat-label">Tareas hoy</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gráfico TRM 
+    <section class="trm-chart-section" *ngIf="dashboardWidgets.trmChart && trmHistoricalData.length > 0">
+      <div class="section-header">
+        <h3>📊 Histórico TRM - Últimos 7 días</h3>
+        <button class="close-widget-btn" (click)="toggleWidget('trmChart')">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="chart-container">
+        <canvas #trmChart></canvas>
+      </div>
+      <div class="trm-data-grid">
+        <div class="trm-data-item" *ngFor="let item of trmHistoricalData">
+          <span class="trm-date">{{ item.fecha }}</span>
+          <div class="trm-value-container">
+            <span class="trm-value">$ {{ item.valor | number:'1.2-2':'es-CO' }}</span>
+            <span class="trm-variation" [class.positive]="item.variacion > 0" [class.negative]="item.variacion < 0">
+              {{ item.variacion > 0 ? '+' : '' }}{{ item.variacion }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+    -->
+    <!-- Sistemas Disponibles -->
+    <section *ngIf="dashboardWidgets.quickAccess">
+      <div class="section-header">
+        <h3>{{ searchQuery ? 'Resultados de búsqueda' : 'Sistemas Disponibles' }}</h3>
+        <div class="favorites-info" *ngIf="favorites.length > 0">
+          <i class="bi bi-star-fill"></i>
+          {{ favorites.length }} favorito(s)
+        </div>
+      </div>
+
       <div class="apps-grid">
         <div class="apps-container">
-          <div *ngFor="let s of sistemaInformacionData" class="app-item">
+          <div *ngFor="let s of filteredSistemas" class="app-item" [class.favorite]="isFavorite(s.id)">
+            <button class="favorite-btn" (click)="toggleFavorite(s.id)">
+              <i class="bi" [class.bi-star]="!isFavorite(s.id)" [class.bi-star-fill]="isFavorite(s.id)"></i>
+            </button>
             <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="app-link">
               <img [src]="s.imagenUrl" [alt]="s.nombre" width="100" height="100" />
               <span class="app-name">{{ s.nombre }}</span>
+              <span class="app-category" *ngIf="s.category">{{ s.category }}</span>
             </a>
           </div>
+        </div>
+      </div>
+
+      <div class="empty-search" *ngIf="filteredSistemas.length === 0 && searchQuery">
+        <i class="bi bi-search"></i>
+        <p>No se encontraron sistemas que coincidan con "{{ searchQuery }}"</p>
+        <button class="btn-cerrar" (click)="clearSearch()">Limpiar búsqueda</button>
+      </div>
+    </section>
+
+    <!-- Actividad Reciente -->
+    <section class="activity-section" *ngIf="dashboardWidgets.activity">
+      <div class="section-header">
+        <h3>Actividad Reciente</h3>
+        <button class="close-widget-btn" (click)="toggleWidget('activity')">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="activity-list">
+        <div class="activity-item">
+          <div class="activity-indicator blue"></div>
+          <div class="activity-content">
+            <p class="activity-title">Nuevo documento</p>
+            <p class="activity-detail">Informe Q4 2024.pdf</p>
+          </div>
+          <span class="activity-time">Hace 5 min</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-indicator green"></div>
+          <div class="activity-content">
+            <p class="activity-title">Usuario conectado</p>
+            <p class="activity-detail">María García - Contabilidad</p>
+          </div>
+          <span class="activity-time">Hace 12 min</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-indicator orange"></div>
+          <div class="activity-content">
+            <p class="activity-title">Actualización TRM</p>
+            <p class="activity-detail">Nuevo valor: $4,483.39</p>
+          </div>
+          <span class="activity-time">Hace 1 hora</span>
         </div>
       </div>
     </section>
   </main>
 
+  <!-- Carrusel de imágenes -->
   <footer>
+    <h3>Descubre todo lo que está pasando</h3>
     <div class="carousel">
       <img *ngFor="let img of images" [src]="img" [alt]="'Imagen'" (click)="openModal(img)" />
     </div>
@@ -222,30 +373,45 @@
     <img [src]="selectedImage!" alt="Imagen ampliada" />
   </div>
 
-
-
-
-  <!-- Modal TRM - con filtro de fecha -->
+  <!-- Modal TRM Detallado -->
   <div class="modal-overlay" *ngIf="isTrmModalOpen" (click)="closeTrmModal()">
-    <div class="modal-container" (click)="$event.stopPropagation()">
-
+    <div class="modal-container modal-trm" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-left">
           <div class="modal-icon">📊</div>
-          <h2 class="modal-title">Consulta TRM por Fecha</h2>
+          <h2 class="modal-title">Análisis Completo TRM</h2>
         </div>
         <button class="btn-close" (click)="closeTrmModal()">×</button>
       </div>
 
       <div class="modal-body">
-        <!-- Selector de fecha -->
-        <div class="date-filter">
-          <label for="trm-date">Selecciona una fecha:</label>
-          <input type="date" id="trm-date" [(ngModel)]="selectedTrmDate" />
-          <button (click)="searchTrmByDate()" class="btn-search">🔍 Consultar</button>
+        <!-- Resumen TRM -->
+        <div class="trm-summary-grid">
+          <div class="trm-summary-card">
+            <p class="summary-label">Valor Actual</p>
+            <p class="summary-value">$ {{ currentTrmValue }}</p>
+            <p class="summary-change positive">+0.07% hoy</p>
+          </div>
+          <div class="trm-summary-card">
+            <p class="summary-label">Máximo (7d)</p>
+            <p class="summary-value">$ 4.483,39</p>
+          </div>
+          <div class="trm-summary-card">
+            <p class="summary-label">Mínimo (7d)</p>
+            <p class="summary-value">$ 4.420,00</p>
+          </div>
         </div>
 
-        <!-- Resultado -->
+        <!-- Selector de fecha -->
+        <div class="date-filter">
+          <label for="trm-date">Consultar fecha específica:</label>
+          <input type="date" id="trm-date" [(ngModel)]="selectedTrmDate" />
+          <button (click)="searchTrmByDate()" class="btn-search">
+            <i class="bi bi-search"></i> Consultar
+          </button>
+        </div>
+
+        <!-- Resultado de búsqueda -->
         <div *ngIf="trmResult" class="trm-result">
           <p><strong>Fecha:</strong> {{ formatDate(trmResult.vigenciadesde) }}</p>
           <p><strong>TRM:</strong> $ {{ trmResult.valor }}</p>
@@ -255,12 +421,13 @@
           <p>⚠️ No se encontró un valor de TRM para esa fecha.</p>
         </div>
 
-        <!-- Últimos 7 días (como referencia) -->
+        <!-- Histórico detallado -->
         <div class="history-section">
-          <h3>Últimos 7 días:</h3>
+          <h4>Últimos 7 días:</h4>
           <div class="history-list">
             <div *ngFor="let item of trmHistory" class="history-item">
-              <span>{{ item.fecha }}: $ {{ item.valor }}</span>
+              <span class="history-date">{{ item.fecha }}</span>
+              <span class="history-value">$ {{ item.valor | number:'1.2-2':'es-CO' }}</span>
             </div>
           </div>
         </div>

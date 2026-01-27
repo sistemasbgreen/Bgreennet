@@ -10,19 +10,21 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.bgreenNet.bgreenNet.dto.DailyRecord;
-import com.bgreenNet.bgreenNet.dto.ReportResponse;
+import com.bgreenNet.bgreenNet.dto.CmiplantaDTO;
+import com.bgreenNet.bgreenNet.dto.CmiplantaResponseDTO;
+
 
 @Service
-public class InventoryService {
-
+public class cmiplantaServices {
+	
+	
     private final JdbcTemplate siesaJdbcTemplate;
-
-    public InventoryService(@Qualifier("siesaJdbcTemplate") JdbcTemplate siesaJdbcTemplate) {
+    
+    public cmiplantaServices(@Qualifier("siesaJdbcTemplate") JdbcTemplate siesaJdbcTemplate) {
         this.siesaJdbcTemplate = siesaJdbcTemplate;
     }
-
-    public ReportResponse generateReport(
+    
+    public CmiplantaResponseDTO generateReport(
             String startDate,
             String endDate,
             String consumptionProductId,
@@ -31,7 +33,7 @@ public class InventoryService {
             List<String> productionDocTypes) {
 
         // ========================================
-        // 🔥 CASO ESPECIAL: B100 (Producto 26)
+        // CASO ESPECIAL: B100 (Producto 26)
         // ========================================
         boolean isB100 = "26".equals(productionProductId) && "26".equals(consumptionProductId);
         
@@ -40,14 +42,14 @@ public class InventoryService {
         }
 
         // ========================================
-        // LÓGICA NORMAL PARA OTROS PRODUCTOS
+        // LOGICA NORMAL PARA OTROS PRODUCTOS
         // ========================================
         
         // Validar tipos de documento
         validateDocTypes(consumptionDocTypes, "consumptionDocTypes");
         validateDocTypes(productionDocTypes, "productionDocTypes");
 
-        // 1️⃣ CONSUMO
+        // 1️ CONSUMO
         List<String> consumoProductIds = new ArrayList<>();
         if ("8".equals(consumptionProductId)) {
             consumoProductIds.add("8");
@@ -107,7 +109,7 @@ public class InventoryService {
             totalConsumption[0] += qty;
         }, consumoParams.toArray());
 
-        // 2️⃣ PRODUCCIÓN
+        // 2️ PRODUCCIÓN
         String produccionPlaceholders = productionDocTypes.stream()
                 .map(t -> "?")
                 .collect(Collectors.joining(", "));
@@ -149,8 +151,8 @@ public class InventoryService {
             totalProduction[0] += qty;
         }, produccionParams.toArray());
 
-        // 3️⃣ CÁLCULO DIARIO
-        List<DailyRecord> dailyData = new ArrayList<>();
+        // 3️ CÁLCULO DIARIO
+        List<CmiplantaDTO> dailyData = new ArrayList<>();
 
         for (String date : consumoMap.keySet()) {
             if (produccionMap.containsKey(date)) {
@@ -158,7 +160,7 @@ public class InventoryService {
                 double prod = produccionMap.get(date);
                 int ratio = (int) Math.round((cons / prod) * 1000);
 
-                DailyRecord rec = new DailyRecord();
+                CmiplantaDTO rec = new CmiplantaDTO();
                 rec.setDate(date);
                 rec.setConsumo(cons);
                 rec.setProduccion(prod);
@@ -170,7 +172,7 @@ public class InventoryService {
         int monthlyAccumulated = (int) Math
                 .round((totalProduction[0] > 0) ? (totalConsumption[0] / totalProduction[0]) * 1000 : 0);
 
-        ReportResponse resp = new ReportResponse();
+        CmiplantaResponseDTO resp = new CmiplantaResponseDTO();
         resp.setDailyData(dailyData);
         resp.setMonthlyAccumulated(monthlyAccumulated);
         resp.setTotalConsumption(totalConsumption[0]);
@@ -181,9 +183,9 @@ public class InventoryService {
     }
 
     // ========================================
-    // 🔥 MÉTODO ESPECÍFICO PARA B100
+    // MÉTODO ESPECÍFICO PARA B100
     // ========================================
-    private ReportResponse generateB100Report(String startDate, String endDate) {
+    private CmiplantaResponseDTO generateB100Report(String startDate, String endDate) {
         
         // Tipos de documento fijos para B100
         List<String> docTypes = List.of("EDP", "EI", "SDI");
@@ -212,8 +214,8 @@ public class InventoryService {
             ORDER BY mov.f470_id_fecha
             """.formatted(docPlaceholders);
 
-        List<DailyRecord> dailyData = new ArrayList<>();
-        double[] totalProduction = { 0.0 };
+        List<CmiplantaDTO> dailyData = new ArrayList<>();
+        double[] totalProduction = { 0.0 }; 
 
         List<Object> params = new ArrayList<>();
         params.add(startDate);
@@ -227,7 +229,7 @@ public class InventoryService {
             // Convertir a toneladas
             double prodTon = prodKg / 1000.0;
 
-            DailyRecord rec = new DailyRecord();
+            CmiplantaDTO rec = new CmiplantaDTO();
             rec.setDate(date);
             rec.setProduccion(prodTon); // En toneladas
             rec.setConsumo(0.0); // No aplica para B100
@@ -237,17 +239,17 @@ public class InventoryService {
             totalProduction[0] += prodTon;
         }, params.toArray());
 
-        ReportResponse resp = new ReportResponse();
+        CmiplantaResponseDTO resp = new CmiplantaResponseDTO();
         resp.setDailyData(dailyData);
         resp.setTotalProduction(totalProduction[0]); // En toneladas
-        resp.setTotalConsumption(0.0); // No aplica
-        resp.setMonthlyAccumulated(0); // No aplica
+        resp.setTotalConsumption(0.0);
+        resp.setMonthlyAccumulated(0);
         resp.setValidDays(dailyData.size());
 
         return resp;
     }
 
-    // ✅ Validación segura de tipos de documento
+    // Validación segura de tipos de documento
     private void validateDocTypes(List<String> docTypes, String paramName) {
         if (docTypes == null || docTypes.isEmpty()) {
             throw new IllegalArgumentException(paramName + " cannot be null or empty");
@@ -265,5 +267,4 @@ public class InventoryService {
         }
     }
 
- 
 }

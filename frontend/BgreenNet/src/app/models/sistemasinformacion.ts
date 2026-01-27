@@ -1,4 +1,5 @@
 export interface SistemaInformacion {
+category: any;
   id: number;
   nombre: string;
   descripcion: string;
