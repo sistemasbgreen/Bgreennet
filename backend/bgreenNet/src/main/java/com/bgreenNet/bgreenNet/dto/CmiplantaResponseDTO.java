@@ -2,19 +2,17 @@ package com.bgreenNet.bgreenNet.dto;
 
 import java.util.List;
 
-public class ReportResponse {
+public class CmiplantaResponseDTO {
 
-	  private List<DailyRecord> dailyData;
-	    private int monthlyAccumulated; // ponderado
+	 private List<CmiplantaDTO> dailyData;
+	    private int monthlyAccumulated;
 	    private double totalConsumption;
 	    private double totalProduction;
 	    private int validDays;
-	    
-	    
-		public List<DailyRecord> getDailyData() {
+		public List<CmiplantaDTO> getDailyData() {
 			return dailyData;
 		}
-		public void setDailyData(List<DailyRecord> dailyData) {
+		public void setDailyData(List<CmiplantaDTO> dailyData) {
 			this.dailyData = dailyData;
 		}
 		public int getMonthlyAccumulated() {
@@ -41,6 +39,9 @@ public class ReportResponse {
 		public void setValidDays(int validDays) {
 			this.validDays = validDays;
 		}
+	
 	    
-	    
+	
+		
+		
 }

@@ -2,9 +2,8 @@ package com.bgreenNet.bgreenNet.dto;
 
 import java.util.List;
 
-public class ReportRequest {
-	
-	
+public class CmiplantaRequest {
+		
     private String startDate;
     private String endDate;
     private String consumptionProductId;

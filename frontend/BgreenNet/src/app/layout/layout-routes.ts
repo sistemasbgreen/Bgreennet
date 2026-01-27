@@ -48,18 +48,6 @@ export const layoutRoutes: Routes = [
             loadComponent: () => import('../modulos/CMI/cmi-home/cmi-home').then(c => c.CmiHome)
           },
           {
-            path: 'cpo',
-            loadComponent: () => import('../modulos/CMI/cpo/cpo').then(c => c.Cpo)
-          },
-          {
-            path: 'metanol',
-            loadComponent: () => import('../modulos/CMI/metanol/metanol').then(c => c.Metanol)
-          },
-          {
-            path: 'metilato',
-            loadComponent: () => import('../modulos/CMI/metilato/metilato').then(c => c.Metilato)
-          },
-          {
             path: '',
             redirectTo: 'home',
             pathMatch: 'full'
