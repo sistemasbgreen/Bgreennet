@@ -4,21 +4,26 @@ import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { MetanolRequest } from "../models/Modelos_CMI/MetanolRequest ";
 import { MetanolResponse } from "../models/Modelos_CMI/ProductoResponse";
-
-
+import { CostoDirectoResponse } from "../models/Modelos_CMI/CostoDirectoResponse";
 
 
 @Injectable({
   providedIn: 'root'
 })
 
-
 export class cmiplantaservices {
-  private baseUrl = `${environment.apiUrl}/api/cmiplanta/ComsumoProductos`;
+  private baseUrl = `${environment.apiUrl}/api/cmiplanta/ConsumoProductos`;
+
+    private baseUrl1 = `${environment.apiUrl}/api/cmiplanta/datos`;
 
   constructor(private http: HttpClient) { }
   obtenerDatos(request: MetanolRequest): Observable<MetanolResponse> {
     return this.http.post<MetanolResponse>(this.baseUrl, request);
   }
+
+  getCostoDirecto(fechaInicio: string, fechaFin: string): Observable<CostoDirectoResponse> {
+    return this.http.post<CostoDirectoResponse>(this.baseUrl1, { fechaInicio, fechaFin });
+  }
+
 
 }
