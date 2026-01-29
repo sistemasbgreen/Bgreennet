@@ -22,7 +22,19 @@ Chart.register(...registerables, ChartDataLabels);
 })
 export class CmiHome implements OnInit {
 
+  // Variable para almacenar la categoría seleccionada
   
+  categoriaSeleccionada: string = '';
+
+  // Lista de todas las categorías
+  categorias = [
+    { id: 'estrategia', nombre: 'Estrategia' },
+    { id: 'financiero', nombre: 'Financiero' },
+    { id: 'operacional', nombre: 'Operacional' },
+    { id: 'comercial', nombre: 'Comercial' },
+    { id: 'organizacional', nombre: 'Organizacional' },
+    { id: 'sostenibilidad', nombre: 'Sostenibilidad' }
+  ];
   ngOnInit(): void {
     throw new Error('Method not implemented.');
   }
@@ -32,4 +44,22 @@ export class CmiHome implements OnInit {
   irAProductos() {
   this.router.navigate(['/cmi/productos']);
 }
+
+
+  // Método para manejar el cambio de categoría en el select
+  onCategoriaChange(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    this.categoriaSeleccionada = selectElement.value;
+  }
+
+  // Método para verificar si una categoría debe mostrarse
+  mostrarCategoria(categoriaId: string): boolean {
+    if (!this.categoriaSeleccionada) {
+      return true; // Mostrar todas si no hay filtro
+    }
+    return this.categoriaSeleccionada === categoriaId;
+  }
+
+
+
 }
