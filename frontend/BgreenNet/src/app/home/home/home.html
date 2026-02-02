@@ -53,7 +53,7 @@
       <!-- Notificaciones -->
       <button class="notification-btn">
         <i class="bi bi-bell"></i>
-        <span class="notification-badge">3</span>
+        <span class="notification-badge">{{tareasHoy}}</span>
       </button>
 
       <a (click)="openModalformatos('contactos')">Contactos</a>
@@ -256,40 +256,17 @@
             <p class="stat-label">Uptime</p>
           </div>
         </div>
+        <!-- 🆕 Tareas de hoy -->
         <div class="hero-stat-card">
           <i class="bi bi-calendar-check"></i>
           <div>
-            <p class="stat-value">12</p>
+            <p class="stat-value">{{ tareasHoy }}</p>
             <p class="stat-label">Tareas hoy</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Gráfico TRM 
-    <section class="trm-chart-section" *ngIf="dashboardWidgets.trmChart && trmHistoricalData.length > 0">
-      <div class="section-header">
-        <h3>📊 Histórico TRM - Últimos 7 días</h3>
-        <button class="close-widget-btn" (click)="toggleWidget('trmChart')">
-          <i class="bi bi-x"></i>
-        </button>
-      </div>
-      <div class="chart-container">
-        <canvas #trmChart></canvas>
-      </div>
-      <div class="trm-data-grid">
-        <div class="trm-data-item" *ngFor="let item of trmHistoricalData">
-          <span class="trm-date">{{ item.fecha }}</span>
-          <div class="trm-value-container">
-            <span class="trm-value">$ {{ item.valor | number:'1.2-2':'es-CO' }}</span>
-            <span class="trm-variation" [class.positive]="item.variacion > 0" [class.negative]="item.variacion < 0">
-              {{ item.variacion > 0 ? '+' : '' }}{{ item.variacion }}%
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
-    -->
     <!-- Sistemas Disponibles -->
     <section *ngIf="dashboardWidgets.quickAccess">
       <div class="section-header">
@@ -322,7 +299,7 @@
       </div>
     </section>
 
-    <!-- Actividad Reciente -->
+    <!-- Actividad Reciente 
     <section class="activity-section" *ngIf="dashboardWidgets.activity">
       <div class="section-header">
         <h3>Actividad Reciente</h3>
@@ -356,14 +333,222 @@
           <span class="activity-time">Hace 1 hora</span>
         </div>
       </div>
+    </section>-->
+
+    <!-- 🆕 Sección de Tareas Mejorada -->
+    <section class="activity-section tareas-section-mejorada">
+      <div class="section-header">
+        <div class="section-title-with-badge">
+          <h3>📋 Mis Tareas</h3>
+          <span class="tareas-badge">{{ tareasActivas.length }} activa{{ tareasActivas.length !== 1 ? 's' : '' }}</span>
+        </div>
+        <div class="section-actions">
+          <button class="btn-historial" (click)="abrirHistorial()" *ngIf="tareasFinalizadas.length > 0">
+            <i class="bi bi-clock-history"></i>
+            Historial ({{ tareasFinalizadas.length }})
+          </button>
+          <button class="btn-nueva-tarea-compacto" (click)="abrirModalTarea()">
+            <i class="bi bi-plus-lg"></i>
+            Nueva
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de tareas estilo actividad reciente -->
+      <div class="activity-list" *ngIf="tareasActivas.length > 0">
+        <div *ngFor="let tarea of tareasActivas" class="activity-item tarea-item-mejorada">
+          <div class="activity-indicator" 
+               [ngClass]="{
+                 'orange': tarea.prioridad?.nombre === 'ALTA',
+                 'blue': tarea.prioridad?.nombre === 'MEDIA',
+                 'green': tarea.prioridad?.nombre === 'BAJA'
+               }">
+          </div>
+          
+          <div class="activity-content">
+            <div class="tarea-header-inline">
+              <p class="activity-title">{{ tarea.titulo }}</p>
+              <span class="tarea-prioridad-mini" 
+                    [ngClass]="{
+                      'prioridad-alta': tarea.prioridad?.nombre === 'ALTA',
+                      'prioridad-media': tarea.prioridad?.nombre === 'MEDIA',
+                      'prioridad-baja': tarea.prioridad?.nombre === 'BAJA'
+                    }">
+                {{ tarea.prioridad?.nombre || 'MEDIA' }}
+              </span>
+            </div>
+            <p class="activity-detail">{{ tarea.descripcion || 'Sin descripción' }}</p>
+            <div class="tarea-footer-inline">
+              <span class="estado-badge-mini" 
+                    [ngClass]="{
+                      'estado-creada': tarea.estado.nombre === 'CREADA',
+                      'estado-en-proceso': tarea.estado.nombre === 'EN PROCESO'
+                    }">
+                {{ tarea.estado.nombre }}
+              </span>
+              <div class="acciones-inline">
+                <button *ngIf="tarea.estado.nombre === 'CREADA'"
+                        class="btn-accion-mini btn-iniciar"
+                        (click)="cambiarEstado(tarea, 2)"
+                        title="Iniciar tarea">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <button class="btn-accion-mini btn-finalizar"
+                        (click)="cambiarEstado(tarea, 3)"
+                        title="Finalizar tarea">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <span class="activity-time">{{ getTiempoRelativo(tarea.fechaCreacion) }}</span>
+        </div>
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="empty-state-inline" *ngIf="tareasActivas.length === 0">
+        <i class="bi bi-inbox"></i>
+        <div>
+          <p><strong>No tienes tareas activas</strong></p>
+          <p class="text-muted">Crea una nueva tarea para comenzar</p>
+        </div>
+      </div>
     </section>
+
+    <!-- 🆕 Modal de Historial de Tareas -->
+    <div class="modal-overlay" *ngIf="isModalHistorialOpen" (click)="cerrarHistorial()">
+      <div class="modal-container" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-icon">
+              <i class="bi bi-clock-history"></i>
+            </div>
+            <h2 class="modal-title">Historial de Tareas</h2>
+          </div>
+          <button class="btn-close" (click)="cerrarHistorial()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="activity-list" *ngIf="tareasFinalizadas.length > 0">
+            <div *ngFor="let tarea of tareasFinalizadas" class="activity-item tarea-item-mejorada">
+              <div class="activity-indicator green"></div>
+              
+              <div class="activity-content">
+                <div class="tarea-header-inline">
+                  <p class="activity-title">{{ tarea.titulo }}</p>
+                  <span class="tarea-prioridad-mini" 
+                        [ngClass]="{
+                          'prioridad-alta': tarea.prioridad?.nombre === 'ALTA',
+                          'prioridad-media': tarea.prioridad?.nombre === 'MEDIA',
+                          'prioridad-baja': tarea.prioridad?.nombre === 'BAJA'
+                        }">
+                    {{ tarea.prioridad?.nombre || 'MEDIA' }}
+                  </span>
+                </div>
+                <p class="activity-detail">{{ tarea.descripcion || 'Sin descripción' }}</p>
+                <span class="estado-badge-mini estado-finalizada">
+                  <i class="bi bi-check-circle-fill"></i>
+                  FINALIZADA
+                </span>
+              </div>
+              
+              <span class="activity-time">{{ getTiempoRelativo(tarea.fechaCreacion) }}</span>
+            </div>
+          </div>
+
+          <div class="empty-state-inline" *ngIf="tareasFinalizadas.length === 0">
+            <i class="bi bi-inbox"></i>
+            <div>
+              <p><strong>No hay tareas finalizadas</strong></p>
+              <p class="text-muted">Las tareas completadas aparecerán aquí</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <span class="footer-info">
+            <strong>{{ tareasFinalizadas.length }}</strong>
+            tarea{{ tareasFinalizadas.length !== 1 ? 's' : '' }} finalizada{{ tareasFinalizadas.length !== 1 ? 's' : '' }}
+          </span>
+          <button class="btn-cerrar" (click)="cerrarHistorial()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de nueva tarea -->
+    <div class="modal-tarea-overlay" *ngIf="isModalTareaOpen" (click)="cerrarModalTarea()">
+      <div class="modal-tarea-container" (click)="$event.stopPropagation()">
+        <div class="modal-tarea-header">
+          <h3>
+            <i class="bi bi-plus-circle"></i>
+            Nueva Tarea
+          </h3>
+          <button class="btn-close" (click)="cerrarModalTarea()">×</button>
+        </div>
+
+        <div class="modal-tarea-body">
+          <form>
+            <div class="form-group">
+              <label>
+                Título
+                <span class="required">*</span>
+              </label>
+              <input
+                type="text"
+                class="form-input"
+                placeholder="Ej: Revisar documentos del proyecto"
+                [(ngModel)]="nuevaTarea.titulo"
+                name="titulo"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Descripción</label>
+              <textarea
+                class="form-textarea"
+                placeholder="Describe los detalles de la tarea..."
+                [(ngModel)]="nuevaTarea.descripcion"
+                name="descripcion"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Prioridad</label>
+              <select class="form-select" [(ngModel)]="nuevaTarea.idPrioridad" name="prioridad">
+                <option [value]="1">Baja</option>
+                <option [value]="2">Media</option>
+                <option [value]="3">Alta</option>
+              </select>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-tarea-footer">
+          <button class="btn-cancelar" (click)="cerrarModalTarea()">
+            Cancelar
+          </button>
+          <button class="btn-guardar" 
+                  (click)="crearTarea()"
+                  [disabled]="!nuevaTarea.titulo.trim()">
+            <i class="bi bi-check-lg"></i>
+            Crear Tarea
+          </button>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Carrusel de imágenes -->
-  <footer>
-    <h3>Descubre todo lo que está pasando</h3>
-    <div class="carousel">
-      <img *ngFor="let img of images" [src]="img" [alt]="'Imagen'" (click)="openModal(img)" />
+  <footer class="modal-footer">
+    <div class="footer-info">
+      <h3>Descubre todo lo que está pasando</h3>
+      <p>
+        No hay ninguna novedad que mostrarte por ahora.
+        <strong>Vuelve más tarde.</strong>
+      </p>
     </div>
   </footer>
 
@@ -390,15 +575,14 @@
           <div class="trm-summary-card">
             <p class="summary-label">Valor Actual</p>
             <p class="summary-value">$ {{ currentTrmValue }}</p>
-            <p class="summary-change positive">+0.07% hoy</p>
           </div>
           <div class="trm-summary-card">
             <p class="summary-label">Máximo (7d)</p>
-            <p class="summary-value">$ 4.483,39</p>
+            <p class="summary-value">$ {{MaximoTrm}}</p>
           </div>
           <div class="trm-summary-card">
             <p class="summary-label">Mínimo (7d)</p>
-            <p class="summary-value">$ 4.420,00</p>
+            <p class="summary-value">${{MinimoTrm}}</p>
           </div>
         </div>
 

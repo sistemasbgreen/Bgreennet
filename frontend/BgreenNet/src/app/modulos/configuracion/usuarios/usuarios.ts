@@ -1,5 +1,5 @@
 import { NgFor, NgForOf, NgIf } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Usuario } from '../../../models/usuario';
 import { DetalleUsuario } from '../../../models/detalleUsuario';
 import { AuthService } from '../../../auth/authservices';
@@ -56,7 +56,8 @@ export class Usuarios implements OnInit {
     private usuarioService: UsuarioService,
     private listasServices: ListasService,
     private perfilservices: Perfilservices,
-    private router: Router
+    private router: Router,
+      private cdr: ChangeDetectorRef
   ) {
     this.usuarioForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(4)]],
@@ -92,20 +93,26 @@ export class Usuarios implements OnInit {
   }
 
   // ======== CARGA DE DATOS ========
-  cargarUsuarios(): void {
-    this.usuarioService.listarUsuarios().subscribe({
-      next: (data) => this.usuarios = data,
-      error: (err) => console.error('Error al cargar usuarios', err)
+cargarUsuarios(): void {
+  this.usuarioService.listarUsuarios().subscribe({
+    next: (data) => {
+      this.usuarios = data;
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error('Error al cargar usuarios', err)
+  });
+}
 
-    });
-  }
 
-  CargarPerfil_Lista(): void {
-    this.listasServices.obtenerPerfiles().subscribe({
-      next: (data) => this.perfiles = data,
-      error: (err) => console.error('Error al cargar perfiles', err)
-    });
-  }
+CargarPerfil_Lista(): void {
+  this.listasServices.obtenerPerfiles().subscribe({
+    next: (data) => {
+      this.perfiles = data;
+      this.cdr.detectChanges();
+    }
+  });
+}
+
 
   CargarEmpresa(): void {
     this.listasServices.obtenerEmpresas().subscribe({

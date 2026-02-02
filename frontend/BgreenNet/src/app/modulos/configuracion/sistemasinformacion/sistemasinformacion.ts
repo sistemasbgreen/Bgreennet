@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { homeservices } from '../../../servicios/homeservices';
 import { SistemaInformacion } from '../../../models/sistemasinformacion';
@@ -24,6 +24,7 @@ export class Sistemasinformacion {
   constructor(
     private router: Router,
     private homeservice: homeservices,
+    private cdr: ChangeDetectorRef
 
   ) { }
 
@@ -35,76 +36,76 @@ export class Sistemasinformacion {
     this.homeservice.getAll().subscribe({
       next: (data) => {
         this.sistemaInformacionData = data;
-        console.log(data)
+         this.cdr.detectChanges();
       },
       error: (err) => console.error('Error al cargar sistemas de información', err)
     });
 
   }
 
- abrirModal(sistema?: SistemaInformacion): void {
-  this.mostrarModal = true;
-  
-  if (sistema) {
-    this.modoEdicion = true;
-    this.sistemaIdEnEdicion = sistema.id; // ← Guarda el ID
-    this.sistemaForm = {
-      nombre: sistema.nombre,
-      url: sistema.url,
-      imagenUrl: sistema.imagenUrl,
-      estado: sistema.estado
-    };
-  } else {
-    this.modoEdicion = false;
-    this.sistemaIdEnEdicion = null; // ← Resetea
-    this.sistemaForm = this.getNuevoSistema();
-  }
-}
+  abrirModal(sistema?: SistemaInformacion): void {
+    this.mostrarModal = true;
 
-cerrarModal(): void {
-  this.mostrarModal = false;
-  this.sistemaForm = this.getNuevoSistema();
-  this.modoEdicion = false;
-  this.sistemaIdEnEdicion = null; // ← Importante
-}
-
-guardarSistema(): void {
-  if (!this.sistemaForm.nombre || !this.sistemaForm.url || !this.sistemaForm.imagenUrl) {
-    alert('Por favor complete todos los campos obligatorios');
-    return;
-  }
-
- if (this.modoEdicion) {
-  if (this.sistemaIdEnEdicion === null) {
-    alert('Error: ID no disponible para actualización');
-    return;
-  }
-
-  this.homeservice.update(this.sistemaIdEnEdicion, this.sistemaForm).subscribe({ // ✅ Aquí corregido
-    next: (resp) => {
-      alert('Sistema actualizado correctamente');
-      this.sistemasinformacion();
-      this.cerrarModal();
-    },
-    error: (err) => {
-      console.error('Error al actualizar sistema:', err);
-      alert('Error al actualizar el sistema');
+    if (sistema) {
+      this.modoEdicion = true;
+      this.sistemaIdEnEdicion = sistema.id; // ← Guarda el ID
+      this.sistemaForm = {
+        nombre: sistema.nombre,
+        url: sistema.url,
+        imagenUrl: sistema.imagenUrl,
+        estado: sistema.estado
+      };
+    } else {
+      this.modoEdicion = false;
+      this.sistemaIdEnEdicion = null; // ← Resetea
+      this.sistemaForm = this.getNuevoSistema();
     }
-  });
-}else {
-    this.homeservice.Crearsistemainformacion(this.sistemaForm).subscribe({
-      next: (resp) => {
-        alert('Sistema creado correctamente');
-        this.sistemasinformacion();
-        this.cerrarModal();
-      },
-      error: (err) => {
-        console.error('Error al crear sistema:', err);
-        alert('Error al crear el sistema');
-      }
-    });
   }
-}
+
+  cerrarModal(): void {
+    this.mostrarModal = false;
+    this.sistemaForm = this.getNuevoSistema();
+    this.modoEdicion = false;
+    this.sistemaIdEnEdicion = null; // ← Importante
+  }
+
+  guardarSistema(): void {
+    if (!this.sistemaForm.nombre || !this.sistemaForm.url || !this.sistemaForm.imagenUrl) {
+      alert('Por favor complete todos los campos obligatorios');
+      return;
+    }
+
+    if (this.modoEdicion) {
+      if (this.sistemaIdEnEdicion === null) {
+        alert('Error: ID no disponible para actualización');
+        return;
+      }
+
+      this.homeservice.update(this.sistemaIdEnEdicion, this.sistemaForm).subscribe({ // ✅ Aquí corregido
+        next: (resp) => {
+          alert('Sistema actualizado correctamente');
+          this.sistemasinformacion();
+          this.cerrarModal();
+        },
+        error: (err) => {
+          console.error('Error al actualizar sistema:', err);
+          alert('Error al actualizar el sistema');
+        }
+      });
+    } else {
+      this.homeservice.Crearsistemainformacion(this.sistemaForm).subscribe({
+        next: (resp) => {
+          alert('Sistema creado correctamente');
+          this.sistemasinformacion();
+          this.cerrarModal();
+        },
+        error: (err) => {
+          console.error('Error al crear sistema:', err);
+          alert('Error al crear el sistema');
+        }
+      });
+    }
+  }
 
   eliminarSistema(id: number): void {
     if (confirm('¿Está seguro de eliminar este sistema?')) {
