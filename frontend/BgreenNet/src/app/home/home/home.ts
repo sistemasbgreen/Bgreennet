@@ -7,6 +7,8 @@ import { NgIf, NgForOf, CommonModule } from "@angular/common";
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ListasService } from '../../servicios/listasServices';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
+import { Tarea } from '../../models/Tareas/Tarea';
+import { CreateTareaRequest } from '../../models/Tareas/CreateTareaRequest';
 
 // Registrar componentes de Chart.js
 Chart.register(...registerables);
@@ -23,6 +25,7 @@ export class Home implements OnInit, AfterViewInit {
 
   // Datos de usuario
   fullName: string = '';
+  id_usuario: any;
   nameempresa = '';
   initials = '';
   userEmail: string = '';
@@ -35,6 +38,7 @@ export class Home implements OnInit, AfterViewInit {
   isTrmModalOpen = false;
   showModal = false;
   darkMode = false;
+  isModalHistorialOpen = false; //  Modal de historial
 
   // Datos de sistemas y contactos
   sistemaInformacionData: SistemaInformacion[] = [];
@@ -53,6 +57,8 @@ export class Home implements OnInit, AfterViewInit {
   // TRM
   trmHistory: any[] = [];
   currentTrmValue: string = '';
+  MaximoTrm: any;
+  MinimoTrm: any;
   selectedTrmDate: string = '';
   trmResult: any = null;
   allTrmData: any[] = [];
@@ -69,6 +75,19 @@ export class Home implements OnInit, AfterViewInit {
   // Reloj
   currentTime: Date = new Date();
   greeting: string = '';
+
+  //  Tareas mejoradas
+  tareas: Tarea[] = [];
+  tareasActivas: Tarea[] = []; // Solo CREADA y EN PROCESO
+  tareasFinalizadas: Tarea[] = []; // Solo FINALIZADAS
+
+  nuevaTarea: CreateTareaRequest = {
+    idUsuario: 0,
+    titulo: '',
+    descripcion: '',
+    idEstado: 1,      // CREADA
+    idPrioridad: 1    // NORMAL (ajusta a tu BD)
+  };
 
   // Chart config (mantener por compatibilidad)
   chartData: ChartConfiguration['data'] = {
@@ -231,7 +250,7 @@ export class Home implements OnInit, AfterViewInit {
   }
 
   // ========================================
-  // FAVORITOS
+  //  FAVORITOS MEJORADOS - Ordenados primero
   // ========================================
   toggleFavorite(id: number): void {
     if (this.favorites.includes(id)) {
@@ -243,22 +262,35 @@ export class Home implements OnInit, AfterViewInit {
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('favorites', JSON.stringify(this.favorites));
     }
+
+    //  Reordenar los sistemas para mostrar favoritos primero
+    this.reordenarSistemas();
   }
 
   isFavorite(id: number): boolean {
     return this.favorites.includes(id);
   }
 
+  //  Reordenar sistemas poniendo favoritos primero
+  private reordenarSistemas(): void {
+    const favoritos = this.sistemaInformacionData.filter(s => this.favorites.includes(s.id));
+    const noFavoritos = this.sistemaInformacionData.filter(s => !this.favorites.includes(s.id));
+    this.sistemaInformacionData = [...favoritos, ...noFavoritos];
+  }
+
   // ========================================
   // BÚSQUEDA
   // ========================================
   get filteredSistemas(): SistemaInformacion[] {
-    if (!this.searchQuery) {
-      return this.sistemaInformacionData;
+    let sistemas = this.sistemaInformacionData;
+    
+    if (this.searchQuery) {
+      sistemas = sistemas.filter(s =>
+        s.nombre.toLowerCase().includes(this.searchQuery.toLowerCase())
+      );
     }
-    return this.sistemaInformacionData.filter(s =>
-      s.nombre.toLowerCase().includes(this.searchQuery.toLowerCase())
-    );
+    
+    return sistemas;
   }
 
   clearSearch(): void {
@@ -351,7 +383,7 @@ export class Home implements OnInit, AfterViewInit {
                 const value = context.parsed.y;
                 const index = context.dataIndex;
                 const variacion = this.trmHistoricalData[index]?.variacion || 0;
-                const safeValue = value ?? 0; // o NaN, pero mejor 0 si tiene sentido
+                const safeValue = value ?? 0;
 
                 return [
                   `Valor: $ ${safeValue.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -365,7 +397,6 @@ export class Home implements OnInit, AfterViewInit {
           x: {
             grid: {
               color: this.darkMode ? '#374151' : '#e5e7eb'
-
             },
             ticks: {
               color: this.darkMode ? '#9ca3af' : '#6b7280',
@@ -377,7 +408,6 @@ export class Home implements OnInit, AfterViewInit {
           y: {
             grid: {
               color: this.darkMode ? '#374151' : '#e5e7eb'
-
             },
             ticks: {
               color: this.darkMode ? '#9ca3af' : '#6b7280',
@@ -447,6 +477,10 @@ export class Home implements OnInit, AfterViewInit {
         valor: parseFloat(item.valor)
       }));
 
+      const valores = last7.map(item => parseFloat(item.valor));
+      this.MaximoTrm = Math.max(...valores);
+      this.MinimoTrm = Math.min(...valores);
+
       // Para el gráfico
       this.trmHistoricalData = last7.reverse().map((item, idx, arr) => {
         const valor = parseFloat(item.valor);
@@ -480,10 +514,13 @@ export class Home implements OnInit, AfterViewInit {
         const user = JSON.parse(userString);
         this.fullName = `${user.nombre} ${user.apellido}`.toUpperCase();
         this.nameempresa = user.empresa_descripcion || 'N/A';
+        this.id_usuario = user.id_usuario;
         this.initials = `${user.nombre.charAt(0)}${user.apellido.charAt(0)}`.toUpperCase();
         this.userEmail = user.email || user.correo || 'No disponible';
         this.userRole = user.rol || user.perfil || 'Usuario';
         this.perfil_Fk = user.id_perfil_fk;
+
+        this.obtenerTareas();
 
         if (this.perfil_Fk) {
           this.verpermisos(this.perfil_Fk);
@@ -501,6 +538,8 @@ export class Home implements OnInit, AfterViewInit {
     this.homeservice.obtenerpermisos(id).subscribe({
       next: (data) => {
         this.sistemaInformacionData = Array.isArray(data) ? data : [data];
+        //  Reordenar sistemas al cargar para mostrar favoritos primero
+        this.reordenarSistemas();
         console.log('Permisos obtenidos:', data);
         this.cdr.detectChanges();
       },
@@ -621,6 +660,11 @@ export class Home implements OnInit, AfterViewInit {
   // ========================================
   // NAVEGACIÓN Y LOGOUT
   // ========================================
+  private getBasePath(): string {
+    const pathParts = window.location.pathname.split('/').filter(part => part);
+    return '/' + pathParts.slice(0, 2).join('/');
+  }
+
   logout(): void {
     if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
       localStorage.removeItem('token');
@@ -628,8 +672,127 @@ export class Home implements OnInit, AfterViewInit {
       localStorage.removeItem('dashboardWidgets');
       localStorage.removeItem('favorites');
       localStorage.removeItem('darkMode');
-      window.location.href = '/login';
+
+      window.location.href = this.getBasePath() + '/login';
     }
+  }
+
+  // ========================================
+  //  TAREAS MEJORADAS
+  // ========================================
+  obtenerTareas(): void {
+    console.log('idnombre ', this.id_usuario);
+    this.homeservice.getTareasPorUsuario(this.id_usuario)
+      .subscribe({
+        next: (data) => {
+          console.log('Tareas recibidas:', data);
+          this.tareas = data;
+          
+          //  Filtrar tareas activas (CREADA y EN PROCESO) y finalizadas
+          this.tareasActivas = data.filter(t => 
+            t.estado.nombre === 'CREADA' || t.estado.nombre === 'INICIADA'
+          );
+          
+          this.tareasFinalizadas = data.filter(t => 
+            t.estado.nombre === 'FINALIZADA'
+          );
+
+          console.log(' Tareas activas:', this.tareasActivas.length);
+          console.log(' Tareas finalizadas:', this.tareasFinalizadas.length);
+
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error al traer tareas', error);
+        }
+      });
+  }
+
+  //  Getter para contar tareas de hoy
+  get tareasHoy(): number {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    return this.tareasActivas.filter(t => {
+      const fechaTarea = new Date(t.fechaCreacion);
+      fechaTarea.setHours(0, 0, 0, 0);
+      return fechaTarea.getTime() === hoy.getTime();
+    }).length;
+  }
+
+  verTarea(tarea: Tarea): void {
+    console.log('Tarea seleccionada:', tarea);
+  }
+
+  // Modal de tareas
+  isModalTareaOpen: boolean = false;
+
+  abrirModalTarea(): void {
+    this.isModalTareaOpen = true;
+  }
+
+  cerrarModalTarea(): void {
+    this.isModalTareaOpen = false;
+    this.resetFormulario();
+  }
+
+  crearTarea(): void {
+    if (!this.nuevaTarea.titulo.trim()) return;
+
+    this.nuevaTarea.idUsuario = this.id_usuario;
+
+    this.homeservice.crearTarea(this.nuevaTarea)
+      .subscribe({
+        next: () => {
+          console.log('Tarea creada');
+          this.obtenerTareas();
+          this.cerrarModalTarea();
+        },
+        error: err => console.error(err)
+      });
+    console.log(this.nuevaTarea);
+  }
+
+  resetFormulario(): void {
+    this.nuevaTarea.titulo = '';
+    this.nuevaTarea.descripcion = '';
+    this.nuevaTarea.idPrioridad = 1;
+  }
+
+  cambiarEstado(tarea: Tarea, idEstado: number): void {
+    this.homeservice.actualizarTarea(tarea.id, { idEstado })
+      .subscribe({
+        next: () => {
+          console.log('Estado actualizado');
+          this.obtenerTareas();
+        },
+        error: err => console.error(err)
+      });
+  }
+
+  // Modal de historial
+  abrirHistorial(): void {
+    this.isModalHistorialOpen = true;
+  }
+
+  cerrarHistorial(): void {
+    this.isModalHistorialOpen = false;
+  }
+
+  // Formatear tiempo relativo
+  getTiempoRelativo(fecha: string): string {
+    const ahora = new Date();
+    const fechaTarea = new Date(fecha);
+    const diff = ahora.getTime() - fechaTarea.getTime();
+    
+    const minutos = Math.floor(diff / 60000);
+    const horas = Math.floor(diff / 3600000);
+    const dias = Math.floor(diff / 86400000);
+
+    if (minutos < 1) return 'Hace un momento';
+    if (minutos < 60) return `Hace ${minutos} min`;
+    if (horas < 24) return `Hace ${horas} hora${horas > 1 ? 's' : ''}`;
+    return `Hace ${dias} día${dias > 1 ? 's' : ''}`;
   }
 
   irAUsuarios(): void {

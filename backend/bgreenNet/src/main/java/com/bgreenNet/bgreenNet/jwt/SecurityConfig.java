@@ -3,7 +3,8 @@
 	import org.springframework.beans.factory.annotation.Autowired;
 	import org.springframework.context.annotation.Bean;
 	import org.springframework.context.annotation.Configuration;
-	import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
 	import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 	import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 	import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,6 +31,7 @@
 		            .csrf(csrf -> csrf.disable())
 		            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 		            .authorizeHttpRequests(authz -> authz
+		            	.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 		                .requestMatchers("/api/auth/**").permitAll()
 		                .requestMatchers("/api/listas/**").permitAll()
 		                .requestMatchers("/api/home/**").permitAll()
@@ -37,6 +39,7 @@
 		                .requestMatchers("/api/sistemasinformacion/**").permitAll()
 		                .requestMatchers("/api/perfil/**").permitAll()
 		                .requestMatchers("/api/cmiplanta/**").permitAll()
+		                .requestMatchers("/api/tareas/**").permitAll()
 		                .anyRequest().authenticated()
 		       
 		            )
