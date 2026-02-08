@@ -19,6 +19,7 @@ export interface LoginResponse {
   id_detalle_usuario: number;
   nombre: string;
   apellido: string;
+  identificacion: number;
   id_perfil_fk: number;
   id_empresa_fk: number;
   id_area_fk: number;

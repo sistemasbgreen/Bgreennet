@@ -6,18 +6,19 @@ Description  : Tabla
 History      : - / 
 ---------------------------------------------------------------------------------
 VERSION  AUTHOR         DATE            Description
-1.0      Jose Angulo    24/10/2025      Creacion de tablas Area
+1.0      Jose Angulo    24/10/2025      Creacion de tablas direccion
 
 ***************************/
 use BgreenNet_Dev;
 
-CREATE TABLE Area (
-    id_area INT IDENTITY(1,1) PRIMARY KEY,
-    descripcionArea NVARCHAR(100) NOT NULL,
-    id_direccion_fk INT NOT NULL,
-    activo BIT NOT NULL DEFAULT 1,
-	date_create DATETIME NOT NULL DEFAULT GETDATE(),
-	date_Modify DATETIME NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (id_direccion_fk) REFERENCES Direccion(id_direccion)
 
-);
+CREATE TABLE [dbo].[Direccion](
+	[id_direccion] [int] IDENTITY(1,1) NOT NULL,
+	[nombre] [nvarchar](100) NOT NULL,
+	[activo] [bit] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id_direccion] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO

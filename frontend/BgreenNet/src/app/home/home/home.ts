@@ -540,7 +540,6 @@ export class Home implements OnInit, AfterViewInit {
         this.sistemaInformacionData = Array.isArray(data) ? data : [data];
         //  Reordenar sistemas al cargar para mostrar favoritos primero
         this.reordenarSistemas();
-        console.log('Permisos obtenidos:', data);
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -720,9 +719,6 @@ export class Home implements OnInit, AfterViewInit {
     }).length;
   }
 
-  verTarea(tarea: Tarea): void {
-    console.log('Tarea seleccionada:', tarea);
-  }
 
   // Modal de tareas
   isModalTareaOpen: boolean = false;
@@ -744,13 +740,12 @@ export class Home implements OnInit, AfterViewInit {
     this.homeservice.crearTarea(this.nuevaTarea)
       .subscribe({
         next: () => {
-          console.log('Tarea creada');
           this.obtenerTareas();
           this.cerrarModalTarea();
         },
         error: err => console.error(err)
       });
-    console.log(this.nuevaTarea);
+
   }
 
   resetFormulario(): void {
@@ -763,7 +758,6 @@ export class Home implements OnInit, AfterViewInit {
     this.homeservice.actualizarTarea(tarea.id, { idEstado })
       .subscribe({
         next: () => {
-          console.log('Estado actualizado');
           this.obtenerTareas();
         },
         error: err => console.error(err)
