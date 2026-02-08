@@ -14,11 +14,9 @@ import com.bgreenNet.bgreenNet.repository.EstadoTareaRepository;
 import com.bgreenNet.bgreenNet.repository.PrioridadTareaRepository;
 import com.bgreenNet.bgreenNet.repository.TareaRepository;
 
-import lombok.RequiredArgsConstructor;
+
 
 @Service
-@RequiredArgsConstructor
-
 public class TareaService {
 
 	private final PrioridadTareaRepository prioridadRepository;

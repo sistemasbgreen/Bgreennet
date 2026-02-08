@@ -28,88 +28,84 @@ import com.bgreenNet.bgreenNet.services.CustomUserDetailsService;
 @CrossOrigin(origins = "*")
 public class AuthController {
 
-	 private final AuthService authService;
-	    
-	    @Autowired
-	    private AuthenticationManager authenticationManager;
-	    
-	    @Autowired
-	    private JwtUtil jwtUtil;
+	private final AuthService authService;
 
-	    @Autowired
-	    private CustomUserDetailsService customUserDetailsService;
+	@Autowired
+	private AuthenticationManager authenticationManager;
 
-	    public AuthController(AuthService authService) {
-	        this.authService = authService;
-	    }
+	@Autowired
+	private JwtUtil jwtUtil;
 
-	    @PostMapping("/login")
-	    public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
-	        try {
-	            System.out.println("Intentando autenticar usuario: " + request.getUsuario());
-	            
-	            authenticationManager.authenticate(
-	                new UsernamePasswordAuthenticationToken(
-	                    request.getUsuario(),
-	                    request.getContrasena()
-	                )
-	            );
-	            
-	            System.out.println("Autenticación exitosa");
-	            
-	        } catch (BadCredentialsException e) {
-	            System.err.println("Credenciales inválidas para: " + request.getUsuario());
-	            Map<String, String> error = new HashMap<>();
-	            error.put("error", "Usuario o contraseña incorrectos");
-	            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-	            
-	        } catch (Exception e) {
-	            System.err.println("Error de autenticación: " + e.getMessage());
-	            e.printStackTrace();
-	            Map<String, String> error = new HashMap<>();
-	            error.put("error", "Error de autenticación: " + e.getMessage());
-	            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-	        }
+	@Autowired
+	private CustomUserDetailsService customUserDetailsService;
 
-	        try {
-	     
-	            UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getUsuario());
-	            String token = jwtUtil.generateToken(userDetails);
-	            
-	            System.out.println("Token generado exitosamente");	   
-	            LoginResponseDTO response = authService.login(request);
-	            response.setToken(token);
-	            
-	            System.out.println("Login completado exitosamente para: " + request.getUsuario());
-	            
-	            return ResponseEntity.ok(response);
-	            
-	        } catch (Exception e) {
-	            System.err.println("Error al generar token o obtener datos: " + e.getMessage());
-	            e.printStackTrace();
-	            Map<String, String> error = new HashMap<>();
-	            error.put("error", "Error al procesar el login: " + e.getMessage());
-	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-	        }
-	    }
+	public AuthController(AuthService authService) {
+		this.authService = authService;
+	}
 
-	    // Endpoint temporal para encriptar contraseñas (solo desarrollo)
-	    @Autowired
-	    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-	    
-	    @GetMapping("/encode/{password}")
-	    public ResponseEntity<?> encode(@PathVariable String password) {
-	        Map<String, String> response = new HashMap<>();
-	        response.put("original", password);
-	        response.put("encoded", passwordEncoder.encode(password));
-	        return ResponseEntity.ok(response);
-	    }
+	@PostMapping("/login")
+	public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
+		try {
+			System.out.println("Intentando autenticar usuario: " + request.getUsuario());
 
-	    @GetMapping("/test")
-	    public ResponseEntity<?> test() {
-	        Map<String, String> response = new HashMap<>();
-	        response.put("message", "¡JWT funcionando sin roles!");
-	        response.put("status", "OK");
-	        return ResponseEntity.ok(response);
-	    }
+			authenticationManager.authenticate(
+					new UsernamePasswordAuthenticationToken(request.getUsuario(), request.getContrasena()));
+
+			System.out.println("Autenticación exitosa");
+
+		} catch (BadCredentialsException e) {
+			System.err.println("Credenciales inválidas para: " + request.getUsuario());
+			Map<String, String> error = new HashMap<>();
+			error.put("error", "Usuario o contraseña incorrectos");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+
+		} catch (Exception e) {
+			System.err.println("Error de autenticación: " + e.getMessage());
+			e.printStackTrace();
+			Map<String, String> error = new HashMap<>();
+			error.put("error", "Error de autenticación: " + e.getMessage());
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+		}
+
+		try {
+
+			UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getUsuario());
+			String token = jwtUtil.generateToken(userDetails);
+
+			System.out.println("Token generado exitosamente");
+			LoginResponseDTO response = authService.login(request);
+			response.setToken(token);
+
+			System.out.println("Login completado exitosamente para: " + request.getUsuario());
+
+			return ResponseEntity.ok(response);
+
+		} catch (Exception e) {
+			System.err.println("Error al generar token o obtener datos: " + e.getMessage());
+			e.printStackTrace();
+			Map<String, String> error = new HashMap<>();
+			error.put("error", "Error al procesar el login: " + e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+		}
+	}
+
+	// Endpoint temporal para encriptar contraseñas (solo desarrollo)
+	@Autowired
+	private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+	@GetMapping("/encode/{password}")
+	public ResponseEntity<?> encode(@PathVariable String password) {
+		Map<String, String> response = new HashMap<>();
+		response.put("original", password);
+		response.put("encoded", passwordEncoder.encode(password));
+		return ResponseEntity.ok(response);
+	}
+
+	@GetMapping("/test")
+	public ResponseEntity<?> test() {
+		Map<String, String> response = new HashMap<>();
+		response.put("message", "¡JWT funcionando sin roles!");
+		response.put("status", "OK");
+		return ResponseEntity.ok(response);
+	}
 }

@@ -18,9 +18,11 @@ public class CorsConfig {
 
 	
 	    config.setAllowedOrigins(Arrays.asList(
-	        "http://localhost:4200",          // Dpp Angular en desarrollo
-	        "https://infos.bgreen.com.co",    // Dominio en producción
-	        "http://172.30.72.200"
+	    		"http://localhost:4200",          // Angular dev
+	            "https://infos.bgreen.com.co",    // Producción dominio
+	            "https://45.183.247.77",          // Angular por IP (HTTPS)
+	            "http://172.30.72.200",            // Red interna
+	            "https://bgreennet.bgreen.com.co"
 	    ));
 
 	    config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));

@@ -66,7 +66,8 @@ body {
 }
 
 .stats {
-  display: flex;
+ /* display: flex; */
+  display: none;
   gap: 15px;
   font-size: 12px;
 }
@@ -455,6 +456,8 @@ body {
 }
 
 .customize-btn {
+  /* Ocultar personalizar vista */
+  display: none;
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: none;
@@ -474,9 +477,10 @@ body {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
 }
-
+/* Ocultar los bloques de notificaciones */
 .hero-stats {
-  display: grid;
+/*  display: grid; */
+display: none;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   position: relative;
@@ -746,12 +750,23 @@ body {
    ACTIVIDAD RECIENTE
 ============================================ */
 .activity-section {
+
   background: var(--bg-primary);
   border-radius: 20px;
   padding: 25px;
   box-shadow: var(--shadow);
   margin-bottom: 30px;
 }
+
+.activity-section-Tareas {
+display: none;
+  background: var(--bg-primary);
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: var(--shadow);
+  margin-bottom: 30px;
+}
+
 
 .activity-list {
   display: flex;
@@ -819,9 +834,6 @@ body {
    🆕 TAREAS MEJORADAS - Estilo Actividad Reciente
 ============================================ */
 
-.tareas-section-mejorada {
-  /* Ya hereda de .activity-section */
-}
 
 .section-title-with-badge {
   display: flex;
@@ -891,10 +903,7 @@ body {
   box-shadow: 0 4px 12px rgba(10, 92, 46, 0.3);
 }
 
-/* Item de tarea estilo actividad */
-.tarea-item-mejorada {
-  /* Ya hereda de .activity-item */
-}
+
 
 .tarea-header-inline {
   display: flex;

@@ -31,7 +31,8 @@ public class AuthService {
 	                    dto.setUsuario(rs.getString("usuario"));
 	                    dto.setId_detalle_usuario(rs.getInt("id_detalle_usuario"));
 	                    dto.setNombre(rs.getString("nombre"));
-	                    dto.setApellido(rs.getString("apellido"));         
+	                    dto.setApellido(rs.getString("apellido"));
+	                   dto.setIdentificacion(rs.getInt("identificacion"));
 	                    dto.setId_perfil_fk(rs.getInt("Id_perfil_fk"));
 	                    dto.setId_empresa_fk(rs.getInt("Id_empresa_fk"));
 	                    dto.setId_area_fk(rs.getInt("id_area_fk"));

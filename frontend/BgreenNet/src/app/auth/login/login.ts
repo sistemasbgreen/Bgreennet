@@ -92,8 +92,4 @@ export class Login {
   }
 
 
-  cargaimagnes(){
-
-  }
-
 }

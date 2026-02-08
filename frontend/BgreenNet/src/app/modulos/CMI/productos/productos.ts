@@ -51,12 +51,9 @@ export class Productos implements OnInit, OnDestroy {
     { id: '9264', nombre: 'AGG', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP', 'EI', 'AI'] },
     { id: '32', nombre: 'Glicerina', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP', 'EI', 'AI'] },
     { id: '3188', nombre: 'Generacion Fondos', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP', 'EI', 'AI'] },
-    { id: '26', nombre: 'B100', consumptionDocTypes: ['EDP', 'EI', 'SDI'], productionDocTypes: ['EDP', 'EI', 'SDI'] },
+    { id: '26', nombre: 'B100', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP'] },
     {
-      id: 'CostoDirecto',
-      nombre: 'Costo Directo',
-      esCostoDirecto: true,
-      consumptionDocTypes: [],
+      id: 'CostoDirecto', nombre: 'Costo Directo', esCostoDirecto: true,  consumptionDocTypes: [],
       productionDocTypes: []
     }
   ];

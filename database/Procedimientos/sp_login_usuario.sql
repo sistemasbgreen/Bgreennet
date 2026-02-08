@@ -23,6 +23,7 @@ BEGIN
 		du.id_detalle_usuario,
 		du.nombre,
         du.apellido,
+        du.identificacion,
         u.id_perfil_fk,
         u.id_empresa_fk,
         u.id_area_fk,

@@ -18,21 +18,18 @@ import com.bgreenNet.bgreenNet.dto.UpdateTareaRequest;
 import com.bgreenNet.bgreenNet.models.Tarea;
 import com.bgreenNet.bgreenNet.services.TareaService;
 
-import lombok.RequiredArgsConstructor;
-
 @RestController
 @RequestMapping("/api/tareas")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 
 public class TareaController {
 
 	private final TareaService tareaService;
 
-    public TareaController(TareaService tareaService) {
-        this.tareaService = tareaService;
-    }
-    
+	public TareaController(TareaService tareaService) {
+		this.tareaService = tareaService;
+	}
+
 	@PostMapping("/crear")
 	public ResponseEntity<Tarea> crear(@RequestBody CreateTareaRequest request) {
 		Tarea tareaCreada = tareaService.crear(request);
@@ -45,10 +42,10 @@ public class TareaController {
 		Tarea tareaActualizada = tareaService.actualizar(id, request);
 		return ResponseEntity.ok(tareaActualizada);
 	}
-	
+
 	@GetMapping("/usuario/{idUsuario}")
-    public ResponseEntity<List<Tarea>> obtenerPorUsuario(@PathVariable Integer idUsuario) {
-        return ResponseEntity.ok(tareaService.obtenerPorUsuario(idUsuario));
-    }
+	public ResponseEntity<List<Tarea>> obtenerPorUsuario(@PathVariable Integer idUsuario) {
+		return ResponseEntity.ok(tareaService.obtenerPorUsuario(idUsuario));
+	}
 
 }

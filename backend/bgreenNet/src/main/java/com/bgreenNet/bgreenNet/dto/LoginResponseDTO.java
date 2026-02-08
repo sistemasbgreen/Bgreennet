@@ -11,6 +11,7 @@ public class LoginResponseDTO {
     private Integer id_detalle_usuario;
     private String nombre;
     private String apellido;
+    private Integer identificacion;
     private Integer id_perfil_fk;
     private Integer id_empresa_fk;
     private Integer id_area_fk;
@@ -20,7 +21,15 @@ public class LoginResponseDTO {
     private String area_descripcion;
     private String cargo_descripcion;
     private String correo;
-    public String getCelular() {
+    
+    
+    public Integer getIdentificacion() {
+		return identificacion;
+	}
+	public void setIdentificacion(Integer identificacion) {
+		this.identificacion = identificacion;
+	}
+	public String getCelular() {
 		return celular;
 	}
 	public void setCelular(String celular) {
