@@ -26,7 +26,8 @@ export class Main {
       expandido: false,
       submodulos: [
         { nombre: 'Usuarios', ruta: 'usuarios' },
-        { nombre: 'Sistemas Información', ruta: 'sistemasinformacion' }
+        { nombre: 'Sistemas Información', ruta: 'sistemasinformacion' },
+         { nombre: 'Pulsos', ruta: 'pulsos' }
       ]
     },
     {

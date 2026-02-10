@@ -36,6 +36,10 @@ export const layoutRoutes: Routes = [
           {
             path: 'sistemasinformacion',
             loadComponent: () => import('../modulos/configuracion/sistemasinformacion/sistemasinformacion').then(c => c.Sistemasinformacion)
+          },
+          {
+            path: 'pulsos',
+            loadComponent: () => import('../modulos/configuracion/pulsos/pulsos').then(c => c.Pulsos)
           }
         ]
       },
