@@ -1,24 +1,17 @@
-
 <head>
   <!-- Font Awesome -->
-  <link
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"    rel="stylesheet"  />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
   <!-- Estilos embebidos -->
- 
+
 </head>
 
 <body>
-
 
   <header class="header">
     <div class="header-content">
       <div class="logo-section">
         <a href="">
-          <img
-            src="https://bgreen.com.co/Img/bgreen_Logo.png"
-            alt="Logo Bgreen"
-            class="logo"
-          />
+          <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo Bgreen" class="logo" />
         </a>
       </div>
       <div class="title-section">
@@ -98,7 +91,7 @@
           </div>
           <div class="category-title">Estrategia</div>
         </div>
-        <div class="indicators-grid" >
+        <div class="indicators-grid">
           <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="industrializacion.html">
             <div class="indicator-title">Industrialización del Aceite</div>
             <div class="indicator-meta">En desarrollo</div>
@@ -163,23 +156,33 @@
           </div>
           <div class="category-title">Operacional</div>
         </div>
+
         <div class="indicators-grid">
+          <!--
           <div class="indicator" style="border-left: 4px solid #0d5905;" (click)="irAProductos()">
             <div class="indicator-title">% - MP Grasas</div>
             <div class="indicator-value text-green">##</div>
             <div class="indicator-meta">Mensual</div>
           </div>
+
           <div class="indicator" style="border-left: 4px solid #0d5905;" data-page="metanol.php">
             <div class="indicator-title">Consumo de Metanol</div>
             <div class="indicator-value text-green">##</div>
             <div class="indicator-meta">Mensual</div>
           </div>
+
           <div class="indicator" style="border-left: 4px solid #0d5905;" data-page="metilato.php">
             <div class="indicator-title">Consumo de Metilato</div>
             <div class="indicator-value text-red">##</div>
             <div class="indicator-meta">Mensual</div>
           </div>
-          <div class="indicator"  data-page="metanol_Js.php">
+-->
+          <div class="indicator" style="border-left: 4px solid #0d5905;" (click)="irAProductos()">
+            <div class="indicator-title">Productos</div>
+            <div class="indicator-meta">Mensual</div>
+          </div>
+
+          <div class="indicator" data-page="metanol_Js.php">
             <div class="indicator-title">OEE</div>
             <div class="indicator-meta">Capacidad, Disponibilidad, Cumplimiento</div>
           </div>
@@ -208,7 +211,7 @@
             <div class="indicator-title">Rentabilidad de las ventas</div>
             <div class="indicator-meta">Margen mensual</div>
           </div>
-          <div class="indicator"  style="border-left: 4px solid #f39c12;" data-page="Cumplimiento_ventas.php">
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="Cumplimiento_ventas.php">
             <div class="indicator-title">Cumplimiento de ventas</div>
             <div class="indicator-value">##</div>
             <div class="indicator-meta">Meta mensual</div>
@@ -233,7 +236,7 @@
           <div class="category-title">Organizacional & Gestión Humana</div>
         </div>
         <div class="indicators-grid">
-          <div class="indicator"  data-page="modelo_gestion.html">
+          <div class="indicator" data-page="modelo_gestion.html">
             <div class="indicator-title">Implementación del modelo de gestión</div>
             <div class="indicator-meta">Progreso continuo</div>
           </div>
@@ -248,42 +251,43 @@
           <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="rotacion.html">
             <div class="indicator-title">Rotación Anual</div>
             <div class="indicator-meta">Meta < 15%</div>
+            </div>
+            <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="clima.html">
+              <div class="indicator-title">Clima organizacional</div>
+              <div class="indicator-meta">Encuesta semestral</div>
+            </div>
           </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="clima.html">
-            <div class="indicator-title">Clima organizacional</div>
-            <div class="indicator-meta">Encuesta semestral</div>
+        </div>
+
+        <!-- Sostenibilidad -->
+        <div class="category slide-in" data-category="sostenibilidad" id="sostenibilidad">
+          <div class="category-header">
+            <div class="category-icon" style="background: linear-gradient(45deg, #a8edea, #fed6e3);">
+              <i class="fas fa-leaf"></i>
+            </div>
+            <div class="category-title">Sostenibilidad</div>
+          </div>
+          <div class="indicators-grid">
+            <div class="indicator" data-page="gobierno_corporativo.html">
+              <div class="indicator-title">Implementación de Gobierno Corporativo</div>
+              <div class="indicator-meta">Estructura definida</div>
+            </div>
+            <div class="indicator" data-page="satisfaccion_proveedores.html">
+              <div class="indicator-title">Satisfacción de proveedores</div>
+              <div class="indicator-meta">Evaluación trimestral</div>
+            </div>
+            <div class="indicator" data-page="cumplimiento_legal.html">
+              <div class="indicator-title">Cumplimiento normativo y legal</div>
+              <div class="indicator-meta">Auditoría continua</div>
+            </div>
+            <div class="indicator" data-page="plan_social.html">
+              <div class="indicator-title">Implementación del plan social</div>
+              <div class="indicator-meta">Impacto comunitario</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Sostenibilidad -->
-      <div class="category slide-in" data-category="sostenibilidad" id="sostenibilidad">
-        <div class="category-header">
-          <div class="category-icon" style="background: linear-gradient(45deg, #a8edea, #fed6e3);">
-            <i class="fas fa-leaf"></i>
-          </div>
-          <div class="category-title">Sostenibilidad</div>
-        </div>
-        <div class="indicators-grid">
-          <div class="indicator" data-page="gobierno_corporativo.html">
-            <div class="indicator-title">Implementación de Gobierno Corporativo</div>
-            <div class="indicator-meta">Estructura definida</div>
-          </div>
-          <div class="indicator" data-page="satisfaccion_proveedores.html">
-            <div class="indicator-title">Satisfacción de proveedores</div>
-            <div class="indicator-meta">Evaluación trimestral</div>
-          </div>
-          <div class="indicator" data-page="cumplimiento_legal.html">
-            <div class="indicator-title">Cumplimiento normativo y legal</div>
-            <div class="indicator-meta">Auditoría continua</div>
-          </div>
-          <div class="indicator" data-page="plan_social.html">
-            <div class="indicator-title">Implementación del plan social</div>
-            <div class="indicator-meta">Impacto comunitario</div>
-          </div>
-        </div>
-      </div>
-    </div>
   </main>
 
   <!-- Script mínimo para interactividad básica (opcional en Angular) -->

@@ -32,7 +32,7 @@
         <i class="bi bi-clock"></i> {{ currentTime | date:'HH:mm:ss' }}
       </p>
     </div>
-    
+
     <div class="nav">
       <!-- Búsqueda mejorada -->
       <div class="search-container">
@@ -101,16 +101,16 @@
 
                  -->
 
-            <div class="dropdown-divider"></div>
+          <div class="dropdown-divider"></div>
 
-            <button class="dropdown-item logout-item" (click)="logout()">
-              <i class="bi bi-box-arrow-left"></i>
-              <span>Cerrar Sesión</span>
-            </button>
-          </div>
+          <button class="dropdown-item logout-item" (click)="logout()">
+            <i class="bi bi-box-arrow-left"></i>
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
       </div>
-   <!-- </div> -->
+    </div>
+    <!-- </div> -->
   </header>
 
   <!-- Modal de Contactos/Formatos -->
@@ -342,7 +342,6 @@
     </section>-->
 
 
-
     <!-- 🆕 Sección de Tareas Mejorada -->
     <section class="activity-section tareas-section-mejorada">
       <div class="section-header">
@@ -417,23 +416,49 @@
       </div>
     </section>
 
-    <section class="activity-sectio-Tareas tareas-section-mejorada">
+    <section class="activity-sectio-notice tareas-section-mejorada">
       <div class="section-header">
         <div class="section-title-with-badge">
           <h3>Descubre todo lo que está pasando</h3>
         </div>
       </div>
 
+      <!-- Grid de pulsos -->
+      <div class="pulsos-grid" *ngIf="pulsos && pulsos.length > 0">
+        <div class="pulso-card" *ngFor="let pulso of pulsos" (click)="abrirPulso(pulso)">
+          <div class="pulso-icon">
+            <i class="bi bi-lightning-charge-fill"></i>
+          </div>
+          <div class="pulso-content">
+            <h4 class="pulso-titulo">{{ pulso.titulo }}</h4>
+            <p class="pulso-fecha" *ngIf="pulso.dateModify">
+              {{ pulso.dateCreate| date: 'dd/MM/yyyy' }}
+            </p>
+          </div>
+          <i class="bi bi-chevron-right pulso-arrow"></i>
+        </div>
+      </div>
+
       <!-- Estado vacío -->
-      <div class="empty-state-inline">
+      <div class="empty-state-inline" *ngIf="!pulsos || pulsos.length === 0">
         <i class="bi bi-inbox"></i>
         <div>
-          <p><strong>No tienes tareas novedades</strong></p>
-          <p class="text-muted">Vuelve mas tarde</p>
+          <p><strong>No tienes novedades</strong></p>
+          <p class="text-muted">Vuelve más tarde</p>
         </div>
       </div>
     </section>
 
+    <!-- Modal para mostrar la imagen del pulso -->
+    <div class="pulso-modal" *ngIf="pulsoSeleccionado" (click)="cerrarPulso()">
+      <div class="pulso-modal-content" (click)="$event.stopPropagation()">
+        <button class="pulso-modal-close" (click)="cerrarPulso()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+        <h3>{{ pulsoSeleccionado.titulo }}</h3>
+        <img [src]="pulsoSeleccionado.imagenUrl" [alt]="pulsoSeleccionado.titulo">
+      </div>
+    </div>
 
 
     <!-- 🆕 Modal de Historial de Tareas -->
@@ -550,11 +575,6 @@
   </main>
 
 
-  <!-- Modal de imágenes -->
-  <div *ngIf="showModal" class="modal" (click)="onModalClick($event)">
-    <span class="close" (click)="closeModal()">&times;</span>
-    <img [src]="selectedImage!" alt="Imagen ampliada" />
-  </div>
 
   <!-- Modal TRM Detallado -->
   <div class="modal-overlay" *ngIf="isTrmModalOpen" (click)="closeTrmModal()">

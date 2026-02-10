@@ -9,6 +9,8 @@ import { ListasService } from '../../servicios/listasServices';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { Tarea } from '../../models/Tareas/Tarea';
 import { CreateTareaRequest } from '../../models/Tareas/CreateTareaRequest';
+import { Pulso } from '../../models/Pulsos/pulso';
+import { PulsoService } from '../../servicios/pulsoservices';
 
 // Registrar componentes de Chart.js
 Chart.register(...registerables);
@@ -44,6 +46,10 @@ export class Home implements OnInit, AfterViewInit {
   sistemaInformacionData: SistemaInformacion[] = [];
   sistemacontactosData: any[] = [];
   formatosData: any = [];
+
+    // PULSOS
+      pulsos: Pulso[] = [];
+  pulsoSeleccionado: Pulso | null = null;
 
   // Favoritos y búsqueda
   favorites: number[] = [];
@@ -143,7 +149,8 @@ export class Home implements OnInit, AfterViewInit {
     private router: Router,
     private homeservice: homeservices,
     private listass: ListasService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private pulsoService: PulsoService
   ) { }
 
   ngOnInit(): void {
@@ -151,6 +158,7 @@ export class Home implements OnInit, AfterViewInit {
     this.loadTrmData();
     this.startClock();
     this.loadPreferences();
+       this.cargarPulsos();
 
     if (isPlatformBrowser(this.platformId)) {
       this.loadUserDataAndPermisos();
@@ -800,4 +808,26 @@ export class Home implements OnInit, AfterViewInit {
   irAPerfil(): void {
     this.router.navigate(['app/perfil']);
   }
+
+cargarPulsos(): void {
+    this.pulsoService.getActivePulsos().subscribe({
+      next: (pulsos) => {
+        this.pulsos = pulsos;
+      },
+      error: (error) => {
+        console.error('Error al cargar pulsos:', error);
+      }
+    });
+  }
+
+  abrirPulso(pulso: Pulso): void {
+    this.pulsoSeleccionado = pulso;
+  }
+
+  cerrarPulso(): void {
+    this.pulsoSeleccionado = null;
+  }
+
+
+
 }

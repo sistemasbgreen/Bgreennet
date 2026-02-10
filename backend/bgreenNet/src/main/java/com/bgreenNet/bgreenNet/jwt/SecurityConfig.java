@@ -40,6 +40,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 		                .requestMatchers("/api/perfil/**").permitAll()
 		                .requestMatchers("/api/cmiplanta/**").permitAll()
 		                .requestMatchers("/api/tareas/**").permitAll()
+		                .requestMatchers("/api/pulsos/**").permitAll()
+		                .requestMatchers("/api/upload/**").permitAll()
 		                .anyRequest().authenticated()
 		       
 		            )
