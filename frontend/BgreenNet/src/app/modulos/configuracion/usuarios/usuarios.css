@@ -167,6 +167,13 @@
   gap: 8px;
 }
 
+.action-buttons button:focus {
+  border: 2px solid rgb(4, 105, 36);
+}
+
+
+
+
 .action-buttons button {
   border: none;
   border-radius: 6px;
@@ -177,7 +184,7 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  transition: all 0.2s ease;
+
 }
 
 .btn-editar {

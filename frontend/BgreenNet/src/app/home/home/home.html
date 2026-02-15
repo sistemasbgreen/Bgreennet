@@ -11,7 +11,7 @@
 
   <header class="header">
     <div class="logo-section">
-      <img src="http://172.30.72.200/Imagenes/Img/bgreen_Logo.png" width="100px" alt="BGREEN Logo">
+      <img src="https://bgreen.com.co/Img/bgreen_Logo.png" width="100px" alt="BGREEN Logo">
 
       <div class="stats" *ngIf="dashboardWidgets.stats">
         <div class="stat-item" (click)="openTrmModal()">
@@ -27,7 +27,7 @@
     </div>
 
     <div class="brand">
-      <h1>BGREEN<span>NET</span></h1>
+      <h1 class="logo-text">BGREEN<span>NET</span></h1>
       <p class="clock-display">
         <i class="bi bi-clock"></i> {{ currentTime | date:'HH:mm:ss' }}
       </p>
@@ -427,7 +427,8 @@
       <div class="pulsos-grid" *ngIf="pulsos && pulsos.length > 0">
         <div class="pulso-card" *ngFor="let pulso of pulsos" (click)="abrirPulso(pulso)">
           <div class="pulso-icon">
-            <i class="bi bi-lightning-charge-fill"></i>
+          <img [src]="pulso.imagenUrl" [alt]="pulso.titulo" width="80" height="80" />
+
           </div>
           <div class="pulso-content">
             <h4 class="pulso-titulo">{{ pulso.titulo }}</h4>

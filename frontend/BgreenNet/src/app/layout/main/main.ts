@@ -16,40 +16,49 @@ export class Main {
   isSidebarCollapsed = false;
   isMenuDropdownOpen = false;
   user: string = '';
+  perfil: string = '';
   isUserMenuOpen = false;
 
   modulos = [
     {
       nombre: 'Configuración',
-      rutaBase: 'app/configuracion', // ✅ Volvemos a string
+      rutaBase: 'app/configuracion',
       icono: '⚙️',
       expandido: false,
       submodulos: [
-        { nombre: 'Usuarios', ruta: 'usuarios' },
-        { nombre: 'Sistemas Información', ruta: 'sistemasinformacion' },
-         { nombre: 'Pulsos', ruta: 'pulsos' }
-      ]
-    },
-    {
-      nombre: 'CMR',
-      rutaBase: 'app/cmr', // ✅ Volvemos a string
-      icono: '📊',
-      expandido: false,
-      submodulos: [
-        { nombre: 'Reportes', ruta: 'reportes' },
-        { nombre: 'Dashboard', ruta: 'dashboard' }
+        { nombre: 'Usuarios', ruta: 'usuarios', roles: ['Administrador'] },
+
+        { nombre: 'Sistemas Información', ruta: 'sistemasinformacion', roles: ['Administrador'] },
+
+        { nombre: 'Pulsos', ruta: 'pulsos', roles: ['Administrador', 'Jefe Gestion Humana', 'Asistente Gestion Humana'] },
+
+        { nombre: 'Home Config', ruta: 'homeconfig', roles: ['Administrador'] }
       ]
     }
+    /* ,
+     {
+       nombre: 'CMR',
+       rutaBase: 'app/cmr', // ✅ Volvemos a string
+       icono: '📊',
+       expandido: false,|
+       submodulos: [
+         { nombre: 'Reportes', ruta: 'reportes' },
+         { nombre: 'Dashboard', ruta: 'dashboard' }
+       ]
+     }
+     */
   ];
 
+
+
   constructor(
-    @Inject(PLATFORM_ID) private platformId: Object, 
+    @Inject(PLATFORM_ID) private platformId: Object,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.guardarname();
-   // this.prueba();
+    // this.prueba();
 
     /*
     this.router.events.subscribe((event: RouterEvent) => {
@@ -67,29 +76,29 @@ export class Main {
 */
 
   }
-/*
-  prueba() {
-    console.log('🔍 Análisis de rutas generadas:');
-    this.modulos.forEach(modulo => {
-      console.log(`Módulo: ${modulo.nombre} → base:`, modulo.rutaBase);
-      modulo.submodulos.forEach(sub => {
-        const rutaCompleta = ['/', ...modulo.rutaBase, sub.ruta];
-        console.log(`  → Submódulo: ${sub.nombre} → Ruta:`, rutaCompleta);
+  /*
+    prueba() {
+      console.log('🔍 Análisis de rutas generadas:');
+      this.modulos.forEach(modulo => {
+        console.log(`Módulo: ${modulo.nombre} → base:`, modulo.rutaBase);
+        modulo.submodulos.forEach(sub => {
+          const rutaCompleta = ['/', ...modulo.rutaBase, sub.ruta];
+          console.log(`  → Submódulo: ${sub.nombre} → Ruta:`, rutaCompleta);
+        });
       });
-    });
+    }
+  */
+  toggleSidebar() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+
+
+    if (this.isSidebarCollapsed) {
+      this.modulos.forEach(modulo => modulo.expandido = false);
+    }
+
+
+    // this.modulos.forEach(modulo => modulo.expandido = false);
   }
-*/
-toggleSidebar() {
-  this.isSidebarCollapsed = !this.isSidebarCollapsed;
-
-
-  if (this.isSidebarCollapsed) {
-    this.modulos.forEach(modulo => modulo.expandido = false);
-  }
-
-
-  // this.modulos.forEach(modulo => modulo.expandido = false);
-}
 
   toggleSubmodulos(modulo: any) {
     modulo.expandido = !modulo.expandido;
@@ -108,12 +117,30 @@ toggleSidebar() {
     }
   }
 
+  aplicarPermisos() {
+
+    if (this.perfil === 'Administrador') {
+      return; // 👈 el admin ve todo
+    }
+    console.log(this.perfil)
+
+    this.modulos.forEach(modulo => {
+      modulo.submodulos = modulo.submodulos.filter(sub =>
+        sub.roles.includes(this.perfil)
+      );
+    });
+
+  }
+
+
   guardarname() {
     if (isPlatformBrowser(this.platformId)) {
       const usuarioString = localStorage.getItem('usuario');
       if (usuarioString) {
         const usuario = JSON.parse(usuarioString);
         this.user = usuario.usuario;
+        this.perfil = usuario.perfil_descripcion;
+        this.aplicarPermisos();
       } else {
         console.log('No se encontró el usuario en localStorage');
       }

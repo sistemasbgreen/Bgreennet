@@ -40,6 +40,10 @@ export const layoutRoutes: Routes = [
           {
             path: 'pulsos',
             loadComponent: () => import('../modulos/configuracion/pulsos/pulsos').then(c => c.Pulsos)
+          },
+          {
+            path: 'homeconfig',
+            loadComponent: () => import('../modulos/configuracion/homeconfig/homeconfig').then(c => c.Homeconfig)
           }
         ]
       },
@@ -51,6 +55,7 @@ export const layoutRoutes: Routes = [
             path: 'home',
             loadComponent: () => import('../modulos/CMI/cmi-home/cmi-home').then(c => c.CmiHome)
           },
+
           {
             path: '',
             redirectTo: 'home',

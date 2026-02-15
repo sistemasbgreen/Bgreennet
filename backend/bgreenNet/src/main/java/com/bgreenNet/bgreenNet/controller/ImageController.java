@@ -44,7 +44,7 @@ public class ImageController {
             String imageUrl = imageService.saveImage(file);
 
             // Construir URL completa (ajustar según tu configuración)
-            String fullUrl = "http://172.30.72.200" + imageUrl;
+            String fullUrl = "http://45.183.247.77" + imageUrl;
 
             return ResponseEntity.ok(new ImageUploadResponse(fullUrl, "Imagen subida exitosamente"));
 

@@ -296,10 +296,10 @@
               <label class="form-label">
                 <i class="bi bi-phone"></i> Celular *
               </label>
-              <input formControlName="celular" type="text" class="form-input" placeholder="3001234567"
+              <input formControlName="celular" type="text" class="form-input" placeholder="161"
                 [class.input-invalid]="f['celular'].touched && f['celular'].invalid">
               <span class="error-message" *ngIf="f['celular'].touched && f['celular'].invalid">
-                Ingrese un número válido (10-15 dígitos)
+                Ingrese un número válido (3 dígitos)
               </span>
             </div>
 

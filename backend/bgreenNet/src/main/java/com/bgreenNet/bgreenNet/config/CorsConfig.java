@@ -18,10 +18,11 @@ public class CorsConfig {
 
 	
 	    config.setAllowedOrigins(Arrays.asList(
-	    		"http://localhost:4200",          // Angular dev
-	            "https://infos.bgreen.com.co",    // Producción dominio
-	            "https://45.183.247.77:8090",          // Angular por IP (HTTPS)
-	            "http://172.30.72.200",            // Red interna
+	    		"http://localhost:4200",
+	            "https://infos.bgreen.com.co",
+	            "http://45.183.247.77:8090",
+	            "http://45.183.247.77:8080",
+	            "http://172.30.72.200",
 	            "https://bgreennet.bgreen.com.co"
 	    ));
 
@@ -32,6 +33,4 @@ public class CorsConfig {
 	    source.registerCorsConfiguration("/**", config);
 	    return source;
 	}
-	
-
-}
+	}

@@ -69,7 +69,7 @@ export class Usuarios implements OnInit {
       apellido: ['', [Validators.required, Validators.pattern('^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$')]],
       razon_social: [''],
       correo: ['', [Validators.required, Validators.email]],
-      celular: ['', [Validators.required, Validators.pattern('^[+]?[0-9]{10,15}$')]],
+      celular: ['', [Validators.required, Validators.pattern('^[+]?[0-9]{3,5}$') , Validators.minLength(3), Validators.maxLength(5)]],
       fechaNacimiento: ['', Validators.required],
       id_cargo_fk: ['', Validators.required],
       id_empresa_fk: ['', Validators.required],
@@ -90,6 +90,7 @@ export class Usuarios implements OnInit {
     this.CargarCargo();
     this.CargarArea();
     this.CargarTipoidenrificacion();
+  
   }
 
   // ======== CARGA DE DATOS ========
@@ -321,11 +322,12 @@ CargarPerfil_Lista(): void {
 
   verpermisos(id: any, name: any): void {
     this.nombre_perfil = name;
-    this.perfilIdSeleccionado = id; // 👈 Guarda el ID aquí
+    this.perfilIdSeleccionado = id;
 
     this.perfilservices.obtenerpermisos(id).subscribe({
       next: (data) => {
         this.permisosXperfil = data;
+         this.cdr.detectChanges();
       },
       error: (err) => console.error('Error al cargar permisos:', err)
     });

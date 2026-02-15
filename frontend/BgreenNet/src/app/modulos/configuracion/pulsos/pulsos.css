@@ -37,7 +37,7 @@
       gap: 0.75rem;
 
       i {
-        color: #667eea;
+        color: #2563eb;
         font-size: 1.5rem;
       }
     }
@@ -104,7 +104,7 @@
 
     &:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
@@ -138,7 +138,7 @@
     }
 
     &.active {
-      background: #667eea;
+      background: #2563eb;
       color: white;
       box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
     }
@@ -191,12 +191,12 @@
   .btn {
     margin-top: 1rem;
   }
+
 }
 
 .pulsos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -220,13 +220,13 @@
 
 .pulso-image {
   position: relative;
-  width: 100%;
+  
+  margin-left: 25%;
   height: 200px;
   overflow: hidden;
   background: #f8f9fa;
 
   img {
-    width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s ease;
@@ -263,7 +263,7 @@
 
       i {
         font-size: 1.25rem;
-        color: #667eea;
+        color: #2563eb;
       }
 
       &:hover {
@@ -454,7 +454,7 @@
     gap: 0.75rem;
 
     i {
-      color: #667eea;
+      color: #2563eb;
     }
   }
 }
@@ -496,7 +496,7 @@
     justify-content: center;
 
     &:hover {
-      border-color: #667eea;
+      border-color: #2563eb;
       background: #f8f9ff;
     }
   }
@@ -618,7 +618,7 @@
 
     &:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
@@ -664,8 +664,8 @@
     margin: 0;
 
     &:checked {
-      background-color: #667eea;
-      border-color: #667eea;
+      background-color: #2563eb;
+      border-color: #2563eb;
     }
 
     &:focus {
@@ -731,11 +731,11 @@
 }
 
 .btn-primary {
-  background: #667eea;
+  background: #2563eb;
   color: white;
 
   &:hover:not(:disabled) {
-    background: #5568d3;
+    background: #0a5c2e;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
   }
@@ -756,11 +756,11 @@
 
 .btn-outline-primary {
   background: white;
-  color: #667eea;
-  border: 1px solid #667eea;
+  color: #2563eb;
+  border: 1px solid #2563eb;
 
   &:hover:not(:disabled) {
-    background: #667eea;
+    background: #2563eb;
     color: white;
   }
 }

@@ -1,0 +1,92 @@
+   <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                Bienvenido a la Configuración de BGREEN
+            </h1>
+            <p>Configura tu aplicativo paso a paso para optimizar tu experiencia</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-value">1.0</div>
+                <div class="stat-label">Version</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-value">Admin</div>
+                <div class="stat-label">Nivel de Acceso</div>
+            </div>
+
+        </div>
+
+        <div class="help-section">
+            <h3>📖 ¿Necesitas ayuda para comenzar?</h3>
+            <p>
+                Del lado izquierdo encontrarás los módulos de configuración:<strong>Pulsos</strong>
+                Dentro de este podras agregar cada pulso que quieras monitorear, cada pulso se compone de un nombre, una descripción, una  imagen y una fecha limite.
+                El peso de la imagen no puede ser mayor a 5mb
+                La fecha de finalizacion el pulso no se mostrará en el home, solo se mostrará en el home los pulsos que tengan una fecha de finalizacion mayor a la fecha actual. 
+                En la parte superior derech encontraras un icono de perfil , ahi podras cerrar sesion y devolverte al Home principal.
+
+
+            </p>
+        </div>
+
+        <!-- Wizard Container -->
+        <div class="wizard-container">
+
+
+            <!-- Configuration Modules -->
+            <div class="modules-grid">
+                <!-- Usuarios Module -->
+                <div class="module-card" onclick="navigateTo('usuarios')">
+                    <div class="module-icon">👥</div>
+                    <div class="module-title">Usuarios</div>
+                    <div class="module-description">
+
+                    </div>
+                    <div class="module-tip">
+                        Comienza creando roles antes de asignar usuarios para una mejor organización.
+                    </div>
+                </div>
+
+                <!-- Sistemas Información Module -->
+                <div class="module-card" onclick="navigateTo('sistemas')">
+                    <div class="module-icon">💻</div>
+                    <div class="module-title">Sistemas de Información</div>
+                    <div class="module-description">
+                    
+                    </div>
+                    <div class="module-tip">
+                        Verifica las credenciales de conexión antes de activar las integraciones.
+                    </div>
+                </div>
+
+                <!-- Pulsos Module -->
+                <div class="module-card" onclick="navigateTo('pulsos')">
+                    <div class="module-icon">📊</div>
+                    <div class="module-title">Pulsos</div>
+                    <div class="module-description">
+
+                    </div>
+                    <div class="module-tip">
+                        Configura alertas automáticas para los eventos futuros , puedes agregarlos y ellos van apareciendo de acuerdo a la fecha.
+                    </div>
+                </div>
+
+             
+            </div>
+
+ 
+        </div>
+
+
+
+
+    </div>
