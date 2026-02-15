@@ -1,10 +1,6 @@
-import { NgFor, NgForOf, NgIf } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Usuario } from '../../../models/usuario';
-import { DetalleUsuario } from '../../../models/detalleUsuario';
-import { AuthService } from '../../../auth/authservices';
 import { UsuarioService } from '../../../servicios/usuarioservices';
-import { NavigationEnd, Router } from "@angular/router";
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Perfil } from '../../../models/perfil';
 import { Empresa } from '../../../models/empresa';
@@ -12,9 +8,13 @@ import { Cargo } from '../../../models/cargo';
 import { Area } from '../../../models/area';
 import { TiposIdentificacion } from '../../../models/tiposIdentificacion';
 import { ListasService } from '../../../servicios/listasServices';
-import { CrearUsuario } from '../../../models/CrearUsuario';
 import { Perfilservices } from '../../../servicios/perfilservices';
 import { AsignarPermiso } from '../../../models/asignarpermisos';
+import { ModuloDTO } from '../../../models/modulos/ModuloDTO';
+import { ModuleConfigService } from '../../../servicios/moduleConfigService';
+import { SubModuloDTO } from '../../../models/modulos/SubModuloDTO';
+import { NgForOf, NgIf } from '@angular/common';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-usuarios',
@@ -24,10 +24,13 @@ import { AsignarPermiso } from '../../../models/asignarpermisos';
 })
 
 export class Usuarios implements OnInit {
+  [x: string]: any;
 
   usuarioForm: FormGroup;
   perfilForm: FormGroup;
   permisosXperfil: any;
+  modulos: ModuloDTO[] = []; //  Nueva variable para módulos
+  permisosModulos: any[] = []; //  Nueva variable para permisos de módulos
   usuarios: Usuario[] = [];
   perfiles: Perfil[] = [];
   empresas: Empresa[] = [];
@@ -50,6 +53,9 @@ export class Usuarios implements OnInit {
 
   perfilIdSeleccionado: number | null = null;
 
+  //  Pestaña activa (sistemas o modulos)
+  pestanaActiva: 'sistemas' | 'modulos' = 'sistemas';
+
   constructor(
     private fb: FormBuilder,
     private perf: FormBuilder,
@@ -57,7 +63,8 @@ export class Usuarios implements OnInit {
     private listasServices: ListasService,
     private perfilservices: Perfilservices,
     private router: Router,
-      private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private moduleConfigService: ModuleConfigService //  Inyectar servicio
   ) {
     this.usuarioForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(4)]],
@@ -69,7 +76,7 @@ export class Usuarios implements OnInit {
       apellido: ['', [Validators.required, Validators.pattern('^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$')]],
       razon_social: [''],
       correo: ['', [Validators.required, Validators.email]],
-      celular: ['', [Validators.required, Validators.pattern('^[+]?[0-9]{3,5}$') , Validators.minLength(3), Validators.maxLength(5)]],
+      celular: ['', [Validators.required, Validators.pattern('^[+]?[0-9]{3,5}$'), Validators.minLength(3), Validators.maxLength(5)]],
       fechaNacimiento: ['', Validators.required],
       id_cargo_fk: ['', Validators.required],
       id_empresa_fk: ['', Validators.required],
@@ -90,31 +97,41 @@ export class Usuarios implements OnInit {
     this.CargarCargo();
     this.CargarArea();
     this.CargarTipoidenrificacion();
-  
+    this.cargarModulos(); //  Cargar módulos al iniciar
+  }
+
+  //  Cargar configuración de módulos
+  cargarModulos(): void {
+    this.moduleConfigService.getModulos().subscribe({
+      next: (modulos) => {
+        this.modulos = modulos;
+        console.log('Módulos cargados:', this.modulos);
+      },
+      error: (err) => console.error('Error al cargar módulos:', err)
+    });
+    this.moduleConfigService.loadConfig();
   }
 
   // ======== CARGA DE DATOS ========
-cargarUsuarios(): void {
-  this.usuarioService.listarUsuarios().subscribe({
-    next: (data) => {
-      this.usuarios = data;
-      this.cdr.detectChanges();
-    },
-    error: (err) => console.error('Error al cargar usuarios', err)
-  });
-}
+  cargarUsuarios(): void {
+    this.usuarioService.listarUsuarios().subscribe({
+      next: (data) => {
+        this.usuarios = data;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error al cargar usuarios', err)
+    });
+  }
 
-
-CargarPerfil_Lista(): void {
-  this.listasServices.obtenerPerfiles().subscribe({
-    next: (data) => {
-      this.perfiles = data;
-      this.cdr.detectChanges();
-    }
-  });
-}
-
-
+  CargarPerfil_Lista(): void {
+    this.listasServices.obtenerPerfiles().subscribe({
+      next: (data) => {
+        this.perfiles = data;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+  
   CargarEmpresa(): void {
     this.listasServices.obtenerEmpresas().subscribe({
       next: (data) => this.empresas = data,
@@ -245,8 +262,6 @@ CargarPerfil_Lista(): void {
       return;
     }
 
-
-
     const usuario = {
       ...this.usuarioForm.value,
       id_area_fk: Number(this.usuarioForm.value.id_area_fk),
@@ -320,59 +335,156 @@ CargarPerfil_Lista(): void {
     });
   }
 
-  verpermisos(id: any, name: any): void {
-    this.nombre_perfil = name;
-    this.perfilIdSeleccionado = id;
+  //  Cambiar pestaña activa
+//  Cambiar pestaña activa
+cambiarPestana(pestaña: 'sistemas' | 'modulos'): void {
+  this.pestanaActiva = pestaña;
+  if (pestaña === 'modulos' && this.perfilIdSeleccionado) {
+    this.cargarPermisosModulos(this.perfilIdSeleccionado);
+  } else if (pestaña === 'sistemas' && this.perfilIdSeleccionado) {
+    this.verpermisos(this.perfilIdSeleccionado, this.nombre_perfil);
+  }
+}
 
-    this.perfilservices.obtenerpermisos(id).subscribe({
-      next: (data) => {
-        this.permisosXperfil = data;
-         this.cdr.detectChanges();
+ verpermisos(id: any, name: any): void {
+  this.nombre_perfil = name;
+  this.perfilIdSeleccionado = id;
+  this.pestanaActiva = 'sistemas'; //  Por defecto mostrar sistemas
+
+  // Cargar permisos de sistemas
+  this.perfilservices.obtenerpermisos(id).subscribe({
+    next: (data) => {
+      this.permisosXperfil = data;
+      this.cdr.detectChanges();
+    },
+    error: (err) => console.error('Error al cargar permisos de sistemas:', err)
+  });
+
+  // Cargar permisos de módulos
+  this.cargarPermisosModulos(id);
+}
+
+  togglePermiso(permiso: any): void {
+    const idPerfil = this.perfilIdSeleccionado;
+    if (!idPerfil) {
+      console.error('No se ha seleccionado un perfil');
+      return;
+    }
+
+    const dto: AsignarPermiso = {
+      idPerfilFk: idPerfil,
+      idSistemaFk: permiso.idSistema
+    };
+
+    // Guardar el estado actual para revertir en caso de fallo
+    const estadoOriginal = permiso.tienePermiso;
+
+    // Invertir visualmente (optimistic update)
+    permiso.tienePermiso = !permiso.tienePermiso;
+
+    const observable$ = permiso.tienePermiso
+      ? this.perfilservices.asignarPermiso(dto)
+      : this.perfilservices.eliminarPermiso(dto);
+
+    observable$.subscribe({
+      next: (exito: boolean) => {
+        if (!exito) {
+          // El backend respondió 200, pero lógicamente falló → revertir
+          permiso.tienePermiso = estadoOriginal;
+          alert('Operación rechazada por el servidor.');
+        }
+        // Si éxito === true, ya está actualizado en UI
       },
-      error: (err) => console.error('Error al cargar permisos:', err)
+      error: (err) => {
+        console.error('Error de red o servidor:', err);
+        // Revertir siempre en caso de error de red
+        permiso.tienePermiso = estadoOriginal;
+        alert('No se pudo realizar la operación. Intente nuevamente.');
+      }
     });
   }
 
-
- togglePermiso(permiso: any): void {
-  const idPerfil = this.perfilIdSeleccionado;
-  if (!idPerfil) {
-    console.error('No se ha seleccionado un perfil');
-    return;
+  //  Cargar permisos de módulos para un perfil
+  cargarPermisosModulos(idPerfil: number): void {
+    this.moduleConfigService.getPermisosByPerfil(idPerfil).subscribe({
+      next: (permisos) => {
+        // Actualizar los permisos en los módulos
+        this.modulos.forEach(modulo => {
+          modulo.subModulos.forEach(submodulo => {
+            const permiso = permisos.find(p => p.idSubModulo === submodulo.idSubModulo);
+            if (permiso) {
+              submodulo.roles = permiso.roles;
+            }
+          });
+        });
+        console.log('Permisos de módulos cargados:', this.modulos);
+      },
+      error: (err) => console.error('Error al cargar permisos de módulos:', err)
+    });
   }
 
-  const dto: AsignarPermiso = {
-    idPerfilFk: idPerfil,
-    idSistemaFk: permiso.idSistema
-  };
-
-  // Guardar el estado actual para revertir en caso de fallo
-  const estadoOriginal = permiso.tienePermiso;
-
-  // Invertir visualmente (optimistic update)
-  permiso.tienePermiso = !permiso.tienePermiso;
-
-  const observable$ = permiso.tienePermiso
-    ? this.perfilservices.asignarPermiso(dto)
-    : this.perfilservices.eliminarPermiso(dto);
-
-  observable$.subscribe({
-    next: (exito: boolean) => {
-      if (!exito) {
-        // El backend respondió 200, pero lógicamente falló → revertir
-        permiso.tienePermiso = estadoOriginal;
-        alert('Operación rechazada por el servidor.');
-      }
-      // Si éxito === true, ya está actualizado en UI
-    },
-    error: (err) => {
-      console.error('Error de red o servidor:', err);
-      // Revertir siempre en caso de error de red
-      permiso.tienePermiso = estadoOriginal;
-      alert('No se pudo realizar la operación. Intente nuevamente.');
+  //  Toggle para permisos de módulos
+  togglePermisoModulo(submodulo: SubModuloDTO, event: any): void {
+    const idPerfil = this.perfilIdSeleccionado;
+    if (!idPerfil) {
+      console.error('No se ha seleccionado un perfil');
+      event.target.checked = false;
+      return;
     }
-  });
-}
+
+    const isChecked = event.target.checked;
+    const idSubModulo = submodulo.idSubModulo; //  Usar ID directamente
+
+    // Guardar estado original para revertir en caso de error
+    const rolesOriginales = [...(submodulo.roles || [])];
+
+    // Actualizar visualmente (optimistic update)
+    if (isChecked) {
+      if (!submodulo.roles) submodulo.roles = [];
+      if (!submodulo.roles.includes(this.nombre_perfil)) {
+        submodulo.roles.push(this.nombre_perfil);
+      }
+    } else {
+      if (submodulo.roles) {
+        const index = submodulo.roles.indexOf(this.nombre_perfil);
+        if (index > -1) {
+          submodulo.roles.splice(index, 1);
+        }
+      }
+    }
+
+    // Llamar al servicio
+    this.moduleConfigService.asignarPermiso(idPerfil, idSubModulo, isChecked).subscribe({
+      next: () => {
+        console.log(`Permiso ${isChecked ? 'asignado' : 'revocado'} correctamente`);
+      },
+      error: (error) => {
+        console.error('Error al asignar permiso:', error);
+        // Revertir cambios en caso de error
+        submodulo.roles = rolesOriginales;
+        event.target.checked = !isChecked;
+        alert('Error al asignar permiso. Intente nuevamente.');
+      }
+    });
+  }
+
+  //  Verificar si un submódulo tiene permiso para el perfil actual
+  tienePermisoModulo(submodulo: SubModuloDTO): boolean {
+    if (!this.nombre_perfil || !submodulo.roles) {
+      return false;
+    }
+    return submodulo.roles.includes(this.nombre_perfil);
+  }
+
+
+  //  Obtener ID del submódulo (necesitas ajustar tu DTO para incluir idSubModulo)
+  private getIdSubModulo(submodulo: SubModuloDTO): number | null {
+    // Esta es una implementación temporal
+    // Deberías agregar idSubModulo al SubModuloDTO desde el backend
+    console.warn('Necesitas agregar idSubModulo al DTO');
+    return null; // Cambia esto cuando tengas el ID real
+  }
+
 
   // ======== HELPERS PARA VALIDACIÓN ========
   get f() {
@@ -382,4 +494,9 @@ CargarPerfil_Lista(): void {
   get pf() {
     return this.perfilForm.controls;
   }
+
+
+
+
+
 }

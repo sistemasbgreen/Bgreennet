@@ -45,6 +45,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 			            .requestMatchers("/api/upload/**").permitAll()
 			            .requestMatchers("/plc/leer/**").permitAll()
 			            .requestMatchers("/api/scada/ultimo/**").permitAll()
+			            .requestMatchers("/api/module-config/config/**").permitAll()
+			            .requestMatchers("/api/module-config/**").permitAll()
 			            .anyRequest().authenticated()
 			        )
 			        .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
