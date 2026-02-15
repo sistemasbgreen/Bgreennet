@@ -23,11 +23,7 @@ public class ImageService {
             throw new IllegalArgumentException("Solo se permiten imágenes");
         }
 
-        // Validar tamaño (2MB)
-        long maxSize = 2 * 1024 * 1024; // 2MB en bytes
-        if (file.getSize() > maxSize) {
-            throw new IllegalArgumentException("El tamaño máximo es de 2MB");
-        }
+    
 
         // Generar nombre único
         String extension = getExtension(file.getOriginalFilename());
@@ -43,6 +39,9 @@ public class ImageService {
         Path filePath = uploadDir.resolve(fileName);
         file.transferTo(filePath.toFile());
 
+        // 🔑 FORZAR HERENCIA DE PERMISOS NTFS (agregado)
+        forceInheritance(filePath);
+
         // Devolver ruta relativa
         return "/Imagenes/Img/" + fileName;
     }
@@ -53,5 +52,37 @@ public class ImageService {
         }
         int i = fileName.lastIndexOf('.');
         return i > 0 ? fileName.substring(i) : "";
+    }
+
+    /**
+     * 🔑 Método nuevo: Forzar herencia de permisos NTFS en Windows
+     */
+    private void forceInheritance(Path filePath) throws IOException {
+        try {
+            // Ejecutar icacls para habilitar herencia
+            ProcessBuilder pb = new ProcessBuilder(
+                "icacls", 
+                filePath.toAbsolutePath().toString(), 
+                "/inheritance:e"
+            );
+            
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            
+            // Esperar máximo 5 segundos
+            boolean completed = process.waitFor(5000, java.util.concurrent.TimeUnit.MILLISECONDS);
+            
+            if (!completed) {
+                process.destroy();
+                System.err.println("Timeout al aplicar permisos NTFS");
+            }
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Proceso de permisos interrumpido: " + e.getMessage());
+        } catch (IOException e) {
+            // No bloqueamos la subida si fallan los permisos
+            System.err.println("Advertencia: No se aplicaron permisos NTFS: " + e.getMessage());
+        }
     }
 }

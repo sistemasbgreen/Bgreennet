@@ -24,31 +24,34 @@ import org.springframework.security.authentication.AuthenticationManager;
 		 @Autowired
 		    private JwtRequestFilter jwtRequestFilter;
 	
-		 
-		    @Bean
-		    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		        http
-		            .csrf(csrf -> csrf.disable())
-		            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-		            .authorizeHttpRequests(authz -> authz
-		            	.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-		                .requestMatchers("/api/auth/**").permitAll()
-		                .requestMatchers("/api/listas/**").permitAll()
-		                .requestMatchers("/api/home/**").permitAll()
-		                .requestMatchers("/api/usuarios/**").permitAll()
-		                .requestMatchers("/api/sistemasinformacion/**").permitAll()
-		                .requestMatchers("/api/perfil/**").permitAll()
-		                .requestMatchers("/api/cmiplanta/**").permitAll()
-		                .requestMatchers("/api/tareas/**").permitAll()
-		                .requestMatchers("/api/pulsos/**").permitAll()
-		                .requestMatchers("/api/upload/**").permitAll()
-		                .anyRequest().authenticated()
-		       
-		            )
-		            .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-	
-		        return http.build();
-		    }
+					 
+			@Bean
+			public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+			    http
+			        .cors(cors -> {}) 
+			        .csrf(csrf -> csrf.disable())
+			        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			        .authorizeHttpRequests(authz -> authz
+			            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+			            .requestMatchers("/api/auth/**").permitAll()
+			            .requestMatchers("/api/listas/**").permitAll()
+			            .requestMatchers("/api/home/**").permitAll()
+			            .requestMatchers("/api/usuarios/**").permitAll()
+			            .requestMatchers("/api/sistemasinformacion/**").permitAll()
+			            .requestMatchers("/api/perfil/**").permitAll()
+			            .requestMatchers("/api/cmiplanta/**").permitAll()
+			            .requestMatchers("/api/tareas/**").permitAll()
+			            .requestMatchers("/api/pulsos/**").permitAll()
+			            .requestMatchers("/api/upload/**").permitAll()
+			            .requestMatchers("/plc/leer/**").permitAll()
+			            .requestMatchers("/api/scada/ultimo/**").permitAll()
+			            .anyRequest().authenticated()
+			        )
+			        .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+			
+			    return http.build();
+			}
+
 	
 		 
 		    @Bean

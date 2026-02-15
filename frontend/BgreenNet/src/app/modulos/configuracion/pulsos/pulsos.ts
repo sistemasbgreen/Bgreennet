@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import Swal from 'sweetalert2';
@@ -37,7 +37,8 @@ export class Pulsos implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private pulsoService: PulsoService
+    private pulsoService: PulsoService,
+    private cdr: ChangeDetectorRef
   ) {
     const hoy = new Date();
     this.minDate = hoy.toISOString().split('T')[0];
@@ -72,7 +73,7 @@ export class Pulsos implements OnInit {
         this.pulsos = pulsos;
         this.aplicarFiltros();
         this.loading = false;
-        console.log(pulsos)
+               this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error al cargar pulsos:', error);
@@ -182,6 +183,8 @@ export class Pulsos implements OnInit {
         });
       }
     });
+
+    this.cargarPulsos();
   }
 
   // ============ NAVEGACIÓN ============
