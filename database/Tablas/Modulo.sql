@@ -14,9 +14,9 @@ use BgreenNet_Dev;
 CREATE TABLE Modulo (
     id_modulo INT IDENTITY(1,1) PRIMARY KEY,
     nombre NVARCHAR(100) NOT NULL,
-    descripcion NVARCHAR(255) NULL,
 	date_create DATETIME NOT NULL DEFAULT GETDATE(),
 	date_Modify DATETIME NOT NULL DEFAULT GETDATE(),
     iconos NVARCHAR(255) NOT NULL,
-    activo BIT NOT NULL DEFAULT 1
+    activo BIT NOT NULL DEFAULT 1,
+    ruta    NVARCHAR(255) NOT NULL
 );

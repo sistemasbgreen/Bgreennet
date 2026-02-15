@@ -47,7 +47,6 @@ export const layoutRoutes: Routes = [
           }
         ]
       },
-      // 👇 Rutas de CMI con loadComponent (sin módulos)
       {
         path: 'cmi',
         children: [
@@ -55,13 +54,17 @@ export const layoutRoutes: Routes = [
             path: 'home',
             loadComponent: () => import('../modulos/CMI/cmi-home/cmi-home').then(c => c.CmiHome)
           },
-
           {
             path: '',
             redirectTo: 'home',
             pathMatch: 'full'
           }
         ]
+      },
+      // 👇 NUEVA: Ruta comodín para cargar componentes dinámicamente
+      {
+        path: ':modulo/:submodulo',
+        loadComponent: () => import('../modulos/dynamic-loader').then(c => c.DynamicLoader)
       }
     ]
   }
