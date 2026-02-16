@@ -17,42 +17,37 @@ export class PulsoService {
 
   constructor(private http: HttpClient) {}
 
-  // ✅ Obtener todos los pulsos (administración)
+  //  Obtener todos los pulsos
   getAllPulsos(): Observable<Pulso[]> {
     return this.http.get<Pulso[]>(this.apiUrl).pipe(
       catchError(this.handleError)
     );
   }
 
-  // ✅ Obtener solo pulsos activos y vigentes
+  //  Obtener solo pulsos activos y vigentes
   getActivePulsos(): Observable<Pulso[]> {
     return this.http.get<Pulso[]>(`${this.apiUrl}/activos`).pipe(
       catchError(this.handleError)
     );
   }
 
-  // ✅ Obtener pulso por ID
-  getPulsoById(id: number): Observable<Pulso> {
-    return this.http.get<Pulso>(`${this.apiUrl}/${id}`).pipe(
-      catchError(this.handleError)
-    );
-  }
+  
 
-  // ✅ CORREGIDO: El backend devuelve un objeto { id: number, mensaje: string }
+  //  El backend devuelve un objeto { id: number, mensaje: string }
   createPulso(pulso: PulsoCreateDTO): Observable<{ id: number; mensaje: string }> {
     return this.http.post<{ id: number; mensaje: string }>(this.apiUrl, pulso).pipe(
       catchError(this.handleError)
     );
   }
 
-  // ✅ CORREGIDO: El backend devuelve un objeto { mensaje: string }
+  //  El backend devuelve un objeto { mensaje: string }
   updatePulso(id: number, pulso: PulsoUpdateDTO): Observable<{ mensaje: string }> {
     return this.http.put<{ mensaje: string }>(`${this.apiUrl}/${id}`, pulso).pipe(
       catchError(this.handleError)
     );
   }
 
-  // ✅ CORREGIDO: El backend devuelve un objeto { mensaje: string }
+  //  El backend devuelve un objeto { mensaje: string }
   updateEstado(id: number, activo: boolean): Observable<{ mensaje: string }> {
     const params = { activo: activo.toString() };
     return this.http.put<{ mensaje: string }>(`${this.apiUrl}/${id}/estado`, null, { params }).pipe(
@@ -60,7 +55,7 @@ export class PulsoService {
     );
   }
 
-  // ✅ CORREGIDO: El backend devuelve un objeto { mensaje: string }
+  //  El backend devuelve un objeto { mensaje: string }
   deletePulso(id: number): Observable<{ mensaje: string }> {
     return this.http.delete<{ mensaje: string }>(`${this.apiUrl}/${id}`).pipe(
       catchError(this.handleError)
@@ -79,7 +74,7 @@ export class PulsoService {
     );
   }
 
-  // ✅ Formatear fecha para mostrar
+  //  Formatear fecha para mostrar
   formatFecha(fecha: string): string {
     const date = new Date(fecha);
     return date.toLocaleDateString('es-ES', {
@@ -91,19 +86,21 @@ export class PulsoService {
     });
   }
 
-  // ✅ Calcular días restantes
-  calcularDiasRestantes(fechaFinal: string): number {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); // ✅ Resetear hora para comparar solo fechas
-    
-    const fechaFin = new Date(fechaFinal);
-    fechaFin.setHours(0, 0, 0, 0);
-    
-    const diffTime = fechaFin.getTime() - hoy.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
+  //  Calcular días restantes
+calcularDiasRestantes(fechaFinal: string): number {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
 
-  // ✅ Manejo de errores mejorado
+  const fechaFin = new Date(fechaFinal);
+  fechaFin.setHours(0, 0, 0, 0);
+
+  const diffTime = fechaFin.getTime() - hoy.getTime();
+
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+}
+
+
+  //  Manejo de errores mejorado
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'Error desconocido';
     
@@ -112,7 +109,7 @@ export class PulsoService {
       errorMessage = `Error: ${error.error.message}`;
     } else {
       // Error del lado del servidor
-      // ✅ Intentar extraer el mensaje del backend
+      //  Intentar extraer el mensaje del backend
       if (error.error?.mensaje) {
         errorMessage = error.error.mensaje;
       } else if (error.error?.message) {
