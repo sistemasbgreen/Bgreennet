@@ -2,7 +2,6 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import Swal from 'sweetalert2';
-
 import { Pulso } from '../../../models/Pulsos/pulso';
 import { PulsoService } from '../../../servicios/pulsoservices';
 import { PulsoCreateDTO } from '../../../models/Pulsos/PulsoCreateDTO';
@@ -32,8 +31,9 @@ export class Pulsos implements OnInit {
   uploadingImage = false;
   imagePreview?: string;
   selectedFile?: File;
-  currentUser = 'admin@bgreennet.com'; // ✅ Usar email completo
   minDate: string;
+  userEmail: any;
+  fullName: any;
 
   constructor(
     private fb: FormBuilder,
@@ -47,13 +47,16 @@ export class Pulsos implements OnInit {
   ngOnInit(): void {
     this.inicializarFormulario();
     this.cargarPulsos();
+
+    this.loadUserDataAndPermisos();
+
   }
 
   // ============ INICIALIZACIÓN ============
 
   inicializarFormulario(): void {
     this.pulsoForm = this.fb.group({
-      titulo: ['', [Validators.required, Validators.maxLength(255)]], // ✅ 255 caracteres
+      titulo: ['', [Validators.required, Validators.maxLength(255)]], //  255 caracteres
       descripcion: ['', Validators.maxLength(1000)],
       fechaFinal: [this.minDate, Validators.required],
       activo: [true],
@@ -73,7 +76,8 @@ export class Pulsos implements OnInit {
         this.pulsos = pulsos;
         this.aplicarFiltros();
         this.loading = false;
-               this.cdr.detectChanges();
+        this.cdr.detectChanges();
+        console.log('Pulsos cargados:', this.pulsos); //  Debug
       },
       error: (error) => {
         console.error('Error al cargar pulsos:', error);
@@ -86,6 +90,7 @@ export class Pulsos implements OnInit {
   aplicarFiltros(): void {
     let resultado = [...this.pulsos];
 
+
     if (this.searchTerm) {
       const termino = this.searchTerm.toLowerCase();
       resultado = resultado.filter(p =>
@@ -96,12 +101,14 @@ export class Pulsos implements OnInit {
 
     if (this.filtroEstado === 'activos') {
       resultado = resultado.filter(p => p.activo);
+      console.log('Jose', resultado)
     } else if (this.filtroEstado === 'inactivos') {
       resultado = resultado.filter(p => !p.activo);
     }
 
     this.pulsosFiltrados = resultado;
   }
+
 
   onSearchChange(): void {
     this.aplicarFiltros();
@@ -128,7 +135,7 @@ export class Pulsos implements OnInit {
     }).then((result) => {
       if (result.isConfirmed) {
         this.pulsoService.updateEstado(pulso.idPulso!, nuevoEstado).subscribe({
-          next: (response) => { // ✅ Ahora recibe el objeto con mensaje
+          next: (response) => { //  Ahora recibe el objeto con mensaje
             pulso.activo = nuevoEstado;
             Swal.fire(
               '¡Actualizado!',
@@ -146,14 +153,14 @@ export class Pulsos implements OnInit {
   }
 
   eliminarPulso(pulso: Pulso): void {
-    // ✅ Validar que existe el ID antes de proceder
+    //  Validar que existe el ID antes de proceder
     if (!pulso.idPulso) {
       Swal.fire('Error', 'No se puede eliminar: ID de pulso no válido', 'error');
       console.error('Pulso sin ID:', pulso);
       return;
     }
 
-    console.log('Eliminando pulso con ID:', pulso.idPulso); // ✅ Debug
+    console.log('Eliminando pulso con ID:', pulso.idPulso); //  Debug
 
     Swal.fire({
       title: '¿Eliminar pulso?',
@@ -207,7 +214,7 @@ export class Pulsos implements OnInit {
     this.pulsoEditando = pulso;
     console.log(pulso)
 
-    // ✅ Formatear fecha correctamente para el input
+    //  Formatear fecha correctamente para el input
     const fechaISO = pulso.fechaFinal.split('T')[0];
 
     this.pulsoForm.patchValue({
@@ -263,14 +270,14 @@ export class Pulsos implements OnInit {
     if (input.files && input.files[0]) {
       const file = input.files[0];
 
-      // ✅ Validar tipo de archivo
+      //  Validar tipo de archivo
       if (!file.type.startsWith('image/')) {
         Swal.fire('Error', 'Por favor selecciona una imagen válida (PNG, JPG, WEBP)', 'error');
         input.value = ''; // Limpiar input
         return;
       }
 
-      // ✅ Validar tamaño (5MB)
+      //  Validar tamaño (5MB)
       const maxSize = 5 * 1024 * 1024; // 5MB en bytes
       if (file.size > maxSize) {
         Swal.fire('Error', 'La imagen no puede superar los 5MB', 'error');
@@ -325,12 +332,12 @@ export class Pulsos implements OnInit {
     this.loading = true;
 
     try {
-      // ✅ Subir imagen si hay una nueva
+      //  Subir imagen si hay una nueva
       if (this.selectedFile) {
         await this.subirImagen();
       }
 
-      // ✅ Crear o actualizar
+      //  Crear o actualizar
       if (this.isEditMode) {
         await this.actualizarPulso();
       } else {
@@ -375,7 +382,7 @@ export class Pulsos implements OnInit {
     return new Promise((resolve, reject) => {
       const formValues = this.pulsoForm.value;
 
-      // ✅ Formatear fecha a ISO string completo
+      //  Formatear fecha a ISO string completo
       const fechaDate = new Date(formValues.fechaFinal + 'T23:59:59');
 
       const pulsoData: PulsoCreateDTO = {
@@ -386,13 +393,13 @@ export class Pulsos implements OnInit {
         imagenTipoMime: formValues.imagenTipoMime || null,
         imagenTamanoBytes: formValues.imagenTamanoBytes || null,
         fechaFinal: fechaDate.toISOString(),
-        creadoPor: this.currentUser
+        creadoPor: this.userEmail
       };
 
-      console.log('Creando pulso:', pulsoData); // ✅ Debug
+      console.log('Creando pulso:', pulsoData); //  Debug
 
       this.pulsoService.createPulso(pulsoData).subscribe({
-        next: (response) => { // ✅ Ahora recibe { id, mensaje }
+        next: (response) => { //  Ahora recibe { id, mensaje }
           console.log('Pulso creado:', response);
           this.loading = false;
           Swal.fire({
@@ -420,7 +427,7 @@ export class Pulsos implements OnInit {
     return new Promise((resolve, reject) => {
       const formValues = this.pulsoForm.value;
 
-      // ✅ Formatear fecha a ISO string completo
+      //  Formatear fecha a ISO string completo
       const fechaDate = new Date(formValues.fechaFinal + 'T23:59:59');
 
       const pulsoData: PulsoUpdateDTO = {
@@ -434,11 +441,11 @@ export class Pulsos implements OnInit {
         activo: formValues.activo
       };
 
-      console.log('Actualizando pulso:', this.pulsoEditando!.idPulso, pulsoData); // ✅ Debugpr
-      console.log('Jose',this.pulsoEditando!.idPulso)
+      console.log('Actualizando pulso:', this.pulsoEditando!.idPulso, pulsoData); //  Debugpr
+
 
       this.pulsoService.updatePulso(this.pulsoEditando!.idPulso!, pulsoData).subscribe({
-        next: (response) => { // ✅ Ahora recibe { mensaje }
+        next: (response) => { //  Ahora recibe { mensaje }
           console.log('Pulso actualizado:', response);
           this.loading = false;
           Swal.fire({
@@ -473,15 +480,30 @@ export class Pulsos implements OnInit {
     const dias = this.calcularDiasRestantes(pulso.fechaFinal);
     if (dias < 0) return 'badge-expired';
     if (dias <= 3) return 'badge-warning';
+
     return 'badge-active';
+
   }
 
   getEstadoTexto(pulso: Pulso): string {
+
     if (!pulso.activo) return 'Inactivo';
-    const dias = this.calcularDiasRestantes(pulso.fechaFinal);
+    if (!pulso.fechaFinal) return 'Sin fecha';
+
+    const hoy = new Date();
+    const fechaFinal = new Date(pulso.fechaFinal);
+
+
+    hoy.setHours(0, 0, 0, 0);
+    fechaFinal.setHours(0, 0, 0, 0);
+
+    const diferenciaMs = fechaFinal.getTime() - hoy.getTime();
+    const dias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
+
     if (dias < 0) return 'Expirado';
     if (dias === 0) return 'Vence hoy';
     if (dias === 1) return '1 día restante';
+
     return `${dias} días restantes`;
   }
 
@@ -500,5 +522,23 @@ export class Pulsos implements OnInit {
       return `Máximo ${maxLength} caracteres`;
     }
     return '';
+  }
+
+  private loadUserDataAndPermisos(): void {
+    const userString = localStorage.getItem('usuario');
+    if (userString) {
+      try {
+        const user = JSON.parse(userString);
+        this.fullName = `${user.nombre} ${user.apellido}`.toUpperCase();
+        this.userEmail = user.Usuario || user.correo;
+
+
+
+
+      } catch (error) {
+      }
+
+
+    }
   }
 }

@@ -22,10 +22,13 @@ public interface SubModuloRepository extends JpaRepository<SubModulo, Integer> {
            "WHERE sm.idSubModulo = :idSubModulo")
     Optional<SubModulo> findWithPermisosById(@Param("idSubModulo") Integer idSubModulo);
     
-    @Query("SELECT sm FROM SubModulo sm WHERE sm.activo = true")
-	static
-    List<SubModulo> findByActivoTrue() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    // CORREGIDO: Sin static, sin implementación
+    // Spring Data JPA genera automáticamente la implementación
+    List<SubModulo> findByActivoTrue();
+    
+    // OPCIONAL: Si prefieres usar @Query (recomendado para eager loading)
+    // @Query("SELECT sm FROM SubModulo sm " +
+    //        "LEFT JOIN FETCH sm.permisos " +
+    //        "WHERE sm.activo = true")
+    // List<SubModulo> findByActivoTrue();
 }

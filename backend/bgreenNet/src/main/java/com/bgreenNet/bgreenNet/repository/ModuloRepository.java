@@ -11,10 +11,12 @@ import java.util.List;
 public interface ModuloRepository extends JpaRepository<Modulo, Integer> {
     
     List<Modulo> findByActivoTrue();
-
     
-    @Query("SELECT m FROM Modulo m " +
+    // MEJORADO: Cargar también los permisos y perfiles
+    @Query("SELECT DISTINCT m FROM Modulo m " +
            "LEFT JOIN FETCH m.subModulos sm " +
+           "LEFT JOIN FETCH sm.permisos psm " +
+           "LEFT JOIN FETCH psm.perfil " +
            "WHERE m.activo = true")
     List<Modulo> findAllWithSubModulosAndPermisos();
 }

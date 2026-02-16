@@ -1,8 +1,9 @@
 package com.bgreenNet.bgreenNet.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -11,7 +12,8 @@ import java.util.Set; // ✅ Cambiar de List a Set
 
 @Entity
 @Table(name = "Modulo")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Modulo {

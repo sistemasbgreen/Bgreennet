@@ -1,7 +1,8 @@
 <div class="pulsos-admin-container">
-  
+
   <!-- ========== VISTA LISTA ========== -->
   <div class="vista-lista" *ngIf="vistaActual === 'lista'">
+
     <!-- Header -->
     <div class="admin-header">
       <div class="header-content">
@@ -23,34 +24,20 @@
     <div class="filters-section">
       <div class="search-box">
         <i class="bi bi-search"></i>
-        <input 
-          type="text" 
-          placeholder="Buscar pulsos..." 
-          [(ngModel)]="searchTerm"
-          (ngModelChange)="onSearchChange()"
-        >
+        <input type="text" placeholder="Buscar pulsos..." [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()">
       </div>
 
+
       <div class="filter-buttons">
-        <button 
-          class="filter-btn"
-          [class.active]="filtroEstado === 'todos'"
-          (click)="onFiltroEstadoChange('todos')"
-        >
+        <button class="filter-btn" [class.active]="filtroEstado === 'todos'" (click)="onFiltroEstadoChange('todos')">
           Todos
         </button>
-        <button 
-          class="filter-btn"
-          [class.active]="filtroEstado === 'activos'"
-          (click)="onFiltroEstadoChange('activos')"
-        >
+        <button class="filter-btn" [class.active]="filtroEstado === 'activos'"
+          (click)="onFiltroEstadoChange('activos')">
           Activos
         </button>
-        <button 
-          class="filter-btn"
-          [class.active]="filtroEstado === 'inactivos'"
-          (click)="onFiltroEstadoChange('inactivos')"
-        >
+        <button class="filter-btn" [class.active]="filtroEstado === 'inactivos'"
+          (click)="onFiltroEstadoChange('inactivos')">
           Inactivos
         </button>
       </div>
@@ -103,10 +90,7 @@
           <div class="pulso-body">
             <div class="pulso-header-info">
               <h4 class="pulso-titulo">{{ pulso.titulo }}</h4>
-              <span 
-                class="badge" 
-                [ngClass]="getEstadoBadgeClass(pulso)"
-              >
+              <span class="badge" [ngClass]="getEstadoBadgeClass(pulso)">
                 {{ getEstadoTexto(pulso) }}
               </span>
             </div>
@@ -129,39 +113,29 @@
 
             <!-- Acciones -->
             <div class="pulso-actions">
-              <button 
-                class="btn btn-sm btn-outline-primary"
-                (click)="mostrarFormularioEditar(pulso)"
-                title="Editar"
-              >
+              <button class="btn btn-sm btn-outline-primary" (click)="mostrarFormularioEditar(pulso)" title="Editar">
                 <i class="bi bi-pencil"></i>
                 Editar
               </button>
 
-              <button 
-                class="btn btn-sm"
-                [class.btn-outline-success]="!pulso.activo"
-                [class.btn-outline-warning]="pulso.activo"
-                (click)="cambiarEstado(pulso)"
-                [title]="pulso.activo ? 'Desactivar' : 'Activar'"
-              >
+              <button class="btn btn-sm" [class.btn-outline-success]="!pulso.activo"
+                [class.btn-outline-warning]="pulso.activo" (click)="cambiarEstado(pulso)"
+                [title]="pulso.activo ? 'Desactivar' : 'Activar'">
                 <i class="bi" [class.bi-toggle-on]="pulso.activo" [class.bi-toggle-off]="!pulso.activo"></i>
                 {{ pulso.activo ? 'Desactivar' : 'Activar' }}
               </button>
 
-              <button 
-                class="btn btn-sm btn-outline-danger"
-                (click)="eliminarPulso(pulso)"
-                title="Eliminar"
-              >
+              <button class="btn btn-sm btn-outline-danger" (click)="eliminarPulso(pulso)" title="Eliminar">
                 <i class="bi bi-trash"></i>
                 Eliminar
               </button>
             </div>
           </div>
+          
         </div>
       </div>
     </div>
+
   </div>
 
   <!-- ========== VISTA FORMULARIO ========== -->
@@ -183,7 +157,7 @@
         <!-- Sección Izquierda - Imagen -->
         <div class="image-section">
           <label class="section-label">Imagen del pulso</label>
-          
+
           <!-- Preview de imagen -->
           <div class="image-upload-area">
             <div class="image-preview" *ngIf="imagePreview">
@@ -201,20 +175,10 @@
               <small>PNG, JPG o WEBP (máx. 5MB)</small>
             </div>
 
-            <input 
-              type="file" 
-              #imageInput
-              accept="image/*"
-              (change)="onFileSelected($event)"
-              style="display: none;"
-            >
-            
-            <button 
-              type="button" 
-              class="btn btn-outline-primary btn-select-image"
-              (click)="imageInput.click()"
-              *ngIf="!imagePreview"
-            >
+            <input type="file" #imageInput accept="image/*" (change)="onFileSelected($event)" style="display: none;">
+
+            <button type="button" class="btn btn-outline-primary btn-select-image" (click)="imageInput.click()"
+              *ngIf="!imagePreview">
               <i class="bi bi-image"></i>
               Seleccionar Imagen
             </button>
@@ -231,14 +195,8 @@
                 {{ pulsoForm.get('titulo')?.value?.length || 0 }}/200
               </span>
             </label>
-            <input 
-              type="text" 
-              id="titulo"
-              class="form-control"
-              formControlName="titulo"
-              placeholder="Ej: Nueva funcionalidad disponible"
-              [class.is-invalid]="isFieldInvalid('titulo')"
-            >
+            <input type="text" id="titulo" class="form-control" formControlName="titulo"
+              placeholder="Ej: Nueva funcionalidad disponible" [class.is-invalid]="isFieldInvalid('titulo')">
             <div class="invalid-feedback" *ngIf="isFieldInvalid('titulo')">
               {{ getErrorMessage('titulo') }}
             </div>
@@ -252,14 +210,9 @@
                 {{ pulsoForm.get('descripcion')?.value?.length || 0 }}/1000
               </span>
             </label>
-            <textarea 
-              id="descripcion"
-              class="form-control"
-              formControlName="descripcion"
-              rows="4"
+            <textarea id="descripcion" class="form-control" formControlName="descripcion" rows="4"
               placeholder="Describe brevemente de qué trata este pulso..."
-              [class.is-invalid]="isFieldInvalid('descripcion')"
-            ></textarea>
+              [class.is-invalid]="isFieldInvalid('descripcion')"></textarea>
             <div class="invalid-feedback" *ngIf="isFieldInvalid('descripcion')">
               {{ getErrorMessage('descripcion') }}
             </div>
@@ -268,14 +221,8 @@
           <!-- Fecha Final -->
           <div class="form-group">
             <label for="fechaFinal">Fecha de finalización *</label>
-            <input 
-              type="date" 
-              id="fechaFinal"
-              class="form-control"
-              formControlName="fechaFinal"
-              [min]="minDate"
-              [class.is-invalid]="isFieldInvalid('fechaFinal')"
-            >
+            <input type="date" id="fechaFinal" class="form-control" formControlName="fechaFinal" [min]="minDate"
+              [class.is-invalid]="isFieldInvalid('fechaFinal')">
             <small class="form-text text-muted">
               El pulso se ocultará automáticamente después de esta fecha
             </small>
@@ -287,12 +234,7 @@
           <!-- Estado -->
           <div class="form-group" *ngIf="isEditMode">
             <div class="form-check form-switch">
-              <input 
-                class="form-check-input" 
-                type="checkbox" 
-                id="activo"
-                formControlName="activo"
-              >
+              <input class="form-check-input" type="checkbox" id="activo" formControlName="activo">
               <label class="form-check-label" for="activo">
                 Pulso activo
               </label>
@@ -306,21 +248,12 @@
 
       <!-- Acciones -->
       <div class="form-actions">
-        <button 
-          type="button" 
-          class="btn btn-secondary"
-          (click)="volverALista()"
-          [disabled]="loading"
-        >
+        <button type="button" class="btn btn-secondary" (click)="volverALista()" [disabled]="loading">
           <i class="bi bi-x-lg"></i>
           Cancelar
         </button>
 
-        <button 
-          type="submit" 
-          class="btn btn-primary"
-          [disabled]="loading || uploadingImage"
-        >
+        <button type="submit" class="btn btn-primary" [disabled]="loading || uploadingImage">
           <span *ngIf="loading || uploadingImage" class="spinner-border spinner-border-sm me-2"></span>
           <i class="bi bi-check-lg" *ngIf="!loading && !uploadingImage"></i>
           <span *ngIf="uploadingImage">Subiendo imagen...</span>
@@ -331,6 +264,7 @@
         </button>
       </div>
     </form>
+
   </div>
 
 </div>

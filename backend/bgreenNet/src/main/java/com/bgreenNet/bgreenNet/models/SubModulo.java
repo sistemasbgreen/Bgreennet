@@ -1,19 +1,24 @@
 package com.bgreenNet.bgreenNet.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set; // ✅ Cambiar de List a Set
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "Sub_Modulo")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+
 public class SubModulo {
     
     @Id
@@ -22,7 +27,8 @@ public class SubModulo {
     private Integer idSubModulo;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_modulo_fk", nullable = false, foreignKey = @ForeignKey(name = "FK_SubModulo_Modulo"))
+    @JoinColumn(name = "id_modulo_fk", nullable = false)
+    @JsonIgnoreProperties("subModulos")  // 👈 IMPORTANTE
     private Modulo modulo;
     
     @Column(name = "submodulo", nullable = false, length = 50)
@@ -41,7 +47,8 @@ public class SubModulo {
     private LocalDateTime fechaCreacion = LocalDateTime.now();
     
     @OneToMany(mappedBy = "subModulo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<PermisoSubModulo> permisos = new HashSet<>(); // ✅ Cambiar a Set
+    @JsonIgnoreProperties("subModulo")
+    private Set<PermisoSubModulo> permisos = new HashSet<>();
 
 	public Integer getIdSubModulo() {
 		return idSubModulo;
