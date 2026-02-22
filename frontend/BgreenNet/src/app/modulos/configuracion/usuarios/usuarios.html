@@ -1,12 +1,7 @@
-<!-- PLANTILLA HTML OPTIMIZADA -->
-
-<!-- ===== CONTENEDOR PRINCIPAL ===== -->
 <div class="container-main">
-
-  <!-- COLUMNA IZQUIERDA: Usuarios + Perfiles -->
+  <!-- GESTIÓN DE USUARIOS Y PERFIL -->
   <div class="column-left">
-
-    <!-- TABLA DE USUARIOS -->
+    <!-- Gestión de Usuarios -->
     <div class="section-card">
       <div class="header-section">
         <h2><i class="bi bi-people-fill"></i> Gestión de Usuarios</h2>
@@ -15,70 +10,48 @@
         </button>
       </div>
 
-      <div class="search-container">
-        <div class="search-box">
-          <i class="bi bi-search"></i>
-          <input type="text" class="search-input" placeholder="Buscar por usuario, nombre, correo o perfil..."
-            [(ngModel)]="searchUsuario" (input)="filtrarUsuarios()">
-          <button *ngIf="searchUsuario" class="clear-search" (click)="limpiarBusquedaUsuario()">
-            <i class="bi bi-x-circle-fill"></i>
-          </button>
-        </div>
-        <div class="search-info" *ngIf="usuariosFiltrados.length !== usuarios.length">
-          <span>{{ usuariosFiltrados.length }} de {{ usuarios.length }} usuarios</span>
-        </div>
-      </div>
-
       <div class="table-container">
         <table class="table-usuarios">
           <thead>
             <tr>
               <th>Usuario</th>
               <th>Nombre Completo</th>
+              <th>Correo</th>
               <th>Perfil</th>
+              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let u of usuariosFiltrados" class="table-row">
+            <tr *ngFor="let u of usuarios" class="table-row">
               <td class="usuario-column">
                 <i class="bi bi-person-circle"></i> {{ u.usuario }}
               </td>
               <td>{{ u.nombre }} {{ u.apellido }}</td>
+              <td class="email-column">{{ u.correo }}</td>
               <td>{{ u.descripcionPerfil }}</td>
-
-              <!-- ACCIONES: estado + ver + editar -->
               <td>
-                <div class="action-group">
-                  <!-- Estado -->
-                  <span class="estado-icon"
-                    [class.estado-activo]="u.estado"
-                    [class.estado-inactivo]="!u.estado"
-                    [title]="u.estado ? 'Activo' : 'Inactivo'">
-                    <i [class]="u.estado ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
-                  </span>
-
-                  <!-- 👁 Botón Ver (solo lectura) -->
-                  <button class="btn-action btn-ver" (click)="abrirVerModal(u)" title="Ver usuario">
-                    <i class="bi bi-eye-fill"></i>
+                <span class="badge" [class.badge-activo]="u.estado" [class.badge-inactivo]="!u.estado">
+                  {{ u.estado ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-editar" (click)="abrirEditarModal(u)" title="Editar usuario">
+                    <i class="bi bi-pencil-fill">Editar</i>
                   </button>
 
-                  <!-- Botón Editar -->
-                  <button class="btn-action btn-editar" (click)="abrirEditarModal(u)" title="Editar usuario">
-                    <i class="bi bi-pencil-fill"></i>
+                  <!--
+                                    <button class="btn-eliminar" (click)="eliminar(u.idUsuario!)" title="Eliminar usuario">
+                    <i class="bi bi-trash-fill">Delete</i>
                   </button>
+                  -->
+
                 </div>
               </td>
             </tr>
-
-            <tr *ngIf="usuariosFiltrados.length === 0 && usuarios.length > 0">
-              <td colspan="4" class="no-data">
-                <i class="bi bi-search"></i>
-                <p>No se encontraron usuarios con "{{ searchUsuario }}"</p>
-              </td>
-            </tr>
             <tr *ngIf="usuarios.length === 0">
-              <td colspan="4" class="no-data">
+              <td colspan="8" class="no-data">
                 <i class="bi bi-inbox"></i>
                 <p>No hay usuarios registrados</p>
               </td>
@@ -88,7 +61,7 @@
       </div>
     </div>
 
-    <!-- TABLA DE PERFILES -->
+    <!-- Gestión de Perfil -->
     <div class="section-card">
       <div class="header-section">
         <h2><i class="bi bi-shield-check"></i> Gestión de Perfiles</h2>
@@ -97,67 +70,41 @@
         </button>
       </div>
 
-      <div class="search-container">
-        <div class="search-box">
-          <i class="bi bi-search"></i>
-          <input type="text" class="search-input" placeholder="Buscar perfil por descripción..."
-            [(ngModel)]="searchPerfil" (input)="filtrarPerfiles()">
-          <button *ngIf="searchPerfil" class="clear-search" (click)="limpiarBusquedaPerfil()">
-            <i class="bi bi-x-circle-fill"></i>
-          </button>
-        </div>
-        <div class="search-info" *ngIf="perfilesFiltrados.length !== perfiles.length">
-          <span>{{ perfilesFiltrados.length }} de {{ perfiles.length }} perfiles</span>
-        </div>
-      </div>
-
       <div class="table-container">
         <table class="table-perfil">
           <thead>
             <tr>
               <th>Descripción</th>
+              <th>Estado</th>
               <th>Acciones</th>
+              <th>Check</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let p of perfilesFiltrados" class="table-row">
+            <tr *ngFor="let p of perfiles" class="table-row">
               <td class="usuario-column">
-                <i class="bi bi-shield"></i> {{ p.descripcionPerfil }}
+                <i class="bi bi-person-circle"></i> {{ p.descripcionPerfil }}
               </td>
               <td>
-                <div class="action-group">
-                  <!-- Estado -->
-                  <span class="estado-icon"
-                    [class.estado-activo]="!p.estado"
-                    [class.estado-inactivo]="p.estado"
-                    [title]="p.estado ? 'Inactivo' : 'Activo'">
-                    <i [class]="!p.estado ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
-                  </span>
-
-                  <!-- Editar -->
-                  <button class="btn-action btn-editar" (click)="ModalEditarPerfil(p)" title="Editar perfil">
-                    <i class="bi bi-pencil-fill"></i>
-                  </button>
-
-                  <!-- Ver Permisos toggle -->
-                  <button class="btn-action btn-permisos"
-                    [class.btn-permisos-activo]="perfilSeleccionado === p.idPerfil"
-                    (click)="seleccionarPerfil(p)"
-                    [title]="perfilSeleccionado === p.idPerfil ? 'Ocultar permisos' : 'Ver permisos'">
-                    <i class="bi bi-diagram-3-fill"></i>
+                <span class="badge" [class.badge-activo]="!p.estado" [class.badge-inactivo]="p.estado">
+                  {{ p.estado ?'Inactivo' :'Activo' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-editar" (click)="ModalEditarPerfil(p)" title="Editar perfil">
+                    <i class="bi bi-pencil-fill">Editar</i>
                   </button>
                 </div>
               </td>
-            </tr>
-
-            <tr *ngIf="perfilesFiltrados.length === 0 && perfiles.length > 0">
-              <td colspan="2" class="no-data">
-                <i class="bi bi-search"></i>
-                <p>No se encontraron perfiles con "{{ searchPerfil }}"</p>
+              <td>
+                <div class="action-buttons">
+                  <button (click)='verpermisos(p.idPerfil , p.descripcionPerfil)'>Check</button>
+                </div>
               </td>
             </tr>
             <tr *ngIf="perfiles.length === 0">
-              <td colspan="2" class="no-data">
+              <td colspan="3" class="no-data">
                 <i class="bi bi-inbox"></i>
                 <p>No hay perfiles registrados</p>
               </td>
@@ -166,252 +113,258 @@
         </table>
       </div>
     </div>
-
   </div>
 
-  <!-- COLUMNA DERECHA: Relaciones del perfil con ACORDEÓN -->
+  <!--VER LAS RELACIONES -->
   <div class="column-right">
     <div class="section-card">
       <div class="header-section">
-        <h2><i class="bi bi-link-45deg"></i>
-          <span class="nombre_perfil">{{ nombre_perfil }}</span>
-        </h2>
+        <h2><i class="bi bi-link-45deg"></i><span class="nombre_perfil">{{nombre_perfil}}</span> </h2>
+
+        <!--  Pestañas para Sistemas y Módulos -->
+        <div class="tabs-container">
+          <button class="tab-btn" [class.active]="pestanaActiva === 'sistemas'" (click)="cambiarPestana('sistemas')">
+            Sistemas Externos
+          </button>
+          <button class="tab-btn" [class.active]="pestanaActiva === 'modulos'" (click)="cambiarPestana('modulos')">
+            Módulos Internos
+          </button>
+        </div>
       </div>
 
-      <!-- ===== ACORDEÓN ===== -->
-      <div class="accordion-wrapper">
+      <!--  Contenido para Sistemas Externos -->
+      <div class="relations-content" *ngIf="pestanaActiva === 'sistemas'">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Sistema</th>
+              <th scope="col">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of permisosXperfil" class="table-row">
+              <td>{{ u.nombreSistema }}</td>
+              <td>
+                <div class="form-check d-flex justify-content-center">
+                  <input type="checkbox" class="form-check-input" [id]="'permiso-' + u.id" [checked]="u.tienePermiso"
+                    (change)="togglePermiso(u)" />
+                  <label class="form-check-label" [for]="'permiso-' + u.id"></label>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <!-- Panel: Sistemas Externos -->
-        <div class="accordion-panel" [class.accordion-open]="acordeonActivo === 'sistemas'">
-          <button class="accordion-header" (click)="toggleAcordeon('sistemas')">
-            <span class="accordion-title">
-              <i class="bi bi-globe2"></i> Sistemas Externos
-            </span>
-            <i class="bi accordion-chevron"
-               [class.bi-chevron-down]="acordeonActivo !== 'sistemas'"
-               [class.bi-chevron-up]="acordeonActivo === 'sistemas'"></i>
-          </button>
-
-          <div class="accordion-body" *ngIf="acordeonActivo === 'sistemas'">
-            <table class="table table-striped table-hover">
-              <thead>
-                <tr>
-                  <th>Sistema</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let u of permisosXperfil" class="table-row">
-                  <td>{{ u.nombreSistema }}</td>
-                  <td>
-                    <div class="form-check d-flex justify-content-center">
-                      <input type="checkbox" class="form-check-input"
-                        [id]="'permiso-' + u.id"
-                        [checked]="u.tienePermiso"
-                        (change)="togglePermiso(u)" />
-                      <label class="form-check-label" [for]="'permiso-' + u.id"></label>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <!--  Contenido para Módulos Internos -->
+      <div class="relations-content" *ngIf="pestanaActiva === 'modulos'">
+        <div *ngIf="modulos.length === 0" class="no-data">
+          <i class="bi bi-inbox"></i>
+          <p>No hay módulos configurados</p>
         </div>
 
-        <!-- Panel: Módulos Internos -->
-        <div class="accordion-panel" [class.accordion-open]="acordeonActivo === 'modulos'">
-          <button class="accordion-header" (click)="toggleAcordeon('modulos')">
-            <span class="accordion-title">
-              <i class="bi bi-grid-3x3-gap-fill"></i> Módulos Internos
-            </span>
-            <i class="bi accordion-chevron"
-               [class.bi-chevron-down]="acordeonActivo !== 'modulos'"
-               [class.bi-chevron-up]="acordeonActivo === 'modulos'"></i>
-          </button>
-
-          <div class="accordion-body" *ngIf="acordeonActivo === 'modulos'">
-            <div *ngIf="modulos.length === 0" class="no-data">
-              <i class="bi bi-inbox"></i>
-              <p>No hay módulos configurados</p>
+        <div *ngIf="modulos.length > 0" class="modulos-container">
+          <div *ngFor="let modulo of modulos" class="modulo-card">
+            <div class="modulo-header">
+        
+              <i [class]="modulo.icono" ></i>
+              <h3 class="modulo-titulo">{{ modulo.nombre }}</h3>
             </div>
 
-            <div *ngIf="modulos.length > 0" class="modulos-container">
-              <div *ngFor="let modulo of modulos" class="modulo-card">
-                <div class="modulo-header">
-                  <i [class]="modulo.icono"></i>
-                  <h3 class="modulo-titulo">{{ modulo.nombre }}</h3>
+            <div class="submodulos-grid">
+              <div *ngFor="let submodulo of modulo.subModulos" class="submodulo-item">
+                <div class="submodulo-info">
+
+                  <i [class]="submodulo.icono" ></i>
+                  
+                  <span class="submodulo-nombre">{{ submodulo.nombre }}</span>
                 </div>
-                <div class="submodulos-grid">
-                  <div *ngFor="let submodulo of modulo.subModulos" class="submodulo-item">
-                    <div class="submodulo-info">
-                      <i [class]="submodulo.icono"></i>
-                      <span class="submodulo-nombre">{{ submodulo.nombre }}</span>
-                    </div>
-                    <div class="submodulo-checkbox">
-                      <label class="checkbox-container">
-                        <input type="checkbox"
-                          [checked]="tienePermisoModulo(submodulo)"
-                          (change)="togglePermisoModulo(submodulo, $event)">
-                        <span class="checkmark"></span>
-                      </label>
-                    </div>
-                  </div>
+                <div class="submodulo-checkbox">
+                  <label class="checkbox-container">
+                    <input type="checkbox" [checked]="tienePermisoModulo(submodulo)"
+                      (change)="togglePermisoModulo(submodulo, $event)">
+                    <span class="checkmark"></span>
+                  </label>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
       </div>
-      <!-- /acordeón -->
-
     </div>
   </div>
-
 </div>
 
+<!-- Resto del código (modales) permanece igual -->
 
-<!-- ===== MODAL DE USUARIO (Crear / Editar / Ver) ===== -->
+<!-- MODAL DE USUARIO -->
 <div class="modal-overlay" *ngIf="showModalUsuario" (click)="cerrarModal('usuario')">
   <div class="modal-container" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>
-        <i class="bi"
-          [class.bi-eye-fill]="isViewModeUsuario"
-          [class.bi-person-plus-fill]="!isEditModeUsuario && !isViewModeUsuario"
-          [class.bi-pencil-square]="isEditModeUsuario && !isViewModeUsuario"></i>
-        {{ isViewModeUsuario ? 'Ver Usuario' : (isEditModeUsuario ? 'Editar Usuario' : 'Crear Nuevo Usuario') }}
+        <i class="bi" [class.bi-person-plus-fill]="!isEditModeUsuario" [class.bi-pencil-square]="isEditModeUsuario"></i>
+        {{ isEditModeUsuario ? 'Editar Usuario' : 'Crear Nuevo Usuario' }}
       </h3>
       <button type="button" class="btn-close" (click)="cerrarModal('usuario')">
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
-
     <div class="modal-body">
-      <!-- Badge modo lectura -->
-      <div *ngIf="isViewModeUsuario" class="view-mode-badge">
-        <i class="bi bi-lock-fill"></i> Modo solo lectura
-      </div>
-
       <form [formGroup]="usuarioForm" (ngSubmit)="onSubmitUsuario()">
         <div class="form-grid">
           <!-- Columna Izquierda -->
           <div class="form-column">
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-person"></i> Usuario *</label>
-              <input formControlName="usuario" type="text" class="form-input"
-                placeholder="Ingrese nombre de usuario"
-                [attr.readonly]="isViewModeUsuario || null"
-                [class.input-invalid]="f['usuario'].touched && f['usuario'].invalid && !isViewModeUsuario">
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['usuario'].touched && f['usuario'].errors?.['required']">El usuario es requerido</span>
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['usuario'].touched && f['usuario'].errors?.['minlength']">Mínimo 4 caracteres</span>
+              <label class="form-label">
+                <i class="bi bi-person"></i> Usuario *
+              </label>
+              <input formControlName="usuario" type="text" class="form-input" placeholder="Ingrese nombre de usuario"
+                [class.input-invalid]="f['usuario'].touched && f['usuario'].invalid">
+              <span class="error-message" *ngIf="f['usuario'].touched && f['usuario'].errors?.['required']">
+                El usuario es requerido
+              </span>
+              <span class="error-message" *ngIf="f['usuario'].touched && f['usuario'].errors?.['minlength']">
+                Mínimo 4 caracteres
+              </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-lock"></i> Contraseña</label>
+              <label class="form-label">
+                <i class="bi bi-lock"></i> Contraseña {{ isEditModeUsuario ? '' : '*' }}
+              </label>
               <input formControlName="contrasena" type="password" class="form-input"
-                [placeholder]="isViewModeUsuario ? '••••••' : (isEditModeUsuario ? 'Dejar vacío para mantener actual' : 'Mínimo 6 caracteres')"
-                [attr.readonly]="isViewModeUsuario || null"
-                [class.input-invalid]="!isViewModeUsuario && f['contrasena'].touched && f['contrasena'].invalid">
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['contrasena'].touched && f['contrasena'].errors?.['required']">La contraseña es requerida</span>
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['contrasena'].touched && f['contrasena'].errors?.['minlength']">Mínimo 6 caracteres</span>
+                [placeholder]="isEditModeUsuario ? 'Dejar vacío para mantener actual' : 'Mínimo 6 caracteres'"
+                [class.input-invalid]="f['contrasena'].touched && f['contrasena'].invalid">
+              <span class="error-message" *ngIf="f['contrasena'].touched && f['contrasena'].errors?.['required']">
+                La contraseña es requerida
+              </span>
+              <span class="error-message" *ngIf="f['contrasena'].touched && f['contrasena'].errors?.['minlength']">
+                Mínimo 6 caracteres
+              </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-shield-check"></i> Área *</label>
-              <select formControlName="id_area_fk" class="form-select" [attr.disabled]="isViewModeUsuario || null">
+              <label class="form-label">
+                <i class="bi bi-shield-check"></i> Área *
+              </label>
+              <select formControlName="id_area_fk" class="form-select">
                 <option *ngFor="let a of areas" [value]="a.idArea">{{ a.descripcionArea }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-shield-check"></i> Perfil *</label>
-              <select formControlName="id_perfil_fk" class="form-select" [attr.disabled]="isViewModeUsuario || null">
+              <label class="form-label">
+                <i class="bi bi-shield-check"></i> Perfil *
+              </label>
+              <select formControlName="id_perfil_fk" class="form-select">
                 <option *ngFor="let p of perfiles" [value]="p.idPerfil">{{ p.descripcionPerfil }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-building"></i> Empresa *</label>
-              <select formControlName="id_empresa_fk" class="form-select" [attr.disabled]="isViewModeUsuario || null">
+              <label class="form-label">
+                <i class="bi bi-building"></i> Empresa *
+              </label>
+              <select formControlName="id_empresa_fk" class="form-select">
                 <option *ngFor="let e of empresas" [value]="e.idEmpresa">{{ e.descripcionEmpresa }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-file-text"></i> Razón Social</label>
-              <input formControlName="razon_social" type="text" class="form-input"
-                placeholder="Opcional" [attr.readonly]="isViewModeUsuario || null">
+              <label class="form-label">
+                <i class="bi bi-file-text"></i> Razón Social
+              </label>
+              <input formControlName="razon_social" type="text" class="form-input" placeholder="Opcional">
             </div>
           </div>
 
           <!-- Columna Derecha -->
           <div class="form-column">
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-card-text"></i> Identificación *</label>
-              <input formControlName="identificacion" type="text" class="form-input"
-                placeholder="Solo números" [attr.readonly]="isViewModeUsuario || null"
-                [class.input-invalid]="!isViewModeUsuario && f['identificacion'].touched && f['identificacion'].invalid">
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['identificacion'].touched && f['identificacion'].invalid">Solo se permiten números</span>
+              <label class="form-label">
+                <i class="bi bi-card-text"></i> Identificación *
+              </label>
+              <input formControlName="identificacion" type="text" class="form-input" placeholder="Solo números"
+                [class.input-invalid]="f['identificacion'].touched && f['identificacion'].invalid">
+              <span class="error-message" *ngIf="f['identificacion'].touched && f['identificacion'].invalid">
+                Solo se permiten números
+              </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-person-badge"></i> Tipo Identificación *</label>
-              <select formControlName="id_tipoidentificacion_fk" class="form-select" [attr.disabled]="isViewModeUsuario || null">
-                <option *ngFor="let t of tiposIdentificacion" [value]="t.idTipoIdentificacion">{{ t.descripcion }}</option>
+              <label class="form-label">
+                <i class="bi bi-person-badge"></i> Tipo Identificación *
+              </label>
+              <select formControlName="id_tipoidentificacion_fk" class="form-select">
+                <option *ngFor="let t of tiposIdentificacion" [value]="t.idTipoIdentificacion">{{ t.descripcion }}
+                </option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-fonts"></i> Nombre *</label>
-              <input formControlName="nombre" type="text" class="form-input"
-                placeholder="Solo letras" [attr.readonly]="isViewModeUsuario || null"
-                [class.input-invalid]="!isViewModeUsuario && f['nombre'].touched && f['nombre'].invalid">
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['nombre'].touched && f['nombre'].invalid">Solo se permiten letras</span>
+              <label class="form-label">
+                <i class="bi bi-fonts"></i> Nombre *
+              </label>
+              <input formControlName="nombre" type="text" class="form-input" placeholder="Solo letras"
+                [class.input-invalid]="f['nombre'].touched && f['nombre'].invalid">
+              <span class="error-message" *ngIf="f['nombre'].touched && f['nombre'].invalid">
+                Solo se permiten letras
+              </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-fonts"></i> Apellido *</label>
-              <input formControlName="apellido" type="text" class="form-input"
-                placeholder="Solo letras" [attr.readonly]="isViewModeUsuario || null"
-                [class.input-invalid]="!isViewModeUsuario && f['apellido'].touched && f['apellido'].invalid">
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['apellido'].touched && f['apellido'].invalid">Solo se permiten letras</span>
+              <label class="form-label">
+                <i class="bi bi-fonts"></i> Apellido *
+              </label>
+              <input formControlName="apellido" type="text" class="form-input" placeholder="Solo letras"
+                [class.input-invalid]="f['apellido'].touched && f['apellido'].invalid">
+              <span class="error-message" *ngIf="f['apellido'].touched && f['apellido'].invalid">
+                Solo se permiten letras
+              </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-envelope"></i> Correo *</label>
-              <input formControlName="correo" type="email" class="form-input"
-                placeholder="usuario@ejemplo.com" [attr.readonly]="isViewModeUsuario || null"
-                [class.input-invalid]="!isViewModeUsuario && f['correo'].touched && f['correo'].invalid">
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['correo'].touched && f['correo'].invalid">Ingrese un correo válido</span>
+              <label class="form-label">
+                <i class="bi bi-envelope"></i> Correo *
+              </label>
+              <input formControlName="correo" type="email" class="form-input" placeholder="usuario@ejemplo.com"
+                [class.input-invalid]="f['correo'].touched && f['correo'].invalid">
+              <span class="error-message" *ngIf="f['correo'].touched && f['correo'].invalid">
+                Ingrese un correo válido
+              </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-phone"></i> Celular *</label>
-              <input formControlName="celular" type="text" class="form-input"
-                placeholder="161" [attr.readonly]="isViewModeUsuario || null"
-                [class.input-invalid]="!isViewModeUsuario && f['celular'].touched && f['celular'].invalid">
-              <span class="error-message" *ngIf="!isViewModeUsuario && f['celular'].touched && f['celular'].invalid">Ingrese un número válido (3 dígitos)</span>
+              <label class="form-label">
+                <i class="bi bi-phone"></i> Celular *
+              </label>
+              <input formControlName="celular" type="text" class="form-input" placeholder="161"
+                [class.input-invalid]="f['celular'].touched && f['celular'].invalid">
+              <span class="error-message" *ngIf="f['celular'].touched && f['celular'].invalid">
+                Ingrese un número válido (3 dígitos)
+              </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-calendar-event"></i> Fecha Nacimiento *</label>
+              <label class="form-label">
+                <i class="bi bi-calendar-event"></i> Fecha Nacimiento *
+              </label>
               <input formControlName="fechaNacimiento" type="date" class="form-input"
-                [attr.readonly]="isViewModeUsuario || null"
-                [class.input-invalid]="!isViewModeUsuario && f['fechaNacimiento'].touched && f['fechaNacimiento'].invalid">
+                [class.input-invalid]="f['fechaNacimiento'].touched && f['fechaNacimiento'].invalid">
             </div>
 
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-award"></i> Cargo *</label>
-              <select formControlName="id_cargo_fk" class="form-select" [attr.disabled]="isViewModeUsuario || null">
+              <label class="form-label">
+                <i class="bi bi-award"></i> Cargo *
+              </label>
+              <select formControlName="id_cargo_fk" class="form-select">
                 <option *ngFor="let c of cargos" [value]="c.idCargo">{{ c.descripcionCargo }}</option>
               </select>
             </div>
 
             <div class="form-group">
               <label class="form-checkbox">
-                <input formControlName="estado" type="checkbox" class="checkbox-input"
-                  [attr.disabled]="isViewModeUsuario || null">
+                <input formControlName="estado" type="checkbox" class="checkbox-input">
                 <span class="checkbox-label">
                   <i class="bi bi-check-circle"></i> Usuario Activo
                 </span>
@@ -422,10 +375,9 @@
 
         <div class="modal-footer">
           <button type="button" class="btn-cancelar" (click)="cerrarModal('usuario')">
-            <i class="bi bi-x-circle"></i> {{ isViewModeUsuario ? 'Cerrar' : 'Cancelar' }}
+            <i class="bi bi-x-circle"></i> Cancelar
           </button>
-          <!-- Solo muestra guardar si NO es modo vista -->
-          <button *ngIf="!isViewModeUsuario" type="submit" class="btn-guardar" [disabled]="usuarioForm.invalid">
+          <button type="submit" class="btn-guardar" [disabled]="usuarioForm.invalid">
             <i class="bi" [class.bi-check-circle]="!isEditModeUsuario" [class.bi-arrow-repeat]="isEditModeUsuario"></i>
             {{ isEditModeUsuario ? 'Actualizar Usuario' : 'Crear Usuario' }}
           </button>
@@ -435,14 +387,13 @@
   </div>
 </div>
 
-<!-- ===== MODAL DE PERFIL (Crear / Editar) ===== -->
+<!-- MODAL DE PERFIL (crear y editar) -->
 <div class="modal-overlay" *ngIf="showModalPerfil" (click)="cerrarModal('perfil')">
   <div class="modal-container" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>
-        <i class="bi"
-          [class.bi-shield-plus]="!isEditModePerfil"
-          [class.bi-shield-check]="isEditModePerfil"></i>
+        <i class="bi" [class.bi-shield-plus]="!isEditModePerfil" [class.bi-shield-check]="isEditModePerfil">
+        </i>
         {{ isEditModePerfil ? 'Editar Perfil' : 'Crear Nuevo Perfil' }}
       </h3>
       <button type="button" class="btn-close" (click)="cerrarModal('perfil')">
@@ -454,18 +405,28 @@
         <div class="form-grid">
           <div class="form-column">
             <div class="form-group">
-              <label class="form-label"><i class="bi bi-shield-check"></i> Descripción del Perfil *</label>
+              <label class="form-label">
+                <i class="bi bi-shield-check"></i> Descripción del Perfil *
+              </label>
               <input formControlName="descripcionPerfil" type="text" class="form-input"
                 placeholder="Ej: Administrador, Auditor, etc."
                 [class.input-invalid]="pf['descripcionPerfil']?.touched && pf['descripcionPerfil']?.invalid">
-              <span class="error-message" *ngIf="pf['descripcionPerfil']?.touched && pf['descripcionPerfil']?.errors?.['required']">La descripción es requerida</span>
-              <span class="error-message" *ngIf="pf['descripcionPerfil']?.touched && pf['descripcionPerfil']?.errors?.['minlength']">Mínimo 4 caracteres</span>
+              <span class="error-message"
+                *ngIf="pf['descripcionPerfil']?.touched && pf['descripcionPerfil']?.errors?.['required']">
+                La descripción es requerida
+              </span>
+              <span class="error-message"
+                *ngIf="pf['descripcionPerfil']?.touched && pf['descripcionPerfil']?.errors?.['minlength']">
+                Mínimo 4 caracteres
+              </span>
             </div>
 
             <div class="form-group">
               <label class="form-checkbox">
                 <input formControlName="activo" type="checkbox" class="checkbox-input">
-                <span class="checkbox-label"><i class="bi bi-check-circle"></i> Perfil Activo</span>
+                <span class="checkbox-label">
+                  <i class="bi bi-check-circle"></i> Perfil Activo
+                </span>
               </label>
             </div>
           </div>

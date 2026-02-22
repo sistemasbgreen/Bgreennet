@@ -87,9 +87,6 @@ export class Home implements OnInit, AfterViewInit {
   tareasActivas: Tarea[] = []; // Solo CREADA y EN PROCESO
   tareasFinalizadas: Tarea[] = []; // Solo FINALIZADAS
 
-  contactoSearchQuery: string = '';
-contactosFiltrados: any[] = [];
-
   nuevaTarea: CreateTareaRequest = {
     idUsuario: 0,
     titulo: '',
@@ -136,6 +133,12 @@ contactosFiltrados: any[] = [];
     }
   };
 
+  images = [
+    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso5.png',
+    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso14.png',
+    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso15.png',
+    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso10.png'
+  ];
 
   selectedImage: string | null = null;
   subscription: any;
@@ -154,7 +157,6 @@ contactosFiltrados: any[] = [];
     this.cargarContactosIniciales();
     this.loadTrmData();
     this.startClock();
-    this.filtrarContactos();
     this.loadPreferences();
        this.cargarPulsos();
 
@@ -557,11 +559,10 @@ contactosFiltrados: any[] = [];
 
   cargarContactosIniciales(): void {
     this.homeservice.contactos().subscribe({
-    next: (response) => {
-      this.sistemacontactosData = Array.isArray(response) ? response : [response];
-      this.contactosFiltrados = [...this.sistemacontactosData]; // ← AGREGAR
-      this.cdr.detectChanges();
-    },
+      next: (response) => {
+        this.sistemacontactosData = Array.isArray(response) ? response : [response];
+        this.cdr.detectChanges();
+      },
       error: (err) => {
         console.error('Error al cargar contactos iniciales', err);
         this.sistemacontactosData = [];
@@ -570,12 +571,11 @@ contactosFiltrados: any[] = [];
   }
 
   contactos(): void {
-this.homeservice.contactos().subscribe({
-    next: (data) => {
-      this.sistemacontactosData = Array.isArray(data) ? data : [data];
-      this.contactosFiltrados = [...this.sistemacontactosData]; // ← AGREGAR
-      this.cdr.detectChanges();
-    },
+    this.homeservice.contactos().subscribe({
+      next: (data) => {
+        this.sistemacontactosData = Array.isArray(data) ? data : [data];
+        this.cdr.detectChanges();
+      },
       error: (err) => {
         console.error('Error al cargar los contactos', err);
         this.sistemacontactosData = [];
@@ -589,32 +589,32 @@ this.homeservice.contactos().subscribe({
       {
         nombre: 'Solicitud de Vacaciones',
         descripcion: 'Formato para solicitar días de vacaciones',
-        url: 'http://45.183.247.77/Imagenes/Documentos/GGH-F-17%20FORMATO%20SOLICITUD%20DE%20VACACIONES%20(1).xlsx'
+        url: 'http://172.30.72.200/Imagenes/Documentos/GGH-F-17%20FORMATO%20SOLICITUD%20DE%20VACACIONES%20(1).xlsx'
       },
       {
         nombre: 'Formato de comidas y taxis',
         descripcion: 'Formato para reportar gastos de viaje y comida',
-        url: 'http://45.183.247.77/Imagenes/Documentos/FORMATO%20DE%20SOLICITUDES%20DE%20ALIMENTACION%20Y%20TAXIS.xlsx'
+        url: 'http://172.30.72.200/Imagenes/Documentos/FORMATO%20DE%20SOLICITUDES%20DE%20ALIMENTACION%20Y%20TAXIS.xlsx'
       },
       {
         nombre: 'Ingreso y salida de herramientas',
         descripcion: 'Solicitud Ingreso y salida de herramientas',
-        url: 'http://45.183.247.77/Imagenes/Documentos/Formato%20Ingreso%20y%20salida%20de%20herramientas.xlsx'
+        url: 'http://172.30.72.200/Imagenes/Documentos/Formato%20Ingreso%20y%20salida%20de%20herramientas.xlsx'
       },
       {
         nombre: 'Solicitud Ingreso a TBS',
         descripcion: 'Reporte Solicitud Ingreso a TBS',
-        url: 'http://45.183.247.77/Imagenes/Documentos/Solicitud%20de%20ingreso%20TBS.xlsx'
+        url: 'http://172.30.72.200/Imagenes/Documentos/Solicitud%20de%20ingreso%20TBS.xlsx'
       },
       {
         nombre: 'Lista Asistencia',
         descripcion: 'Control de asistencia',
-        url: 'http://45.183.247.77/Imagenes/Documentos/GGH_F_07%20Lista_asistencia_%20V10%20(1).xlsx'
+        url: 'http://172.30.72.200/Imagenes/Documentos/GGH_F_07%20Lista_asistencia_%20V10%20(1).xlsx'
       },
       {
         nombre: 'Solicitud de compra o servicio',
         descripcion: 'Solicitud de compra o servicio',
-        url: 'http://45.183.247.77/Imagenes/Documentos/GABT-PR-01-F-01%20Formato%20solicitud%20de%20Compra%20o%20Servicio%20(2).xlsx'
+        url: 'http://172.30.72.200/Imagenes/Documentos/GABT-PR-01-F-01%20Formato%20solicitud%20de%20Compra%20o%20Servicio%20(2).xlsx'
       }
     ];
     this.cdr.detectChanges();
@@ -629,14 +629,12 @@ this.homeservice.contactos().subscribe({
 
   openModalformatos(type: string): void {
     this.modalType = type;
-if (type === 'contactos') {
-    this.modalTitle = 'Directorio de Contactos';
-    this.contactoSearchQuery = ''; // ← resetear búsqueda
-    if (this.sistemacontactosData.length === 0) {
-      this.contactos();
-    } else {
-      this.contactosFiltrados = [...this.sistemacontactosData]; // ← si ya hay datos, mostrarlos
-    }
+
+    if (type === 'contactos') {
+      this.modalTitle = 'Directorio de Contactos';
+      if (this.sistemacontactosData.length === 0) {
+        this.contactos();
+      }
     } else if (type === 'formatos') {
       this.modalTitle = 'Lista de Formatos';
       this.cargarFormatos();
@@ -830,20 +828,6 @@ cargarPulsos(): void {
     this.pulsoSeleccionado = null;
   }
 
-
-  
-filtrarContactos(): void {
-  const q = this.contactoSearchQuery.toLowerCase().trim();
-  if (!q) {
-    this.contactosFiltrados = [...this.sistemacontactosData];
-    return;
-  }
-  this.contactosFiltrados = this.sistemacontactosData.filter(c =>
-    c.nombre?.toLowerCase().includes(q) ||
-    c.cargo?.toLowerCase().includes(q) ||
-    c.correo?.toLowerCase().includes(q)
-  );
-}
 
 
 }

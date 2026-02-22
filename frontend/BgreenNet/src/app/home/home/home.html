@@ -129,21 +129,8 @@
 
       <div class="modal-body">
         <!-- Tabla de Contactos -->
-
         <div *ngIf="modalType === 'contactos'">
-
-          <!-- 🔍 Buscador de contactos -->
-          <div class="contactos-search-wrapper">
-            <i class="bi bi-search contactos-search-icon"></i>
-            <input type="text" class="contactos-search-input" placeholder="Buscar por nombre, cargo o correo..."
-              [(ngModel)]="contactoSearchQuery" (ngModelChange)="filtrarContactos()" />
-            <button *ngIf="contactoSearchQuery" class="contactos-clear-btn"
-              (click)="contactoSearchQuery = ''; filtrarContactos()">
-              <i class="bi bi-x"></i>
-            </button>
-          </div>
-
-          <table class="tabla-contactos" *ngIf="contactosFiltrados.length > 0">
+          <table class="tabla-contactos" *ngIf="sistemacontactosData.length > 0">
             <thead>
               <tr>
                 <th>Nombre</th>
@@ -153,7 +140,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let contacto of contactosFiltrados; let i = index">
+              <tr *ngFor="let contacto of sistemacontactosData; let i = index">
                 <td>
                   <div class="nombre-cell">
                     <div class="avatar avatar-{{(i % 5) + 1}}">
@@ -182,19 +169,10 @@
               </tr>
             </tbody>
           </table>
-
-          <!-- Sin resultados de búsqueda -->
-          <div class="empty-state" *ngIf="contactosFiltrados.length === 0 && contactoSearchQuery">
-            <div class="empty-state-icon">🔍</div>
-            <p>No se encontraron contactos para "<strong>{{ contactoSearchQuery }}</strong>"</p>
-          </div>
-
-          <!-- Sin contactos en absoluto -->
-          <div class="empty-state" *ngIf="sistemacontactosData.length === 0 && !contactoSearchQuery">
+          <div class="empty-state" *ngIf="sistemacontactosData.length === 0">
             <div class="empty-state-icon">📭</div>
             <p>No hay contactos disponibles en este momento</p>
           </div>
-
         </div>
 
         <!-- Tabla de Formatos -->
@@ -220,8 +198,8 @@
                 <td>{{ formato.descripcion || 'Documento descargable' }}</td>
                 <td>
                   <a [href]="formato.url" target="_blank" class="formato-link">
-                    <i class="bi bi-download"></i>
-
+                    <span>⬇</span>
+                    Descargar
                   </a>
                 </td>
               </tr>
@@ -234,10 +212,9 @@
         </div>
       </div>
 
-
       <div class="modal-footer">
         <span class="footer-info">
-          <strong *ngIf="modalType === 'contactos'">{{ contactosFiltrados.length }}</strong>
+          <strong *ngIf="modalType === 'contactos'">{{ sistemacontactosData.length }}</strong>
           <strong *ngIf="modalType === 'formatos'">{{ formatosData.length }}</strong>
           {{ modalType === 'contactos' ? 'contacto(s)' : 'formato(s)' }} disponible(s)
         </span>
@@ -450,7 +427,7 @@
       <div class="pulsos-grid" *ngIf="pulsos && pulsos.length > 0">
         <div class="pulso-card" *ngFor="let pulso of pulsos" (click)="abrirPulso(pulso)">
           <div class="pulso-icon">
-            <img [src]="pulso.imagenUrl" [alt]="pulso.titulo" width="80" height="80" />
+          <img [src]="pulso.imagenUrl" [alt]="pulso.titulo" width="80" height="80" />
 
           </div>
           <div class="pulso-content">
