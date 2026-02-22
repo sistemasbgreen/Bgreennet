@@ -209,14 +209,15 @@ body {
   color: var(--text-primary);
   cursor: pointer;
   font-size: 18px;
-  /*   display: flex;*/
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
   position: relative;
 }
-
+.notification-btn {
+display: none;
+}
 .theme-toggle:hover,
 .notification-btn:hover {
   background: var(--green-primary);
@@ -1167,7 +1168,6 @@ body {
 }
 
 .footer-info {
-  display: flex;
   flex-direction: column;
   gap: 6px;
   color: var(--text-secondary);
@@ -1629,11 +1629,12 @@ footer {
 ======================================== */
 
 .activity-sectio-notice {
-  background: #ffffff;
+  background: var(--bg-primary);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow);
   margin-bottom: 24px;
+  transition: all 0.3s ease;
 }
 
 /* Header de la sección */
@@ -1646,7 +1647,7 @@ footer {
 .section-title-with-badge h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1a1a1a;
+ color: var(--text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -1665,8 +1666,8 @@ footer {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1730,7 +1731,7 @@ footer {
 .pulso-titulo {
   font-size: 1rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
   white-space: nowrap;
   overflow: hidden;
@@ -1744,7 +1745,7 @@ footer {
 
 .pulso-fecha {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: var(--text-secondary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -2070,8 +2071,66 @@ body.modal-open {
   letter-spacing: 2px;
 }
 
+.contactos-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
 
+.contactos-search-icon {
+  position: absolute;
+  left: 12px;
+  color: #888;
+  font-size: 14px;
+  pointer-events: none;
+}
 
+.contactos-search-input {
+  width: 100%;
+  padding: 9px 36px 9px 34px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #f9f9f9;
+}
 
+.contactos-search-input:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12);
+  background: #fff;
+}
 
+.contactos-clear-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
 
+.contactos-clear-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* Dark mode support */
+.dark-mode .contactos-search-input {
+  background: #2a2a2a;
+  border-color: #444;
+  color: #eee;
+}
+
+.dark-mode .contactos-search-input:focus {
+  border-color: #4caf50;
+  background: #333;
+}
