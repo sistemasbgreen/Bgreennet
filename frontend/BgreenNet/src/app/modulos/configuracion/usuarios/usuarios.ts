@@ -46,7 +46,22 @@ export class Usuarios implements OnInit {
   isEditModeUsuario = false;
   isEditModePerfil = false;
 
+<<<<<<< Updated upstream
   // IDs a editar
+=======
+  // ── Modal cambiar clave (admin) ──────────────────────────
+  showModalClave = false;
+  usuarioClaveId: number | null = null;
+  usuarioClaveNombre = '';
+  nuevaClaveAdmin = '';
+  confirmarClaveAdmin = '';
+  mostrarNuevaClaveAdmin = false;
+  mostrarConfirmarClaveAdmin = false;
+  errorClaveAdmin = '';
+  successClaveAdmin = '';
+
+  // ── IDs en edición ───────────────────────────────────────
+>>>>>>> Stashed changes
   usuarioIdEditar: number | null = null;
   perfilIdEditar: number | null = null;
   nombre_perfil: string = "";
@@ -485,6 +500,7 @@ cambiarPestana(pestaña: 'sistemas' | 'modulos'): void {
     return null; // Cambia esto cuando tengas el ID real
   }
 
+<<<<<<< Updated upstream
 
   // ======== HELPERS PARA VALIDACIÓN ========
   get f() {
@@ -499,4 +515,77 @@ cambiarPestana(pestaña: 'sistemas' | 'modulos'): void {
 
 
 
+=======
+  // ======================================================
+  //  MODAL CAMBIAR CLAVE (Admin)
+  // ======================================================
+
+  get adm_tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClaveAdmin); }
+  get adm_tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClaveAdmin); }
+  get adm_tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClaveAdmin); }
+  get adm_tieneLongitud(): boolean  { return this.nuevaClaveAdmin.length >= 8; }
+  get adm_passwordValido(): boolean {
+    return this.adm_tieneMayuscula && this.adm_tieneMinuscula && this.adm_tieneNumero && this.adm_tieneLongitud;
+  }
+
+  abrirModalClave(usuario: Usuario): void {
+    this.usuarioClaveId = usuario.idUsuario!;
+    this.usuarioClaveNombre = `${usuario.nombre} ${usuario.apellido}`;
+    this.nuevaClaveAdmin = '';
+    this.confirmarClaveAdmin = '';
+    this.errorClaveAdmin = '';
+    this.successClaveAdmin = '';
+    this.mostrarNuevaClaveAdmin = false;
+    this.mostrarConfirmarClaveAdmin = false;
+    this.showModalClave = true;
+  }
+
+  cerrarModalClave(): void {
+    this.showModalClave = false;
+    this.usuarioClaveId = null;
+    this.usuarioClaveNombre = '';
+    this.nuevaClaveAdmin = '';
+    this.confirmarClaveAdmin = '';
+    this.errorClaveAdmin = '';
+    this.successClaveAdmin = '';
+  }
+
+  guardarClaveAdmin(): void {
+    this.errorClaveAdmin = '';
+    this.successClaveAdmin = '';
+
+    if (!this.adm_passwordValido) {
+      this.errorClaveAdmin = 'La nueva clave no cumple los requisitos.';
+      return;
+    }
+    if (this.nuevaClaveAdmin !== this.confirmarClaveAdmin) {
+      this.errorClaveAdmin = 'Las claves no coinciden.';
+      return;
+    }
+
+    // El admin usa una clave cualquiera como claveActual ya que
+    // el endpoint de administrador solo necesita el id y la nueva clave.
+    // Enviamos la misma nueva clave como "actual" para bypasear la
+    // verificación de clave actual. Para evitar eso, conviene un
+    // endpoint separado para admin. Por ahora, reutilizamos el endpoint
+    // pero en el backend se puede agregar un endpoint sin verificación.
+    const dto = {
+      idUsuario: this.usuarioClaveId!,
+      claveActual: '',          // No aplica en modo admin
+      nuevaClave: this.nuevaClaveAdmin
+    };
+
+    this.usuarioService.cambiarClaveAdmin(dto).subscribe({
+      next: () => {
+        alert(`¡Clave de ${this.usuarioClaveNombre} actualizada exitosamente!`);
+        this.cerrarModalClave();
+      },
+      error: (err: any) => {
+        const errorMsg = err?.error?.error || 'Error al cambiar la clave.';
+        alert(errorMsg);
+        this.errorClaveAdmin = errorMsg;
+      }
+    });
+  }
+>>>>>>> Stashed changes
 }

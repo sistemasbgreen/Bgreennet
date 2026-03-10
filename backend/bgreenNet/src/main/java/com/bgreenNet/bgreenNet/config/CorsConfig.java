@@ -23,7 +23,8 @@ public class CorsConfig {
 	            "http://45.183.247.77:8090",
 	            "http://45.183.247.77:8080",
 	            "http://172.30.72.200",
-	            "https://bgreennet.bgreen.com.co"
+	            "https://bgreennet.bgreen.com.co",
+	            "http://bgreennet.bgreennet.com:8080"
 	    ));
 
 	    config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));

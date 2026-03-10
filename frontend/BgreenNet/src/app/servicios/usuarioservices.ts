@@ -45,4 +45,14 @@ export class UsuarioService {
   deleteUsuario(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl + '/eliminar'}/${id}`);
   }
+
+  // Cambiar clave (usuario cambia la suya: verifica clave actual)
+  cambiarClave(dto: { idUsuario: number; claveActual: string; nuevaClave: string }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/cambiar-clave`, dto, { headers: this.headers });
+  }
+
+  // Cambiar clave (admin: no requiere clave actual)
+  cambiarClaveAdmin(dto: { idUsuario: number; claveActual: string; nuevaClave: string }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/cambiar-clave-admin`, dto, { headers: this.headers });
+  }
 }

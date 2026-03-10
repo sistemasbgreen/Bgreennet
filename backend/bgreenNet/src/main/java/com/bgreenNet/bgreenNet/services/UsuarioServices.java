@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.bgreenNet.bgreenNet.dto.CambiarClaveDTO;
 import com.bgreenNet.bgreenNet.dto.UsuarioCompletoDTO;
 
 import jakarta.transaction.Transactional;
@@ -122,6 +123,40 @@ public class UsuarioServices {
     public void eliminarUsuario(Integer idUsuario) {
         String sql = "{call sp_eliminar_usuario(?)}";
         jdbcTemplate.update(sql, idUsuario);
+    }
+
+    // CAMBIAR CLAVE
+    @Transactional
+    public void cambiarClave(CambiarClaveDTO dto) {
+        // 1. Obtener el hash almacenado del usuario
+        String sqlSelect = "SELECT contrasena FROM usuario WHERE Id_usuario = ?";
+        String hashAlmacenado;
+        try {
+            hashAlmacenado = jdbcTemplate.queryForObject(sqlSelect, String.class, dto.getIdUsuario());
+        } catch (Exception e) {
+            throw new RuntimeException("Usuario no encontrado");
+        }
+
+        // 2. Verificar que la clave actual coincida
+        if (hashAlmacenado == null || !passwordEncoder.matches(dto.getClaveActual(), hashAlmacenado)) {
+            throw new RuntimeException("Clave actual incorrecta");
+        }
+
+        // 3. Encriptar la nueva clave y actualizar
+        String nuevaClaveEncriptada = passwordEncoder.encode(dto.getNuevaClave());
+        String sqlUpdate = "UPDATE usuario SET contrasena = ? WHERE Id_usuario = ?";
+        jdbcTemplate.update(sqlUpdate, nuevaClaveEncriptada, dto.getIdUsuario());
+    }
+
+    // CAMBIAR CLAVE (Admin: sin verificar clave actual)
+    @Transactional
+    public void cambiarClaveAdmin(CambiarClaveDTO dto) {
+        String nuevaClaveEncriptada = passwordEncoder.encode(dto.getNuevaClave());
+        String sqlUpdate = "UPDATE usuario SET contrasena = ? WHERE Id_usuario = ?";
+        int rows = jdbcTemplate.update(sqlUpdate, nuevaClaveEncriptada, dto.getIdUsuario());
+        if (rows == 0) {
+            throw new RuntimeException("Usuario no encontrado");
+        }
     }
 
     // RowMapper_Actualizado
