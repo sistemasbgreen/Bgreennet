@@ -21,15 +21,14 @@ import jakarta.transaction.Transactional;
 public class UsuarioServices {
 
 	
-	private final JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public UsuarioServices(JdbcTemplate jdbcTemplate, 
-                          PasswordEncoder passwordEncoder, 
-                          LogsService logsService) {
+                          PasswordEncoder passwordEncoder) {
         this.jdbcTemplate = jdbcTemplate;
-        this.passwordEncoder = passwordEncoder; // ← Asigna
+        this.passwordEncoder = passwordEncoder;
     }
     
    
@@ -125,37 +124,34 @@ public class UsuarioServices {
         jdbcTemplate.update(sql, idUsuario);
     }
 
-    // CAMBIAR CLAVE
+  
+
     @Transactional
     public void cambiarClave(CambiarClaveDTO dto) {
-        // 1. Obtener el hash almacenado del usuario
-        String sqlSelect = "SELECT contrasena FROM usuario WHERE Id_usuario = ?";
-        String hashAlmacenado;
+        // Primero verificamos la clave actual
+        String sqlSelect = "SELECT contrasena FROM Usuario WHERE id_usuario = ?";
+        String currentPass;
         try {
-            hashAlmacenado = jdbcTemplate.queryForObject(sqlSelect, String.class, dto.getIdUsuario());
+            currentPass = jdbcTemplate.queryForObject(sqlSelect, String.class, dto.getIdUsuario());
         } catch (Exception e) {
             throw new RuntimeException("Usuario no encontrado");
         }
 
-        // 2. Verificar que la clave actual coincida
-        if (hashAlmacenado == null || !passwordEncoder.matches(dto.getClaveActual(), hashAlmacenado)) {
-            throw new RuntimeException("Clave actual incorrecta");
+        if (currentPass == null || !passwordEncoder.matches(dto.getClaveActual(), currentPass)) {
+            throw new RuntimeException("La clave actual es incorrectA");
         }
 
-        // 3. Encriptar la nueva clave y actualizar
-        String nuevaClaveEncriptada = passwordEncoder.encode(dto.getNuevaClave());
-        String sqlUpdate = "UPDATE usuario SET contrasena = ? WHERE Id_usuario = ?";
-        jdbcTemplate.update(sqlUpdate, nuevaClaveEncriptada, dto.getIdUsuario());
+        String sqlUpdate = "UPDATE Usuario SET contrasena = ? WHERE id_usuario = ?";
+        jdbcTemplate.update(sqlUpdate, passwordEncoder.encode(dto.getNuevaClave()), dto.getIdUsuario());
     }
 
-    // CAMBIAR CLAVE (Admin: sin verificar clave actual)
     @Transactional
     public void cambiarClaveAdmin(CambiarClaveDTO dto) {
-        String nuevaClaveEncriptada = passwordEncoder.encode(dto.getNuevaClave());
-        String sqlUpdate = "UPDATE usuario SET contrasena = ? WHERE Id_usuario = ?";
-        int rows = jdbcTemplate.update(sqlUpdate, nuevaClaveEncriptada, dto.getIdUsuario());
-        if (rows == 0) {
-            throw new RuntimeException("Usuario no encontrado");
+        String sqlUpdate = "UPDATE Usuario SET contrasena = ? WHERE id_usuario = ?";
+        int updated = jdbcTemplate.update(sqlUpdate, passwordEncoder.encode(dto.getNuevaClave()), dto.getIdUsuario());
+        
+        if (updated == 0) {
+            throw new RuntimeException("No se encontró el usuario para actualizar la clave");
         }
     }
 

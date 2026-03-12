@@ -710,6 +710,10 @@
             <i class="bi" [class.bi-check-circle-fill]="tieneLongitud" [class.bi-x-circle-fill]="!tieneLongitud"></i>
             Mínimo 8 caracteres
           </span>
+          <span [class.req-ok]="tieneCaracterEspecial" [class.req-fail]="!tieneCaracterEspecial">
+            <i class="bi" [class.bi-check-circle-fill]="tieneCaracterEspecial" [class.bi-x-circle-fill]="!tieneCaracterEspecial"></i>
+            Carácter especial (!@#$...)
+          </span>
         </div>
       </div>
 

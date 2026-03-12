@@ -20,7 +20,7 @@ import com.bgreenNet.bgreenNet.services.PermisoSubModuloService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/module-config")
+@RequestMapping({"/api/module-config", "/module-config"})
 public class ModuleConfigController {
 
 	

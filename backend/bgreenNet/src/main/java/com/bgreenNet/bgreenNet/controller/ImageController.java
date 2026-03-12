@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -12,9 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.bgreenNet.bgreenNet.services.ImageService;
+import com.bgreenNet.bgreenNet.util.UrlUtils;
 
 @RestController
-@RequestMapping("/api/upload")
+@RequestMapping({"/api/upload", "/upload"})
+@CrossOrigin(origins = "*")
 public class ImageController {
 
 
@@ -43,8 +46,8 @@ public class ImageController {
             // Guardar imagen usando el servicio
             String imageUrl = imageService.saveImage(file);
 
-            // Construir URL completa (ajustar según tu configuración)
-            String fullUrl = "http://45.183.247.77" + imageUrl;
+            // Construir URL completa
+            String fullUrl = UrlUtils.sanitizeUrl("https://bgreennet.bgreen.com.co" + imageUrl);
 
             return ResponseEntity.ok(new ImageUploadResponse(fullUrl, "Imagen subida exitosamente"));
 

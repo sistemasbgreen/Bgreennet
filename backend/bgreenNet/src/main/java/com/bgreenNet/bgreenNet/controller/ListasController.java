@@ -17,7 +17,7 @@ import com.bgreenNet.bgreenNet.models.TipoIdentificacion;
 import com.bgreenNet.bgreenNet.services.ListasServices;
 
 @RestController
-@RequestMapping("/api/listas")
+@RequestMapping({"/api/listas", "/listas"})
 @CrossOrigin(origins = "*")
 
 public class ListasController {

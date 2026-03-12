@@ -10,28 +10,43 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class CorsConfig {
-	
-	@Bean
-	public CorsConfigurationSource corsConfigurationSource() {
-	    CorsConfiguration config = new CorsConfiguration();
-	    config.setAllowCredentials(false); //
+    
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        
+        // ✅ Permitir credenciales si el frontend envía tokens/cookies
+        config.setAllowCredentials(true); 
 
-	
-	    config.setAllowedOrigins(Arrays.asList(
-	    		"http://localhost:4200",
-	            "https://infos.bgreen.com.co",
-	            "http://45.183.247.77:8090",
-	            "http://45.183.247.77:8080",
-	            "http://172.30.72.200",
-	            "https://bgreennet.bgreen.com.co",
-	            "http://bgreennet.bgreennet.com:8080"
-	    ));
+        // ✅ URLs SIN espacios al final y solo las necesarias
+        config.setAllowedOrigins(Arrays.asList(
+            "http://localhost:4200",              // Desarrollo local Angular
+            "https://bgreennet.bgreen.com.co",    // ✅ Producción frontend (SIN espacios)
+            "https://infos.bgreen.com.co"         // Si también la usas
+            // Elimina las URLs HTTP antiguas que ya no usas,
+            
+        ));
 
-	    config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-	    config.setAllowedHeaders(Arrays.asList("*"));
+        // ✅ Métodos permitidos
+        config.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
+        
+        // ✅ Headers permitidos
+        config.setAllowedHeaders(Arrays.asList("*"));
+        
+        // ✅ Headers expuestos (para que el frontend pueda leer respuestas)
+        config.setExposedHeaders(Arrays.asList(
+            "Authorization", 
+            "Content-Type", 
+            "X-Auth-Token"
+        ));
 
-	    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-	    source.registerCorsConfiguration("/**", config);
-	    return source;
-	}
-	}
+        // ✅ Máxima edad del preflight cache (en segundos)
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+}

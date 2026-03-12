@@ -145,15 +145,18 @@ export class Home implements OnInit, AfterViewInit {
   };
 
   images = [
-    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso5.png',
-    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso14.png',
-    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso15.png',
-    'https://bgreen.bgreen.com.co/bgreennet/Img/Pulso10.png'
+    'https://bgreennet.bgreen.com.co/bgreennet/Img/Pulso5.png',
+    'https://bgreennet.bgreen.com.co/bgreennet/Img/Pulso14.png',
+    'https://bgreennet.bgreen.com.co/bgreennet/Img/Pulso15.png',
+    'https://bgreennet.bgreen.com.co/bgreennet/Img/Pulso10.png'
   ];
 
   selectedImage: string | null = null;
   subscription: any;
   perfil_Fk: any;
+  contactosFiltrados: any;
+  contactoSearchQuery: any;
+
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -606,32 +609,32 @@ export class Home implements OnInit, AfterViewInit {
       {
         nombre: 'Solicitud de Vacaciones',
         descripcion: 'Formato para solicitar días de vacaciones',
-        url: 'http://172.30.72.200/Imagenes/Documentos/GGH-F-17%20FORMATO%20SOLICITUD%20DE%20VACACIONES%20(1).xlsx'
+        url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/GGH-F-17%20FORMATO%20SOLICITUD%20DE%20VACACIONES%20(1).xlsx'
       },
       {
         nombre: 'Formato de comidas y taxis',
         descripcion: 'Formato para reportar gastos de viaje y comida',
-        url: 'http://172.30.72.200/Imagenes/Documentos/FORMATO%20DE%20SOLICITUDES%20DE%20ALIMENTACION%20Y%20TAXIS.xlsx'
+        url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/FORMATO%20DE%20SOLICITUDES%20DE%20ALIMENTACION%20Y%20TAXIS.xlsx'
       },
       {
         nombre: 'Ingreso y salida de herramientas',
         descripcion: 'Solicitud Ingreso y salida de herramientas',
-        url: 'http://172.30.72.200/Imagenes/Documentos/Formato%20Ingreso%20y%20salida%20de%20herramientas.xlsx'
+        url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/Formato%20Ingreso%20y%20salida%20de%20herramientas.xlsx'
       },
       {
         nombre: 'Solicitud Ingreso a TBS',
         descripcion: 'Reporte Solicitud Ingreso a TBS',
-        url: 'http://172.30.72.200/Imagenes/Documentos/Solicitud%20de%20ingreso%20TBS.xlsx'
+        url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/Solicitud%20de%20ingreso%20TBS.xlsx'
       },
       {
         nombre: 'Lista Asistencia',
         descripcion: 'Control de asistencia',
-        url: 'http://172.30.72.200/Imagenes/Documentos/GGH_F_07%20Lista_asistencia_%20V10%20(1).xlsx'
+        url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/GGH_F_07%20Lista_asistencia_%20V10%20(1).xlsx'
       },
       {
         nombre: 'Solicitud de compra o servicio',
         descripcion: 'Solicitud de compra o servicio',
-        url: 'http://172.30.72.200/Imagenes/Documentos/GABT-PR-01-F-01%20Formato%20solicitud%20de%20Compra%20o%20Servicio%20(2).xlsx'
+        url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/GABT-PR-01-F-01%20Formato%20solicitud%20de%20Compra%20o%20Servicio%20(2).xlsx'
       }
     ];
     this.cdr.detectChanges();
@@ -826,34 +829,8 @@ cargarPulsos(): void {
   }
 
 
-<<<<<<< Updated upstream
-=======
-  
-  filtrarContactos(): void {
-    const q = this.contactoSearchQuery.toLowerCase().trim();
-    if (!q) {
-      this.contactosFiltrados = [...this.sistemacontactosData];
-      return;
-    }
-    this.contactosFiltrados = this.sistemacontactosData.filter(c =>
-      c.nombre?.toLowerCase().includes(q) ||
-      c.cargo?.toLowerCase().includes(q) ||
-      c.correo?.toLowerCase().includes(q)
-    );
-  }
 
-  // ========================================
-  // CAMBIAR CLAVE
-  // ========================================
-  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
-  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
-  get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
-  get tieneLongitud(): boolean  { return this.nuevaClave.length >= 8; }
->>>>>>> Stashed changes
 
-  get passwordValido(): boolean {
-    return this.tieneMayuscula && this.tieneMinuscula && this.tieneNumero && this.tieneLongitud;
-  }
 
   get claveConfirmadaValida(): boolean {
     return this.nuevaClave === this.confirmarClave && this.nuevaClave.length > 0;
@@ -911,4 +888,32 @@ cargarPulsos(): void {
       }
     });
   }
+
+filtrarContactos(): void {
+    const q = this.contactoSearchQuery.toLowerCase().trim();
+    if (!q) {
+      this.contactosFiltrados = [...this.sistemacontactosData];
+      return;
+    }
+    this.contactosFiltrados = this.sistemacontactosData.filter(c =>
+      c.nombre?.toLowerCase().includes(q) ||
+      c.cargo?.toLowerCase().includes(q) ||
+      c.correo?.toLowerCase().includes(q)
+    );
+  }
+
+ 
+  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
+  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
+  get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
+  get tieneCaracterEspecial(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClave); }
+  get tieneLongitud(): boolean  { return this.nuevaClave.length >= 8; }
+
+
+  get passwordValido(): boolean {
+    return this.tieneMayuscula && this.tieneMinuscula && this.tieneNumero && this.tieneLongitud && this.tieneCaracterEspecial;
+  }
+
 }
+
+

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.bgreenNet.bgreenNet.services.PlcService;
 
 @RestController
-@RequestMapping("/plc")
+@RequestMapping({"/api/plc", "/plc"})
 public class PlcController {
 
     private final PlcService plcService;
