@@ -18,7 +18,7 @@ import com.bgreenNet.bgreenNet.services.DashboardService;
 import com.bgreenNet.bgreenNet.services.cmiplantaServices;
 
 @RestController
-@RequestMapping("/api/cmiplanta")
+@RequestMapping({"/api/cmiplanta", "/cmiplanta"})
 public class cmiplantaController {
 
 	@Autowired

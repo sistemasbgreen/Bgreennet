@@ -10,7 +10,7 @@ import com.bgreenNet.bgreenNet.models.Usuario;
 
 
 
-public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
+public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 	
 	 Optional<Usuario> findByUsuario(String usuario);
 

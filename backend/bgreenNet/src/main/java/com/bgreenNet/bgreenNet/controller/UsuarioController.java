@@ -18,7 +18,7 @@ import com.bgreenNet.bgreenNet.dto.UsuarioCompletoDTO;
 import com.bgreenNet.bgreenNet.services.UsuarioServices;
 
 @RestController
-@RequestMapping("/api/usuarios")
+@RequestMapping({"/api/usuarios", "/usuarios"})
 @CrossOrigin(origins = "*")
 public class UsuarioController {
 	
@@ -57,27 +57,14 @@ public class UsuarioController {
 	    }
 
 	    @PostMapping("/cambiar-clave")
-	    public ResponseEntity<?> cambiarClave(@RequestBody CambiarClaveDTO dto) {
-	        try {
-	            usuarioService.cambiarClave(dto);
-	            return ResponseEntity.ok().build();
-	        } catch (RuntimeException e) {
-	            java.util.Map<String, String> error = new java.util.HashMap<>();
-	            error.put("error", e.getMessage());
-	            return ResponseEntity.badRequest().body(error);
-	        }
+	    public ResponseEntity<Void> cambiarClave(@RequestBody CambiarClaveDTO dto) {
+	        usuarioService.cambiarClave(dto);
+	        return ResponseEntity.ok().build();
 	    }
 
 	    @PostMapping("/cambiar-clave-admin")
-	    public ResponseEntity<?> cambiarClaveAdmin(@RequestBody CambiarClaveDTO dto) {
-	        try {
-	            usuarioService.cambiarClaveAdmin(dto);
-	            return ResponseEntity.ok().build();
-	        } catch (RuntimeException e) {
-	            java.util.Map<String, String> error = new java.util.HashMap<>();
-	            error.put("error", e.getMessage());
-	            return ResponseEntity.badRequest().body(error);
-	        }
+	    public ResponseEntity<Void> cambiarClaveAdmin(@RequestBody CambiarClaveDTO dto) {
+	        usuarioService.cambiarClaveAdmin(dto);
+	        return ResponseEntity.ok().build();
 	    }
-
 }

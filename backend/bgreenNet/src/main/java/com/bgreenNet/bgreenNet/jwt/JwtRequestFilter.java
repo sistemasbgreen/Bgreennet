@@ -29,39 +29,44 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     // Rutas públicas: las que terminan con "/" se tratan como prefijos,
     // las demás se tratan como rutas exactas.
     private static final List<String> EXCLUDED_PATHS = Arrays.asList(
-        "/api/auth/",          
-        "/api/listas/",         
+        "/api/auth/",
+        "/auth/",
+        "/api/auth/login",
+        "/auth/login",
+        "/api/auth/test",
+        "/auth/test",
+        "/api/listas/",
+        "/listas/",
         "/api/home/contacto",
+        "/home/contacto",
         "/api/usuarios/",
-        "/api/sistemasinformacion/"
+        "/usuarios/",
+        "/api/sistemasinformacion/",
+        "/sistemasinformacion/"
     );
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        String path = request.getServletPath();
 
         for (String excluded : EXCLUDED_PATHS) {
             if (excluded.endsWith("/")) {
                 if (path.startsWith(excluded)) {
-                    // ✅ Limpia cualquier autenticación previa
-                    SecurityContextHolder.clearContext();
                     return true;
                 }
             } else {
                 if (path.equals(excluded)) {
-                    SecurityContextHolder.clearContext();
                     return true;
                 }
             }
         }
-
         return false;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, java.io.IOException {
-
+        
         final String authorizationHeader = request.getHeader("Authorization");
         String username = null;
         String jwt = null;

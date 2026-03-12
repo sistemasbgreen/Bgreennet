@@ -1,19 +1,13 @@
 package com.bgreenNet.bgreenNet.services;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.bgreenNet.bgreenNet.dto.PermisoSistemaPerfilDTO;
 import com.bgreenNet.bgreenNet.models.SistemasInformacion;
 import com.bgreenNet.bgreenNet.repository.SistemaInformacionRepository;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.ParameterMode;
-import jakarta.persistence.StoredProcedureQuery;
+import com.bgreenNet.bgreenNet.util.UrlUtils;
 
 @Service
 public class SistemasInformacionService {
@@ -23,7 +17,9 @@ public class SistemasInformacionService {
 	private SistemaInformacionRepository repository;
 
 	public List<SistemasInformacion> getAll() {
-		return repository.findAll();
+		List<SistemasInformacion> sistemas = repository.findAll();
+		sistemas.forEach(s -> s.setImagenUrl(UrlUtils.sanitizeUrl(s.getImagenUrl())));
+		return sistemas;
 	}
 
 
@@ -54,7 +50,9 @@ public class SistemasInformacionService {
 	
 	
 	 public List<SistemasInformacion> getSistemasPorPerfil(Long idPerfil) {
-	        return repository.findSistemasByPerfil(idPerfil);
+	        List<SistemasInformacion> sistemas = repository.findSistemasByPerfil(idPerfil);
+	        sistemas.forEach(s -> s.setImagenUrl(UrlUtils.sanitizeUrl(s.getImagenUrl())));
+	        return sistemas;
 	    }
 	
 	

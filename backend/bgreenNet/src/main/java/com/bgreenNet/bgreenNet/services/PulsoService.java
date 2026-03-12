@@ -16,6 +16,7 @@ import com.bgreenNet.bgreenNet.dto.PulsoCreateDTO;
 import com.bgreenNet.bgreenNet.dto.PulsoResponseDTO;
 import com.bgreenNet.bgreenNet.dto.PulsoUpdateDTO;
 import com.bgreenNet.bgreenNet.repository.PulsoRepository;
+import com.bgreenNet.bgreenNet.util.UrlUtils;
 
 @Service
 public class PulsoService {
@@ -144,7 +145,7 @@ public class PulsoService {
         dto.setIdPulso(asLong(row[i++]));
         dto.setTitulo(asString(row[i++]));
         dto.setDescripcion(asString(row[i++]));
-        dto.setImagenUrl(asString(row[i++]));
+        dto.setImagenUrl(UrlUtils.sanitizeUrl(asString(row[i++])));
         dto.setImagenNombreOriginal(asString(row[i++]));
         dto.setImagenTipoMime(asString(row[i++]));
         dto.setImagenTamanoBytes(asInteger(row[i++]));

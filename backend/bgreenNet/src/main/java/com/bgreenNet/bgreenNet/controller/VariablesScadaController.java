@@ -10,7 +10,7 @@ import com.bgreenNet.bgreenNet.models.VariablesScada;
 import com.bgreenNet.bgreenNet.services.VariablesScadaService;
 
 @RestController
-@RequestMapping("/api/scada")
+@RequestMapping({"/api/scada", "/scada"})
 @CrossOrigin(origins = "*") // luego puedes restringir a tu Angular
 public class VariablesScadaController {
 

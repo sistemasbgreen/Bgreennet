@@ -12,7 +12,7 @@ import com.bgreenNet.bgreenNet.models.Perfil;
 import com.bgreenNet.bgreenNet.services.HomeContactoService;
 
 @RestController
-@RequestMapping("/api/home")
+@RequestMapping({"/api/home", "/home"})
 public class HomeContactoController {
 
 	 private final HomeContactoService service;

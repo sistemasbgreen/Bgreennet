@@ -19,7 +19,7 @@ import com.bgreenNet.bgreenNet.models.Tarea;
 import com.bgreenNet.bgreenNet.services.TareaService;
 
 @RestController
-@RequestMapping("/api/tareas")
+@RequestMapping({"/api/tareas", "/tareas"})
 @CrossOrigin(origins = "*")
 
 public class TareaController {

@@ -15,7 +15,7 @@ import com.bgreenNet.bgreenNet.services.PulsoService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/pulsos")
+@RequestMapping({"/api/pulsos", "/pulsos"})
 public class PulsoController {
 
     private final PulsoService pulsoService;

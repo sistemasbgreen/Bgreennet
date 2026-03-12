@@ -24,8 +24,7 @@ import com.bgreenNet.bgreenNet.services.AuthService;
 import com.bgreenNet.bgreenNet.services.CustomUserDetailsService;
 
 @RestController
-@RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@RequestMapping({"/api/auth", "/auth"})
 public class AuthController {
 
 	private final AuthService authService;
