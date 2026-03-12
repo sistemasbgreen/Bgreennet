@@ -1,16 +1,6 @@
 /* Variables de color */
 :root {
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
-  --success-color: #10b981;
-  --success-hover: #059669;
-  --danger-color: #ef4444;
-  --danger-hover: #dc2626;
-  --bg-color: #f3f4f6;
-  --card-bg: #ffffff;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --border-color: #e5e7eb;
+
   --table-header-bg: #f9fafb;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
@@ -21,7 +11,183 @@
 .header-actions {
   margin-bottom: 24px;
   display: flex;
+<<<<<<< Updated upstream
   justify-content: flex-end;
+=======
+  align-items: center;
+  gap: 16px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card i {
+  font-size: 32px;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.stat-card.stat-success i {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.stat-card.stat-danger i {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+  margin-top: 4px;
+}
+
+/* ===== BARRA DE BÚSQUEDA Y FILTROS ===== */
+.search-filter-bar {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  border: 1px solid #e5e7eb;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 250px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box i.bi-search {
+  position: absolute;
+  left: 14px;
+  color: #6b7280;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 40px 12px 42px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  background: var(--bg-color);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.btn-clear-search {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-search:hover {
+  background: var(--bg-color);
+  color: #1f2937;
+}
+
+.filter-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 180px;
+}
+
+.filter-select:hover {
+  border-color: #3b82f6;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-limpiar-filtros {
+  padding: 12px 20px;
+  background: var(--bg-color);
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-limpiar-filtros:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.btn-limpiar-filtros i {
+  font-size: 16px;
+>>>>>>> Stashed changes
 }
 
 /* ===== BOTÓN CREAR ===== */
@@ -46,13 +212,87 @@
   box-shadow: 0 6px 8px rgba(59, 130, 246, 0.4);
 }
 
+<<<<<<< Updated upstream
 /* Table Container */
 .table-container {
   background: var(--card-bg);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+=======
+.btn-crear i {
+  font-size: 18px;
+}
+
+/* ===== RESULTADOS ===== */
+.results-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.results-count {
+  color: #1e40af;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.results-count i {
+  font-size: 16px;
+}
+
+/* ===== LOADING ===== */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  backdrop-filter: blur(4px);
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-overlay p {
+  margin-top: 16px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* ===== TABLA ===== */
+.table-container {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+>>>>>>> Stashed changes
   overflow: hidden;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e5e7eb;
 }
 
 .table-usuarios {
@@ -63,21 +303,50 @@
 
 .table-usuarios thead {
   background: var(--table-header-bg);
+<<<<<<< Updated upstream
   border-bottom: 1px solid var(--border-color);
+=======
+  border-bottom: 2px solid #e5e7eb;
+>>>>>>> Stashed changes
 }
 
 .table-usuarios th {
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
+<<<<<<< Updated upstream
   font-size: 12px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+=======
+  font-size: 13px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.table-usuarios th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.table-usuarios th.sortable:hover {
+  background: var(--bg-color);
+  color: #1f2937;
+}
+
+.table-usuarios th.sortable i {
+  margin-left: 6px;
+  font-size: 12px;
+  opacity: 0.5;
+>>>>>>> Stashed changes
 }
 
 .table-usuarios tbody tr {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e5e7eb;
   transition: background-color 0.15s ease;
 }
 
@@ -90,13 +359,29 @@
 }
 
 .table-usuarios td {
+<<<<<<< Updated upstream
   padding: 14px 16px;
   color: var(--text-primary);
+=======
+  padding: 16px 20px;
+  color: #1f2937;
+>>>>>>> Stashed changes
   vertical-align: middle;
   font-size: 14px;
 }
 
 /* Imagen */
+<<<<<<< Updated upstream
+=======
+.image-wrapper {
+  display: inline-block;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #e5e7eb;
+}
+
+>>>>>>> Stashed changes
 .table-usuarios td img {
   border-radius: 4px;
   box-shadow: none;
@@ -113,7 +398,40 @@
 
 .usuario-column i {
   font-size: 24px;
+<<<<<<< Updated upstream
   color: var(--text-secondary);
+=======
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+/* URL Column */
+.url-column {
+  max-width: 300px;
+}
+
+.url-link {
+  color: #3b82f6;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.url-link:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.url-link i {
+  font-size: 12px;
+  flex-shrink: 0;
+>>>>>>> Stashed changes
 }
 
 /* Badges */
@@ -180,6 +498,7 @@
 /* No Data */
 .no-data {
   text-align: center;
+<<<<<<< Updated upstream
   padding: 60px 20px !important;
   color: var(--text-secondary);
 }
@@ -188,6 +507,16 @@
   font-size: 48px;
   color: var(--border-color);
   margin-bottom: 12px;
+=======
+  padding: 80px 20px !important;
+  color: #6b7280;
+}
+
+.no-data i {
+  font-size: 64px;
+  color: #e5e7eb;
+  margin-bottom: 16px;
+>>>>>>> Stashed changes
   display: block;
 }
 
@@ -196,7 +525,33 @@
   font-size: 16px;
 }
 
+<<<<<<< Updated upstream
 /* Modal */
+=======
+.btn-crear-small {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  margin-top: 12px;
+}
+
+.btn-crear-small:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ===== MODAL ===== */
+>>>>>>> Stashed changes
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -248,13 +603,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 28px;
+<<<<<<< Updated upstream
   border-bottom: 1px solid var(--border-color);
+=======
+  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-color);
+>>>>>>> Stashed changes
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 22px;
   font-weight: 700;
+<<<<<<< Updated upstream
   color: var(--text-primary);
 }
 
@@ -263,6 +624,23 @@
   border: none;
   font-size: 20px;
   color: var(--text-secondary);
+=======
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-header h2 i {
+  color: #3b82f6;
+}
+
+.btn-close {
+  background: white;
+  border: 1px solid #e5e7eb;
+  font-size: 18px;
+  color: #6b7280;
+>>>>>>> Stashed changes
   cursor: pointer;
   padding: 8px;
   display: flex;
@@ -273,8 +651,15 @@
 }
 
 .btn-close:hover {
+<<<<<<< Updated upstream
   background: var(--bg-color);
   color: var(--text-primary);
+=======
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+  transform: rotate(90deg);
+>>>>>>> Stashed changes
 }
 
 /* Modal Body */
@@ -291,14 +676,22 @@
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 14px;
-  color: var(--text-primary);
+  color: #1f2937;
 }
 
+<<<<<<< Updated upstream
+=======
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+>>>>>>> Stashed changes
 .form-group input[type='text'],
 .form-group input[type='url'] {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid var(--border-color);
+  border: 2px solid #e5e7eb;
   border-radius: 8px;
   font-size: 15px;
   transition: all 0.2s ease;
@@ -308,13 +701,53 @@
 .form-group input[type='text']:focus,
 .form-group input[type='url']:focus {
   outline: none;
+<<<<<<< Updated upstream
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+=======
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Image Preview */
+.image-preview {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--bg-color);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px dashed #e5e7eb;
+}
+
+.image-preview img {
+  max-width: 150px;
+  max-height: 150px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #e5e7eb;
+>>>>>>> Stashed changes
 }
 
 /* Checkbox Group */
 .checkbox-group {
   margin-top: 24px;
+<<<<<<< Updated upstream
+=======
+  padding: 16px;
+  background: var(--bg-color);
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+>>>>>>> Stashed changes
 }
 
 .checkbox-group label {
@@ -330,12 +763,29 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
+<<<<<<< Updated upstream
   accent-color: var(--primary-color);
+=======
+  accent-color: #10b981;
+>>>>>>> Stashed changes
 }
 
 .checkbox-group span {
   font-size: 15px;
+<<<<<<< Updated upstream
   color: var(--text-primary);
+=======
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.checkbox-text i {
+  color: #10b981;
+  font-size: 18px;
+>>>>>>> Stashed changes
 }
 
 /* Modal Footer */
@@ -344,14 +794,19 @@
   gap: 12px;
   justify-content: flex-end;
   padding-top: 24px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid #e5e7eb;
   margin-top: 24px;
 }
 
 .btn-cancelar,
 .btn-guardar {
+<<<<<<< Updated upstream
   padding: 12px 24px;
   border: none;
+=======
+  padding: 12px 28px;
+  border: #065f46;
+>>>>>>> Stashed changes
   border-radius: 8px;
   font-size: 15px;
   font-weight: 600;
@@ -363,6 +818,7 @@
 }
 
 .btn-cancelar {
+<<<<<<< Updated upstream
   background: var(--bg-color);
   color: var(--text-primary);
 }
@@ -378,6 +834,26 @@
 
 .btn-guardar:hover {
   background: var(--success-hover);
+=======
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 2px solid #e5e7eb;
+}
+
+.btn-cancelar:hover {
+  background: #f3f4f6;
+  border-color: #1f2937;
+  transform: translateY(-1px);
+}
+
+.btn-guardar {
+  background: #10b981;
+  color: white;
+}
+
+.btn-guardar:hover:not(:disabled) {
+  background: #059669;
+>>>>>>> Stashed changes
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }

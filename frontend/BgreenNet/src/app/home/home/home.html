@@ -103,6 +103,11 @@
 
           <div class="dropdown-divider"></div>
 
+          <button class="dropdown-item" (click)="abrirModalCambiarClave()">
+            <i class="bi bi-key"></i>
+            <span>Cambiar Clave</span>
+          </button>
+
           <button class="dropdown-item logout-item" (click)="logout()">
             <i class="bi bi-box-arrow-left"></i>
             <span>Cerrar Sesión</span>
@@ -643,5 +648,106 @@
   </div>
 
 </body>
+
+<!-- Modal Cambiar Clave -->
+<div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen" (click)="cerrarModalCambiarClave()">
+  <div class="modal-tarea-container clave-modal-container" (click)="$event.stopPropagation()">
+
+    <div class="modal-tarea-header">
+      <h3>
+        <i class="bi bi-key-fill"></i>
+        Cambiar Clave
+      </h3>
+      <button class="btn-close" (click)="cerrarModalCambiarClave()">×</button>
+    </div>
+
+    <div class="modal-tarea-body">
+
+      <!-- Clave actual -->
+      <div class="form-group">
+        <label>Clave actual <span class="required">*</span></label>
+        <div class="password-input-wrapper">
+          <input [type]="mostrarClaveActual ? 'text' : 'password'"
+                 class="form-input"
+                 placeholder="Ingresa tu clave actual"
+                 [(ngModel)]="claveActual"
+                 name="claveActual" />
+          <button type="button" class="toggle-eye" (click)="mostrarClaveActual = !mostrarClaveActual">
+            <i class="bi" [class.bi-eye]="!mostrarClaveActual" [class.bi-eye-slash]="mostrarClaveActual"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Nueva clave -->
+      <div class="form-group">
+        <label>Nueva clave <span class="required">*</span></label>
+        <div class="password-input-wrapper">
+          <input [type]="mostrarNuevaClave ? 'text' : 'password'"
+                 class="form-input"
+                 placeholder="Ingresa tu nueva clave"
+                 [(ngModel)]="nuevaClave"
+                 name="nuevaClave" />
+          <button type="button" class="toggle-eye" (click)="mostrarNuevaClave = !mostrarNuevaClave">
+            <i class="bi" [class.bi-eye]="!mostrarNuevaClave" [class.bi-eye-slash]="mostrarNuevaClave"></i>
+          </button>
+        </div>
+
+        <!-- Indicadores de requisitos -->
+        <div class="password-requirements" *ngIf="nuevaClave.length > 0">
+          <span [class.req-ok]="tieneMayuscula" [class.req-fail]="!tieneMayuscula">
+            <i class="bi" [class.bi-check-circle-fill]="tieneMayuscula" [class.bi-x-circle-fill]="!tieneMayuscula"></i>
+            Mayúscula
+          </span>
+          <span [class.req-ok]="tieneMinuscula" [class.req-fail]="!tieneMinuscula">
+            <i class="bi" [class.bi-check-circle-fill]="tieneMinuscula" [class.bi-x-circle-fill]="!tieneMinuscula"></i>
+            Minúscula
+          </span>
+          <span [class.req-ok]="tieneNumero" [class.req-fail]="!tieneNumero">
+            <i class="bi" [class.bi-check-circle-fill]="tieneNumero" [class.bi-x-circle-fill]="!tieneNumero"></i>
+            Número
+          </span>
+          <span [class.req-ok]="tieneLongitud" [class.req-fail]="!tieneLongitud">
+            <i class="bi" [class.bi-check-circle-fill]="tieneLongitud" [class.bi-x-circle-fill]="!tieneLongitud"></i>
+            Mínimo 8 caracteres
+          </span>
+        </div>
+      </div>
+
+      <!-- Confirmar nueva clave -->
+      <div class="form-group">
+        <label>Confirmar nueva clave <span class="required">*</span></label>
+        <div class="password-input-wrapper">
+          <input [type]="mostrarConfirmarClave ? 'text' : 'password'"
+                 class="form-input"
+                 [class.input-error]="confirmarClave.length > 0 && !claveConfirmadaValida"
+                 [class.input-ok]="confirmarClave.length > 0 && claveConfirmadaValida"
+                 placeholder="Confirma tu nueva clave"
+                 [(ngModel)]="confirmarClave"
+                 name="confirmarClave" />
+          <button type="button" class="toggle-eye" (click)="mostrarConfirmarClave = !mostrarConfirmarClave">
+            <i class="bi" [class.bi-eye]="!mostrarConfirmarClave" [class.bi-eye-slash]="mostrarConfirmarClave"></i>
+          </button>
+        </div>
+        <small class="match-hint" *ngIf="confirmarClave.length > 0 && !claveConfirmadaValida">Las claves no coinciden</small>
+      </div>
+
+      <!-- Mensajes -->
+      <div class="clave-error" *ngIf="errorClave">⚠️ {{ errorClave }}</div>
+      <div class="clave-success" *ngIf="successClave">✅ {{ successClave }}</div>
+
+    </div>
+
+    <div class="modal-tarea-footer">
+      <button class="btn-cancelar" (click)="cerrarModalCambiarClave()">Cancelar</button>
+      <button class="btn-guardar"
+              (click)="guardarClave()"
+              [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida">
+        <i class="bi bi-shield-lock"></i>
+        Guardar Clave
+      </button>
+    </div>
+
+  </div>
+</div>
 
 </html>

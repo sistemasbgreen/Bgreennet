@@ -11,6 +11,8 @@ import { Tarea } from '../../models/Tareas/Tarea';
 import { CreateTareaRequest } from '../../models/Tareas/CreateTareaRequest';
 import { Pulso } from '../../models/Pulsos/pulso';
 import { PulsoService } from '../../servicios/pulsoservices';
+import { UsuarioService } from '../../servicios/usuarioservices';
+import { AuthService } from '../../auth/authservices';
 
 // Registrar componentes de Chart.js
 Chart.register(...registerables);
@@ -41,6 +43,15 @@ export class Home implements OnInit, AfterViewInit {
   showModal = false;
   darkMode = false;
   isModalHistorialOpen = false; //  Modal de historial
+  isModalCambiarClaveOpen = false;
+  claveActual = '';
+  nuevaClave = '';
+  confirmarClave = '';
+  errorClave = '';
+  successClave = '';
+  mostrarClaveActual = false;
+  mostrarNuevaClave = false;
+  mostrarConfirmarClave = false;
 
   // Datos de sistemas y contactos
   sistemaInformacionData: SistemaInformacion[] = [];
@@ -150,7 +161,9 @@ export class Home implements OnInit, AfterViewInit {
     private homeservice: homeservices,
     private listass: ListasService,
     private cdr: ChangeDetectorRef,
-    private pulsoService: PulsoService
+    private pulsoService: PulsoService,
+    private usuarioService: UsuarioService,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
@@ -314,6 +327,10 @@ export class Home implements OnInit, AfterViewInit {
 
   closeUserMenu(): void {
     this.isUserMenuOpen = false;
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 
   // Detectar click fuera del menú
@@ -665,26 +682,6 @@ export class Home implements OnInit, AfterViewInit {
   }
 
   // ========================================
-  // NAVEGACIÓN Y LOGOUT
-  // ========================================
-  private getBasePath(): string {
-    const pathParts = window.location.pathname.split('/').filter(part => part);
-    return '/' + pathParts.slice(0, 2).join('/');
-  }
-
-  logout(): void {
-    if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('usuario');
-      localStorage.removeItem('dashboardWidgets');
-      localStorage.removeItem('favorites');
-      localStorage.removeItem('darkMode');
-
-      window.location.href = this.getBasePath() + '/login';
-    }
-  }
-
-  // ========================================
   //  TAREAS MEJORADAS
   // ========================================
   obtenerTareas(): void {
@@ -829,5 +826,89 @@ cargarPulsos(): void {
   }
 
 
+<<<<<<< Updated upstream
+=======
+  
+  filtrarContactos(): void {
+    const q = this.contactoSearchQuery.toLowerCase().trim();
+    if (!q) {
+      this.contactosFiltrados = [...this.sistemacontactosData];
+      return;
+    }
+    this.contactosFiltrados = this.sistemacontactosData.filter(c =>
+      c.nombre?.toLowerCase().includes(q) ||
+      c.cargo?.toLowerCase().includes(q) ||
+      c.correo?.toLowerCase().includes(q)
+    );
+  }
 
+  // ========================================
+  // CAMBIAR CLAVE
+  // ========================================
+  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
+  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
+  get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
+  get tieneLongitud(): boolean  { return this.nuevaClave.length >= 8; }
+>>>>>>> Stashed changes
+
+  get passwordValido(): boolean {
+    return this.tieneMayuscula && this.tieneMinuscula && this.tieneNumero && this.tieneLongitud;
+  }
+
+  get claveConfirmadaValida(): boolean {
+    return this.nuevaClave === this.confirmarClave && this.nuevaClave.length > 0;
+  }
+
+  abrirModalCambiarClave(): void {
+    this.isModalCambiarClaveOpen = true;
+    this.claveActual = '';
+    this.nuevaClave = '';
+    this.confirmarClave = '';
+    this.errorClave = '';
+    this.successClave = '';
+    this.closeUserMenu();
+  }
+
+  cerrarModalCambiarClave(): void {
+    this.isModalCambiarClaveOpen = false;
+    this.claveActual = '';
+    this.nuevaClave = '';
+    this.confirmarClave = '';
+    this.errorClave = '';
+    this.successClave = '';
+  }
+
+  guardarClave(): void {
+    this.errorClave = '';
+    this.successClave = '';
+
+    if (!this.passwordValido) {
+      this.errorClave = 'La nueva clave no cumple los requisitos.';
+      return;
+    }
+
+    if (!this.claveConfirmadaValida) {
+      this.errorClave = 'Las claves nuevas no coinciden.';
+      return;
+    }
+
+    const dto = {
+      idUsuario: this.id_usuario,
+      claveActual: this.claveActual,
+      nuevaClave: this.nuevaClave
+    };
+
+    this.usuarioService.cambiarClave(dto).subscribe({
+      next: () => {
+        this.successClave = 'Clave actualizada exitosamente.';
+        setTimeout(() => {
+          this.cerrarModalCambiarClave();
+        }, 2000);
+      },
+      error: (err) => {
+        console.error('Error al cambiar clave:', err);
+        this.errorClave = err.error?.error || 'Error al intentar cambiar la clave. Verifica tu clave actual.';
+      }
+    });
+  }
 }

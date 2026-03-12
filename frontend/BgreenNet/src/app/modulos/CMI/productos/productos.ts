@@ -110,6 +110,9 @@ export class Productos implements OnInit, OnDestroy {
   monthlyChartOptions: any;
   costoDirectoOptions!: ChartOptions<'line'>;
 
+  // Plugins permitidos para la vista
+  barChartPlugins = [ChartDataLabels];
+
   constructor(
     private plantaService: cmiplantaservices,
     private cdr: ChangeDetectorRef
@@ -129,6 +132,7 @@ export class Productos implements OnInit, OnDestroy {
   isB100(): boolean { return this.selectedProduct === '26'; }
   isMpGrasas(): boolean { return this.selectedProduct === '8'; }
   isCostoDirecto(): boolean { return this.selectedProduct === 'CostoDirecto'; }
+  isProduccionBase(): boolean { return ['26', '9264', '3188', '32'].includes(this.selectedProduct); }
 
   // Método para limpiar todos los datos antes de cargar nuevos
   limpiarDatos(): void {
@@ -300,7 +304,8 @@ export class Productos implements OnInit, OnDestroy {
           pointHoverRadius: 10,
           fill: false,
           tension: 0.4,
-          yAxisID: 'y-consumo'
+          yAxisID: 'y-consumo',
+          hidden: true
         },
         {
           label: 'Metanol Diario (Kg/Ton)',
@@ -314,7 +319,8 @@ export class Productos implements OnInit, OnDestroy {
           tension: 0.4,
           backgroundColor: 'rgba(54, 162, 235, 0.1)',
           yAxisID: 'y-consumo',
-          pointStyle: 'rect'
+          pointStyle: 'rect',
+          hidden: true
         },
         {
           label: 'Meta',
@@ -361,13 +367,29 @@ export class Productos implements OnInit, OnDestroy {
           pointHoverRadius: 10,
           fill: false,
           tension: 0.4,
-          yAxisID: 'y-consumo'
+          yAxisID: 'y-consumo',
+          hidden: true
         },
         {
           label: 'Metanol Acumulado (Kg/Ton)',
           data: [...data.acumulado10],
           borderColor: '#000',
           pointBackgroundColor: '#9D0303',
+          borderWidth: 0.5,
+          pointRadius: 6,
+          pointHoverRadius: 10,
+          fill: false,
+          tension: 0.4,
+          backgroundColor: 'rgba(54, 162, 235, 0.1)',
+          yAxisID: 'y-consumo',
+          pointStyle: 'rect',
+          hidden: true
+        },
+        {
+          label: 'Meta',
+          data: Array(labels.length).fill(this.metasMensualesCosto[anio][parseInt(this.selectedMonth) - 1] || 0),
+          borderColor: '#000',
+          pointBackgroundColor: '#2A9D03',
           borderWidth: 0.5,
           pointRadius: 6,
           pointHoverRadius: 10,
@@ -610,7 +632,7 @@ export class Productos implements OnInit, OnDestroy {
         labels: [...labels],
         datasets: [
           {
-            label: 'Consumo Diario Kg/Ton',
+            label: this.isProduccionBase() ? 'Producción Diaria Kg/Ton' : 'Consumo Diario Kg/Ton',
             data: [...valores],
             borderColor: '#13590c',
             backgroundColor: 'rgba(19, 89, 12, 0.1)',
@@ -659,7 +681,7 @@ export class Productos implements OnInit, OnDestroy {
     const producto = this.getSelectedProductConfig();
     const productionId = this.isB100() ? productoId : '26';
     const request: MetanolRequest = {
-      startDate: `${anio}-01-01`,
+      startDate: `${anio}-01-01`, // Asegurar que inicie en el año seleccionado
       endDate: fechaFin,
       consumptionProductId: productoId,
       productionProductId: productionId,
@@ -680,9 +702,19 @@ export class Productos implements OnInit, OnDestroy {
           if (this.isMpGrasas()) {
             const CxP = base.total_produccion > 0 ? (base.total_consumo / base.total_produccion) * 1000 : 0;
             const PxC = base.total_consumo > 0 ? (base.total_produccion / base.total_consumo) * 100 : 0;
-            this.ytdData = { ...base, acumulado_CxP: CxP, acumulado_PxC: PxC };
+            this.ytdData = { 
+              ...base, 
+              acumulado_mes: data.monthlyAccumulated || 0, // En YTD esto debería representar el acumulado anual si el API lo calcula así
+              acumulado_CxP: CxP, 
+              acumulado_PxC: PxC 
+            };
           } else {
-            this.ytdData = { ...base, acumulado_CxP: 0, acumulado_PxC: 0 };
+            this.ytdData = { 
+              ...base, 
+              acumulado_mes: data.monthlyAccumulated || 0,
+              acumulado_CxP: 0, 
+              acumulado_PxC: 0 
+            };
           }
           this.cdr.detectChanges();
         },
@@ -841,7 +873,7 @@ export class Productos implements OnInit, OnDestroy {
               datasets: [
                 {
                   type: 'bar',
-                  label: 'Consumo Mensual (Kg/Ton)',
+                  label: this.isProduccionBase() ? 'Producción Mensual (Kg/Ton)' : 'Consumo Mensual (Kg/Ton)',
                   data: [...valores],
                   backgroundColor: valores.map(v =>
                     v === null ? '#ccc' : (v > meta ? '#e74c3c' : '#27ae60')
@@ -938,21 +970,23 @@ export class Productos implements OnInit, OnDestroy {
     this.monthlyCxPOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { top: 45 }
+      },
+      clip: false,
       plugins: {
         legend: {
           position: 'top',
           labels: { usePointStyle: true, boxWidth: 30, padding: 15, font: { size: 12 } }
         },
         datalabels: {
-          display: (ctx: any) => {
-            if (!ctx.parsed || ctx.parsed.y === undefined || ctx.parsed.y === null) return false;
-            return ctx.datasetIndex === 0 && ctx.parsed.y !== null;
-          },
+          display: true,
           color: '#333',
           anchor: 'end',
           align: 'top',
-          font: { weight: 'bold', size: 12 },
-          formatter: (value: number) => (value ? Math.round(value) : '')
+          offset: 5,
+          font: { weight: 'bold', size: 13 },
+          formatter: (value: any) => (value != null && value !== 0 ? Math.round(value) : '')
         }
       },
       scales: {
@@ -972,21 +1006,23 @@ export class Productos implements OnInit, OnDestroy {
     this.monthlyPxCOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { top: 45 }
+      },
+      clip: false,
       plugins: {
         legend: {
           position: 'top',
           labels: { usePointStyle: true, boxWidth: 30, padding: 15, font: { size: 12 } }
         },
         datalabels: {
-          display: (ctx: any) => {
-            if (!ctx.parsed || ctx.parsed.y === undefined || ctx.parsed.y === null) return false;
-            return ctx.datasetIndex === 0 && ctx.parsed.y !== null;
-          },
+          display: true,
           color: '#333',
           anchor: 'end',
           align: 'top',
-          font: { weight: 'bold', size: 12 },
-          formatter: (value: number) => (value ? value.toFixed(1) + '%' : '')
+          offset: 5,
+          font: { weight: 'bold', size: 13 },
+          formatter: (value: any) => (value != null && value !== 0 ? value.toFixed(1) + '%' : '')
         }
       },
       scales: {
@@ -1008,6 +1044,10 @@ export class Productos implements OnInit, OnDestroy {
     this.monthlyChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: { top: 45 }
+      },
+      clip: false,
       plugins: {
         legend: {
           position: 'top',
@@ -1015,17 +1055,18 @@ export class Productos implements OnInit, OnDestroy {
         },
         datalabels: {
           display: (ctx: any) => {
-            return ctx.dataset.type === 'bar' && ctx.parsed?.y != null;
+            // Mostrar solo para el primer dataset (barras) y si el valor no es cero/nulo
+            return ctx.datasetIndex === 0 && ctx.dataset.data[ctx.dataIndex] !== null && ctx.dataset.data[ctx.dataIndex] !== 0;
           },
           color: '#000',
           anchor: 'end',
           align: 'top',
-          offset: 4,
+          offset: 5,
           font: {
             weight: 'bold',
-            size: 12
+            size: 13
           },
-          formatter: (value: number) => Math.round(value)
+          formatter: (value: any) => (value != null && value !== 0 ? Math.round(value) : '')
         }
       },
       scales: {
@@ -1037,7 +1078,7 @@ export class Productos implements OnInit, OnDestroy {
               ? 'Toneladas'
               : this.isMpGrasas()
                 ? 'Consumo Específico (Kg/Ton)'
-                : 'Consumo Kg/Ton'
+                : (this.isProduccionBase() ? 'Producción Kg/Ton' : 'Consumo Kg/Ton')
           },
           grid: { display: false }
         },
@@ -1099,10 +1140,12 @@ export class Productos implements OnInit, OnDestroy {
   }
   
   onYearChange(): void {
+    this.limpiarDatos();
     this.actualizarDatos();
   }
   
   onMonthChange(): void {
+    this.limpiarDatos();
     this.actualizarDatos();
   }
   

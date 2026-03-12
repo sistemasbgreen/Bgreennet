@@ -30,6 +30,11 @@
               <td>{{ u.nombre }} {{ u.apellido }}</td>
               <td class="email-column">{{ u.correo }}</td>
               <td>{{ u.descripcionPerfil }}</td>
+<<<<<<< Updated upstream
+=======
+
+              <!-- ACCIONES: estado + ver + editar + cambiar clave -->
+>>>>>>> Stashed changes
               <td>
                 <span class="badge" [class.badge-activo]="u.estado" [class.badge-inactivo]="!u.estado">
                   {{ u.estado ? 'Activo' : 'Inactivo' }}
@@ -45,8 +50,16 @@
                                     <button class="btn-eliminar" (click)="eliminar(u.idUsuario!)" title="Eliminar usuario">
                     <i class="bi bi-trash-fill">Delete</i>
                   </button>
+<<<<<<< Updated upstream
                   -->
 
+=======
+
+                  <!-- 🔑 Botón Cambiar Clave -->
+                  <button class="btn-action btn-clave" (click)="abrirModalClave(u)" title="Cambiar clave">
+                    <i class="bi bi-key-fill"></i>
+                  </button>
+>>>>>>> Stashed changes
                 </div>
               </td>
             </tr>
@@ -439,6 +452,93 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL CAMBIAR CLAVE DE USUARIO ===== -->
+<div class="modal-overlay" *ngIf="showModalClave" (click)="cerrarModalClave()">
+  <div class="modal-container modal-clave-admin" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="bi bi-key-fill"></i>
+        Cambiar Clave — {{ usuarioClaveNombre }}
+      </h3>
+      <button type="button" class="btn-close" (click)="cerrarModalClave()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Nueva clave -->
+      <div class="form-group">
+        <label class="form-label"><i class="bi bi-lock"></i> Nueva clave *</label>
+        <div class="pw-wrapper">
+          <input [type]="mostrarNuevaClaveAdmin ? 'text' : 'password'"
+                 class="form-input"
+                 placeholder="Mínimo 8 caracteres"
+                 [(ngModel)]="nuevaClaveAdmin"
+                 name="nuevaClaveAdmin" />
+          <button type="button" class="pw-eye" (click)="mostrarNuevaClaveAdmin = !mostrarNuevaClaveAdmin">
+            <i class="bi" [class.bi-eye]="!mostrarNuevaClaveAdmin" [class.bi-eye-slash]="mostrarNuevaClaveAdmin"></i>
+          </button>
+        </div>
+
+        <!-- Indicadores -->
+        <div class="pw-reqs" *ngIf="nuevaClaveAdmin.length > 0">
+          <span [class.req-ok]="adm_tieneMayuscula" [class.req-fail]="!adm_tieneMayuscula">
+            <i class="bi" [class.bi-check-circle-fill]="adm_tieneMayuscula" [class.bi-x-circle-fill]="!adm_tieneMayuscula"></i>
+            Mayúscula
+          </span>
+          <span [class.req-ok]="adm_tieneMinuscula" [class.req-fail]="!adm_tieneMinuscula">
+            <i class="bi" [class.bi-check-circle-fill]="adm_tieneMinuscula" [class.bi-x-circle-fill]="!adm_tieneMinuscula"></i>
+            Minúscula
+          </span>
+          <span [class.req-ok]="adm_tieneNumero" [class.req-fail]="!adm_tieneNumero">
+            <i class="bi" [class.bi-check-circle-fill]="adm_tieneNumero" [class.bi-x-circle-fill]="!adm_tieneNumero"></i>
+            Número
+          </span>
+          <span [class.req-ok]="adm_tieneLongitud" [class.req-fail]="!adm_tieneLongitud">
+            <i class="bi" [class.bi-check-circle-fill]="adm_tieneLongitud" [class.bi-x-circle-fill]="!adm_tieneLongitud"></i>
+            Mínimo 8 caracteres
+          </span>
+        </div>
+      </div>
+
+      <!-- Confirmar clave -->
+      <div class="form-group">
+        <label class="form-label"><i class="bi bi-lock-fill"></i> Confirmar nueva clave *</label>
+        <div class="pw-wrapper">
+          <input [type]="mostrarConfirmarClaveAdmin ? 'text' : 'password'"
+                 class="form-input"
+                 [class.input-invalid]="confirmarClaveAdmin.length > 0 && nuevaClaveAdmin !== confirmarClaveAdmin"
+                 placeholder="Repite la nueva clave"
+                 [(ngModel)]="confirmarClaveAdmin"
+                 name="confirmarClaveAdmin" />
+          <button type="button" class="pw-eye" (click)="mostrarConfirmarClaveAdmin = !mostrarConfirmarClaveAdmin">
+            <i class="bi" [class.bi-eye]="!mostrarConfirmarClaveAdmin" [class.bi-eye-slash]="mostrarConfirmarClaveAdmin"></i>
+          </button>
+        </div>
+        <small class="error-message" *ngIf="confirmarClaveAdmin.length > 0 && nuevaClaveAdmin !== confirmarClaveAdmin">
+          Las claves no coinciden
+        </small>
+      </div>
+
+      <!-- Mensajes -->
+      <div class="msg-error" *ngIf="errorClaveAdmin">⚠️ {{ errorClaveAdmin }}</div>
+      <div class="msg-success" *ngIf="successClaveAdmin">✅ {{ successClaveAdmin }}</div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancelar" (click)="cerrarModalClave()">Cancelar</button>
+      <button type="button" class="btn-guardar"
+              (click)="guardarClaveAdmin()"
+              [disabled]="!adm_passwordValido || nuevaClaveAdmin !== confirmarClaveAdmin">
+        <i class="bi bi-shield-lock"></i>
+        Guardar Clave
+      </button>
     </div>
   </div>
 </div>

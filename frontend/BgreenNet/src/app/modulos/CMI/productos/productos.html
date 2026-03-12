@@ -94,7 +94,7 @@
             </div>
           </div>
           <div class="chart-container">
-            <canvas baseChart [data]="monthlyCxPChartData" [options]="monthlyCxPOptions" type="bar"></canvas>
+            <canvas baseChart [data]="monthlyCxPChartData" [options]="monthlyCxPOptions" [plugins]="barChartPlugins" type="bar"></canvas>
           </div>
         </div>
       </div>
@@ -152,7 +152,7 @@
             </div>
           </div>
           <div class="chart-container">
-            <canvas baseChart [data]="monthlyPxCChartData" [options]="monthlyPxCOptions" type="bar"></canvas>
+            <canvas baseChart [data]="monthlyPxCChartData" [options]="monthlyPxCOptions" [plugins]="barChartPlugins" type="bar"></canvas>
           </div>
         </div>
       </div>
@@ -176,7 +176,7 @@
           </div>
           <div class="stat-detail" *ngIf="!isB100()">
             <i class="fas fa-info-circle"></i>
-            <span>Consumo: {{ monthlyData.total_consumo | number:'1.0-0':'es-ES' }} kg</span>
+            <span>{{ isProduccionBase() ? 'Producción' : 'Consumo' }}: {{ monthlyData.total_consumo | number:'1.0-0':'es-ES' }} kg</span>
           </div>
           <div class="stat-detail" *ngIf="isB100()">
             <i class="fas fa-calendar-check"></i>
@@ -213,7 +213,7 @@
           <div class="chart-header">
             <div class="chart-title">
               <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
-              Consumo Diario {{ getProductoNombre() }}
+              {{ isProduccionBase() ? 'Producción Diaria' : 'Consumo Diario' }} {{ getProductoNombre() }}
             </div>
           </div>
           <div class="chart-container">
@@ -225,11 +225,11 @@
           <div class="chart-header">
             <div class="chart-title">
               <div class="chart-icon"><i class="fas fa-chart-bar"></i></div>
-              Consumo Mensual
+              {{ isProduccionBase() ? 'Producción Mensual' : 'Consumo Mensual' }}
             </div>
           </div>
           <div class="chart-container">
-            <canvas baseChart [data]="monthlyChartData" [options]="monthlyChartOptions" type="bar"></canvas>
+            <canvas baseChart [data]="monthlyChartData" [options]="monthlyChartOptions" [plugins]="barChartPlugins" type="bar"></canvas>
           </div>
         </div>
       </div>

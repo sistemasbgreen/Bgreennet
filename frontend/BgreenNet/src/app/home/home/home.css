@@ -1464,7 +1464,7 @@ footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #66ea83 0%, #076003 100%);
 }
 
 .modal-tarea-header h3 {
@@ -1498,6 +1498,7 @@ footer {
 }
 
 .modal-tarea-body {
+  background: rgb(255, 255, 255);
   padding: 2rem;
   overflow-y: auto;
   max-height: calc(90vh - 160px);
@@ -1537,7 +1538,7 @@ footer {
 .form-textarea:focus,
 .form-select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #000000;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -1548,12 +1549,13 @@ footer {
 }
 
 .modal-tarea-footer {
+
   padding: 1.5rem;
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  background: var(--bg-secondary);
+  background: #ffffff;
 }
 
 .btn-cancelar,
@@ -1578,7 +1580,7 @@ footer {
 }
 
 .btn-guardar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+   background: linear-gradient(135deg, #66ea83 0%, #076003 100%);
   color: white;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
@@ -1681,7 +1683,7 @@ footer {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #66ea83 0%, #076003 100%);
   transform: scaleY(0);
   transition: transform 0.3s ease;
 }
@@ -1706,7 +1708,7 @@ footer {
   flex-shrink: 0;
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+   background: linear-gradient(135deg, #66ea83 0%, #076003 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -2075,3 +2077,155 @@ body.modal-open {
 
 
 
+<<<<<<< Updated upstream
+=======
+.contactos-clear-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* Dark mode support */
+.dark-mode .contactos-search-input {
+  background: #2a2a2a;
+  border-color: #444;
+  color: #eee;
+}
+
+.dark-mode .contactos-search-input:focus {
+  border-color: #4caf50;
+  background: #333;
+}
+
+/* ============================================
+   MODAL CAMBIAR CLAVE
+============================================ */
+.clave-modal-overlay {
+  z-index: 2000;
+}
+
+.clave-modal-container {
+  max-width: 460px;
+  width: 94%;
+}
+
+/* Wrapper del campo password con ojo */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.toggle-eye {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toggle-eye:hover {
+  color: var(--green-primary, #0a5c2e);
+}
+
+/* Indicadores de requisitos */
+.password-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.password-requirements span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+.req-ok {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.req-fail {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.dark-mode .req-ok {
+  background: rgba(22, 163, 74, 0.2);
+  color: #4ade80;
+}
+
+.dark-mode .req-fail {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+/* Hint de coincidencia */
+.match-hint {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Input border states */
+.input-error {
+  border-color: #ef4444 !important;
+}
+
+.input-ok {
+  border-color: #22c55e !important;
+}
+
+/* Mensajes de éxito y error */
+.clave-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.clave-success {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.dark-mode .clave-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.dark-mode .clave-success {
+  background: rgba(22, 163, 74, 0.15);
+  color: #4ade80;
+  border-color: rgba(22, 163, 74, 0.3);
+}
+>>>>>>> Stashed changes
