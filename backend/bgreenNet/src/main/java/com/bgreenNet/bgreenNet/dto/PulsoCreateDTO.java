@@ -13,6 +13,7 @@ public class PulsoCreateDTO {
     private String imagenTipoMime;
     private Integer imagenTamanoBytes;
     private LocalDateTime fechaFinal;
+    private LocalDateTime fechaActivacion;
     private String creadoPor;
 	public String getTitulo() {
 		return titulo;
@@ -61,6 +62,12 @@ public class PulsoCreateDTO {
 	}
 	public void setCreadoPor(String creadoPor) {
 		this.creadoPor = creadoPor;
+	}
+	public LocalDateTime getFechaActivacion() {
+		return fechaActivacion;
+	}
+	public void setFechaActivacion(LocalDateTime fechaActivacion) {
+		this.fechaActivacion = fechaActivacion;
 	}
     
     

@@ -33,6 +33,7 @@ public interface PulsoRepository extends JpaRepository<Pulso, Long> {
                 "@imagen_tipo_mime = :imagenTipoMime, " +
                 "@imagen_tamano_bytes = :imagenTamanoBytes, " +
                 "@Fecha_Final = :fechaFinal, " +
+                "@fecha_Activacion = :fechaActivacion, " +
                 "@creado_por = :creadoPor; " +
                 "SELECT id FROM @newId",
         nativeQuery = true
@@ -45,6 +46,7 @@ public interface PulsoRepository extends JpaRepository<Pulso, Long> {
             @Param("imagenTipoMime") String imagenTipoMime,
             @Param("imagenTamanoBytes") Integer imagenTamanoBytes,
             @Param("fechaFinal") LocalDateTime fechaFinal,
+            @Param("fechaActivacion") LocalDateTime fechaActivacion,
             @Param("creadoPor") String creadoPor
     );
 
@@ -59,6 +61,7 @@ public interface PulsoRepository extends JpaRepository<Pulso, Long> {
                 "@imagen_tipo_mime = :imagenTipoMime, " +
                 "@imagen_tamano_bytes = :imagenTamanoBytes, " +
                 "@Fecha_Final = :fechaFinal, " +
+                "@fecha_Activacion = :fechaActivacion, " +
                 "@activo = :activo",
         nativeQuery = true
     )
@@ -71,6 +74,7 @@ public interface PulsoRepository extends JpaRepository<Pulso, Long> {
             @Param("imagenTipoMime") String imagenTipoMime,
             @Param("imagenTamanoBytes") Integer imagenTamanoBytes,
             @Param("fechaFinal") LocalDateTime fechaFinal,
+            @Param("fechaActivacion") LocalDateTime fechaActivacion,
             @Param("activo") Boolean activo
     );
 
@@ -94,4 +98,8 @@ public interface PulsoRepository extends JpaRepository<Pulso, Long> {
         nativeQuery = true
     )
     Integer existsPulsoById(@Param("id") Long id);
+
+    @Modifying
+    @Query(value = "EXEC sp_Pulsos_ActivarPorFecha", nativeQuery = true)
+    void activarPulsosPorFecha();
 }

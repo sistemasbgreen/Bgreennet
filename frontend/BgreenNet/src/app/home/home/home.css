@@ -199,6 +199,14 @@ body {
 }
 
 /* Botones de acción */
+.theme-toggle {
+  display: flex;
+}
+
+.notification-btn {
+  display: none;
+}
+
 .theme-toggle,
 .notification-btn {
   width: 40px;
@@ -209,8 +217,6 @@ body {
   color: var(--text-primary);
   cursor: pointer;
   font-size: 18px;
-  /*   display: flex;*/
-  display: none;
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
@@ -1032,6 +1038,38 @@ body {
   opacity: 0.7;
 }
 
+/* Dark mode para Tareas y Actividad */
+.dark-mode .activity-item {
+  border-color: var(--border-color);
+}
+
+.dark-mode .activity-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.dark-mode .tarea-header-inline .activity-title {
+  color: var(--text-primary);
+}
+
+.dark-mode .activity-detail {
+  color: var(--text-secondary);
+}
+
+.dark-mode .estado-creada {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.dark-mode .btn-accion-mini.btn-iniciar {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.dark-mode .btn-accion-mini.btn-finalizar {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
 /* ============================================
    MODALES
 ============================================ */
@@ -1428,6 +1466,71 @@ footer {
   box-shadow: var(--shadow-lg);
 }
 
+
+/* ============================================
+   CONTACT SEARCH STYLES
+============================================ */
+.contacto-search-wrapper {
+  padding: 20px 30px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.contacto-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 600px;
+}
+
+.contacto-search-input {
+  width: 100%;
+  padding: 12px 45px 12px 45px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.contacto-search-input:focus {
+  outline: none;
+  border-color: var(--green-primary);
+  box-shadow: 0 0 0 4px rgba(10, 92, 46, 0.1);
+  background: var(--bg-primary);
+}
+
+.contacto-search-container .search-icon {
+  position: absolute;
+  left: 15px;
+  color: var(--text-secondary);
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.contacto-clear-btn {
+  position: absolute;
+  right: 15px;
+  width: 24px;
+  height: 24px;
+  background: var(--border-color);
+  border: none;
+  border-radius: 50%;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.contacto-clear-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
 /* ============================================
    Modal de nueva tarea
 ============================================ */
@@ -1594,6 +1697,34 @@ footer {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Dark mode para Modales de Tarea y Clave */
+.dark-mode .modal-tarea-body,
+.dark-mode .modal-tarea-footer {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-top-color: var(--border-color);
+}
+
+.dark-mode .form-input,
+.dark-mode .form-textarea,
+.dark-mode .form-select {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.dark-mode .form-input:focus,
+.dark-mode .form-textarea:focus,
+.dark-mode .form-select:focus {
+  border-color: var(--green-secondary);
+}
+
+.dark-mode .btn-cancelar {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
 /* Responsive */
@@ -1802,6 +1933,58 @@ footer {
   color: #adb5bd;
 }
 
+/* Dark mode para Pulsos */
+.dark-mode .activity-sectio-notice {
+  background: var(--bg-primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .section-header {
+  border-bottom-color: var(--border-color);
+}
+
+.dark-mode .section-title-with-badge h3 {
+  color: var(--text-primary);
+}
+
+.dark-mode .pulso-card {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.dark-mode .pulso-card:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--green-primary);
+}
+
+.dark-mode .pulso-titulo {
+  color: var(--text-primary);
+}
+
+.dark-mode .pulso-card:hover .pulso-titulo {
+  color: var(--green-secondary);
+}
+
+.dark-mode .pulso-fecha {
+  color: var(--text-secondary);
+}
+
+.dark-mode .pulso-arrow {
+  color: var(--text-secondary);
+}
+
+.dark-mode .empty-state-inline {
+  color: var(--text-secondary);
+}
+
+.dark-mode .empty-state-inline i {
+  color: var(--border-color);
+}
+
+.dark-mode .empty-state-inline strong {
+  color: var(--text-primary);
+}
+
 /* ========================================
    MODAL DE PULSO
 ======================================== */
@@ -1918,6 +2101,26 @@ footer {
 
 .pulso-modal-content::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Dark mode para Modal de Pulso */
+.dark-mode .pulso-modal-content {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dark-mode .pulso-modal-content h3 {
+  color: var(--text-primary);
+}
+
+.dark-mode .pulso-modal-close {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dark-mode .pulso-modal-close:hover {
+  background: var(--border-color);
+  color: white;
 }
 
 /* ========================================
@@ -2077,8 +2280,6 @@ body.modal-open {
 
 
 
-<<<<<<< Updated upstream
-=======
 .contactos-clear-btn:hover {
   background: #f0f0f0;
   color: #333;
@@ -2228,4 +2429,3 @@ body.modal-open {
   color: #4ade80;
   border-color: rgba(22, 163, 74, 0.3);
 }
->>>>>>> Stashed changes

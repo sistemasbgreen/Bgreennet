@@ -63,7 +63,8 @@ export class Pulsos implements OnInit {
       imagenUrl: [''],
       imagenNombreOriginal: [''],
       imagenTipoMime: [''],
-      imagenTamanoBytes: [0]
+      imagenTamanoBytes: [0],
+      fechaActivacion: ['']
     });
   }
 
@@ -225,7 +226,8 @@ export class Pulsos implements OnInit {
       imagenUrl: pulso.imagenUrl || '',
       imagenNombreOriginal: pulso.imagenNombreOriginal || '',
       imagenTipoMime: pulso.imagenTipoMime || '',
-      imagenTamanoBytes: pulso.imagenTamanoBytes || 0
+      imagenTamanoBytes: pulso.imagenTamanoBytes || 0,
+      fechaActivacion: pulso.fechaActivacion ? pulso.fechaActivacion.split('T')[0] : ''
     });
 
     this.imagePreview = pulso.imagenUrl;
@@ -393,6 +395,7 @@ export class Pulsos implements OnInit {
         imagenTipoMime: formValues.imagenTipoMime || null,
         imagenTamanoBytes: formValues.imagenTamanoBytes || null,
         fechaFinal: fechaDate.toISOString(),
+        fechaActivacion: formValues.fechaActivacion ? new Date(formValues.fechaActivacion + 'T00:00:00').toISOString() : undefined,
         creadoPor: this.userEmail
       };
 
@@ -438,6 +441,7 @@ export class Pulsos implements OnInit {
         imagenTipoMime: formValues.imagenTipoMime || null,
         imagenTamanoBytes: formValues.imagenTamanoBytes || null,
         fechaFinal: fechaDate.toISOString(),
+        fechaActivacion: formValues.fechaActivacion ? new Date(formValues.fechaActivacion + 'T00:00:00').toISOString() : undefined,
         activo: formValues.activo
       };
 

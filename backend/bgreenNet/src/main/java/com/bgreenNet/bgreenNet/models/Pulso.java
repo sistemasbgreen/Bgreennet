@@ -49,6 +49,9 @@ public class Pulso {
     @Column(name = "activo", nullable = false)
     private Boolean activo;
 
+    @Column(name = "fecha_Activacion")
+    private LocalDateTime fechaActivacion;
+
     @Column(name = "creado_por", nullable = false)
     private String creadoPor;
 }

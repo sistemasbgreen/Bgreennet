@@ -12,4 +12,5 @@ export interface Pulso {
   dateModify?: string;    // ✅ Coincide con date_Modify de BD
   creadoPor?: string;
   idPulso : number;
+  fechaActivacion?: string; // Fecha en la que el pulso se activa automáticamente
 }

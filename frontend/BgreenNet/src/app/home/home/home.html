@@ -103,6 +103,11 @@
 
           <div class="dropdown-divider"></div>
 
+          <button class="dropdown-item" (click)="irAConfiguracion(); closeUserMenu()" *ngIf="tienePermisoConfiguracion">
+            <i class="bi bi-gear"></i>
+            <span>Configuración</span>
+          </button>
+
           <button class="dropdown-item" (click)="abrirModalCambiarClave()">
             <i class="bi bi-key"></i>
             <span>Cambiar Clave</span>
@@ -135,7 +140,23 @@
       <div class="modal-body">
         <!-- Tabla de Contactos -->
         <div *ngIf="modalType === 'contactos'">
-          <table class="tabla-contactos" *ngIf="sistemacontactosData.length > 0">
+          <!-- Buscador de contactos -->
+          <div class="contacto-search-wrapper">
+            <div class="contacto-search-container">
+              <i class="bi bi-search search-icon"></i>
+              <input type="text" 
+                     class="contacto-search-input" 
+                     placeholder="Buscar contacto por nombre, cargo o correo..." 
+                     [(ngModel)]="contactoSearchQuery" />
+              <button *ngIf="contactoSearchQuery" 
+                      class="contacto-clear-btn" 
+                      (click)="contactoSearchQuery = ''">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+
+          <table class="tabla-contactos" *ngIf="filteredContactos.length > 0">
             <thead>
               <tr>
                 <th>Nombre</th>
@@ -145,7 +166,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let contacto of sistemacontactosData; let i = index">
+              <tr *ngFor="let contacto of filteredContactos; let i = index">
                 <td>
                   <div class="nombre-cell">
                     <div class="avatar avatar-{{(i % 5) + 1}}">
@@ -174,9 +195,10 @@
               </tr>
             </tbody>
           </table>
-          <div class="empty-state" *ngIf="sistemacontactosData.length === 0">
+          <div class="empty-state" *ngIf="filteredContactos.length === 0">
             <div class="empty-state-icon">📭</div>
-            <p>No hay contactos disponibles en este momento</p>
+            <p>{{ contactoSearchQuery ? 'No se encontraron contactos que coincidan con "' + contactoSearchQuery + '"' : 'No hay contactos disponibles en este momento' }}</p>
+            <button *ngIf="contactoSearchQuery" class="btn-cerrar" style="margin-top: 10px;" (click)="contactoSearchQuery = ''">Limpiar búsqueda</button>
           </div>
         </div>
 
@@ -219,7 +241,7 @@
 
       <div class="modal-footer">
         <span class="footer-info">
-          <strong *ngIf="modalType === 'contactos'">{{ sistemacontactosData.length }}</strong>
+          <strong *ngIf="modalType === 'contactos'">{{ filteredContactos.length }}</strong>
           <strong *ngIf="modalType === 'formatos'">{{ formatosData.length }}</strong>
           {{ modalType === 'contactos' ? 'contacto(s)' : 'formato(s)' }} disponible(s)
         </span>
@@ -432,7 +454,7 @@
       <div class="pulsos-grid" *ngIf="pulsos && pulsos.length > 0">
         <div class="pulso-card" *ngFor="let pulso of pulsos" (click)="abrirPulso(pulso)">
           <div class="pulso-icon">
-          <img [src]="pulso.imagenUrl" [alt]="pulso.titulo" width="80" height="80" />
+            <img [src]="pulso.imagenUrl" [alt]="pulso.titulo" width="80" height="80" />
 
           </div>
           <div class="pulso-content">
@@ -667,11 +689,8 @@
       <div class="form-group">
         <label>Clave actual <span class="required">*</span></label>
         <div class="password-input-wrapper">
-          <input [type]="mostrarClaveActual ? 'text' : 'password'"
-                 class="form-input"
-                 placeholder="Ingresa tu clave actual"
-                 [(ngModel)]="claveActual"
-                 name="claveActual" />
+          <input [type]="mostrarClaveActual ? 'text' : 'password'" class="form-input"
+            placeholder="Ingresa tu clave actual" [(ngModel)]="claveActual" name="claveActual" />
           <button type="button" class="toggle-eye" (click)="mostrarClaveActual = !mostrarClaveActual">
             <i class="bi" [class.bi-eye]="!mostrarClaveActual" [class.bi-eye-slash]="mostrarClaveActual"></i>
           </button>
@@ -682,11 +701,8 @@
       <div class="form-group">
         <label>Nueva clave <span class="required">*</span></label>
         <div class="password-input-wrapper">
-          <input [type]="mostrarNuevaClave ? 'text' : 'password'"
-                 class="form-input"
-                 placeholder="Ingresa tu nueva clave"
-                 [(ngModel)]="nuevaClave"
-                 name="nuevaClave" />
+          <input [type]="mostrarNuevaClave ? 'text' : 'password'" class="form-input"
+            placeholder="Ingresa tu nueva clave" [(ngModel)]="nuevaClave" name="nuevaClave" />
           <button type="button" class="toggle-eye" (click)="mostrarNuevaClave = !mostrarNuevaClave">
             <i class="bi" [class.bi-eye]="!mostrarNuevaClave" [class.bi-eye-slash]="mostrarNuevaClave"></i>
           </button>
@@ -711,7 +727,8 @@
             Mínimo 8 caracteres
           </span>
           <span [class.req-ok]="tieneCaracterEspecial" [class.req-fail]="!tieneCaracterEspecial">
-            <i class="bi" [class.bi-check-circle-fill]="tieneCaracterEspecial" [class.bi-x-circle-fill]="!tieneCaracterEspecial"></i>
+            <i class="bi" [class.bi-check-circle-fill]="tieneCaracterEspecial"
+              [class.bi-x-circle-fill]="!tieneCaracterEspecial"></i>
             Carácter especial (!@#$...)
           </span>
         </div>
@@ -721,18 +738,16 @@
       <div class="form-group">
         <label>Confirmar nueva clave <span class="required">*</span></label>
         <div class="password-input-wrapper">
-          <input [type]="mostrarConfirmarClave ? 'text' : 'password'"
-                 class="form-input"
-                 [class.input-error]="confirmarClave.length > 0 && !claveConfirmadaValida"
-                 [class.input-ok]="confirmarClave.length > 0 && claveConfirmadaValida"
-                 placeholder="Confirma tu nueva clave"
-                 [(ngModel)]="confirmarClave"
-                 name="confirmarClave" />
+          <input [type]="mostrarConfirmarClave ? 'text' : 'password'" class="form-input"
+            [class.input-error]="confirmarClave.length > 0 && !claveConfirmadaValida"
+            [class.input-ok]="confirmarClave.length > 0 && claveConfirmadaValida" placeholder="Confirma tu nueva clave"
+            [(ngModel)]="confirmarClave" name="confirmarClave" />
           <button type="button" class="toggle-eye" (click)="mostrarConfirmarClave = !mostrarConfirmarClave">
             <i class="bi" [class.bi-eye]="!mostrarConfirmarClave" [class.bi-eye-slash]="mostrarConfirmarClave"></i>
           </button>
         </div>
-        <small class="match-hint" *ngIf="confirmarClave.length > 0 && !claveConfirmadaValida">Las claves no coinciden</small>
+        <small class="match-hint" *ngIf="confirmarClave.length > 0 && !claveConfirmadaValida">Las claves no
+          coinciden</small>
       </div>
 
       <!-- Mensajes -->
@@ -743,9 +758,8 @@
 
     <div class="modal-tarea-footer">
       <button class="btn-cancelar" (click)="cerrarModalCambiarClave()">Cancelar</button>
-      <button class="btn-guardar"
-              (click)="guardarClave()"
-              [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida">
+      <button class="btn-guardar" (click)="guardarClave()"
+        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida">
         <i class="bi bi-shield-lock"></i>
         Guardar Clave
       </button>
