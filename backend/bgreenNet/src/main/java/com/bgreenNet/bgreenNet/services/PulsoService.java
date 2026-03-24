@@ -85,6 +85,7 @@ public class PulsoService {
                 dto.getImagenTipoMime(),
                 dto.getImagenTamanoBytes(),
                 dto.getFechaFinal(),
+                dto.getFechaActivacion(),
                 dto.getCreadoPor()
         );
 
@@ -109,6 +110,7 @@ public class PulsoService {
                 dto.getImagenTipoMime(),
                 dto.getImagenTamanoBytes(),
                 dto.getFechaFinal(),
+                dto.getFechaActivacion(),
                 dto.getActivo()
         );
     }
@@ -137,25 +139,60 @@ public class PulsoService {
     }
 
     // ==================== MAPPER ====================
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PulsoService.class);
 
     private PulsoResponseDTO mapToPulsoResponseDTO(Object[] row) {
         int i = 0;
-        PulsoResponseDTO dto = new PulsoResponseDTO();
+        try {
+            PulsoResponseDTO dto = new PulsoResponseDTO();
 
-        dto.setIdPulso(asLong(row[i++]));
-        dto.setTitulo(asString(row[i++]));
-        dto.setDescripcion(asString(row[i++]));
-        dto.setImagenUrl(UrlUtils.sanitizeUrl(asString(row[i++])));
-        dto.setImagenNombreOriginal(asString(row[i++]));
-        dto.setImagenTipoMime(asString(row[i++]));
-        dto.setImagenTamanoBytes(asInteger(row[i++]));
-        dto.setFechaFinal(asLocalDateTime(row[i++]));
-        dto.setDateCreate(asLocalDateTime(row[i++]));
-        dto.setDateModify(asLocalDateTime(row[i++]));
-        dto.setActivo(asBoolean(row[i++]));
-        dto.setCreadoPor(asString(row[i++]));
+            dto.setIdPulso(asLong(row[i++])); // 0
+            dto.setTitulo(asString(row[i++])); // 1
+            dto.setDescripcion(asString(row[i++])); // 2
+            dto.setImagenUrl(UrlUtils.sanitizeUrl(asString(row[i++]))); // 3
+            dto.setImagenNombreOriginal(asString(row[i++])); // 4
+            dto.setImagenTipoMime(asString(row[i++])); // 5
+            dto.setImagenTamanoBytes(asInteger(row[i++])); // 6
+            dto.setFechaFinal(asLocalDateTime(row[i++])); // 7
+            dto.setDateCreate(asLocalDateTime(row[i++])); // 8
+            dto.setDateModify(asLocalDateTime(row[i++])); // 9
+            dto.setActivo(asBoolean(row[i++])); // 10
+            
+            // Lógica robusta para encontrar email y fechaActivacion
+            // Buscamos entre las columnas restantes (usualmente 11, 12, 13...)
+            for (int k = i; k < row.length; k++) {
+                Object val = row[k];
+                if (val == null) continue;
+                
+                String valStr = val.toString();
+                
+                // Si parece email, asignarlo a creadoPor (si no está ya asignado)
+                if (dto.getCreadoPor() == null && valStr.contains("@")) {
+                    dto.setCreadoPor(valStr);
+                } 
+                // Si es un tipo de fecha o una cadena que parece fecha, intentar como fechaActivacion
+                else if (dto.getFechaActivacion() == null && 
+                    (val instanceof java.util.Date || val instanceof java.time.temporal.Temporal || 
+                     valStr.matches("\\d{2}-\\d{2}-\\d{4}.*") || valStr.matches("\\d{4}-\\d{2}-\\d{2}.*"))) {
+                    try {
+                        dto.setFechaActivacion(asLocalDateTime(val));
+                    } catch (Exception ignored) {}
+                }
+            }
+            
+            // Fallback si no se encontró el email en el loop inteligente (probablemente en la pos 11 o 12)
+            if (dto.getCreadoPor() == null && row.length > i) {
+                // Buscamos la última cadena larga que no sea fecha? No, mejor solo usar el loop de arriba.
+            }
 
-        return dto;
+            return dto;
+        } catch (Exception e) {
+            logger.error("Error fatal en el mapper de Pulsos. Row length: {}", row.length);
+            for (int k = 0; k < row.length; k++) {
+                logger.error("Col {}: {} ({})", k, row[k], row[k] != null ? row[k].getClass().getSimpleName() : "null");
+            }
+            throw e;
+        }
     }
 
     // ==================== CONVERSORES ====================

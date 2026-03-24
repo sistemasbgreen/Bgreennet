@@ -14,6 +14,7 @@ private String imagenTipoMime;
 private Integer imagenTamanoBytes;
 private LocalDateTime fechaFinal;
 private Boolean activo;
+private LocalDateTime fechaActivacion;
 public Long getId() {
 	return id;
 }
@@ -67,6 +68,12 @@ public Boolean getActivo() {
 }
 public void setActivo(Boolean activo) {
 	this.activo = activo;
+}
+public LocalDateTime getFechaActivacion() {
+	return fechaActivacion;
+}
+public void setFechaActivacion(LocalDateTime fechaActivacion) {
+	this.fechaActivacion = fechaActivacion;
 }
 
 

@@ -17,13 +17,13 @@ BEGIN
         FORMAT([date_create], 'dd/MM/yyyy HH:mm') AS date_create,
         FORMAT([date_Modify], 'dd/MM/yyyy HH:mm') AS date_Modify,
         [activo],
+        [creado_por],
+        [fecha_Activacion],
         CASE 
             WHEN [activo] = 1 AND [Fecha_Final] >= GETDATE() THEN 'Vigente'
             WHEN [activo] = 1 AND [Fecha_Final] < GETDATE() THEN 'Expirado'
             ELSE 'Inactivo'
-        END AS estado_descripcion,
-
-        [creado_por]
+        END AS estado_descripcion
     FROM [dbo].[Pulsos]
     ORDER BY [date_create] DESC
 END

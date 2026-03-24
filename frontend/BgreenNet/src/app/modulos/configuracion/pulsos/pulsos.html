@@ -105,6 +105,10 @@
                 <i class="bi bi-calendar-event"></i>
                 <span>Vence: {{ pulso.fechaFinal | date:'dd/MM/yyyy' }}</span>
               </div>
+              <div class="meta-item" *ngIf="pulso.fechaActivacion">
+                <i class="bi bi-calendar-check"></i>
+                <span>Activa: {{ pulso.fechaActivacion | date:'dd/MM/yyyy' }}</span>
+              </div>
               <div class="meta-item" *ngIf="pulso.creadoPor">
                 <i class="bi bi-person"></i>
                 <span>{{ pulso.creadoPor }}</span>
@@ -229,6 +233,15 @@
             <div class="invalid-feedback" *ngIf="isFieldInvalid('fechaFinal')">
               {{ getErrorMessage('fechaFinal') }}
             </div>
+          </div>
+
+          <!-- Fecha de Activación -->
+          <div class="form-group">
+            <label for="fechaActivacion">Fecha de activación (opcional)</label>
+            <input type="date" id="fechaActivacion" class="form-control" formControlName="fechaActivacion" [min]="minDate">
+            <small class="form-text text-muted">
+              El pulso se activará automáticamente en esta fecha. Si se deja vacío, se activará de inmediato.
+            </small>
           </div>
 
           <!-- Estado -->

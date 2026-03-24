@@ -980,7 +980,10 @@ export class Productos implements OnInit, OnDestroy {
           labels: { usePointStyle: true, boxWidth: 30, padding: 15, font: { size: 12 } }
         },
         datalabels: {
-          display: true,
+          display: (ctx: any) => {
+            // Solo mostrar etiquetas en las barras (datasetIndex 0), no en la línea de meta
+            return ctx.datasetIndex === 0 && ctx.dataset.data[ctx.dataIndex] !== null && ctx.dataset.data[ctx.dataIndex] !== 0;
+          },
           color: '#333',
           anchor: 'end',
           align: 'top',
@@ -1016,7 +1019,10 @@ export class Productos implements OnInit, OnDestroy {
           labels: { usePointStyle: true, boxWidth: 30, padding: 15, font: { size: 12 } }
         },
         datalabels: {
-          display: true,
+          display: (ctx: any) => {
+            // Solo mostrar etiquetas en las barras (datasetIndex 0), no en la línea de meta
+            return ctx.datasetIndex === 0 && ctx.dataset.data[ctx.dataIndex] !== null && ctx.dataset.data[ctx.dataIndex] !== 0;
+          },
           color: '#333',
           anchor: 'end',
           align: 'top',

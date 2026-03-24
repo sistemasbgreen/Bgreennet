@@ -8,4 +8,5 @@ export interface PulsoUpdateDTO {
   imagenTamanoBytes?: number;
   fechaFinal: string;
   activo: boolean;
+  fechaActivacion?: string; // Opcional — fecha en que el pulso se activa automáticamente
 }

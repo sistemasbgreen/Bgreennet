@@ -18,6 +18,7 @@ public class PulsoResponseDTO {
     private LocalDateTime dateModify;
     private Boolean activo;
     private String creadoPor;
+    private LocalDateTime fechaActivacion;
 	public Long getIdPulso() {
 		return idPulso;
 	}
@@ -89,6 +90,12 @@ public class PulsoResponseDTO {
 	}
 	public void setCreadoPor(String creadoPor) {
 		this.creadoPor = creadoPor;
+	}
+	public LocalDateTime getFechaActivacion() {
+		return fechaActivacion;
+	}
+	public void setFechaActivacion(LocalDateTime fechaActivacion) {
+		this.fechaActivacion = fechaActivacion;
 	}
 
     

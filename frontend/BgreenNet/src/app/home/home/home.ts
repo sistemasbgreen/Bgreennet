@@ -154,8 +154,8 @@ export class Home implements OnInit, AfterViewInit {
   selectedImage: string | null = null;
   subscription: any;
   perfil_Fk: any;
+  contactoSearchQuery: string = '';
   contactosFiltrados: any;
-  contactoSearchQuery: any;
 
 
   constructor(
@@ -319,6 +319,12 @@ export class Home implements OnInit, AfterViewInit {
 
   clearSearch(): void {
     this.searchQuery = '';
+  }
+
+  get tienePermisoConfiguracion(): boolean {
+    return this.sistemaInformacionData.some(s =>
+      s.nombre.toUpperCase().includes('CONFIGURACION')
+    );
   }
 
   // ========================================
@@ -889,17 +895,24 @@ cargarPulsos(): void {
     });
   }
 
-filtrarContactos(): void {
-    const q = this.contactoSearchQuery.toLowerCase().trim();
-    if (!q) {
-      this.contactosFiltrados = [...this.sistemacontactosData];
-      return;
+  get filteredContactos(): any[] {
+    let contactos = [...this.sistemacontactosData];
+    const q = this.contactoSearchQuery?.toLowerCase().trim();
+
+    if (q) {
+      contactos = contactos.filter(c =>
+        c.nombre?.toLowerCase().includes(q) ||
+        c.cargo?.toLowerCase().includes(q) ||
+        c.correo?.toLowerCase().includes(q)
+      );
     }
-    this.contactosFiltrados = this.sistemacontactosData.filter(c =>
-      c.nombre?.toLowerCase().includes(q) ||
-      c.cargo?.toLowerCase().includes(q) ||
-      c.correo?.toLowerCase().includes(q)
-    );
+
+    // Ordenar por extensión de menor a mayor
+    return contactos.sort((a, b) => {
+      const extA = parseInt(a.ext) || 0;
+      const extB = parseInt(b.ext) || 0;
+      return extA - extB;
+    });
   }
 
  
