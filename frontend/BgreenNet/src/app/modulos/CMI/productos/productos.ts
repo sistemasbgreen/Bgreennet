@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Router } from '@angular/router';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
@@ -58,7 +59,7 @@ export class Productos implements OnInit, OnDestroy {
     { id: '3188', nombre: 'Generacion Fondos', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP', 'EI', 'AI'] },
     { id: '26', nombre: 'B100', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP'] },
     {
-      id: 'CostoDirecto', nombre: 'Costo Directo', esCostoDirecto: true,  consumptionDocTypes: [],
+      id: 'CostoDirecto', nombre: 'Costo Directo', esCostoDirecto: true, consumptionDocTypes: [],
       productionDocTypes: []
     }
   ];
@@ -72,7 +73,7 @@ export class Productos implements OnInit, OnDestroy {
   
   metasPorProducto: Record<string, Record<string, number>> = {
     '10': { '2025': 130, '2026': 135 },
-    '13': { '2025': 19.5, '2026': 20.5 },
+    '13': { '2025': 19.5, '2026': 19.5 },
     '8': { '2025': 1031, '2026': 1031 },
     '9264': { '2025': 30, '2026': 30 },
     '32': { '2025': 103.3, '2026': 107.9 },
@@ -87,7 +88,7 @@ export class Productos implements OnInit, OnDestroy {
   
   metasMensualesCosto: Record<string, number[]> = {
     '2025': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    '2026': [5204, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    '2026': [5204, 5204, 5305, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   };
   
   // Charts - existentes
@@ -115,7 +116,8 @@ export class Productos implements OnInit, OnDestroy {
 
   constructor(
     private plantaService: cmiplantaservices,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) { }
   
   ngOnInit(): void {
@@ -127,7 +129,40 @@ export class Productos implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
-  
+
+  // =============================================
+  // MEJORA: Método helper para formatear valores
+  // sin redondeo — muestra hasta 4 decimales pero
+  // elimina los ceros finales innecesarios.
+  // Úsalo en el template: {{ formatValue(val) }}
+  // =============================================
+  formatValue(value: number | null, decimals: number = 4): string {
+    if (value == null) return '';
+    // Elimina ceros finales usando parseFloat tras fijar decimales
+    return parseFloat(value.toFixed(decimals)).toString();
+  }
+
+  // Trunca (sin redondear) a N decimales y devuelve cadena con locale es-ES
+  // Ej: truncateDecimal(19.97, 1) => "19,9"  (NO redondea a 20,0)
+  truncateDecimal(value: number | null, decimals: number = 1): string {
+    if (value == null) return '';
+    const factor = Math.pow(10, decimals);
+    const truncated = Math.floor(value * factor) / factor;
+    return truncated.toLocaleString('es-ES', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
+
+  // =============================================
+  // MEJORA: Formateador para datalabels de gráficas
+  // Acepta un sufijo opcional (ej: '%')
+  // =============================================
+  private formatLabel(value: any, suffix: string = '', decimals: number = 4): string {
+    if (value == null || value === 0) return '';
+    return parseFloat(value.toFixed(decimals)).toString() + suffix;
+  }
+
   // Métodos de verificación
   isB100(): boolean { return this.selectedProduct === '26'; }
   isMpGrasas(): boolean { return this.selectedProduct === '8'; }
@@ -136,7 +171,6 @@ export class Productos implements OnInit, OnDestroy {
 
   // Método para limpiar todos los datos antes de cargar nuevos
   limpiarDatos(): void {
-    // Limpiar datos mensuales
     this.monthlyData = {
       acumulado_mes: 0,
       total_consumo: 0,
@@ -146,7 +180,6 @@ export class Productos implements OnInit, OnDestroy {
       acumulado_PxC: 0
     };
     
-    // Limpiar datos YTD
     this.ytdData = {
       acumulado_mes: 0,
       total_consumo: 0,
@@ -155,27 +188,19 @@ export class Productos implements OnInit, OnDestroy {
       acumulado_PxC: 0
     };
     
-    // Limpiar costo directo
     this.costoDirectoMes = null;
     this.costoDirectoYTD = null;
     
-    // Limpiar gráficos existentes
     this.limpiarGraficos();
   }
 
-  // Método para limpiar los datos de los gráficos
   limpiarGraficos(): void {
-    // Gráficos diarios
     this.dailyChartData = { labels: [], datasets: [] };
     this.dailyCxPChartData = { labels: [], datasets: [] };
     this.dailyPxCChartData = { labels: [], datasets: [] };
-    
-    // Gráficos mensuales
     this.monthlyCxPChartData = { labels: [], datasets: [] };
     this.monthlyPxCChartData = { labels: [], datasets: [] };
     this.monthlyChartData = { labels: [], datasets: [] };
-    
-    // Gráficos de costo directo
     this.costoDirectoDiarioChartData = { labels: [], datasets: [] };
     this.costoDirectoAcumuladoChartData = { labels: [], datasets: [] };
   }
@@ -196,7 +221,6 @@ export class Productos implements OnInit, OnDestroy {
       this.cargarDatosCostoDirecto(mes, this.selectedYear);
       this.cargarDatosCostoDirectoYTD(mes, this.selectedYear);
     } else {
-      // Limpiar datos específicos antes de cargar
       this.monthlyData = {
         acumulado_mes: 0,
         total_consumo: 0,
@@ -225,7 +249,6 @@ export class Productos implements OnInit, OnDestroy {
     return this.productos.find(p => p.id === this.selectedProduct) || this.productos[0];
   }
 
-  // === Carga datos para Costo Directo (MES) ===
   cargarDatosCostoDirecto(mes: string, anio: string): void {
     const { fechaInicio, fechaFin } = this.getFechaRango(mes, anio);
     this.plantaService.getCostoDirecto(fechaInicio, fechaFin)
@@ -234,7 +257,6 @@ export class Productos implements OnInit, OnDestroy {
         next: (data) => {
           console.log('Costo Directo Mensual:', data);
           this.buildCostoDirectoCharts(data, anio);
-          // Calcular el valor del mes (último valor acumulado)
           if (data.costoAcumulado && data.costoAcumulado.length > 0) {
             this.costoDirectoMes = data.costoAcumulado[data.costoAcumulado.length - 1];
           }
@@ -247,7 +269,6 @@ export class Productos implements OnInit, OnDestroy {
       });
   }
 
-  // === Carga datos para Costo Directo (YTD) ===
   cargarDatosCostoDirectoYTD(mes: string, anio: string): void {
     const { fechaFin } = this.getFechaRango(mes, anio);
     const fechaInicio = `${anio}-01-01`;
@@ -257,7 +278,6 @@ export class Productos implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           console.log('Costo Directo YTD:', data);
-          // Calcular el valor YTD (último valor acumulado del año)
           if (data.costoAcumulado && data.costoAcumulado.length > 0) {
             this.costoDirectoYTD = data.costoAcumulado[data.costoAcumulado.length - 1];
           }
@@ -276,7 +296,6 @@ export class Productos implements OnInit, OnDestroy {
       return `${d}/${m}`;
     });
 
-    // Gráfico 1: Consumo y Costo Diario
     this.costoDirectoDiarioChartData = {
       labels: [...labels],
       datasets: [
@@ -333,13 +352,12 @@ export class Productos implements OnInit, OnDestroy {
           fill: false,
           tension: 0.4,
           backgroundColor: 'rgba(54, 162, 235, 0.1)',
-          yAxisID: 'y-consumo',
+          yAxisID: 'y-costo',
           pointStyle: 'rect'
         }
       ]
     };
 
-    // Gráfico 2: Consumo y Costo Acumulado
     this.costoDirectoAcumuladoChartData = {
       labels: [...labels],
       datasets: [
@@ -396,7 +414,7 @@ export class Productos implements OnInit, OnDestroy {
           fill: false,
           tension: 0.4,
           backgroundColor: 'rgba(54, 162, 235, 0.1)',
-          yAxisID: 'y-consumo',
+          yAxisID: 'y-costo',
           pointStyle: 'rect'
         }
       ]
@@ -410,7 +428,6 @@ export class Productos implements OnInit, OnDestroy {
     return this.meses[mesIndex]?.label || 'Mes actual';
   }
 
-  // === Lógica existente (sin cambios) ===
   cargarDatosMes(mes: string, anio: string, productoId: string): void {
     const { fechaInicio, fechaFin } = this.getFechaRango(mes, anio);
     const producto = this.getSelectedProductConfig();
@@ -444,7 +461,6 @@ export class Productos implements OnInit, OnDestroy {
             this.monthlyData = { ...base, acumulado_CxP: 0, acumulado_PxC: 0 };
           }
           
-          // Construir gráfico y forzar detección de cambios
           this.buildDailyChart(data, anio);
           this.cdr.detectChanges();
         },
@@ -672,7 +688,6 @@ export class Productos implements OnInit, OnDestroy {
       };
     }
     
-    // Forzar detección de cambios después de actualizar gráfico
     this.cdr.detectChanges();
   }
   
@@ -681,7 +696,7 @@ export class Productos implements OnInit, OnDestroy {
     const producto = this.getSelectedProductConfig();
     const productionId = this.isB100() ? productoId : '26';
     const request: MetanolRequest = {
-      startDate: `${anio}-01-01`, // Asegurar que inicie en el año seleccionado
+      startDate: `${anio}-01-01`,
       endDate: fechaFin,
       consumptionProductId: productoId,
       productionProductId: productionId,
@@ -704,7 +719,7 @@ export class Productos implements OnInit, OnDestroy {
             const PxC = base.total_consumo > 0 ? (base.total_produccion / base.total_consumo) * 100 : 0;
             this.ytdData = { 
               ...base, 
-              acumulado_mes: data.monthlyAccumulated || 0, // En YTD esto debería representar el acumulado anual si el API lo calcula así
+              acumulado_mes: data.monthlyAccumulated || 0,
               acumulado_CxP: CxP, 
               acumulado_PxC: PxC 
             };
@@ -876,7 +891,7 @@ export class Productos implements OnInit, OnDestroy {
                   label: this.isProduccionBase() ? 'Producción Mensual (Kg/Ton)' : 'Consumo Mensual (Kg/Ton)',
                   data: [...valores],
                   backgroundColor: valores.map(v =>
-                    v === null ? '#ccc' : (v > meta ? '#e74c3c' : '#27ae60')
+                    v === null ? '#ccc' : (this.isProduccionBase() ? (v >= meta ? '#27ae60' : '#e74c3c') : (v > meta ? '#e74c3c' : '#27ae60'))
                   ),
                   borderColor: 'transparent',
                   borderWidth: 0,
@@ -918,10 +933,6 @@ export class Productos implements OnInit, OnDestroy {
   }
   
   configurarGraficos(): void {
-    // ===============================
-    // CONFIGURACIÓN GRÁFICA DIARIA
-    // Muestra consumo o producción diaria según el producto
-    // ===============================
     this.dailyChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -939,10 +950,6 @@ export class Productos implements OnInit, OnDestroy {
       }
     } as any;
 
-    // ===============================
-    // CONFIGURACIÓN GRÁFICA CONVERSIÓN
-    // Usada para MP Grasas (CxP y PxC)
-    // ===============================
     this.dailyConversionOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -963,16 +970,14 @@ export class Productos implements OnInit, OnDestroy {
       }
     } as ChartOptions<'line'>;
 
-    // ===============================
-    // GRÁFICA MENSUAL CxP
-    // Muestra consumo específico mensual
-    // ===============================
+    // =============================================
+    // MEJORA: formatter usa formatLabel() para no
+    // redondear — muestra decimales reales del valor
+    // =============================================
     this.monthlyCxPOptions = {
       responsive: true,
       maintainAspectRatio: false,
-      layout: {
-        padding: { top: 45 }
-      },
+      layout: { padding: { top: 70 } },
       clip: false,
       plugins: {
         legend: {
@@ -981,15 +986,17 @@ export class Productos implements OnInit, OnDestroy {
         },
         datalabels: {
           display: (ctx: any) => {
-            // Solo mostrar etiquetas en las barras (datasetIndex 0), no en la línea de meta
             return ctx.datasetIndex === 0 && ctx.dataset.data[ctx.dataIndex] !== null && ctx.dataset.data[ctx.dataIndex] !== 0;
           },
           color: '#333',
           anchor: 'end',
           align: 'top',
-          offset: 5,
+          offset: 10,
           font: { weight: 'bold', size: 13 },
-          formatter: (value: any) => (value != null && value !== 0 ? Math.round(value) : '')
+          formatter: (value: any) => {
+            if (value == null || value === 0) return '';
+            return parseFloat(value.toFixed(1)).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+          }
         }
       },
       scales: {
@@ -1002,16 +1009,13 @@ export class Productos implements OnInit, OnDestroy {
       }
     };
 
-    // ===============================
-    // GRÁFICA MENSUAL PX C
-    // Conversión mensual (%)
-    // ===============================
+    // =============================================
+    // MEJORA: formatter con sufijo '%' sin redondeo
+    // =============================================
     this.monthlyPxCOptions = {
       responsive: true,
       maintainAspectRatio: false,
-      layout: {
-        padding: { top: 45 }
-      },
+      layout: { padding: { top: 70 } },
       clip: false,
       plugins: {
         legend: {
@@ -1020,15 +1024,17 @@ export class Productos implements OnInit, OnDestroy {
         },
         datalabels: {
           display: (ctx: any) => {
-            // Solo mostrar etiquetas en las barras (datasetIndex 0), no en la línea de meta
             return ctx.datasetIndex === 0 && ctx.dataset.data[ctx.dataIndex] !== null && ctx.dataset.data[ctx.dataIndex] !== 0;
           },
           color: '#333',
           anchor: 'end',
           align: 'top',
-          offset: 5,
+          offset: 10,
           font: { weight: 'bold', size: 13 },
-          formatter: (value: any) => (value != null && value !== 0 ? value.toFixed(1) + '%' : '')
+          formatter: (value: any) => {
+            if (value == null || value === 0) return '';
+            return parseFloat(value.toFixed(1)).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+          }
         }
       },
       scales: {
@@ -1043,16 +1049,14 @@ export class Productos implements OnInit, OnDestroy {
       }
     };
 
-    // ===============================
-    // GRÁFICA MENSUAL GENERAL
-    // Usada para Metanol, B100, etc.
-    // ===============================
+    // =============================================
+    // MEJORA: formatter para gráfica mensual general
+    // sin redondeo
+    // =============================================
     this.monthlyChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
-      layout: {
-        padding: { top: 45 }
-      },
+      layout: { padding: { top: 70 } },
       clip: false,
       plugins: {
         legend: {
@@ -1061,18 +1065,22 @@ export class Productos implements OnInit, OnDestroy {
         },
         datalabels: {
           display: (ctx: any) => {
-            // Mostrar solo para el primer dataset (barras) y si el valor no es cero/nulo
             return ctx.datasetIndex === 0 && ctx.dataset.data[ctx.dataIndex] !== null && ctx.dataset.data[ctx.dataIndex] !== 0;
           },
           color: '#000',
           anchor: 'end',
           align: 'top',
-          offset: 5,
-          font: {
-            weight: 'bold',
-            size: 13
-          },
-          formatter: (value: any) => (value != null && value !== 0 ? Math.round(value) : '')
+          offset: 10,
+          font: { weight: 'bold', size: 13 },
+          formatter: (value: any) => {
+            if (value == null || value === 0) return '';
+            // Metilato: truncar a 1 decimal sin redondear (19.97 → 19,9)
+            if (this.selectedProduct === '13') {
+              const truncated = Math.floor(value * 10) / 10;
+              return truncated.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            }
+            return parseFloat(value.toFixed(1)).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+          }
         }
       },
       scales: {
@@ -1092,11 +1100,6 @@ export class Productos implements OnInit, OnDestroy {
       }
     };
 
-    // ===============================
-    // GRÁFICA COSTO DIRECTO
-    // Eje izquierdo: Costo ($/Ton)
-    // Eje derecho: Consumo (Kg/Ton)
-    // ===============================
     this.costoDirectoOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -1126,23 +1129,18 @@ export class Productos implements OnInit, OnDestroy {
     } as ChartOptions<'line'>;
   }
   
-  // Método modificado para limpiar datos y forzar actualización
   onProductChange(): void {
-    // Primero limpiar todos los datos
     this.limpiarDatos();
-    
-    // Configurar gráficos con nuevas opciones
     this.configurarGraficos();
-    
-    // Forzar detección de cambios
     this.cdr.detectChanges();
-    
-    // Cargar nuevos datos después de un breve delay para asegurar que los gráficos estén listos
     setTimeout(() => {
       this.actualizarDatos();
-      // Forzar detección de cambios nuevamente después de cargar datos
       this.cdr.detectChanges();
     }, 100);
+  }
+  
+  goHome(): void {
+    this.router.navigate(['/home']);
   }
   
   onYearChange(): void {
