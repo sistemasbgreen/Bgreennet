@@ -39,6 +39,7 @@ export class DynamicLoader implements OnInit {
         'configuracion/usuarios': () => import('../modulos/configuracion/usuarios/usuarios').then(c => c.Usuarios),
         'configuracion/sistemasinformacion': () => import('../modulos/configuracion/sistemasinformacion/sistemasinformacion').then(c => c.Sistemasinformacion),
         'configuracion/pulsos': () => import('../modulos/configuracion/pulsos/pulsos').then(c => c.Pulsos),
+        'configuracion/metas': () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(c => c.MetasCMI),
         // Agrega más rutas según necesites
       };
 1

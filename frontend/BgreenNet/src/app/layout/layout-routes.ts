@@ -44,6 +44,10 @@ export const layoutRoutes: Routes = [
           {
             path: 'homeconfig',
             loadComponent: () => import('../modulos/configuracion/homeconfig/homeconfig').then(c => c.Homeconfig)
+          },
+          {
+            path: 'metas',
+            loadComponent: () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(c => c.MetasCMI)
           }
         ]
       },

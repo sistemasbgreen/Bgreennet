@@ -5,7 +5,7 @@ import java.util.List;
 public class CmiplantaResponseDTO {
 
 	 private List<CmiplantaDTO> dailyData;
-	    private int monthlyAccumulated;
+	    private double monthlyAccumulated;
 	    private double totalConsumption;
 	    private double totalProduction;
 	    private int validDays;
@@ -15,10 +15,10 @@ public class CmiplantaResponseDTO {
 		public void setDailyData(List<CmiplantaDTO> dailyData) {
 			this.dailyData = dailyData;
 		}
-		public int getMonthlyAccumulated() {
+		public double getMonthlyAccumulated() {
 			return monthlyAccumulated;
 		}
-		public void setMonthlyAccumulated(int monthlyAccumulated) {
+		public void setMonthlyAccumulated(double monthlyAccumulated) {
 			this.monthlyAccumulated = monthlyAccumulated;
 		}
 		public double getTotalConsumption() {

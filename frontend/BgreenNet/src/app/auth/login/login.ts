@@ -22,6 +22,17 @@ export class Login {
   returnUrl: string = '/home';
   error = 1;
 
+  imagenes: string[] = [
+  'https://bgreennet.bgreen.com.co/imagenes/Fondo_Pantalla.jpg',
+  'https://cdn.pixabay.com/photo/2025/07/17/10/48/nature-9719280_1280.png',
+  'https://bgreen.com.co/Img/Inicio/Carousel4.jpg',
+  'https://bgreen.com.co/Img/Inicio/Carousel3.jpg',
+  'https://bgreen.com.co/Img/Galeria/bgreen10.jpg',
+  'https://bgreen.com.co/Img/Galeria/bgreen13.jpg'
+];
+
+imagenAleatoria: string = '';
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
@@ -90,6 +101,15 @@ export class Login {
       }
     });
   }
+
+  ngOnInit(): void {
+  this.imagenAleatoria = this.obtenerImagenAleatoria();
+}
+
+obtenerImagenAleatoria(): string {
+  const indice = Math.floor(Math.random() * this.imagenes.length);
+  return this.imagenes[indice];
+}
 
 
 }

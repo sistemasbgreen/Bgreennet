@@ -6,7 +6,7 @@ public class CmiplantaDTO {
 	private String date;
     private double consumo;
     private double produccion;
-    private int consumo_diario;
+    private double consumo_diario;
 	public String getDate() {
 		return date;
 	}
@@ -25,10 +25,10 @@ public class CmiplantaDTO {
 	public void setProduccion(double produccion) {
 		this.produccion = produccion;
 	}
-	public int getConsumo_diario() {
+	public double getConsumo_diario() {
 		return consumo_diario;
 	}
-	public void setConsumo_diario(int consumo_diario) {
+	public void setConsumo_diario(double consumo_diario) {
 		this.consumo_diario = consumo_diario;
 	}
 

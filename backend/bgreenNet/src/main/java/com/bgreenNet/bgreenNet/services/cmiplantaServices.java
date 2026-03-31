@@ -158,7 +158,7 @@ public class cmiplantaServices {
             if (produccionMap.containsKey(date)) {
                 double cons = consumoMap.get(date);
                 double prod = produccionMap.get(date);
-                int ratio = (int) Math.round((cons / prod) * 1000);
+                double ratio = (cons / prod) * 1000;
 
                 CmiplantaDTO rec = new CmiplantaDTO();
                 rec.setDate(date);
@@ -169,8 +169,9 @@ public class cmiplantaServices {
             }
         }
 
-        int monthlyAccumulated = (int) Math
-                .round((totalProduction[0] > 0) ? (totalConsumption[0] / totalProduction[0]) * 1000 : 0);
+        double monthlyAccumulated = (totalProduction[0] > 0)
+                ? (totalConsumption[0] / totalProduction[0]) * 1000
+                : 0;
 
         CmiplantaResponseDTO resp = new CmiplantaResponseDTO();
         resp.setDailyData(dailyData);

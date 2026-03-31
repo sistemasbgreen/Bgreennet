@@ -3,7 +3,7 @@
   <header class="header">
     <div class="header-content">
       <div class="logo-container">
-        <a  class="home-link">
+        <a  href="">
           <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo Bgreen" class="logo" />
         </a>
       </div>
@@ -169,7 +169,8 @@
             <div class="stat-icon"><i class="fas fa-flask"></i></div>
           </div>
           <div class="stat-value" *ngIf="!isB100()">
-            {{ monthlyData.acumulado_mes | number:'1.0-0':'es-ES' }} Kg/Ton
+            <ng-container *ngIf="selectedProduct === '13'">{{ truncateDecimal(monthlyData.acumulado_mes, 1) }} Kg/Ton</ng-container>
+            <ng-container *ngIf="selectedProduct !== '13'">{{ monthlyData.acumulado_mes | number:'1.0-0':'es-ES' }} Kg/Ton</ng-container>
           </div>
           <div class="stat-value" *ngIf="isB100()">
             {{ monthlyData.total_produccion | number:'1.0-0':'es-ES' }} Ton
@@ -189,7 +190,8 @@
             <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
           </div>
           <div class="stat-value" *ngIf="!isB100()">
-            {{ ytdData.acumulado_mes | number:'1.0-0':'es-ES' }} Kg/Ton
+            <ng-container *ngIf="selectedProduct === '13'">{{ truncateDecimal(ytdData.acumulado_mes, 1) }} Kg/Ton</ng-container>
+            <ng-container *ngIf="selectedProduct !== '13'">{{ ytdData.acumulado_mes | number:'1.0-0':'es-ES' }} Kg/Ton</ng-container>
           </div>
           <div class="stat-detail" *ngIf="!isB100()">
             <i class="fas fa-chart-line"></i>
