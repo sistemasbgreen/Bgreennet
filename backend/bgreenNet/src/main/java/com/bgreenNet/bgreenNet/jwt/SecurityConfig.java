@@ -47,6 +47,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 			            .requestMatchers("/api/scada/ultimo/**", "/scada/ultimo/**").permitAll()
 			            .requestMatchers("/api/module-config/config/**", "/module-config/config/**").permitAll()
 			            .requestMatchers("/api/module-config/**", "/module-config/**").permitAll()
+			            .requestMatchers("/api/estrategicos/**").permitAll()
+			            
 			            .requestMatchers("/error").permitAll()
 			            .anyRequest().authenticated()
 			        )

@@ -16,6 +16,8 @@ export class cmiplantaservices {
 
     private baseUrl1 = `${environment.apiUrl}/api/cmiplanta/datos`;
 
+    private urlindustrializacion = `${environment.apiUrl}/api/estrategicos/industrializacion`;
+
   constructor(private http: HttpClient) { }
   obtenerDatos(request: MetanolRequest): Observable<MetanolResponse> {
     return this.http.post<MetanolResponse>(this.baseUrl, request);
@@ -24,6 +26,15 @@ export class cmiplantaservices {
   getCostoDirecto(fechaInicio: string, fechaFin: string): Observable<CostoDirectoResponse> {
     return this.http.post<CostoDirectoResponse>(this.baseUrl1, { fechaInicio, fechaFin });
   }
+
+  getIndustrializacionAceite(fecha: number): Observable<any> {
+    return this.http.post<any>(this.urlindustrializacion, { fecha: fecha.toString() });
+  }
+
+  // getIndustrializacionAceite(fechaInicio: string, fechaFin: string): Observable<any> {
+  //  return this.http.post<any>(this.urlindustrializacion, { fechaInicio, fechaFin });
+ // }
+
 
 
 }

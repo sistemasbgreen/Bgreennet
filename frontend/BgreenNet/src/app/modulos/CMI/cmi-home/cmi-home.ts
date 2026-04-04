@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { IndustrializacionAceite } from './../industrializacion-aceite/industrializacion-aceite';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, Subject, takeUntil } from 'rxjs';
@@ -25,6 +26,8 @@ export class CmiHome implements OnInit {
   // Variable para almacenar la categoría seleccionada
   
   categoriaSeleccionada: string = '';
+  anioSeleccionado: number = 2026;
+  industrializacionAceite_number: number = 0;
 
   // Lista de todas las categorías
   categorias = [
@@ -36,20 +39,33 @@ export class CmiHome implements OnInit {
     { id: 'sostenibilidad', nombre: 'Sostenibilidad' }
   ];
   ngOnInit(): void {
-    throw new Error('Method not implemented.');
+    console.log(this.industrializacionAceite_number)
+    this.IndustrializacionAceite();
   }
 
-  constructor(private router: Router) {}
+  constructor(private router: Router,
+              private cmiplantaservices: cmiplantaservices,
+              private cdr: ChangeDetectorRef
+  ) {}
 
   irAProductos() {
   this.router.navigate(['/cmi/productos']);
 }
 
+  irindustrializacion() {
+  this.router.navigate(['/cmi/industrializacion-aceite']);
+}
 
   // Método para manejar el cambio de categoría en el select
   onCategoriaChange(event: Event): void {
     const selectElement = event.target as HTMLSelectElement;
     this.categoriaSeleccionada = selectElement.value;
+  }
+
+  onAnioChange(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    this.anioSeleccionado = Number(selectElement.value);
+    this.IndustrializacionAceite();
   }
 
   // Método para verificar si una categoría debe mostrarse
@@ -60,6 +76,19 @@ export class CmiHome implements OnInit {
     return this.categoriaSeleccionada === categoriaId;
   }
 
+IndustrializacionAceite() {
+  this.cmiplantaservices.getIndustrializacionAceite(this.anioSeleccionado).subscribe({
+    next: (resp) => {
+      console.log('Respuesta API:', resp);
+      this.industrializacionAceite_number = resp.resultado;
+      console.log('Valor actualizado:', this.industrializacionAceite_number);
+      this.cdr.detectChanges(); // Forzar actualización de la vista
+    },
+    error: (err) => {
+      console.error('Error al consumir API:', err);
+    }
+  });
+}
 
 
 }
