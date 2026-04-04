@@ -92,26 +92,35 @@
           <div class="category-title">Estrategia</div>
         </div>
         <div class="indicators-grid">
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="industrializacion.html">
+          <div class="indicator" style="border-left: 4px solid  #2c5f2d;;" (click)="irindustrializacion()">
             <div class="indicator-title">Industrialización del Aceite</div>
-            <div class="indicator-meta">En desarrollo</div>
+            <div *ngIf="industrializacionAceite_number !== 0">
+  {{ industrializacionAceite_number }} %
+</div>
           </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="valor_agregado.html">
+          <!--
+            <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="valor_agregado.html">
             <div class="indicator-title">Generación de valor agregado CPO</div>
             <div class="indicator-meta">Monitoreo continuo</div>
           </div>
+
           <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="valor_patrimonial.html">
             <div class="indicator-title">Valor patrimonial de la compañía</div>
             <div class="indicator-meta">Evaluación anual</div>
           </div>
+
           <div class="indicator" data-page="nuevas_lineas_negocio.html">
             <div class="indicator-title">Nuevas líneas de negocio</div>
             <div class="indicator-meta">Exploración</div>
           </div>
+
           <div class="indicator" data-page="proyectos_estrategicos.html">
             <div class="indicator-title">Cumplimiento proyectos estratégicos</div>
             <div class="indicator-meta">75% completado</div>
           </div>
+          -->
+        
+
         </div>
       </div>
 
@@ -226,7 +235,7 @@
             <div class="indicator-title">Participación en el mercado</div>
             <div class="indicator-meta">Share trimestral</div>
           </div>
-          <div class="indicator" data-page="satisfaccion_clientes.html">
+          <div class="indicator" data-page="satisfaccion_clientes.html">  
             <div class="indicator-title">Satisfacción de los clientes</div>
             <div class="indicator-meta">Encuestas NPS</div>
           </div>

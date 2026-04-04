@@ -28,6 +28,11 @@ export const routes: Routes = [
         path: 'productos',
         loadComponent: () =>
           import('./modulos/CMI/productos/productos').then(p => p.Productos)
+      },
+      {
+        path: 'industrializacion-aceite',
+        loadComponent: () =>
+          import('./modulos/CMI/industrializacion-aceite/industrializacion-aceite').then(i => i.IndustrializacionAceite)
       }
     ]
   },

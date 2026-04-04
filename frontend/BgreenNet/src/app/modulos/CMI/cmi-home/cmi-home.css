@@ -198,8 +198,7 @@ body {
   position: relative;
   overflow: hidden;
 }
-
-#estrategia , #financiero  , #comercial , #organizacional , #sostenibilidad {
+ #financiero  , #comercial , #organizacional , #sostenibilidad {
   display: none;
 }
 
