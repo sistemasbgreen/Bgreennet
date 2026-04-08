@@ -48,6 +48,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 			            .requestMatchers("/api/module-config/config/**", "/module-config/config/**").permitAll()
 			            .requestMatchers("/api/module-config/**", "/module-config/**").permitAll()
 			            .requestMatchers("/api/estrategicos/**").permitAll()
+			            .requestMatchers("/api/op-docto/**").permitAll()
+			            
 			            
 			            .requestMatchers("/error").permitAll()
 			            .anyRequest().authenticated()
