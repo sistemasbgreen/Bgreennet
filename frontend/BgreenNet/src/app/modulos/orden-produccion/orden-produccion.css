@@ -1,0 +1,297 @@
+:host {
+  display: block;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.page-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.page-header h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1a4a1a;
+  margin: 0;
+}
+
+.page-header .subtitle {
+  font-size: 12px;
+  color: #888;
+  margin: 2px 0 0;
+}
+
+.page-header .logo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3a9a3a;
+  flex-shrink: 0;
+}
+
+.page-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-header .live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3a9a3a;
+  animation: pulse 1.5s infinite;
+}
+
+.page-header .live-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #3a9a3a;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  background: #f7faf7;
+  border: 1px solid #ddeedd;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a4a1a;
+}
+
+.metric-value--activo {
+  color: #2d7a2d;
+}
+
+.metric-value--aprobado {
+  color: #1565c0;
+}
+
+.metric-value--cumplido {
+  color: #2e7d32;
+}
+
+.metric-value--anulado {
+  color: #b71c1c;
+}
+
+.metric-value--todos {
+  color: #1a4a1a;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.filtro-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1.5px solid #c5e0b4;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2d6a2d;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.filtro-btn:hover {
+  background: #eaf5ea;
+}
+
+.filtro-btn--active {
+  background: #3a9a3a;
+  color: #fff;
+  border-color: #3a9a3a;
+}
+
+.filtro-count {
+  background: rgba(0,0,0,.1);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #ddeedd;
+  border-radius: 10px;
+}
+
+.table-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table-wrapper th {
+  background: #f0f7ee;
+  color: #2d6a2d;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 2px solid #c5e0b4;
+  white-space: nowrap;
+}
+
+.table-wrapper td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eef4ee;
+  color: #333;
+  vertical-align: middle;
+}
+
+.table-wrapper td code {
+  background: #f0f0f0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.table-wrapper tr:last-child td {
+  border-bottom: none;
+}
+
+.table-wrapper tr:hover td {
+  background: #f7fcf7;
+}
+
+.table-wrapper .consec {
+  font-weight: 600;
+  color: #1a4a1a;
+}
+
+.table-wrapper .fecha-ok {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.table-wrapper .notas {
+  color: #666;
+  font-size: 12px;
+  max-width: 200px;
+}
+
+.table-wrapper .empty {
+  text-align: center;
+  color: #999;
+  padding: 2rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+.badge--activo {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.badge--aprobado {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.badge--cumplido {
+  background: #a5d6a7;
+  color: #1b5e20;
+}
+
+.badge--anulado {
+  background: #ffebee;
+  color: #b71c1c;
+}
+
+.badge--default {
+  background: #f5f5f5;
+  color: #555;
+}
+
+.state-box {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.state-box--error {
+  color: #b71c1c;
+}
+
+.state-box button {
+  margin-top: 1rem;
+  padding: 8px 20px;
+  background: #3a9a3a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #ddeedd;
+  border-top-color: #3a9a3a;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(1.3); }
+}

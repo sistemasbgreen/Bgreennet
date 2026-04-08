@@ -1,0 +1,100 @@
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <span class="logo-dot"></span>
+      <div>
+        <h1>Órdenes de Producción</h1>
+        <p class="subtitle" *ngIf="ultimaActualizacion">
+          Consultado {{ ultimaActualizacion | date:'HH:mm:ss' }}
+        </p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="refresh-btn" (click)="cargarDatos()" [disabled]="loading">
+        {{ loading ? 'Cargando...' : 'Actualizar' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric cards -->
+  <div class="metrics" *ngIf="!loading && !error">
+    <div class="metric-card" *ngFor="let e of estados">
+      <span class="metric-label">{{ e }}</span>
+      <span class="metric-value" [class]="'metric-value--' + e.toLowerCase()">
+        {{ conteo[e] }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filtros" *ngIf="!loading && !error">
+    <button
+      *ngFor="let e of estados"
+      class="filtro-btn"
+      [class.filtro-btn--active]="filtroEstado === e"
+      (click)="cambiarFiltro(e)">
+      {{ e }}
+      <span class="filtro-count">{{ conteo[e] }}</span>
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="state-box" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Cargando documentos…</p>
+  </div>
+
+  <!-- Error -->
+  <div class="state-box state-box--error" *ngIf="error && !loading">
+    <p>No se pudo conectar con el servidor.</p>
+    <button (click)="cargarDatos()">Reintentar</button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-wrapper" *ngIf="!loading && !error">
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo Doc.</th>
+          <th>Consecutivo</th>
+          <th>Estado</th>
+          <th>Creación</th>
+          <th>Aprobación</th>
+          <th>Cumplida</th>
+          <th>Usuario</th>
+          <th>Notas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let doc of filtrados">
+          <td><code>{{ doc.idTipoDocto }}</code></td>
+          <td class="consec">{{ doc.consecDocto }}</td>
+          <td>
+            <span class="badge" [ngClass]="badgeClass(doc.indEstado)">
+              {{ doc.indEstado }}
+            </span>
+          </td>
+          <td>{{ doc.fechaTsCreacion   | date:'dd/MM/yy HH:mm' }}</td>
+          <td>{{ doc.fechaTsAprobacion | date:'dd/MM/yy HH:mm' }}</td>
+          <td [class.fecha-ok]="doc.fechaCumplida">
+            {{ doc.fechaCumplida ? (doc.fechaCumplida | date:'dd/MM/yyyy') : '—' }}
+          </td>
+          <td>{{ doc.usuarioCumplido ?? '—' }}</td>
+          <td class="notas">{{ doc.notas ?? '—' }}</td>
+        </tr>
+
+        <!-- Sin datos -->
+        <tr *ngIf="filtrados.length === 0">
+          <td colspan="8" class="empty">
+            {{ filtroEstado === 'TODOS'
+              ? 'No hay órdenes de producción disponibles'
+              : 'Sin resultados para "' + filtroEstado + '"' }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

@@ -2,7 +2,7 @@
 import { Routes } from '@angular/router';
 import { Login } from './auth/login/login';
 import { AuthGuard } from './guard/auth.guard';
-import { layoutRoutes } from './layout/layout-routes'; // contiene las rutas bajo /app
+import { layoutRoutes } from './layout/layout-routes';
 
 
 
@@ -11,6 +11,11 @@ export const routes: Routes = [
   {
     path: 'login',
     component: Login
+  },
+  {
+    path: 'orden-produccion',
+    loadComponent: () =>
+      import('./modulos/orden-produccion/orden-produccion').then(o => o.OrdenProduccion)
   },
 
   // Rutas CMI
@@ -24,6 +29,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./modulos/CMI/cmi-home/cmi-home').then(h => h.CmiHome)
       },
+
       {
         path: 'productos',
         loadComponent: () =>
