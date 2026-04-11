@@ -21,6 +21,7 @@ public class CorsConfig {
         // ✅ URLs SIN espacios al final y solo las necesarias
         config.setAllowedOrigins(Arrays.asList(
             "http://localhost:4200",              // Desarrollo local Angular
+            "http://172.30.72.200",
             "https://bgreennet.bgreen.com.co",    // ✅ Producción frontend (SIN espacios)
             "https://infos.bgreen.com.co"         // Si también la usas
             // Elimina las URLs HTTP antiguas que ya no usas,

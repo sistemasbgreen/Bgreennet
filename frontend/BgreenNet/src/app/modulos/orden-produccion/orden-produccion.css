@@ -1,297 +1,272 @@
 :host {
   display: block;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  --mail-green: #2e7d32;
+  --mail-bg-green: #e8f5e9;
+  --mail-text-green: #33691e;
+  --mail-border: #e0e0e0;
 }
 
 .page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+  background-color: #f8faf9;
+  min-height: 100vh;
+  padding: 2.5rem 1.5rem;
 }
 
+/* Header Grid */
 .page-header {
+  max-width: 1100px;
+  margin: 0 auto 3rem;
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
 }
 
-.page-header .header-left {
+.brand-accent {
+  width: 5px;
+  height: 40px;
+  background: var(--mail-green);
+  border-radius: 4px;
+}
+
+.header-title-container {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 15px;
 }
 
 .page-header h1 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #1a4a1a;
+  font-size: 1.8rem;
+  font-weight: 700;
   margin: 0;
+  color: #333;
 }
 
-.page-header .subtitle {
-  font-size: 12px;
+.subtitle {
+  font-size: 13px;
   color: #888;
-  margin: 2px 0 0;
-}
-
-.page-header .logo-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #3a9a3a;
-  flex-shrink: 0;
-}
-
-.page-header .header-right {
+  margin-top: 4px;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.page-header .live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #3a9a3a;
-  animation: pulse 1.5s infinite;
+.icon-inline {
+  width: 14px;
+  height: 14px;
 }
 
-.page-header .live-label {
-  font-size: 11px;
+.btn-premium {
+  padding: 10px 24px;
+  background: var(--mail-green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+/* OP Grid */
+.op-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.grid-header h2 {
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  color: #3a9a3a;
-}
-
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
+  text-transform: uppercase;
+  color: #999;
+  letter-spacing: 1px;
   margin-bottom: 1.5rem;
 }
 
-.metric-card {
-  background: #f7faf7;
-  border: 1px solid #ddeedd;
-  border-radius: 10px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.op-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-.metric-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #666;
+.op-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.metric-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a4a1a;
+.op-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  border-color: var(--mail-green);
 }
 
-.metric-value--activo {
-  color: #2d7a2d;
-}
-
-.metric-value--aprobado {
-  color: #1565c0;
-}
-
-.metric-value--cumplido {
-  color: #2e7d32;
-}
-
-.metric-value--anulado {
-  color: #b71c1c;
-}
-
-.metric-value--todos {
-  color: #1a4a1a;
-}
-
-.filtros {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 1.25rem;
-}
-
-.filtro-btn {
+.card-content {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 1.5px solid #c5e0b4;
-  border-radius: 20px;
-  background: #fff;
+  gap: 1.2rem;
+}
+
+.card-icon {
+  color: var(--mail-green);
+  width: 24px;
+  height: 24px;
+}
+
+.card-info {
+  flex: 1;
+}
+
+.op-id {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.op-date {
   font-size: 13px;
-  font-weight: 500;
-  color: #2d6a2d;
-  cursor: pointer;
-  transition: all .15s;
+  color: #999;
 }
 
-.filtro-btn:hover {
-  background: #eaf5ea;
+/* Modal and Email Report Style */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
 }
 
-.filtro-btn--active {
-  background: #3a9a3a;
-  color: #fff;
-  border-color: #3a9a3a;
+.modal-wrapper {
+  background: white;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
 }
 
-.filtro-count {
-  background: rgba(0,0,0,.1);
-  border-radius: 10px;
-  padding: 1px 7px;
+.mail-report-wrap {
+  padding: 0;
+}
+
+.mail-hdr {
+  text-align: center;
+  padding: 2.5rem 1.5rem 1.5rem;
+  border-bottom: 1px solid var(--mail-border);
+}
+
+.mail-sub {
   font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 10px 0 2px;
 }
 
-.table-wrapper {
-  overflow-x: auto;
-  border: 1px solid #ddeedd;
-  border-radius: 10px;
+.mail-fecha {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
 }
 
-.table-wrapper table {
+.mail-sec-hdr {
+  background: var(--mail-bg-green);
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1b5e20;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-top: 2px solid #a5d6a7;
+}
+
+.mail-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
 
-.table-wrapper th {
-  background: #f0f7ee;
-  color: #2d6a2d;
-  font-weight: 700;
+.mail-table th {
+  background: #f1f8e9;
+  color: var(--mail-text-green);
   font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: .8px;
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 2px solid #c5e0b4;
-  white-space: nowrap;
-}
-
-.table-wrapper td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #eef4ee;
-  color: #333;
-  vertical-align: middle;
-}
-
-.table-wrapper td code {
-  background: #f0f0f0;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 12px;
-}
-
-.table-wrapper tr:last-child td {
-  border-bottom: none;
-}
-
-.table-wrapper tr:hover td {
-  background: #f7fcf7;
-}
-
-.table-wrapper .consec {
-  font-weight: 600;
-  color: #1a4a1a;
-}
-
-.table-wrapper .fecha-ok {
-  color: #2e7d32;
-  font-weight: 600;
-}
-
-.table-wrapper .notas {
-  color: #666;
-  font-size: 12px;
-  max-width: 200px;
-}
-
-.table-wrapper .empty {
-  text-align: center;
-  color: #999;
-  padding: 2rem;
-}
-
-.badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .5px;
-}
-
-.badge--activo {
-  background: #e8f5e9;
-  color: #1b5e20;
-}
-
-.badge--aprobado {
-  background: #e3f2fd;
-  color: #0d47a1;
-}
-
-.badge--cumplido {
-  background: #a5d6a7;
-  color: #1b5e20;
-}
-
-.badge--anulado {
-  background: #ffebee;
-  color: #b71c1c;
-}
-
-.badge--default {
-  background: #f5f5f5;
-  color: #555;
-}
-
-.state-box {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #666;
-}
-
-.state-box--error {
-  color: #b71c1c;
-}
-
-.state-box button {
-  margin-top: 1rem;
   padding: 8px 20px;
-  background: #3a9a3a;
-  color: #fff;
+  text-align: left;
+}
+
+.mail-table td {
+  padding: 8px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  color: #444;
+}
+
+.mail-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--mail-green);
+  font-weight: 500;
+}
+
+.mail-cost-row td {
+  font-weight: 700;
+  color: #555;
+  background: #fdfdfd;
+}
+
+.mail-num-cost {
+  color: var(--mail-green) !important;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mail-actions {
+  padding: 2rem;
+  text-align: center;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+}
+
+.btn-mail-close {
+  padding: 10px 40px;
+  background: var(--mail-green);
+  color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #ddeedd;
-  border-top-color: #3a9a3a;
+/* States */
+.loading-state {
+  text-align: center;
+  padding: 5rem;
+}
+
+.premium-loader {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top-color: var(--mail-green);
   border-radius: 50%;
-  animation: spin .8s linear infinite;
+  animation: spin 1s infinite linear;
   margin: 0 auto 1rem;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: .5; transform: scale(1.3); }
 }

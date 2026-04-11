@@ -1,12 +1,14 @@
 
 export interface OpDocto {
-  idTipoDocto:      string;
-  consecDocto:      number;
-  indEstado:        string;
-  fechaTsCreacion:  string | null;
-  fechaTsAprobacion:string | null;
-  fechaTsAnulacion: string | null;
-  fechaCumplida:    string | null;
-  notas:            string | null;
-  usuarioCumplido:  string | null;
+  indEstado: string;
+  op:                       string;
+  item:                     string;
+  descripcion:              string;
+  fecha:                    string | null;
+  cantidadConsumida:        number;
+  
+  // Cost fields
+  totalPurificacionGlicerina: number;
+  totalManoObra:             number;
+  totalOtrosCostos:          number;
 }

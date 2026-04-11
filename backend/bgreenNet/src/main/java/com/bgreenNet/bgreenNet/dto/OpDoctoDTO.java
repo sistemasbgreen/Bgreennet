@@ -1,74 +1,81 @@
 package com.bgreenNet.bgreenNet.dto;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 public class OpDoctoDTO {
-	
-	 private String  idTipoDocto;
-	    private Long    consecDocto;
-	    private String  indEstado;
-	    private LocalDateTime fechaTsCreacion;
-	    private LocalDateTime fechaTsAprobacion;
-	    private LocalDateTime fechaTsAnulacion;
-	    private LocalDate     fechaCumplida;       // ←  disparador de OP
-	    private String  notas;
-	    private String  usuarioCumplido;
-		public String getIdTipoDocto() {
-			return idTipoDocto;
-		}
-		public void setIdTipoDocto(String idTipoDocto) {
-			this.idTipoDocto = idTipoDocto;
-		}
-		public Long getConsecDocto() {
-			return consecDocto;
-		}
-		public void setConsecDocto(Long consecDocto) {
-			this.consecDocto = consecDocto;
-		}
-		public String getIndEstado() {
-			return indEstado;
-		}
-		public void setIndEstado(String indEstado) {
-			this.indEstado = indEstado;
-		}
-		public LocalDateTime getFechaTsCreacion() {
-			return fechaTsCreacion;
-		}
-		public void setFechaTsCreacion(LocalDateTime fechaTsCreacion) {
-			this.fechaTsCreacion = fechaTsCreacion;
-		}
-		public LocalDateTime getFechaTsAprobacion() {
-			return fechaTsAprobacion;
-		}
-		public void setFechaTsAprobacion(LocalDateTime fechaTsAprobacion) {
-			this.fechaTsAprobacion = fechaTsAprobacion;
-		}
-		public LocalDateTime getFechaTsAnulacion() {
-			return fechaTsAnulacion;
-		}
-		public void setFechaTsAnulacion(LocalDateTime fechaTsAnulacion) {
-			this.fechaTsAnulacion = fechaTsAnulacion;
-		}
-		public LocalDate getFechaCumplida() {
-			return fechaCumplida;
-		}
-		public void setFechaCumplida(LocalDate fechaCumplida) {
-			this.fechaCumplida = fechaCumplida;
-		}
-		public String getNotas() {
-			return notas;
-		}
-		public void setNotas(String notas) {
-			this.notas = notas;
-		}
-		public String getUsuarioCumplido() {
-			return usuarioCumplido;
-		}
-		public void setUsuarioCumplido(String usuarioCumplido) {
-			this.usuarioCumplido = usuarioCumplido;
-		}
-	    
-	    
+    
+    private String op;
+    private String item;
+    private String descripcion;
+    private LocalDate fecha;
+    private Double cantidadConsumida;
+    
+    // Cost fields
+    private Double totalPurificacionGlicerina;
+    private Double totalManoObra;
+    private Double totalOtrosCostos;
 
+    public String getOp() {
+        return op;
+    }
+
+    public void setOp(String op) {
+        this.op = op;
+    }
+
+    public String getItem() {
+        return item;
+    }
+
+    public void setItem(String item) {
+        this.item = item;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public LocalDate getFecha() {
+        return fecha;
+    }
+
+    public void setFecha(LocalDate fecha) {
+        this.fecha = fecha;
+    }
+
+    public Double getCantidadConsumida() {
+        return cantidadConsumida;
+    }
+
+    public void setCantidadConsumida(Double cantidadConsumida) {
+        this.cantidadConsumida = cantidadConsumida;
+    }
+
+    public Double getTotalPurificacionGlicerina() {
+        return totalPurificacionGlicerina;
+    }
+
+    public void setTotalPurificacionGlicerina(Double totalPurificacionGlicerina) {
+        this.totalPurificacionGlicerina = totalPurificacionGlicerina;
+    }
+
+    public Double getTotalManoObra() {
+        return totalManoObra;
+    }
+
+    public void setTotalManoObra(Double totalManoObra) {
+        this.totalManoObra = totalManoObra;
+    }
+
+    public Double getTotalOtrosCostos() {
+        return totalOtrosCostos;
+    }
+
+    public void setTotalOtrosCostos(Double totalOtrosCostos) {
+        this.totalOtrosCostos = totalOtrosCostos;
+    }
 }

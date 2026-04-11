@@ -1,9 +1,16 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { OpDocto } from '../../models/OordenesProduccion/OpDocto';
+import { OpDoctoService } from '../../servicios/OpDoctoService';
 import { CommonModule } from '@angular/common';
-import { OpDoctoService } from '../../servicios/OpDoctoService ';
 
+interface OpGrupo {
+  op: string;
+  fecha: string | null;
+  items: OpDocto[];
+  itemsBiodiesel: OpDocto[];
+  itemsGlicerina: OpDocto[];
+}
 
 @Component({
   selector: 'app-orden-produccion',
@@ -15,71 +22,80 @@ import { OpDoctoService } from '../../servicios/OpDoctoService ';
 export class OrdenProduccion implements OnInit, OnDestroy {
 
   documentos: OpDocto[] = [];
-  filtrados:  OpDocto[] = [];
-  loading  = true;
-  error    = false;
+  opGrupos: OpGrupo[] = [];
+  
+  loading = true;
+  error = false;
   ultimaActualizacion: Date | null = null;
 
-  filtroEstado = 'TODOS';
-  estados      = ['TODOS', 'ACTIVO', 'APROBADO', 'CUMPLIDO', 'ANULADO'];
+  // Modal state
+  showModal = false;
+  grupoSeleccionado: OpGrupo | null = null;
+
+  // ID Sets from EmailReporteService
+  private readonly IDS_BIODIESEL = new Set(['8', '7309', '10', '13', '12', '26']);
+  private readonly IDS_GLICERINA = new Set(['34', '15', '2549', '32']);
 
   private sub!: Subscription;
 
-  constructor(private svc: OpDoctoService) {}
+  constructor(private svc: OpDoctoService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.cargarDatos();
   }
 
   cargarDatos(): void {
+    this.sub?.unsubscribe();
     this.loading = true;
-    this.error   = false;
+    this.error = false;
 
-    this.sub = this.svc.getDocumentos(30).subscribe({
+    this.sub = this.svc.getDocumentos(150).subscribe({
       next: data => {
-        this.documentos          = data;       
-        this.loading             = false;
+        this.documentos = data;
+        this.loading = false;
         this.ultimaActualizacion = new Date();
-        this.aplicarFiltro();
-        console.log('✅ Documentos cargados:', data);
+        this.agruparDatos();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error cargando documentos:', err);
-        this.error   = true;
+        this.error = true;
         this.loading = false;
       }
-      
     });
   }
 
-  aplicarFiltro(): void {
-    this.filtrados = this.filtroEstado === 'TODOS'
-      ? [...this.documentos]
-      : this.documentos.filter(d => d.indEstado === this.filtroEstado);
+  agruparDatos(): void {
+    const map = new Map<string, OpDocto[]>();
+    this.documentos.forEach(d => {
+      if (!map.has(d.op)) {
+        map.set(d.op, []);
+      }
+      map.get(d.op)!.push(d);
+    });
+
+    this.opGrupos = Array.from(map.entries()).map(([op, items]) => {
+      const itemsBiodiesel = items.filter(i => this.IDS_BIODIESEL.has(i.item.trim()));
+      const itemsGlicerina = items.filter(i => this.IDS_GLICERINA.has(i.item.trim()));
+      
+      return {
+        op,
+        fecha: items[0]?.fecha || null,
+        items,
+        itemsBiodiesel,
+        itemsGlicerina
+      };
+    }).sort((a, b) => b.op.localeCompare(a.op));
   }
 
-  cambiarFiltro(estado: string): void {
-    this.filtroEstado = estado;
-    this.aplicarFiltro();
+  abrirModal(grupo: OpGrupo): void {
+    this.grupoSeleccionado = grupo;
+    this.showModal = true;
   }
 
-  badgeClass(estado: string): string {
-    const map: Record<string, string> = {
-      'ACTIVO'  : 'badge--activo',
-      'APROBADO': 'badge--aprobado',
-      'CUMPLIDO': 'badge--cumplido',
-      'ANULADO' : 'badge--anulado',
-    };
-    return map[estado] ?? 'badge--default';
-  }
-
-  get conteo(): Record<string, number> {
-    return this.estados.reduce((acc, e) => {
-      acc[e] = e === 'TODOS'
-        ? this.documentos.length
-        : this.documentos.filter(d => d.indEstado === e).length;
-      return acc;
-    }, {} as Record<string, number>);
+  cerrarModal(): void {
+    this.showModal = false;
+    this.grupoSeleccionado = null;
   }
 
   ngOnDestroy(): void {

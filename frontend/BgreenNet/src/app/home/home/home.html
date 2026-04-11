@@ -392,9 +392,9 @@
       <div class="activity-list" *ngIf="tareasActivas.length > 0">
         <div *ngFor="let tarea of tareasActivas" class="activity-item tarea-item-mejorada">
           <div class="activity-indicator" [ngClass]="{
-                 'orange': tarea.prioridad?.nombre === 'ALTA',
-                 'blue': tarea.prioridad?.nombre === 'MEDIA',
-                 'green': tarea.prioridad?.nombre === 'BAJA'
+                 'orange': tarea.prioridad.nombre === 'ALTA',
+                 'blue': tarea.prioridad.nombre === 'MEDIA',
+                 'green': tarea.prioridad.nombre === 'BAJA'
                }">
           </div>
 
@@ -402,11 +402,11 @@
             <div class="tarea-header-inline">
               <p class="activity-title">{{ tarea.titulo }}</p>
               <span class="tarea-prioridad-mini" [ngClass]="{
-                      'prioridad-alta': tarea.prioridad?.nombre === 'ALTA',
-                      'prioridad-media': tarea.prioridad?.nombre === 'MEDIA',
-                      'prioridad-baja': tarea.prioridad?.nombre === 'BAJA'
+                      'prioridad-alta': tarea.prioridad.nombre === 'ALTA',
+                      'prioridad-media': tarea.prioridad.nombre === 'MEDIA',
+                      'prioridad-baja': tarea.prioridad.nombre === 'BAJA'
                     }">
-                {{ tarea.prioridad?.nombre || 'MEDIA' }}
+                {{ tarea.prioridad.nombre || 'MEDIA' }}
               </span>
             </div>
             <p class="activity-detail">{{ tarea.descripcion || 'Sin descripción' }}</p>
@@ -511,11 +511,11 @@
                 <div class="tarea-header-inline">
                   <p class="activity-title">{{ tarea.titulo }}</p>
                   <span class="tarea-prioridad-mini" [ngClass]="{
-                          'prioridad-alta': tarea.prioridad?.nombre === 'ALTA',
-                          'prioridad-media': tarea.prioridad?.nombre === 'MEDIA',
-                          'prioridad-baja': tarea.prioridad?.nombre === 'BAJA'
+                          'prioridad-alta': tarea.prioridad.nombre === 'ALTA',
+                          'prioridad-media': tarea.prioridad.nombre === 'MEDIA',
+                          'prioridad-baja': tarea.prioridad.nombre === 'BAJA'
                         }">
-                    {{ tarea.prioridad?.nombre || 'MEDIA' }}
+                    {{ tarea.prioridad.nombre || 'MEDIA' }}
                   </span>
                 </div>
                 <p class="activity-detail">{{ tarea.descripcion || 'Sin descripción' }}</p>
