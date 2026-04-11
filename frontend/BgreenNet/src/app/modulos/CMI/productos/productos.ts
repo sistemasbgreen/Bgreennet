@@ -81,14 +81,14 @@ export class Productos implements OnInit, OnDestroy {
     '26': { '2025': 180, '2026': 179 }
   };
   
-  metasMensualesB100: Record<string, number[]> = {
+metasMensualesB100: Record<string, number[]> = {
     '2025': [5043, 4920, 5299, 5394, 5394, 5394, 5394, 5394, 5394, 5394, 5394, 5188],
     '2026': [5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000]
   };
   
   metasMensualesCosto: Record<string, number[]> = {
     '2025': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    '2026': [5204, 5204, 5305, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    '2026': [5204, 5204, 5305, 5524, 0, 0, 0, 0, 0, 0, 0, 0]
   };
   
   // Charts - existentes
@@ -890,9 +890,11 @@ export class Productos implements OnInit, OnDestroy {
                   type: 'bar',
                   label: this.isProduccionBase() ? 'Producción Mensual (Kg/Ton)' : 'Consumo Mensual (Kg/Ton)',
                   data: [...valores],
-                  backgroundColor: valores.map(v =>
-                    v === null ? '#ccc' : (this.isProduccionBase() ? (v >= meta ? '#27ae60' : '#e74c3c') : (v > meta ? '#e74c3c' : '#27ae60'))
-                  ),
+                  backgroundColor: valores.map(v => {
+  if (v === null) return '#ccc';
+  if (this.selectedProduct === '3188') return v <= meta ? '#27ae60' : '#e74c3c';
+  return this.isProduccionBase() ? (v >= meta ? '#27ae60' : '#e74c3c') : (v > meta ? '#e74c3c' : '#27ae60');
+}),
                   borderColor: 'transparent',
                   borderWidth: 0,
                   borderRadius: 8,

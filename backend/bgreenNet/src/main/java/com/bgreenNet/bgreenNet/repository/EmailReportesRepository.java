@@ -45,8 +45,8 @@ public class EmailReportesRepository {
             "    ON mf.f804_id = mfop.f867_id_segmento_costo " +
             "INNER JOIN t865_mf_op_operaciones mfo " +
             "    ON mfo.f865_rowid = mfop.f867_rowid_op_operacion " +
-            "WHERE mfop.f867_ts >= ? " +
-            "  AND mfop.f867_ts < ?";
+            "WHERE mfo.f865_ts >= ? " +
+            "  AND mfo.f865_ts < ?";
 
         return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
             ResumenCostosDTO dto = new ResumenCostosDTO();

@@ -5,6 +5,7 @@ import java.sql.DatabaseMetaData;
 
 import javax.sql.DataSource;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -13,6 +14,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import com.bgreenNet.bgreenNet.services.EmailReporteService;
+
+import jakarta.annotation.PostConstruct;
+
 @SpringBootApplication
 @EnableScheduling
 public class BgreenNetApplication {
@@ -20,6 +25,11 @@ public class BgreenNetApplication {
     public static void main(String[] args) {
         SpringApplication.run(BgreenNetApplication.class, args);
     }
+    
+    @Autowired
+    private EmailReporteService emailReporteService;
+    
+
 
     @Bean
     CommandLineRunner testJdbcConnections(
