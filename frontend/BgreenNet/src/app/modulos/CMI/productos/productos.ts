@@ -1,3 +1,5 @@
+import { producto } from './../../../models/productos';
+import { productoservices } from './../../../servicios/productoservices';
 import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -7,7 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { forkJoin, Subject, takeUntil } from 'rxjs';
 import { cmiplantaservices } from '../../../servicios/cmiplantaservices';
-import { MetanolRequest } from '../../../models/Modelos_CMI/MetanolRequest ';
+import { MetanolRequest } from '../../../models/Modelos_CMI/MetanolRequest';
 import { MetanolResponse } from '../../../models/Modelos_CMI/ProductoResponse';
 Chart.register(...registerables, ChartDataLabels);
 
@@ -50,19 +52,7 @@ export class Productos implements OnInit, OnDestroy {
   costoDirectoYTD: number | null = null;
 
   // Catalogs
-  productos = [
-    { id: '10', nombre: 'Metanol', consumptionDocTypes: ['TEP', 'EI'], productionDocTypes: ['EDP', 'EI', 'AI'] },
-    { id: '13', nombre: 'Metilato', consumptionDocTypes: ['TEP', 'EI'], productionDocTypes: ['EDP', 'EI', 'AI'] },
-    { id: '8', nombre: 'MP Grasas', consumptionDocTypes: ['TEP', 'EI'], productionDocTypes: ['EDP', 'EI', 'AI'] },
-    { id: '9264', nombre: 'AGG', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP', 'EI', 'AI'] },
-    { id: '32', nombre: 'Glicerina', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP', 'EI', 'AI'] },
-    { id: '3188', nombre: 'Generacion Fondos', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP', 'EI', 'AI'] },
-    { id: '26', nombre: 'B100', consumptionDocTypes: ['EDP'], productionDocTypes: ['EDP'] },
-    {
-      id: 'CostoDirecto', nombre: 'Costo Directo', esCostoDirecto: true, consumptionDocTypes: [],
-      productionDocTypes: []
-    }
-  ];
+productos: any[] = [];
   
   meses = [
     { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
@@ -117,12 +107,14 @@ metasMensualesB100: Record<string, number[]> = {
   constructor(
     private plantaService: cmiplantaservices,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    private productoservices: productoservices,
   ) { }
   
   ngOnInit(): void {
     this.configurarGraficos();
     this.cargarDatosIniciales();
+    this.cargarProductos();
   }
   
   ngOnDestroy(): void {
@@ -245,9 +237,20 @@ metasMensualesB100: Record<string, number[]> = {
     return { fechaInicio, fechaFin };
   }
   
-  getSelectedProductConfig() {
-    return this.productos.find(p => p.id === this.selectedProduct) || this.productos[0];
-  }
+
+
+getSelectedProductConfig() {
+  console.log('Buscando config para selectedProduct:', this.selectedProduct);
+  const found = this.productos.find(p => p.id === this.selectedProduct || p.idProductoSiesa === this.selectedProduct);
+  console.log('Producto encontrado:', found);
+  
+  return found || {
+    id: '',
+    nombre: '',
+    consumptionDocTypes: [],
+    productionDocTypes: []
+  };
+}
 
   cargarDatosCostoDirecto(mes: string, anio: string): void {
     const { fechaInicio, fechaFin } = this.getFechaRango(mes, anio);
@@ -431,15 +434,18 @@ metasMensualesB100: Record<string, number[]> = {
   cargarDatosMes(mes: string, anio: string, productoId: string): void {
     const { fechaInicio, fechaFin } = this.getFechaRango(mes, anio);
     const producto = this.getSelectedProductConfig();
-    const productionId = this.isB100() ? productoId : '26';
+    const productionId = this.isB100() ? (producto.idProductoSiesa || producto.id) : '26';
+    
     const request: MetanolRequest = {
       startDate: fechaInicio,
       endDate: fechaFin,
-      consumptionProductId: productoId,
+      consumptionProductId: producto.idProductoSiesa || producto.id,
       productionProductId: productionId,
       consumptionDocTypes: producto.consumptionDocTypes,
       productionDocTypes: producto.productionDocTypes
     };
+    
+    console.log('Request para cargarDatosMes:', request);
     
     this.plantaService.obtenerDatos(request)
       .pipe(takeUntil(this.destroy$))
@@ -694,15 +700,18 @@ metasMensualesB100: Record<string, number[]> = {
   cargarDatosYTD(mes: string, anio: string, productoId: string): void {
     const { fechaFin } = this.getFechaRango(mes, anio);
     const producto = this.getSelectedProductConfig();
-    const productionId = this.isB100() ? productoId : '26';
+    const productionId = this.isB100() ? (producto.idProductoSiesa || producto.id) : '26';
+    
     const request: MetanolRequest = {
       startDate: `${anio}-01-01`,
       endDate: fechaFin,
-      consumptionProductId: productoId,
+      consumptionProductId: producto.idProductoSiesa || producto.id,
       productionProductId: productionId,
       consumptionDocTypes: producto.consumptionDocTypes,
       productionDocTypes: producto.productionDocTypes
     };
+    
+    console.log('Request para YTD:', request);
     
     this.plantaService.obtenerDatos(request)
       .pipe(takeUntil(this.destroy$))
@@ -744,8 +753,11 @@ metasMensualesB100: Record<string, number[]> = {
     const numMeses = parseInt(mesHasta, 10);
     const labels = this.meses.slice(0, numMeses).map(m => m.label.substring(0, 3));
     const producto = this.getSelectedProductConfig();
-    const productionId = this.isB100() ? productoId : '26';
+    const pid = producto.idProductoSiesa || producto.id;
+    const productionId = this.isB100() ? pid : '26';
     const observables = [];
+    
+    console.log('Iniciando cargarDatosMensuales para pid:', pid);
     
     for (let i = 1; i <= numMeses; i++) {
       const mesStr = i.toString().padStart(2, '0');
@@ -753,7 +765,7 @@ metasMensualesB100: Record<string, number[]> = {
       const req: MetanolRequest = {
         startDate: fechaInicio,
         endDate: fechaFin,
-        consumptionProductId: productoId,
+        consumptionProductId: pid,
         productionProductId: productionId,
         consumptionDocTypes: producto.consumptionDocTypes,
         productionDocTypes: producto.productionDocTypes
@@ -1132,6 +1144,7 @@ metasMensualesB100: Record<string, number[]> = {
   }
   
   onProductChange(): void {
+    console.log('onProductChange - Nuevo selectedProduct:', this.selectedProduct);
     this.limpiarDatos();
     this.configurarGraficos();
     this.cdr.detectChanges();
@@ -1175,4 +1188,37 @@ metasMensualesB100: Record<string, number[]> = {
     }
     return [...this.meses];
   }
+
+
+  cargarProductos(): void {
+  this.productoservices.getProductos()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (data) => {
+        console.log('Productos desde BD:', data);
+
+        // Agregamos Costo Directo manual (porque no viene de productos)
+        this.productos = [
+          ...data,
+          {
+            id: 'CostoDirecto',
+            nombre: 'Costo Directo',
+            esCostoDirecto: true,
+            consumptionDocTypes: [],
+            productionDocTypes: []
+          }
+        ];
+
+        // Seleccionar el primero si no hay seleccionado
+        if (!this.selectedProduct && this.productos.length > 0) {
+          this.selectedProduct = this.productos[0].id;
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error cargando productos:', err);
+      }
+    });
+}
 }

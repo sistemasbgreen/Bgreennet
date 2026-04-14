@@ -47,6 +47,11 @@ export const layoutRoutes: Routes = [
           },
           {
             path: 'metas',
+            redirectTo: 'metas-cmi',
+            pathMatch: 'full'
+          },
+          {
+            path: 'metas-cmi',
             loadComponent: () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(c => c.MetasCMI)
           }
         ]

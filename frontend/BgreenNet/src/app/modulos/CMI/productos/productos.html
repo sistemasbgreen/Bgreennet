@@ -15,8 +15,8 @@
         <div class="filter-group">
           <label class="filter-label">Producto</label>
           <select [(ngModel)]="selectedProduct" (change)="onProductChange()" class="filter-select">
-            <option *ngFor="let producto of productos" [value]="producto.id">
-              {{ producto.nombre }}
+            <option *ngFor="let producto of productos" [value]="producto.idProductoSiesa || producto.id">
+              {{ producto.idProductoSiesa ? '[' + producto.idProductoSiesa + '] ' : '' }}{{ producto.nombre }}
             </option>
           </select>
         </div>

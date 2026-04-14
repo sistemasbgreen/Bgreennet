@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { environment } from "../../environments/environment";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
-import { MetanolRequest } from "../models/Modelos_CMI/MetanolRequest ";
+import { MetanolRequest } from "../models/Modelos_CMI/MetanolRequest";
 import { MetanolResponse } from "../models/Modelos_CMI/ProductoResponse";
 import { CostoDirectoResponse } from "../models/Modelos_CMI/CostoDirectoResponse";
 

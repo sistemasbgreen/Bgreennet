@@ -49,6 +49,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 			            .requestMatchers("/api/module-config/**", "/module-config/**").permitAll()
 			            .requestMatchers("/api/estrategicos/**").permitAll()
 			            .requestMatchers("/api/op-docto/**").permitAll()
+			            .requestMatchers("/api/productos/**").permitAll()
+			            .requestMatchers("/api/obtener_metas/**").permitAll()
+			            .requestMatchers("/api/agregar_metas/**").permitAll()
+			            .requestMatchers("/api/metas/consultar_costo-directo/**").permitAll()
+			            .requestMatchers("/api/metas/agregar_costo-directo/**").permitAll()
+			            .requestMatchers("/api/catalogos/**").permitAll()
+			   
 			            
 			            
 			            .requestMatchers("/error").permitAll()
