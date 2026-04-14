@@ -1,4 +1,4 @@
-export interface MetanolRequest {
+export interface MetanolRequest{
   startDate: string;
   endDate: string;
   consumptionProductId: string;

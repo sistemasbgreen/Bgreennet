@@ -1,1 +1,329 @@
-<p>metas-cmi works!</p>
+<div class="metas-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">
+
+        Configuración de Metas
+      </h1>
+      <p class="page-subtitle">Define los objetivos mensuales por producto y año</p>
+    </div>
+    <div class="header-right">
+      <div class="meta-badge" *ngIf="selectedProductoNombre">
+        <i class="bi bi-box-seam"></i>
+        {{ selectedProductoNombre }}
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- Products Detail Card (Moved to top) -->
+  <div class="table-card products-detail-card" *ngIf="!cargando && productosOriginales.length > 0">
+    <div class="table-card-header">
+      <div class="table-title">
+        <i class="bi bi-box-seam"></i>
+        <span>Detalle de Productos Configurables</span>
+      </div>
+      <div class="header-actions">
+        <div class="badge-total-items">
+          {{ productosOriginales.length }} productos activos
+        </div>
+        <button class="btn-add-product" (click)="openAddProduct()" title="Registrar nuevo producto">
+          <i class="bi bi-plus-lg"></i>
+          Agregar Producto
+        </button>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="metas-table products-table">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th class="col-nombre">Nombre</th>
+            <th class="col-siesa">ID Siesa</th>
+            <th class="col-docs">Tipos Consumo</th>
+            <th class="col-docs">Tipos Producción</th>
+            <th class="col-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of productosOriginales">
+            <td class="td-num">{{ p.id }}</td>
+            <td class="td-nombre">
+              <span class="product-name-txt">{{ p.nombre }}</span>
+            </td>
+            <td class="td-siesa">
+              <span class="siesa-badge" *ngIf="p.idProductoSiesa">{{ p.idProductoSiesa }}</span>
+              <span class="no-data" *ngIf="!p.idProductoSiesa">N/A</span>
+            </td>
+            <td class="td-docs">
+              <div class="docs-list">
+                <span class="doc-badge consumption" *ngFor="let doc of p.consumptionDocTypes">{{ doc }}</span>
+                <span class="no-data" *ngIf="!p.consumptionDocTypes?.length">-</span>
+              </div>
+            </td>
+            <td class="td-docs">
+              <div class="docs-list">
+                <span class="doc-badge production" *ngFor="let doc of p.productionDocTypes">{{ doc }}</span>
+                <span class="no-data" *ngIf="!p.productionDocTypes?.length">-</span>
+              </div>
+            </td>
+            <td class="td-actions">
+              <div class="action-group">
+                <button class="btn-action edit" (click)="openEditProduct(p)" title="Editar información básica">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <div class="linking-form">
+                   <select [(ngModel)]="getLinkingState(p.id).type" class="tiny-select">
+                     <option *ngFor="let tm of tiposMovimiento" [value]="tm.id">{{ tm.codigo }}</option>
+                   </select>
+                   <select [(ngModel)]="getLinkingState(p.id).code" class="tiny-select wide-select">
+                     <option *ngFor="let td of tiposDocumento" [value]="td.id">{{ td.codigo }} - {{ td.descripcion }}</option>
+                   </select>
+                   <button class="btn-action link" (click)="agregarTipoDocumento(p)" title="Vincular documento">
+                     <i class="bi bi-bookmark-plus"></i>
+                   </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+
+
+  <!-- Filters Card -->
+  <div class="filters-card">
+    <div class="filters-card-header">
+      <i class="bi bi-funnel"></i>
+      <span>Filtros de Consulta</span>
+    </div>
+    <div class="filters-body">
+      <div class="filter-group">
+        <label class="filter-label" for="producto-select">
+          <i class="bi bi-box-seam"></i> Producto
+        </label>
+        <div class="select-wrapper">
+          <select id="producto-select" [(ngModel)]="selectedProducto" (ngModelChange)="onProductoChange()">
+            <option *ngFor="let p of productos" [value]="p.id">{{ p.nombre }}</option>
+          </select>
+          <i class="bi bi-chevron-down select-arrow"></i>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="anio-input">
+          <i class="bi bi-calendar3"></i> Año
+        </label>
+        <div class="year-input-wrapper">
+          <button class="year-btn" (click)="cambiarAnio(-1)" aria-label="Año anterior">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <input id="anio-input"
+                 type="number"
+                 [(ngModel)]="selectedAnio"
+                 (ngModelChange)="onAnioChange()"
+                 min="2000"
+                 max="2100">
+          <button class="year-btn" (click)="cambiarAnio(1)" aria-label="Año siguiente">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn-refresh" (click)="onChange()" [disabled]="cargando">
+          <i class="bi bi-arrow-clockwise" [class.spin]="cargando"></i>
+          Actualizar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Stats (Reduced) -->
+  <div class="stats-row" *ngIf="!cargando">
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="bi bi-calendar-check"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ mesesConMeta }}</span>
+        <span class="stat-label">Meses Configurados</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="bi bi-trophy"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ maxMeta | number:'1.0-0' }}</span>
+        <span class="stat-label">Meta Máxima</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="bi bi-graph-down"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ minMeta | number:'1.0-0' }}</span>
+        <span class="stat-label">Meta Mínima</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skeleton Stats -->
+  <div class="stats-row" *ngIf="cargando">
+    <div class="stat-card skeleton-card" *ngFor="let s of [1,2,3]">
+      <div class="skeleton-icon"></div>
+      <div class="skeleton-info">
+        <div class="skeleton-line wide"></div>
+        <div class="skeleton-line narrow"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Table Card -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="table-title">
+        <i class="bi bi-table"></i>
+        <span>Metas Mensuales — {{ selectedAnio }}</span>
+      </div>
+      <div class="header-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+         <input type="number" [(ngModel)]="distribuirValor" placeholder="0" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100px; font-size: 14px;">
+         <button class="btn-add-product" style="padding: 0.5rem 1rem;" (click)="distribuirValorATodos()">
+           <i class="bi bi-clipboard2-plus"></i> Distribuir masivo
+         </button>
+      </div>
+    </div>
+
+    <!-- Skeleton Table -->
+    <div class="skeleton-table" *ngIf="cargando">
+      <div class="skeleton-row header-skeleton">
+        <div class="skeleton-cell sk-wide"></div>
+        <div class="skeleton-cell sk-mid"></div>
+        <div class="skeleton-cell sk-narrow"></div>
+      </div>
+      <div class="skeleton-row" *ngFor="let r of skeletonRows">
+        <div class="skeleton-cell sk-wide pulse"></div>
+        <div class="skeleton-cell sk-mid pulse"></div>
+        <div class="skeleton-cell sk-narrow pulse"></div>
+      </div>
+    </div>
+
+    <!-- Real Table -->
+    <div class="table-wrapper" *ngIf="!cargando">
+      <table class="metas-table">
+        <thead>
+          <tr>
+            <th class="col-mes">#</th>
+            <th class="col-mes">Mes</th>
+            <th class="col-meta">Meta</th>
+            <th class="col-date">Última Modificación</th>
+
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let mes of meses; let i = index"
+              [class.has-value]="metas[i].valor > 0"
+              [class.current-month]="i === mesActual && +selectedAnio === anioActual">
+            <td class="td-num">{{ i + 1 }}</td>
+            <td class="td-mes">
+              <div class="mes-info">
+                <span class="mes-nombre">{{ mes }}</span>
+                <span class="mes-badge" *ngIf="i === mesActual && +selectedAnio === anioActual">Actual</span>
+              </div>
+            </td>
+            <td class="td-meta">
+              <div class="input-wrapper">
+                <input type="number"
+                       class="meta-input"
+                       [value]="metas[i].valor"
+                       (input)="cambiarValor(i, $event)"
+                       (focus)="onInputFocus($event)"
+                       (blur)="onInputBlur($event)"
+                       min="0"
+                       placeholder="0"
+                       [id]="'meta-' + i">
+              </div>
+            </td>
+            <td class="td-date">
+              <div class="date-info" *ngIf="metas[i].dateModify" [title]="'Creado el: ' + (metas[i].dateCreate | date:'dd/MM/yyyy HH:mm')">
+                <i class="bi bi-clock-history"></i>
+                {{ metas[i].dateModify | date:'dd/MM/yyyy' }}
+              </div>
+              <span class="no-date" *ngIf="!metas[i].dateModify">-</span>
+            </td>
+
+          </tr>
+        </tbody>
+        <tfoot>
+          
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Save Button -->
+  <div class="save-section">
+    <button class="btn-save"
+            (click)="guardar()"
+            [disabled]="guardando || cargando"
+            id="btn-guardar-metas">
+      <span class="btn-content" *ngIf="!guardando">
+        <i class="bi bi-floppy2-fill"></i>
+        Guardar Metas
+      </span>
+      <span class="btn-content" *ngIf="guardando">
+        <span class="spinner"></span>
+        Guardando...
+      </span>
+    </button>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div class="toast-container" *ngIf="toast.visible">
+    <div class="toast" [class.toast-success]="toast.type === 'success'" [class.toast-error]="toast.type === 'error'">
+      <i class="bi" [class.bi-check-circle-fill]="toast.type === 'success'" [class.bi-exclamation-triangle-fill]="toast.type === 'error'"></i>
+      <span>{{ toast.message }}</span>
+    </div>
+  </div>
+
+  <!-- Product Modal -->
+  <div class="modal-overlay" *ngIf="showProductModal" (click)="closeProductModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <i class="bi" [class.bi-plus-circle]="!isEditingProduct" [class.bi-pencil-square]="isEditingProduct"></i>
+          {{ isEditingProduct ? 'Editar Producto' : 'Nuevo Producto' }}
+        </h3>
+        <button class="btn-close-modal" (click)="closeProductModal()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre del Producto</label>
+          <input type="text" [(ngModel)]="currentProduct.nombre" placeholder="Nombre descriptivo" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ID Siesa (Opcional)</label>
+          <input type="text" [(ngModel)]="currentProduct.idProductoSiesa" placeholder="Código externo Siesa" class="form-control">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeProductModal()">Cancelar</button>
+        <button class="btn-save-modal" (click)="guardarProducto()">
+          {{ isEditingProduct ? 'Actualizar' : 'Crear' }} Producto
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

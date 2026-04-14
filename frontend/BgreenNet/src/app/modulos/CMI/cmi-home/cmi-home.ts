@@ -7,7 +7,7 @@ import { NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions } from 'chart.js';
 import { cmiplantaservices } from '../../../servicios/cmiplantaservices';
 import { MetanolResponse } from '../../../models/Modelos_CMI/ProductoResponse';
-import { MetanolRequest } from '../../../models/Modelos_CMI/MetanolRequest ';
+import { MetanolRequest } from '../../../models/Modelos_CMI/MetanolRequest';
 import { Chart, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Router } from '@angular/router';
@@ -23,8 +23,7 @@ Chart.register(...registerables, ChartDataLabels);
 })
 export class CmiHome implements OnInit {
 
-  // Variable para almacenar la categoría seleccionada
-  
+   
   categoriaSeleccionada: string = '';
   anioSeleccionado: number = 2026;
   industrializacionAceite_number: number = 0;
