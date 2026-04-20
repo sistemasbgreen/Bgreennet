@@ -17,6 +17,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 
 @Entity
 @Table(name = "Usuario")
@@ -24,8 +27,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Usuario {
+
 	
 	
 
@@ -47,18 +51,22 @@ public class Usuario {
     private LocalDateTime ultimaConexion;
 
     // Relaciones
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY) // Carga perezosa
     @JoinColumn(name = "id_perfil_fk", nullable = false)
     private Perfil perfil;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_empresa_fk")
     private Empresa empresa;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_area_fk", nullable = false)
     private Area area;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_cargo_fk", nullable = false)
     private Cargo cargo;
