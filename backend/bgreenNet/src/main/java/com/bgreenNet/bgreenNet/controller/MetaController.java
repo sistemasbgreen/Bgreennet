@@ -3,8 +3,13 @@ package com.bgreenNet.bgreenNet.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +25,8 @@ import com.bgreenNet.bgreenNet.services.MetaService;
 @RequestMapping("/api")
 @CrossOrigin("*")
 public class MetaController {
+	
+	private static final Logger log = LoggerFactory.getLogger(MetaController.class);
 	
 	@Autowired
     private MetaService service;
@@ -75,8 +82,17 @@ public class MetaController {
     // GESTION PRODUCTOS
     // =============================
     @PostMapping("/productos/insertar")
-    public void insertarProducto(@RequestBody ProductoDTO producto) {
-        service.insertarProducto(producto);
+    public ResponseEntity<?> insertarProducto(@RequestBody ProductoDTO producto) {
+        try {
+            log.info("[insertarProducto] Recibido: nombre={}, idSiesa={}", producto.getNombre(), producto.getIdProductoSiesa());
+            int newId = service.insertarProducto(producto);
+            log.info("[insertarProducto] Creado con id={}", newId);
+            return ResponseEntity.ok(Map.of("id", newId));
+        } catch (Exception e) {
+            log.error("[insertarProducto] ERROR: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/productos/actualizar")
@@ -93,6 +109,11 @@ public class MetaController {
         );
     }
 
+    @DeleteMapping("/productos/tipo-documento")
+    public void eliminarTipoDocumento(@RequestParam String productoId) {
+        service.eliminarTiposDocumentoPorProducto(productoId);
+    }
+
     // =============================
     // CATALOGOS
     // =============================
@@ -106,4 +127,14 @@ public class MetaController {
         return service.getTiposMovimiento();
     }
 
+    // =============================
+    // VALIDACION SIESA
+    // =============================
+    @GetMapping("/siesa/validar")
+    public Map<String, Object> validarEnSiesa(@RequestParam(required = false) String id) {
+        if (id == null || id.isEmpty()) {
+            return null; // O podrías retornar un Map informando del error
+        }
+        return service.validarProductoEnSiesa(id);
+    }
 }

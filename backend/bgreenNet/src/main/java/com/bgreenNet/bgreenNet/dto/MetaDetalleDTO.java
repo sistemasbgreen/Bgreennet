@@ -6,13 +6,15 @@ public class MetaDetalleDTO {
     private Double valor;
     private LocalDateTime dateCreate;
     private LocalDateTime dateModify;
+    private String userName;
 
     public MetaDetalleDTO() {}
 
-    public MetaDetalleDTO(Double valor, LocalDateTime dateCreate, LocalDateTime dateModify) {
+    public MetaDetalleDTO(Double valor, LocalDateTime dateCreate, LocalDateTime dateModify, String userName) {
         this.valor = valor;
         this.dateCreate = dateCreate;
         this.dateModify = dateModify;
+        this.userName = userName;
     }
 
     public Double getValor() {
@@ -37,5 +39,13 @@ public class MetaDetalleDTO {
 
     public void setDateModify(LocalDateTime dateModify) {
         this.dateModify = dateModify;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }

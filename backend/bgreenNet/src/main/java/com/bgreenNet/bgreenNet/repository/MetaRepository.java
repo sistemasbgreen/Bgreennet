@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -18,43 +19,84 @@ import java.sql.Timestamp;
 @Repository
 public class MetaRepository {
 	
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MetaRepository.class);
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    @Qualifier("siesaJdbcTemplate")
+    private JdbcTemplate siesaJdbcTemplate;
     
     public List<ProductoDTO> obtenerProductos() {
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList("EXEC sp_producto_configuracion");
-
+        log.info(">>> Iniciando carga robusta de productos...");
+        
+        // 1. Cargar lista base de productos
+        List<Map<String, Object>> productRows = jdbcTemplate.queryForList("EXEC sp_producto_configuracion");
         Map<String, ProductoDTO> productosMap = new HashMap<>();
 
-        for (Map<String, Object> row : rows) {
-            String id = (String) row.get("id");
+        for (Map<String, Object> row : productRows) {
+            Object rawId = row.get("id");
+            if (rawId == null) continue;
+            String id = String.valueOf(rawId);
 
-            ProductoDTO producto = productosMap.get(id);
-            if (producto == null) {
-                producto = new ProductoDTO();
-                producto.setId(id);
-                producto.setNombre((String) row.get("nombre"));
-                producto.setIdProductoSiesa((String) row.get("id_producto_siesa"));
-                producto.setConsumptionDocTypes(new ArrayList<>());
-                producto.setProductionDocTypes(new ArrayList<>());
-                productosMap.put(id, producto);
+            if (!productosMap.containsKey(id)) {
+                ProductoDTO p = new ProductoDTO();
+                p.setId(id);
+                p.setNombre(row.get("nombre") != null ? String.valueOf(row.get("nombre")) : "Sin nombre");
+                p.setIdProductoSiesa(row.get("id_producto_siesa"));
+                p.setConsumptionDocTypes(new ArrayList<>());
+                p.setProductionDocTypes(new ArrayList<>());
+                p.setConsumptionDocIds(new ArrayList<>());
+                p.setProductionDocIds(new ArrayList<>());
+                p.setMetaActual(0.0);
+                productosMap.put(id, p);
             }
-
-            String tipoMov = (String) row.get("tipo_movimiento");
-            String tipoDoc = (String) row.get("tipo_documento");
-
-            if (tipoMov != null && tipoDoc != null) {
-                if (tipoMov.equals("CONSUMO")) {
-                    producto.getConsumptionDocTypes().add(tipoDoc);
-                } else {
-                    producto.getProductionDocTypes().add(tipoDoc);
-                }
-            }
-
-            productosMap.put(id, producto);
         }
 
+        // 2. Cargar TODAS las vinculaciones de documentos de forma directa
+        log.info(">>> Cargando vinculaciones de documentos directas...");
+        String sqlDocs = "SELECT ptd.producto_id, tm.codigo as tipo_mov, td.id as doc_id, td.codigo as doc_cod " +
+                        "FROM producto_tipos_documento ptd " +
+                        "JOIN tipo_movimiento tm ON ptd.tipo_movimiento_id = tm.id " +
+                        "JOIN tipos_documento td ON ptd.tipo_documento_id = td.id";
+        
+        List<Map<String, Object>> docRows = jdbcTemplate.queryForList(sqlDocs);
+        for (Map<String, Object> row : docRows) {
+            String prodId = String.valueOf(row.get("producto_id"));
+            ProductoDTO p = productosMap.get(prodId);
+            if (p != null) {
+                String tipoMov = String.valueOf(row.get("tipo_mov"));
+                String docCod = String.valueOf(row.get("doc_cod"));
+                Integer docId = ((Number) row.get("doc_id")).intValue();
+
+                if ("CONSUMO".equals(tipoMov)) {
+                    if (!p.getConsumptionDocTypes().contains(docCod)) p.getConsumptionDocTypes().add(docCod);
+                    if (!p.getConsumptionDocIds().contains(docId)) p.getConsumptionDocIds().add(docId);
+                } else if ("PRODUCCION".equals(tipoMov)) {
+                    if (!p.getProductionDocTypes().contains(docCod)) p.getProductionDocTypes().add(docCod);
+                    if (!p.getProductionDocIds().contains(docId)) p.getProductionDocIds().add(docId);
+                }
+            }
+        }
+
+        // 3. Cargar meta del mes actual
+        log.info(">>> Cargando metas del mes actual...");
+        int mesActual = LocalDateTime.now().getMonthValue();
+        int anioActual = LocalDateTime.now().getYear();
+        
+        String sqlMetas = "SELECT producto_id, valor FROM metas_mensuales WHERE anio = ? AND mes = ?";
+        List<Map<String, Object>> metaRows = jdbcTemplate.queryForList(sqlMetas, anioActual, mesActual);
+        
+        for (Map<String, Object> row : metaRows) {
+            String prodId = String.valueOf(row.get("producto_id"));
+            ProductoDTO p = productosMap.get(prodId);
+            if (p != null) {
+                p.setMetaActual(((Number) row.get("valor")).doubleValue());
+            }
+        }
+
+        log.info(">>> Carga finalizada. Productos: {}", productosMap.size());
         return new ArrayList<>(productosMap.values());
     }
     
@@ -69,7 +111,7 @@ public class MetaRepository {
 
         MetaDetalleDTO[] meses = new MetaDetalleDTO[12];
         for (int i = 0; i < 12; i++) {
-            meses[i] = new MetaDetalleDTO(0.0, null, null);
+            meses[i] = new MetaDetalleDTO(0.0, null, null, null);
         }
 
         for (Map<String, Object> row : rows) {
@@ -78,11 +120,12 @@ public class MetaRepository {
             
             Timestamp tsCreate = (Timestamp) row.get("date_create");
             Timestamp tsModify = (Timestamp) row.get("date_Modify");
+            String usuario = (String) row.get("creado_por");
             
             LocalDateTime dateCreate = (tsCreate != null) ? tsCreate.toLocalDateTime() : null;
             LocalDateTime dateModify = (tsModify != null) ? tsModify.toLocalDateTime() : null;
 
-            meses[mes - 1] = new MetaDetalleDTO(valor, dateCreate, dateModify);
+            meses[mes - 1] = new MetaDetalleDTO(valor, dateCreate, dateModify, usuario);
         }
 
         return Arrays.asList(meses);
@@ -105,7 +148,7 @@ public class MetaRepository {
 
         MetaDetalleDTO[] meses = new MetaDetalleDTO[12];
         for (int i = 0; i < 12; i++) {
-            meses[i] = new MetaDetalleDTO(0.0, null, null);
+            meses[i] = new MetaDetalleDTO(0.0, null, null, null);
         }
 
         for (Map<String, Object> row : rows) {
@@ -114,11 +157,12 @@ public class MetaRepository {
             
             Timestamp tsCreate = (Timestamp) row.get("date_create");
             Timestamp tsModify = (Timestamp) row.get("date_Modify");
+            String usuario = (String) row.get("creado_por");
             
             LocalDateTime dateCreate = (tsCreate != null) ? tsCreate.toLocalDateTime() : null;
             LocalDateTime dateModify = (tsModify != null) ? tsModify.toLocalDateTime() : null;
 
-            meses[mes - 1] = new MetaDetalleDTO(valor, dateCreate, dateModify);
+            meses[mes - 1] = new MetaDetalleDTO(valor, dateCreate, dateModify, usuario);
         }
 
         return Arrays.asList(meses);
@@ -136,48 +180,65 @@ public class MetaRepository {
     // =============================
     // GESTION PRODUCTOS
     // =============================
-    public void insertarProducto(ProductoDTO producto) {
-        Object idSiesa = (producto.getIdProductoSiesa() != null) ? producto.getIdProductoSiesa() : null;
-        jdbcTemplate.update(
-            "EXEC sp_productos_insertar ?, ?, ?",
-            producto.getNombre(),
-            idSiesa,
-            "ADMIN"
+    public int insertarProducto(ProductoDTO producto) {
+        // La columna 'id' NO es IDENTITY — se calcula manualmente como MAX(id) + 1.
+        // ISNULL maneja el caso de tabla vacía (devuelve 0, por lo que el primer id será 1).
+        Integer nextId = jdbcTemplate.queryForObject(
+            "SELECT ISNULL(MAX(id), 0) + 1 FROM productos",
+            Integer.class
         );
+
+        // idProductoSiesa puede llegar como Integer o String desde el frontend
+        String idSiesa = producto.getIdProductoSiesa() != null
+            ? producto.getIdProductoSiesa().toString()
+            : null;
+
+        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, date_create, date_Modify) " +
+                     "VALUES (?, ?, ?, 1, GETDATE(), GETDATE())";
+
+        jdbcTemplate.update(
+            sql,
+            nextId,
+            producto.getNombre(),
+            idSiesa
+        );
+
+        return nextId;
     }
 
     public void actualizarProducto(ProductoDTO producto) {
-        Object idSiesa = (producto.getIdProductoSiesa() != null) ? producto.getIdProductoSiesa() : null;
-        int idInt = Integer.parseInt(producto.getId());
+        String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, date_Modify = GETDATE() " +
+                     "WHERE id = ?";
+
+        String idSiesa = producto.getIdProductoSiesa() != null
+            ? producto.getIdProductoSiesa().toString()
+            : null;
+        
         jdbcTemplate.update(
-            "EXEC sp_productos_actualizar ?, ?, ?, ?",
-            idInt,
+            sql,
             producto.getNombre(),
             idSiesa,
-            "ADMIN"
+            producto.getId()
         );
     }
 
-    public void insertarTipoDocumento(String productoId, String tipoMovimiento, String tipoDocumento) {
+    public void eliminarTiposDocumentoPorProducto(String productoId) {
+        String sql = "DELETE FROM producto_tipos_documento WHERE producto_id = ?";
+        jdbcTemplate.update(sql, productoId);
+    }
+
+ 
         // According to user provided SQL, the SP name is sp_producto_tipo_doc_insertar
-        // and expects @producto_id, @tipo_documento_id, @tipo_movimiento_id (all INT)
+    public void insertarTipoDocumento(String productoId, String tipoMov, String tipoDoc) {
+        String sql = "INSERT INTO producto_tipos_documento (producto_id, tipo_movimiento_id, tipo_documento_id) " +
+                     "VALUES (?, ?, ?)";
         
-        try {
-            Integer idP = (productoId != null && !productoId.isEmpty()) ? Integer.parseInt(productoId) : null;
-            Integer idDoc = (tipoDocumento != null && !tipoDocumento.isEmpty()) ? Integer.parseInt(tipoDocumento) : null;
-            Integer idMov = (tipoMovimiento != null && !tipoMovimiento.isEmpty()) ? Integer.parseInt(tipoMovimiento) : null;
-            
-            jdbcTemplate.update(
-                "EXEC sp_producto_tipo_doc_insertar ?, ?, ?",
-                idP,
-                idDoc,
-                idMov
-            );
-        } catch (NumberFormatException e) {
-            // Handle cases like 'CostoDirecto' which might not be numeric
-            System.err.println("Error parsing IDs to Integer: " + e.getMessage());
-            throw e;
-        }
+        jdbcTemplate.update(
+            sql,
+            productoId,
+            tipoMov,
+            tipoDoc
+        );
     }
 
     // =============================
@@ -189,5 +250,15 @@ public class MetaRepository {
 
     public List<Map<String, Object>> obtenerTiposMovimiento() {
         return jdbcTemplate.queryForList("SELECT id, codigo, descripcion FROM tipo_movimiento ORDER BY codigo");
+    }
+
+    // =============================
+    // VALIDACION SIESA
+    // =============================
+    public Map<String, Object> validarProductoEnSiesa(String idProductoSiesa) {
+        String sql = "SELECT f120_id as id, f120_descripcion as nombre FROM t120_mc_items WHERE f120_id_cia = 2 AND f120_id = ?";
+        List<Map<String, Object>> results = siesaJdbcTemplate.queryForList(sql, idProductoSiesa);
+        
+        return results.isEmpty() ? null : results.get(0);
     }
 }

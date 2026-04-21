@@ -11,7 +11,10 @@ AS
 BEGIN
     SELECT 
         mes,
-        valor
+        valor,
+        creado_en AS date_create,
+        creado_en AS date_Modify,
+        creado_por
     FROM metas_mensuales
     WHERE producto_id = @producto_id
     AND anio = @anio

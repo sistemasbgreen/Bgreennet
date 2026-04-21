@@ -5,4 +5,7 @@ export interface producto {
   esCostoDirecto?: boolean;
   consumptionDocTypes: string[];
   productionDocTypes: string[];
+  consumptionDocIds?: number[];
+  productionDocIds?: number[];
+  metaActual?: number;
 }
