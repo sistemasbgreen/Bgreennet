@@ -5,8 +5,6 @@ import { environment } from '../../environments/environment';
 import { producto } from '../models/productos';
 
 
-
-
 export interface MetaDetalle {
   valor: number;
   dateCreate?: string;
