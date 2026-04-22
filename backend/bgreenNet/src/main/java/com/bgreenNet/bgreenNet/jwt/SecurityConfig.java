@@ -50,6 +50,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 			            .requestMatchers("/api/estrategicos/**").permitAll()
 			            .requestMatchers("/api/op-docto/**").permitAll()
 			            .requestMatchers("/api/productos/**").permitAll()
+			            .requestMatchers("/api/siesa/**").permitAll()
 			            .requestMatchers("/api/obtener_metas/**").permitAll()
 			            .requestMatchers("/api/agregar_metas/**").permitAll()
 			            .requestMatchers("/api/metas/consultar_costo-directo/**").permitAll()

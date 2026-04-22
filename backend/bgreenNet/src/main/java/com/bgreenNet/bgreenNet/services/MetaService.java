@@ -36,12 +36,16 @@ public class MetaService {
         repository.guardarCosto(anio, mes, valor, usuario);
     }
 
-    public void insertarProducto(ProductoDTO producto) {
-        repository.insertarProducto(producto);
+    public int insertarProducto(ProductoDTO producto) {
+        return repository.insertarProducto(producto);
     }
 
     public void actualizarProducto(ProductoDTO producto) {
         repository.actualizarProducto(producto);
+    }
+
+    public void eliminarTiposDocumentoPorProducto(String productoId) {
+        repository.eliminarTiposDocumentoPorProducto(productoId);
     }
 
     public void insertarTipoDocumento(String productoId, String tipoMov, String tipoDoc) {
@@ -54,6 +58,10 @@ public class MetaService {
 
     public List<Map<String, Object>> getTiposMovimiento() {
         return repository.obtenerTiposMovimiento();
+    }
+
+    public Map<String, Object> validarProductoEnSiesa(String id) {
+        return repository.validarProductoEnSiesa(id);
     }
 
 }

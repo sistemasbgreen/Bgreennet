@@ -5,7 +5,10 @@ AS
 BEGIN
     SELECT 
         mes,
-        valor
+        valor,
+        creado_en AS date_create,
+        creado_en AS date_Modify,
+        creado_por
     FROM metas_costo_directo
     WHERE anio = @anio
     ORDER BY mes;

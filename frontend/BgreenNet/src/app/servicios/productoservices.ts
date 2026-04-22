@@ -9,6 +9,7 @@ export interface MetaDetalle {
   valor: number;
   dateCreate?: string;
   dateModify?: string;
+  userName?: string;
 }
 
 export interface MetaResponse {
@@ -65,6 +66,12 @@ export class productoservices {
     });
   }
 
+  eliminarTipoDocumento(productoId: string) {
+    return this.http.delete(`${this.baseUrl}/productos/tipo-documento`, {
+      params: { productoId }
+    });
+  }
+
   // Catalogos
   getTiposDocumento() {
     return this.http.get<any[]>(`${this.baseUrl}/catalogos/tipos-documento`);
@@ -72,5 +79,9 @@ export class productoservices {
 
   getTiposMovimiento() {
     return this.http.get<any[]>(`${this.baseUrl}/catalogos/tipos-movimiento`);
+  }
+
+  validarProductoEnSiesa(id: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/siesa/validar?id=${id}`);
   }
 }

@@ -13,7 +13,9 @@ BEGIN
         p.nombre,
 		p.id_producto_siesa,
         tm.codigo AS tipo_movimiento,
-        td.codigo AS tipo_documento
+        tm.id AS tipo_movimiento_id,
+        td.codigo AS tipo_documento,
+        td.id AS tipo_documento_id
     FROM productos p
     LEFT JOIN producto_tipos_documento ptd 
         ON p.id = ptd.producto_id
