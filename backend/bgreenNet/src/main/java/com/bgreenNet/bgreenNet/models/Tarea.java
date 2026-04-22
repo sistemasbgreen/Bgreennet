@@ -1,6 +1,7 @@
 package com.bgreenNet.bgreenNet.models;
 
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,8 +24,19 @@ public class Tarea {
 	    @Column(name = "id_tarea")
 	    private Long id;
 
+	    @ManyToOne
+	    @JoinColumn(name = "id_usuario", insertable = false, updatable = false)
+	    private Usuario usuario;
+
 	    @Column(name = "id_usuario")
 	    private Integer idUsuario;
+
+	    @ManyToOne
+	    @JoinColumn(name = "id_usuario_creador", insertable = false, updatable = false)
+	    private Usuario usuarioCreador;
+
+	    @Column(name = "id_usuario_creador")
+	    private Integer idUsuarioCreador;
 
 	    @Column(name = "titulo")
 	    private String titulo;
@@ -41,13 +53,23 @@ public class Tarea {
 	    private PrioridadTarea prioridad;
 
 	    @Column(name = "fecha_creacion")
+	    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 	    private LocalDateTime fechaCreacion;
 
 	    @Column(name = "fecha_completado")
+	    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 	    private LocalDateTime fechaCompletado;
 
 	    @Column(name = "ultima_notificacion")
+	    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 	    private LocalDateTime ultimaNotificacion;
+
+	    @Column(name = "fecha_inicio")
+	    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+	    private LocalDateTime fechaInicio;
+
+	    @Column(name = "nota_cierre")
+	    private String notaCierre;
 
 		public Long getId() {
 			return id;
@@ -63,6 +85,14 @@ public class Tarea {
 
 		public void setIdUsuario(Integer idUsuario) {
 			this.idUsuario = idUsuario;
+		}
+
+		public Integer getIdUsuarioCreador() {
+			return idUsuarioCreador;
+		}
+
+		public void setIdUsuarioCreador(Integer idUsuarioCreador) {
+			this.idUsuarioCreador = idUsuarioCreador;
 		}
 
 		public String getTitulo() {
@@ -119,6 +149,34 @@ public class Tarea {
 
 		public void setUltimaNotificacion(LocalDateTime ultimaNotificacion) {
 			this.ultimaNotificacion = ultimaNotificacion;
+		}
+
+		public String getNotaCierre() {
+			return notaCierre;
+		}
+
+		public void setNotaCierre(String notaCierre) {
+			this.notaCierre = notaCierre;
+		}
+
+		public LocalDateTime getFechaInicio() {
+			return fechaInicio;
+		}
+
+		public void setFechaInicio(LocalDateTime fechaInicio) {
+			this.fechaInicio = fechaInicio;
+		}
+
+	    @Column(name = "fecha_limite")
+	    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+	    private LocalDateTime fechaLimite;
+
+		public LocalDateTime getFechaLimite() {
+			return fechaLimite;
+		}
+
+		public void setFechaLimite(LocalDateTime fechaLimite) {
+			this.fechaLimite = fechaLimite;
 		}
 	    
 	    

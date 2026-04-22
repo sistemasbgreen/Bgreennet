@@ -1,5 +1,8 @@
+import { PrioridadTarea } from './../../models/Tareas/PrioridadTarea';
 import { isPlatformBrowser } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, Inject, OnInit, PLATFORM_ID, ViewChild } from '@angular/core';
+import { Subject, timer } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, Inject, OnInit, OnDestroy, PLATFORM_ID, ViewChild } from '@angular/core';
 import { Router } from "@angular/router";
 import { SistemaInformacion } from '../../models/sistemasinformacion';
 import { homeservices } from '../../servicios/homeservices';
@@ -13,6 +16,8 @@ import { Pulso } from '../../models/Pulsos/pulso';
 import { PulsoService } from '../../servicios/pulsoservices';
 import { UsuarioService } from '../../servicios/usuarioservices';
 import { AuthService } from '../../auth/authservices';
+import Swal from 'sweetalert2';
+
 
 // Registrar componentes de Chart.js
 Chart.register(...registerables);
@@ -23,8 +28,10 @@ Chart.register(...registerables);
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
-export class Home implements OnInit, AfterViewInit {
+export class Home implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('trmChart') trmChartRef!: ElementRef<HTMLCanvasElement>;
+  private destroy$ = new Subject<void>();
+  private audioCtx: AudioContext | null = null;
   private trmChart: Chart | null = null;
 
   // Datos de usuario
@@ -52,6 +59,15 @@ export class Home implements OnInit, AfterViewInit {
   mostrarClaveActual = false;
   mostrarNuevaClave = false;
   mostrarConfirmarClave = false;
+  isModalDetalleOpen = false;
+  tareaSeleccionada: Tarea | null = null;
+  mensajeSeguimiento = '';
+  seguimientos: any[] = [];
+  
+  // Notificaciones
+  isNotificationMenuOpen = false;
+  notificaciones: any[] = [];
+  notifPollingInterval: any;
 
   // Datos de sistemas y contactos
   sistemaInformacionData: SistemaInformacion[] = [];
@@ -83,26 +99,35 @@ export class Home implements OnInit, AfterViewInit {
 
   // Dashboard personalizable
   dashboardWidgets = {
-    stats: true,
+     stats: true,
     trmChart: true,
     activity: true,
-    quickAccess: true
+    quickAccess: true,
+    tasks: true
   };
 
   // Reloj
   currentTime: Date = new Date();
   greeting: string = '';
+  tareaResaltadaId: number | null = null;
+
+  // El desbloqueo de audio se maneja en onDocumentClick más abajo
 
   //  Tareas mejoradas
   tareas: Tarea[] = [];
   tareasActivas: Tarea[] = []; // Solo CREADA y EN PROCESO
   tareasFinalizadas: Tarea[] = []; // Solo FINALIZADAS
+  focusTasksMode: boolean = false; // Modo enfoque de tareas
+  
+  usuarioAsignadoId: number | null = null; // Para asignar a otros
+
 
   nuevaTarea: CreateTareaRequest = {
     idUsuario: 0,
+    idUsuarioCreador: 0,
     titulo: '',
     descripcion: '',
-    idEstado: 1,      // CREADA
+    idEstado: 1,
     idPrioridad: 1    // NORMAL (ajusta a tu BD)
   };
 
@@ -156,6 +181,9 @@ export class Home implements OnInit, AfterViewInit {
   perfil_Fk: any;
   contactoSearchQuery: string = '';
   contactosFiltrados: any;
+  usuariosList: any[] = []; // Lista oficial de usuarios para asignación
+  notificationInterval: any;
+
 
 
   constructor(
@@ -171,15 +199,23 @@ export class Home implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.cargarContactosIniciales();
+    this.cargarUsuariosOficiales();
     this.loadTrmData();
     this.startClock();
     this.loadPreferences();
-       this.cargarPulsos();
+    this.cargarPulsos();
 
     if (isPlatformBrowser(this.platformId)) {
       this.loadUserDataAndPermisos();
+      this.iniciarTemporizadorNotificaciones();
+      this.startBackgroundSync();
+      // Inicializar contexto de audio
+      this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Solicitar permiso para notificaciones nativas del navegador
+      this.solicitarPermisoNotificaciones();
     }
   }
+
 
   ngAfterViewInit(): void {
     // Esperar a que los datos estén cargados antes de crear el gráfico
@@ -191,11 +227,17 @@ export class Home implements OnInit, AfterViewInit {
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     this.subscription?.unsubscribe();
     if (this.trmChart) {
       this.trmChart.destroy();
     }
+    if (this.notificationInterval) {
+      clearInterval(this.notificationInterval);
+    }
   }
+
 
   // ========================================
   // RELOJ Y SALUDO
@@ -263,10 +305,11 @@ export class Home implements OnInit, AfterViewInit {
     const allOn = Object.values(this.dashboardWidgets).every(v => v);
     const newState = !allOn;
     this.dashboardWidgets = {
-      stats: newState,
+ stats: newState,
       trmChart: newState,
       activity: newState,
-      quickAccess: newState
+      quickAccess: newState,
+      tasks: newState
     };
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('dashboardWidgets', JSON.stringify(this.dashboardWidgets));
@@ -345,6 +388,11 @@ export class Home implements OnInit, AfterViewInit {
   // Detectar click fuera del menú
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
+    // Desbloquear el contexto de audio en la primera interacción del usuario
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+
     const target = event.target as HTMLElement;
     const userMenu = document.querySelector('.user-menu-container');
     if (userMenu && !userMenu.contains(target)) {
@@ -547,12 +595,12 @@ export class Home implements OnInit, AfterViewInit {
       try {
         const user = JSON.parse(userString);
         this.fullName = `${user.nombre} ${user.apellido}`.toUpperCase();
-        this.nameempresa = user.empresa_descripcion || 'N/A';
-        this.id_usuario = user.id_usuario;
-        this.initials = `${user.nombre.charAt(0)}${user.apellido.charAt(0)}`.toUpperCase();
+        this.nameempresa = user.empresa_descripcion || user.descripcionEmpresa || 'N/A';
+        this.id_usuario = user.idUsuario || user.id_usuario;
+        this.initials = `${user.nombre?.charAt(0) || ''}${user.apellido?.charAt(0) || ''}`.toUpperCase();
         this.userEmail = user.email || user.correo || 'No disponible';
-        this.userRole = user.rol || user.perfil || 'Usuario';
-        this.perfil_Fk = user.id_perfil_fk;
+        this.userRole = user.rol || user.perfil || user.descripcionPerfil || 'Usuario';
+        this.perfil_Fk = user.idPerfilFk || user.Id_perfil_fk || user.id_perfil_fk;
 
         this.obtenerTareas();
 
@@ -579,6 +627,19 @@ export class Home implements OnInit, AfterViewInit {
       error: (err) => {
         console.error('Error al cargar permisos:', err);
         this.sistemaInformacionData = [];
+      }
+    });
+  }
+
+  cargarUsuariosOficiales(): void {
+    this.usuarioService.listarUsuarios().subscribe({
+      next: (data) => {
+        // Ordenar alfabéticamente por nombre
+        this.usuariosList = data.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cargar usuarios oficiales', err);
       }
     });
   }
@@ -694,24 +755,32 @@ export class Home implements OnInit, AfterViewInit {
   //  TAREAS MEJORADAS
   // ========================================
   obtenerTareas(): void {
-    console.log('idnombre ', this.id_usuario);
     this.homeservice.getTareasPorUsuario(this.id_usuario)
       .subscribe({
         next: (data) => {
-          console.log('Tareas recibidas:', data);
-          this.tareas = data;
-          
-          //  Filtrar tareas activas (CREADA y EN PROCESO) y finalizadas
-          this.tareasActivas = data.filter(t => 
-            t.estado.nombre === 'CREADA' || t.estado.nombre === 'INICIADA'
-          );
-          
-          this.tareasFinalizadas = data.filter(t => 
-            t.estado.nombre === 'FINALIZADA'
-          );
 
-          console.log(' Tareas activas:', this.tareasActivas.length);
-          console.log(' Tareas finalizadas:', this.tareasFinalizadas.length);
+          // Ordenar: prioridad ALTA → MEDIA → BAJA, luego más reciente primero
+          const prioridadOrden: Record<string, number> = { 'ALTA': 0, 'MEDIA': 1, 'BAJA': 2 };
+          const sortedData = data.sort((a, b) => {
+            const pA = prioridadOrden[a.prioridad?.nombre?.toUpperCase()] ?? 1;
+            const pB = prioridadOrden[b.prioridad?.nombre?.toUpperCase()] ?? 1;
+            if (pA !== pB) return pA - pB;
+            return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
+          });
+          
+          this.tareas = sortedData;
+
+ 
+          
+          this.tareasActivas = sortedData.filter(t => {
+            const estado = t.estado?.nombre?.toUpperCase() || '';
+            return ['CREADA', 'INICIADA', 'EN PROCESO', 'PENDIENTE'].includes(estado);
+          });
+          
+          this.tareasFinalizadas = sortedData.filter(t => {
+            const estado = t.estado?.nombre?.toUpperCase() || '';
+            return ['FINALIZADA', 'COMPLETADA', 'CANCELADA'].includes(estado);
+          }).slice(0, 15); // Aumentar un poco el límite ya que es una tabla now
 
           this.cdr.detectChanges();
         },
@@ -719,6 +788,11 @@ export class Home implements OnInit, AfterViewInit {
           console.error('Error al traer tareas', error);
         }
       });
+  }
+
+  // Getter para saber si hay tareas nuevas
+  get tieneTareasNuevas(): boolean {
+    return this.tareasActivas.some(t => t.estado.nombre === 'CREADA');
   }
 
   //  Getter para contar tareas de hoy
@@ -746,16 +820,24 @@ export class Home implements OnInit, AfterViewInit {
     this.resetFormulario();
   }
 
+  toggleTasksFocus(): void {
+    this.focusTasksMode = !this.focusTasksMode;
+  }
+
   crearTarea(): void {
     if (!this.nuevaTarea.titulo.trim()) return;
 
-    this.nuevaTarea.idUsuario = this.id_usuario;
+    this.nuevaTarea.idUsuario = this.usuarioAsignadoId || this.id_usuario;
+    this.nuevaTarea.idUsuarioCreador = this.id_usuario;
+
+    this.nuevaTarea.idEstado = 1; // CREADA
 
     this.homeservice.crearTarea(this.nuevaTarea)
       .subscribe({
         next: () => {
           this.obtenerTareas();
           this.cerrarModalTarea();
+          this.usuarioAsignadoId = null;
         },
         error: err => console.error(err)
       });
@@ -769,13 +851,272 @@ export class Home implements OnInit, AfterViewInit {
   }
 
   cambiarEstado(tarea: Tarea, idEstado: number): void {
-    this.homeservice.actualizarTarea(tarea.id, { idEstado })
+    if (idEstado === 3 || idEstado === 4) {
+      // Finalizar o Cancelar -> Pedir nota
+      const isFinalizar = idEstado === 3;
+      Swal.fire({
+        title: isFinalizar ? 'Finalizar Tarea' : 'Cancelar Tarea',
+        html: `
+          <div style="display:flex; flex-direction:column; align-items:center; gap:16px;">
+            <div style="
+              width: 60px; height: 60px; border-radius: 50%; 
+              background: ${isFinalizar ? '#d1fae5' : '#fee2e2'}; 
+              display: flex; align-items: center; justify-content: center;
+              color: ${isFinalizar ? '#10b981' : '#ef4444'}; font-size: 30px;
+              box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+              <i class="bi ${isFinalizar ? 'bi-check2-circle' : 'bi-x-circle'}"></i>
+            </div>
+            <div style="text-align:center;">
+              <p style="margin:0; font-size:14px; color:#6b7280;">Por favor, ingresa una nota u observación de cierre antes de continuar.</p>
+            </div>
+            <textarea id="swal-nota-cierre" class="swal2-textarea" 
+              style="width:100%; margin:0; border-radius:12px; font-size:14px; border:1px solid #e5e7eb; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); height:100px;" 
+              placeholder="Escribe aquí tu observación..."></textarea>
+          </div>`,
+        showCancelButton: true,
+        confirmButtonText: isFinalizar ? '💾 Finalizar' : '💾 Cancelar',
+        cancelButtonText: 'Volver',
+        confirmButtonColor: isFinalizar ? '#10b981' : '#ef4444',
+        cancelButtonColor: '#9ca3af',
+        width: '450px',
+        padding: '2rem',
+        preConfirm: () => {
+          const nota = (document.getElementById('swal-nota-cierre') as HTMLTextAreaElement)?.value?.trim();
+          return nota || '';
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.ejecutarCambioEstado(tarea.id, idEstado, result.value);
+        }
+      });
+    } else {
+      this.ejecutarCambioEstado(tarea.id, idEstado);
+    }
+  }
+
+  private ejecutarCambioEstado(idTarea: number, idEstado: number, notaCierre?: string): void {
+    this.homeservice.actualizarTarea(idTarea, { idEstado, notaCierre })
       .subscribe({
         next: () => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Tarea actualizada',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+          });
           this.obtenerTareas();
+          if (this.tareaSeleccionada && this.tareaSeleccionada.id === idTarea) {
+            this.homeservice.getTareaPorId(idTarea).subscribe(t => this.tareaSeleccionada = t);
+          }
         },
-        error: err => console.error(err)
+        error: err => {
+          console.error(err);
+          const msg = err.error?.message || 'Hubo un error al actualizar la tarea.';
+          Swal.fire({
+            icon: 'error',
+            title: 'No se pudo actualizar',
+            text: msg
+          });
+        }
       });
+  }
+
+  editarFechaLimite(tarea: Tarea): void {
+    if (tarea.idUsuarioCreador !== this.id_usuario) return;
+
+    // Formatear fecha actual para el input (formato ISO local YYYY-MM-DDTHH:mm)
+    const fechaActual = tarea.fechaLimite
+      ? new Date(tarea.fechaLimite).toISOString().slice(0, 16)
+      : '';
+
+    Swal.fire({
+      title: 'Fecha de Vencimiento',
+      html: `
+        <div style="display:flex; flex-direction:column; align-items:center; gap:20px; padding:10px 0;">
+          <div style="
+            width: 50px; height: 50px; border-radius: 12px; 
+            background: #ecfdf5; display: flex; align-items: center; justify-content: center;
+            color: #10b981; font-size: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <i class="bi bi-calendar-check"></i>
+          </div>
+          
+          <div style="width:100%; text-align:left;">
+            <label style="display:block; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">
+              Seleccione el nuevo límite
+            </label>
+            <input id="swal-fecha-limite" type="datetime-local" class="swal2-input"
+              value="${fechaActual}"
+              style="width:100%; margin:0; font-size:15px; border-radius:10px; border:1px solid #d1d5db; height:45px;" />
+          </div>
+
+          <div style="width:100%; text-align:center; padding-top:5px;">
+            <button id="swal-quitar-fecha" style="
+              background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 8px;
+              padding: 8px 16px; font-size: 13px; color: #6b7280; cursor: pointer;
+              transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="bi bi-calendar-x"></i> Quitar fecha límite
+            </button>
+          </div>
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: '💾 Actualizar',
+      cancelButtonText: 'Cerrar',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#9ca3af',
+      width: '400px',
+      padding: '2rem',
+      didOpen: () => {
+        const btnQuitar = document.getElementById('swal-quitar-fecha');
+        btnQuitar?.addEventListener('click', () => {
+          (document.getElementById('swal-fecha-limite') as HTMLInputElement).value = '';
+          Swal.clickConfirm();
+        });
+      },
+      preConfirm: () => {
+        const val = (document.getElementById('swal-fecha-limite') as HTMLInputElement)?.value;
+        return val || null; // null = quitar fecha
+      }
+    }).then(result => {
+      if (result.isConfirmed) {
+        const val = result.value; // string 'YYYY-MM-DDTHH:mm' o vacío
+        // Enviar sin zona horaria para que Spring LocalDateTime lo acepte
+        const nuevaFecha = val ? val + ':00' : null;
+        const payload = nuevaFecha
+          ? { fechaLimite: nuevaFecha }
+          : { clearFechaLimite: true };
+
+        this.homeservice.actualizarTarea(tarea.id, payload).subscribe({
+          next: () => {
+            Swal.fire({
+              icon: 'success',
+              title: nuevaFecha ? 'Fecha límite actualizada' : 'Fecha límite eliminada',
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 2500
+            });
+            this.obtenerTareas();
+            if (this.tareaSeleccionada?.id === tarea.id) {
+              this.homeservice.getTareaPorId(tarea.id).subscribe(t => this.tareaSeleccionada = t);
+            }
+          },
+          error: err => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: err.error?.message || 'No se pudo actualizar la fecha.'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  editarTarea(tarea: Tarea): void {
+    if (tarea.idUsuarioCreador !== this.id_usuario) return;
+
+    const fechaActual = tarea.fechaLimite
+      ? new Date(tarea.fechaLimite).toISOString().slice(0, 16)
+      : '';
+
+    Swal.fire({
+      title: 'Configuración de Tarea',
+      html: `
+        <div style="display:flex; flex-direction:column; gap:18px; text-align:left; padding:10px 5px;">
+          <!-- Título -->
+          <div class="swal-field-group">
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:6px;">
+              <i class="bi bi-fonts" style="color:#10b981;"></i> Título de la tarea
+            </label>
+            <input id="swal-titulo" class="swal2-input" 
+              style="margin:0; width:100%; font-size:14px; border-radius:10px; border:1px solid #d1d5db; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+              value="${tarea.titulo}" placeholder="Ej: Revisar informes de mantenimiento" />
+          </div>
+
+          <!-- Descripción -->
+          <div class="swal-field-group">
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:6px;">
+              <i class="bi bi-justify-left" style="color:#10b981;"></i> Descripción detallada
+            </label>
+            <textarea id="swal-descripcion" class="swal2-textarea" 
+              style="margin:0; width:100%; font-size:14px; border-radius:10px; border:1px solid #d1d5db; height:80px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+              placeholder="Escribe los detalles aquí...">${tarea.descripcion || ''}</textarea>
+          </div>
+
+          <!-- Grid de Prioridad y Fecha -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div class="swal-field-group">
+              <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:6px;">
+                <i class="bi bi-flag" style="color:#10b981;"></i> Prioridad
+              </label>
+              <select id="swal-prioridad" class="swal2-select" 
+                style="margin:0; width:100%; font-size:14px; border-radius:10px; border:1px solid #d1d5db;">
+                <option value="1" ${tarea.prioridad?.id === 1 ? 'selected' : ''}>🔴 Alta Prioridad</option>
+                <option value="2" ${tarea.prioridad?.id === 2 ? 'selected' : ''}>🟡 Media</option>
+                <option value="3" ${tarea.prioridad?.id === 3 ? 'selected' : ''}>🔵 Baja</option>
+              </select>
+            </div>
+            <div class="swal-field-group">
+              <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:6px;">
+                <i class="bi bi-calendar-event" style="color:#10b981;"></i> Fecha Límite
+              </label>
+              <input id="swal-fechalimite" type="datetime-local" class="swal2-input"
+                style="margin:0; width:100%; font-size:14px; border-radius:10px; border:1px solid #d1d5db;"
+                value="${fechaActual}" />
+            </div>
+          </div>
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: '💾 Guardar Cambios',
+      cancelButtonText: 'Cerrar',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#9ca3af',
+      width: '550px',
+      padding: '1.5rem',
+      preConfirm: () => {
+        const titulo = (document.getElementById('swal-titulo') as HTMLInputElement)?.value?.trim();
+        if (!titulo) {
+          Swal.showValidationMessage('El título es obligatorio');
+          return false;
+        }
+        const val = (document.getElementById('swal-fechalimite') as HTMLInputElement)?.value;
+        return {
+          titulo,
+          descripcion: (document.getElementById('swal-descripcion') as HTMLTextAreaElement)?.value?.trim() || '',
+          idPrioridad: parseInt((document.getElementById('swal-prioridad') as HTMLSelectElement)?.value),
+          fechaLimite: val ? val + ':00' : null,
+          clearFechaLimite: !val // Si no hay valor, queremos borrarla
+        };
+      }
+    }).then(result => {
+      if (result.isConfirmed && result.value) {
+        this.homeservice.actualizarTarea(tarea.id, result.value).subscribe({
+          next: () => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Tarea actualizada',
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 2500
+            });
+            this.obtenerTareas();
+            if (this.tareaSeleccionada?.id === tarea.id) {
+              this.homeservice.getTareaPorId(tarea.id).subscribe(t => this.tareaSeleccionada = t);
+            }
+          },
+          error: err => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al guardar',
+              text: err.error?.message || 'No se pudieron guardar los cambios.'
+            });
+          }
+        });
+      }
+    });
   }
 
   // Modal de historial
@@ -787,8 +1128,22 @@ export class Home implements OnInit, AfterViewInit {
     this.isModalHistorialOpen = false;
   }
 
+  // Verificar si la tarea está vencida (fecha limite pasada y no terminada)
+  esTareaVencida(tarea: Tarea): boolean {
+    if (!tarea.fechaLimite) return false;
+    
+    const idEstado = tarea.estado?.id;
+    // No marcar como vencida si ya está FINALIZADA (3) o CANCELADA (4)
+    if (idEstado === 3 || idEstado === 4) return false;
+
+    const ahora = new Date();
+    const vencimiento = new Date(tarea.fechaLimite);
+    return vencimiento < ahora;
+  }
+
   // Formatear tiempo relativo
   getTiempoRelativo(fecha: string): string {
+    if (!fecha) return 'Sin fecha';
     const ahora = new Date();
     const fechaTarea = new Date(fecha);
     const diff = ahora.getTime() - fechaTarea.getTime();
@@ -801,6 +1156,124 @@ export class Home implements OnInit, AfterViewInit {
     if (minutos < 60) return `Hace ${minutos} min`;
     if (horas < 24) return `Hace ${horas} hora${horas > 1 ? 's' : ''}`;
     return `Hace ${dias} día${dias > 1 ? 's' : ''}`;
+  }
+
+  getDuracion(tarea: Tarea): string {
+    const inicio = tarea.fechaInicio ? new Date(tarea.fechaInicio) : new Date(tarea.fechaCreacion);
+    const fin = tarea.fechaCompletado ? new Date(tarea.fechaCompletado) : new Date();
+    const diff = fin.getTime() - inicio.getTime();
+
+    const horas = Math.floor(diff / 3600000);
+    const minutos = Math.floor((diff % 3600000) / 60000);
+
+    if (horas === 0) return `${minutos}m`;
+    return `${horas}h ${minutos}m`;
+  }
+
+  // Métodos de Seguimiento (Chat)
+  abrirDetalle(tarea: Tarea, resaltar: boolean = false): void {
+
+    this.tareaSeleccionada = tarea;
+    this.isModalDetalleOpen = true;
+    this.cargarSeguimientos(tarea.id, true);
+    
+    if (resaltar) {
+      // Scroll a la tarjeta en la lista antes de abrir el detalle
+      setTimeout(() => {
+        const el = document.querySelector(`[data-tarea-id="${tarea.id}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          document.getElementById('tareas-section')?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 80);
+
+      this.tareaResaltadaId = tarea.id;
+      setTimeout(() => {
+        this.tareaResaltadaId = null;
+      }, 3500);
+    }
+
+    // Marcar automáticamente como leídas las notificaciones de chat de esta tarea (uso == por si acaso)
+    const notifs = this.notificaciones.filter(n => n.referenciaId == tarea.id && n.tipo === 'NUEVO_MENSAJE');
+    if (notifs.length > 0) {
+      notifs.forEach(n => this.leida(n));
+      this.notificaciones = this.notificaciones.filter(n => !(n.referenciaId == tarea.id && n.tipo === 'NUEVO_MENSAJE'));
+    }
+  }
+
+  tieneMensajesSinLeer(idTarea: number): boolean {
+    return this.notificaciones.some(n => n.referenciaId === idTarea && n.tipo === 'NUEVO_MENSAJE');
+  }
+
+  cerrarDetalle(): void {
+    this.isModalDetalleOpen = false;
+    this.tareaSeleccionada = null;
+    this.seguimientos = [];
+    this.mensajeSeguimiento = '';
+  }
+
+getInitial(nombre?: string): string {
+  if (!nombre) return 'U';
+  return nombre.substring(0, 2).toUpperCase();
+}
+  cargarSeguimientos(idTarea: number, forceScroll: boolean = false): void {
+    this.homeservice.getSeguimientos(idTarea).subscribe({
+      next: (data) => {
+        // Solo hacer scroll si hay mensajes nuevos o se fuerza
+        const hadNewMessages = this.seguimientos.length < data.length;
+        this.seguimientos = data;
+        this.cdr.detectChanges();
+        
+        if (forceScroll || hadNewMessages) {
+          this.scrollToBottom();
+        }
+      },
+      error: (err) => console.error(err)
+    });
+  }
+
+  private startBackgroundSync(): void {
+    // Sincronización cada 6 segundos en segundo plano
+    timer(0, 6000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.fetchNotificaciones();
+        
+        // Solo refrescar tareas si no estamos enfocados en crear una o algo similar
+        // Pero para simplificar, refrescamos siempre ya que Angular es eficiente
+        if (this.id_usuario) {
+          this.obtenerTareas();
+        }
+
+        // Si el chat está abierto, refrescar mensajes
+        if (this.isModalDetalleOpen && this.tareaSeleccionada) {
+          this.cargarSeguimientos(this.tareaSeleccionada.id);
+        }
+      });
+  }
+
+  enviarMensaje(): void {
+    if (!this.mensajeSeguimiento.trim() || !this.tareaSeleccionada) return;
+
+    this.homeservice.enviarSeguimiento(this.tareaSeleccionada.id, this.id_usuario, this.mensajeSeguimiento)
+      .subscribe({
+        next: () => {
+          this.mensajeSeguimiento = '';
+          this.cargarSeguimientos(this.tareaSeleccionada!.id, true);
+        },
+        error: (err) => console.error(err)
+      });
+  }
+
+  private scrollToBottom(): void {
+    setTimeout(() => {
+      // Intentar encontrar el contenedor del chat con los dos selectores posibles
+      const chatContainer = document.querySelector('.detalle-chat-messages') || document.querySelector('.chat-messages');
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    }, 100);
   }
 
   irAUsuarios(): void {
@@ -895,6 +1368,7 @@ cargarPulsos(): void {
     });
   }
 
+  
   get filteredContactos(): any[] {
     let contactos = [...this.sistemacontactosData];
     const q = this.contactoSearchQuery?.toLowerCase().trim();
@@ -927,6 +1401,239 @@ cargarPulsos(): void {
     return this.tieneMayuscula && this.tieneMinuscula && this.tieneNumero && this.tieneLongitud && this.tieneCaracterEspecial;
   }
 
+  // ========================================
+  // NOTIFICACIONES PERIODICAS
+  // ========================================
+
+  solicitarPermisoNotificaciones(): void {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
+
+  private mostrarNotificacionNativa(titulo: string, cuerpo: string, onClick?: () => void): void {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notif = new Notification(titulo, {
+        body: cuerpo,
+        icon: 'assets/icons/icon-72x72.png'
+      });
+      if (onClick) {
+        notif.onclick = () => {
+          window.focus();
+          notif.close();
+          onClick();
+        };
+      }
+    }
+  }
+
+  iniciarTemporizadorNotificaciones(): void {
+    // Revisar cada 1 minuto (60000 ms)
+    this.notificationInterval = setInterval(() => {
+      this.verificarNotificacionesPendientes();
+    }, 60000);
+  }
+
+  verificarNotificacionesPendientes(): void {
+    if (!this.id_usuario) return;
+
+    this.homeservice.getNotificacionesPendientes(this.id_usuario).subscribe({
+      next: (tareasNotificar: any[]) => {
+        if (tareasNotificar && tareasNotificar.length > 0) {
+          this.playNotificationSound();
+
+          // Notificación nativa del navegador (funciona aunque la consola no esté abierta)
+          const titulosTexto = tareasNotificar.map(t => t.titulo).join(', ');
+          this.mostrarNotificacionNativa(
+            '¡Tienes tareas pendientes!',
+            tareasNotificar.length === 1
+              ? tareasNotificar[0].titulo
+              : `${tareasNotificar.length} tareas: ${titulosTexto}`,
+            () => {
+              if (tareasNotificar.length === 1) {
+                this.abrirDetalle(tareasNotificar[0]);
+              } else {
+                document.getElementById('tareas-section')?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }
+          );
+
+          let alertHtml = '<div style="text-align: left;">';
+          tareasNotificar.forEach(t => {
+            alertHtml += `<p>• <strong>${t.titulo}</strong> (Prioridad: ${t.prioridad?.nombre || 'Media'})</p>`;
+          });
+          alertHtml += '</div>';
+
+          Swal.fire({
+            title: '¡Tienes tareas pendientes por revisar!',
+            html: alertHtml,
+            icon: 'info',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 10000,
+            timerProgressBar: true,
+            showCloseButton: true,
+            didOpen: (toast) => {
+              toast.onmouseenter = Swal.stopTimer;
+              toast.onmouseleave = Swal.resumeTimer;
+              toast.style.cursor = 'pointer';
+              toast.onclick = () => {
+                if (tareasNotificar.length === 1) {
+                  this.abrirDetalle(tareasNotificar[0]);
+                } else {
+                  document.getElementById('tareas-section')?.scrollIntoView({ behavior: 'smooth' });
+                }
+                Swal.close();
+              };
+            }
+          });
+        }
+      },
+      error: (err) => {
+        console.error('Error verificando notificaciones', err);
+      }
+    });
+  }
+
+  playNotificationSound(): void {
+    try {
+      if (!this.audioCtx) {
+        console.warn('⚠️ No se puede sonar: AudioContext no inicializado');
+        return;
+      }
+
+      const emitirSonido = () => {
+        const oscillator = this.audioCtx!.createOscillator();
+        const gainNode = this.audioCtx!.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioCtx!.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, this.audioCtx!.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(440, this.audioCtx!.currentTime + 0.4);
+        gainNode.gain.setValueAtTime(0.15, this.audioCtx!.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioCtx!.currentTime + 0.4);
+        oscillator.start(this.audioCtx!.currentTime);
+        oscillator.stop(this.audioCtx!.currentTime + 0.4);
+      };
+
+      if (this.audioCtx.state === 'suspended') {
+        // Intentar resume; si falla (sin interacción), la notificación nativa ya fue enviada
+        this.audioCtx.resume().then(() => emitirSonido()).catch(() => {});
+      } else {
+        emitirSonido();
+      }
+    } catch(e) {
+      console.warn('❌ Error al reproducir sonido:', e);
+    }
+  }
+
+  // ========================================
+  // NOTIFICACIONES REAL-TIME
+  // ========================================
+  toggleNotifications(event: Event): void {
+    event.stopPropagation();
+    this.isNotificationMenuOpen = !this.isNotificationMenuOpen;
+    if (this.isNotificationMenuOpen) {
+      this.isUserMenuOpen = false;
+      this.fetchNotificaciones();
+    }
+  }
+
+  fetchNotificaciones(): void {
+    if (!this.id_usuario) return;
+    this.homeservice.get('api/tareas/notificaciones/activas/' + this.id_usuario).subscribe({
+      next: (data: any) => {
+        // Log para depuración
+        // console.log('🔄 Sincronizando notificaciones. Total:', data.length);
+        
+        // Detectar si hay notificaciones nuevas para emitir sonido y aviso
+        if (this.notificaciones.length > 0) {
+          const oldIds = new Set(this.notificaciones.map(n => n.id.toString()));
+          const newNotif = data.find((n: any) => !oldIds.has(n.id.toString()));
+          
+          if (newNotif) {
+            console.log('🔍 ¡DETECTADA NUEVA NOTIFICACIÓN!', newNotif);
+            this.playNotificationSound();
+
+            // Notificación nativa del navegador (funciona en background)
+            this.mostrarNotificacionNativa(
+              newNotif.tipo === 'NUEVO_MENSAJE' ? '💬 Nuevo mensaje en tarea' : '🔔 Nueva notificación',
+              newNotif.mensaje,
+              () => this.irANotificacion(newNotif)
+            );
+            
+            // Mostrar aviso visual clickeable
+            Swal.fire({
+              title: newNotif.tipo === 'NUEVO_MENSAJE' ? 'Nuevo mensaje' : 'Notificación',
+              text: newNotif.mensaje,
+              icon: 'info',
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 8000,
+              timerProgressBar: true,
+              didOpen: (toast) => {
+                toast.style.cursor = 'pointer';
+                toast.onclick = () => {
+                  this.irANotificacion(newNotif);
+                  Swal.close();
+                };
+              }
+            });
+          }
+        }
+        
+        this.notificaciones = data;
+      },
+      error: (err) => console.error('Error al obtener notificaciones', err)
+    });
+  }
+
+  leida(notif: any, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.homeservice.put(`api/tareas/notificaciones/${notif.id}/leido`, {}).subscribe({
+      next: () => {
+        this.notificaciones = this.notificaciones.filter(n => n.id !== notif.id);
+      }
+    });
+  }
+
+  marcarTodasComoLeidas(): void {
+    const promises = this.notificaciones.map(n => 
+      this.homeservice.put(`api/tareas/notificaciones/${n.id}/leido`, {}).toPromise()
+    );
+    Promise.all(promises).then(() => {
+      this.notificaciones = [];
+    });
+  }
+
+  irANotificacion(notif: any): void {
+
+    
+    // Marcar como leída
+    this.leida(notif);
+    this.isNotificationMenuOpen = false;
+    
+    // Si la notificación tiene una referenciaId (que debería ser el ID de la tarea)
+    if (notif.referenciaId) {
+      this.homeservice.getTareaPorId(notif.referenciaId).subscribe({
+        next: (tarea) => {
+          if (tarea) {
+            this.abrirDetalle(tarea, true);
+          }
+        },
+        error: (err) => {
+          console.error('Error al cargar la tarea desde notificación:', err);
+          // Fallback: abrir la sección de tareas
+          document.getElementById('tareas-section')?.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    } else {
+      // Si no tiene referencia, al menos llevar a la sección de tareas
+      document.getElementById('tareas-section')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
 }
 
 

@@ -25,7 +25,7 @@ public class IndustrializacionAceiteServices {
 
         String sql = """
             SELECT 
-                ((SUM(mov.f470_cant_base) / 1000) / 150000) * 100 AS Resultado
+                ((SUM(mov.f470_cant_1) / 1000) / 150000) * 100 AS Resultado
             FROM  t124_mc_items_referencias
             LEFT JOIN t120_mc_items item
                 ON f120_rowid = f124_rowid_item
@@ -45,8 +45,8 @@ public class IndustrializacionAceiteServices {
                 AND f350_ind_estado = 1
                 AND f120_id IN ('8')
                 AND f350_id_tipo_docto IN ('EC','AC')
-                AND doc.f350_fecha >= ?
-                AND doc.f350_fecha <  ?
+                AND mov.f470_id_fecha >= ?
+                AND mov.f470_id_fecha <=  ?
         """;
 
         Double resultado = siesaJdbcTemplate.queryForObject(sql, Double.class, fechaInicio, fechaFin);

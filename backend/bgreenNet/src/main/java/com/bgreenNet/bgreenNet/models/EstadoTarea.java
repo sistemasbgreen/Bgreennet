@@ -11,16 +11,22 @@ public class EstadoTarea {
 
     @Id
     @Column(name = "id_estado")
-    private Long id;
+    private Integer id;
+
+    // Constantes de Estado
+    public static final int CREADA = 1;
+    public static final int INICIADA = 2;
+    public static final int FINALIZADA = 3;
+    public static final int CANCELADA = 4;
 
     @Column(name = "nombre")
     private String nombre;
 
-	public Long getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(Long id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
