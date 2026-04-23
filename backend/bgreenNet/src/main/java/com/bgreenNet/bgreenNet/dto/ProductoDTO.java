@@ -12,6 +12,9 @@ public class ProductoDTO {
     private List<Integer> consumptionDocIds;
     private List<Integer> productionDocIds;
     private Double metaActual;
+    private Boolean esCompuesto;
+    private List<String> componenteSiesaIds;
+    private Boolean usaSuma;
 
     public String getId() {
         return id;
@@ -75,5 +78,29 @@ public class ProductoDTO {
 
     public void setMetaActual(Double metaActual) {
         this.metaActual = metaActual;
+    }
+
+    public Boolean getEsCompuesto() {
+        return esCompuesto;
+    }
+
+    public void setEsCompuesto(Boolean esCompuesto) {
+        this.esCompuesto = esCompuesto;
+    }
+
+    public List<String> getComponenteSiesaIds() {
+        return componenteSiesaIds;
+    }
+
+    public void setComponenteSiesaIds(List<String> componenteSiesaIds) {
+        this.componenteSiesaIds = componenteSiesaIds;
+    }
+
+    public Boolean getUsaSuma() {
+        return usaSuma;
+    }
+
+    public void setUsaSuma(Boolean usaSuma) {
+        this.usaSuma = usaSuma;
     }
 }

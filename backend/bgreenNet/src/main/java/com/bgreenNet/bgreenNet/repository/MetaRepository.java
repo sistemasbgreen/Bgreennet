@@ -50,6 +50,17 @@ public class MetaRepository {
                 p.setConsumptionDocIds(new ArrayList<>());
                 p.setProductionDocIds(new ArrayList<>());
                 p.setMetaActual(0.0);
+                
+                // Cargar usa_suma del producto base
+                Object usaSumaObj = row.get("usa_suma");
+                if (usaSumaObj instanceof Boolean) {
+                    p.setUsaSuma((Boolean) usaSumaObj);
+                } else if (usaSumaObj instanceof Number) {
+                    p.setUsaSuma(((Number) usaSumaObj).intValue() == 1);
+                } else {
+                    p.setUsaSuma(false);
+                }
+                
                 productosMap.put(id, p);
             }
         }
@@ -93,6 +104,37 @@ public class MetaRepository {
             ProductoDTO p = productosMap.get(prodId);
             if (p != null) {
                 p.setMetaActual(((Number) row.get("valor")).doubleValue());
+            }
+        }
+        // 4. Cargar componentes de productos compuestos
+        try {
+            log.info(">>> Cargando componentes de productos compuestos...");
+            String sqlComp = "SELECT producto_padre_id, producto_hijo_siesa_id, usa_suma FROM producto_componentes WHERE activo = 1";
+            List<Map<String, Object>> compRows = jdbcTemplate.queryForList(sqlComp);
+            
+            for (Map<String, Object> row : compRows) {
+                String padreId = String.valueOf(row.get("producto_padre_id"));
+                ProductoDTO p = productosMap.get(padreId);
+                if (p != null) {
+                    if (p.getComponenteSiesaIds() == null) {
+                        p.setComponenteSiesaIds(new ArrayList<>());
+                    }
+                    p.getComponenteSiesaIds().add(String.valueOf(row.get("producto_hijo_siesa_id")));
+                    p.setEsCompuesto(true);
+                    // El flag usaSuma ahora se carga globalmente desde la tabla productos en el paso 1
+                }
+            }
+        } catch (Exception e) {
+            log.error(">>> ERROR al cargar componentes (posiblemente falta la tabla): {}", e.getMessage());
+            // No bloqueamos la carga de productos si fallan los componentes
+        }
+        
+        // Mark products without components
+        for (ProductoDTO p : productosMap.values()) {
+            if (p.getEsCompuesto() == null) {
+                p.setEsCompuesto(false);
+                p.setComponenteSiesaIds(new ArrayList<>());
+                // p.setUsaSuma se mantiene como venga de la tabla productos
             }
         }
 
@@ -184,7 +226,7 @@ public class MetaRepository {
         // La columna 'id' NO es IDENTITY — se calcula manualmente como MAX(id) + 1.
         // ISNULL maneja el caso de tabla vacía (devuelve 0, por lo que el primer id será 1).
         Integer nextId = jdbcTemplate.queryForObject(
-            "SELECT ISNULL(MAX(id), 0) + 1 FROM productos",
+            "SELECT ISNULL(MAX(CAST(id AS INT)), 0) + 1 FROM productos",
             Integer.class
         );
 
@@ -193,21 +235,22 @@ public class MetaRepository {
             ? producto.getIdProductoSiesa().toString()
             : null;
 
-        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, date_create, date_Modify) " +
-                     "VALUES (?, ?, ?, 1, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, date_create, date_Modify) " +
+                     "VALUES (?, ?, ?, 1, ?, GETDATE(), GETDATE())";
 
         jdbcTemplate.update(
             sql,
             nextId,
             producto.getNombre(),
-            idSiesa
+            idSiesa,
+            producto.getUsaSuma() != null && producto.getUsaSuma() ? 1 : 0
         );
 
         return nextId;
     }
 
     public void actualizarProducto(ProductoDTO producto) {
-        String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, date_Modify = GETDATE() " +
+        String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, date_Modify = GETDATE() " +
                      "WHERE id = ?";
 
         String idSiesa = producto.getIdProductoSiesa() != null
@@ -218,6 +261,7 @@ public class MetaRepository {
             sql,
             producto.getNombre(),
             idSiesa,
+            producto.getUsaSuma() != null && producto.getUsaSuma() ? 1 : 0,
             producto.getId()
         );
     }
@@ -260,5 +304,22 @@ public class MetaRepository {
         List<Map<String, Object>> results = siesaJdbcTemplate.queryForList(sql, idProductoSiesa);
         
         return results.isEmpty() ? null : results.get(0);
+    }
+
+    // =============================
+    // COMPONENTES DE PRODUCTOS
+    // =============================
+    public List<Map<String, Object>> obtenerComponentes(String productoId) {
+        String sql = "SELECT id, producto_hijo_siesa_id, usa_suma FROM producto_componentes WHERE producto_padre_id = ? AND activo = 1";
+        return jdbcTemplate.queryForList(sql, productoId);
+    }
+
+    public void eliminarComponentes(String productoId) {
+        jdbcTemplate.update("DELETE FROM producto_componentes WHERE producto_padre_id = ?", productoId);
+    }
+
+    public void insertarComponente(String padreId, String hijoSiesaId, boolean usaSuma) {
+        String sql = "INSERT INTO producto_componentes (producto_padre_id, producto_hijo_siesa_id, usa_suma) VALUES (?, ?, ?)";
+        jdbcTemplate.update(sql, padreId, hijoSiesaId, usaSuma ? 1 : 0);
     }
 }

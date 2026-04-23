@@ -30,11 +30,10 @@ canActivate(
       const usuario = localStorage.getItem('usuario');
 
       if (token && usuario) {
-        console.log('Usuario autenticado (localStorage), acceso permitido');
+       
         return true;
       }
-
-      console.log('No autenticado, redirigiendo a login');
+      
       this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
       return false;
     }

@@ -133,8 +133,44 @@ public class MetaController {
     @GetMapping("/siesa/validar")
     public Map<String, Object> validarEnSiesa(@RequestParam(required = false) String id) {
         if (id == null || id.isEmpty()) {
-            return null; // O podrías retornar un Map informando del error
+            return null;
         }
         return service.validarProductoEnSiesa(id);
+    }
+
+    // =============================
+    // COMPONENTES DE PRODUCTOS
+    // =============================
+    @GetMapping("/productos/componentes")
+    public List<Map<String, Object>> getComponentes(@RequestParam String productoId) {
+        return service.getComponentes(productoId);
+    }
+
+    @PostMapping("/productos/componentes")
+    public ResponseEntity<?> guardarComponentes(@RequestBody Map<String, Object> body) {
+        try {
+            String productoId = (String) body.get("productoId");
+            @SuppressWarnings("unchecked")
+            List<String> componentes = (List<String>) body.get("componentes");
+            boolean usaSuma = body.get("usaSuma") != null && (boolean) body.get("usaSuma");
+
+            // Delete-all + re-insert
+            service.eliminarComponentes(productoId);
+            if (componentes != null) {
+                for (String hijoSiesaId : componentes) {
+                    service.insertarComponente(productoId, hijoSiesaId, usaSuma);
+                }
+            }
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            log.error("[guardarComponentes] ERROR: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/productos/componentes")
+    public void eliminarComponentes(@RequestParam String productoId) {
+        service.eliminarComponentes(productoId);
     }
 }

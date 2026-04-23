@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,9 @@ public class cmiplantaServices {
 	
 	
     private final JdbcTemplate siesaJdbcTemplate;
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
     
     public cmiplantaServices(@Qualifier("siesaJdbcTemplate") JdbcTemplate siesaJdbcTemplate) {
         this.siesaJdbcTemplate = siesaJdbcTemplate;
@@ -49,22 +53,13 @@ public class cmiplantaServices {
         validateDocTypes(consumptionDocTypes, "consumptionDocTypes");
         validateDocTypes(productionDocTypes, "productionDocTypes");
 
-        // 1️ CONSUMO
-        List<String> consumoProductIds = new ArrayList<>();
-        if ("8".equals(consumptionProductId)) {
-            consumoProductIds.add("8");
-            consumoProductIds.add("7309");
-        } else {
-            consumoProductIds.add(consumptionProductId);
-        }
+        // 1️ CONSUMO — Cargar componentes dinámicamente
+        List<String> consumoProductIds = cargarComponentesDinamicos(consumptionProductId);
+        boolean useSumForConsumption = consultarUsaSuma(consumptionProductId);
 
         String consumoProductPlaceholders = consumoProductIds.stream()
             .map(id -> "?")
             .collect(Collectors.joining(", "));
-
-        boolean useSumForConsumption = "32".equals(consumptionProductId) 
-            || "9264".equals(consumptionProductId) 
-            || "3188".equals(consumptionProductId);
             
         String consumoExpression = useSumForConsumption
             ? "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END + CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)"
@@ -268,6 +263,61 @@ public class cmiplantaServices {
         }
     }
     
+    // ========================================
+    // MÉTODOS DINÁMICOS: Componentes de producto
+    // ========================================
     
+    /**
+     * Carga los IDs Siesa de los componentes de un producto.
+     * Si el producto no tiene componentes, retorna una lista con su propio ID Siesa.
+     */
+    private List<String> cargarComponentesDinamicos(String productoSiesaId) {
+        try {
+            // Buscar producto interno por su id_producto_siesa
+            String sqlBuscar = "SELECT id FROM productos WHERE id_producto_siesa = ?";
+            List<Map<String, Object>> prodRows = jdbcTemplate.queryForList(sqlBuscar, productoSiesaId);
+            
+            if (!prodRows.isEmpty()) {
+                String productoInternoId = String.valueOf(prodRows.get(0).get("id"));
+                
+                String sqlComp = "SELECT producto_hijo_siesa_id FROM producto_componentes WHERE producto_padre_id = ? AND activo = 1";
+                List<Map<String, Object>> compRows = jdbcTemplate.queryForList(sqlComp, productoInternoId);
+                
+                if (!compRows.isEmpty()) {
+                    List<String> ids = new ArrayList<>();
+                    for (Map<String, Object> row : compRows) {
+                        ids.add(String.valueOf(row.get("producto_hijo_siesa_id")));
+                    }
+                    return ids;
+                }
+            }
+        } catch (Exception e) {
+            // Si falla la consulta, usar comportamiento por defecto
+        }
+        
+        // Producto simple: retornar solo su propio ID
+        List<String> singleList = new ArrayList<>();
+        singleList.add(productoSiesaId);
+        return singleList;
+    }
+    
+    /**
+     * Consulta si un producto usa fórmula de suma (naturaleza 1+2) en vez de resta (2-1).
+     */
+    private boolean consultarUsaSuma(String productoSiesaId) {
+        try {
+            String sql = "SELECT usa_suma FROM productos WHERE id_producto_siesa = ? AND activo = 1";
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, productoSiesaId);
+            
+            if (!rows.isEmpty() && rows.get(0).get("usa_suma") != null) {
+                Object val = rows.get(0).get("usa_suma");
+                if (val instanceof Boolean) return (Boolean) val;
+                if (val instanceof Number) return ((Number) val).intValue() == 1;
+            }
+        } catch (Exception e) {
+            // Si falla, usar resta por defecto
+        }
+        return false;
+    }
 
 }

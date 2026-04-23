@@ -84,4 +84,13 @@ export class productoservices {
   validarProductoEnSiesa(id: string): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/siesa/validar?id=${id}`);
   }
+
+  // Componentes de productos compuestos
+  guardarComponentes(productoId: string, componentes: string[], usaSuma: boolean) {
+    return this.http.post(`${this.baseUrl}/productos/componentes`, {
+      productoId,
+      componentes,
+      usaSuma
+    });
+  }
 }
