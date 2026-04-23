@@ -122,7 +122,7 @@ loadModuleConfig(): void {
         const usuario = JSON.parse(usuarioString);
         this.user = usuario.usuario;
         this.perfil = usuario.perfil_descripcion;
-        console.log('👤 Usuario:', this.user, '| Perfil:', this.perfil);
+      
         //  NO llamar aplicarPermisos() aquí, se llama después de cargar módulos
       } else {
         console.log('⚠️ No se encontró el usuario en localStorage');

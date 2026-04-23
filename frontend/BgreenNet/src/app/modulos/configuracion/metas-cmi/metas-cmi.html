@@ -64,6 +64,9 @@
             <td class="td-siesa">
               <span class="siesa-badge" *ngIf="p.idProductoSiesa">{{ p.idProductoSiesa }}</span>
               <span class="no-data" *ngIf="!p.idProductoSiesa">N/A</span>
+              <span class="composite-badge" *ngIf="p.esCompuesto" style="background-color: #fd7e14; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; margin-left: 6px;" title="Componentes del producto compuesto">
+                <i class="bi bi-diagram-3"></i> {{ p.componenteSiesaIds?.join(' + ') }}
+              </span>
             </td>
             <td class="td-meta-stat">
               <span class="meta-value-badge" *ngIf="p.metaActual && p.metaActual > 0">
@@ -274,71 +277,168 @@
         </div>
 
         <div class="dynamic-sections-wrapper" *ngIf="isEditingProduct || productWasSaved">
-          <!-- Linking Section: Consumo -->
+          <!-- Composite Product Section -->
           <div class="modal-section docs-config-section section-appear">
             <div class="section-header">
-              <div class="section-badge consumption"><i class="bi bi-arrow-down-right-circle"></i> Consumo</div>
-              <h4 class="section-title">Documentos de Descuento</h4>
-              <span class="section-desc">Documentos que restan del seguimiento de la meta</span>
+              <div class="section-badge composite"><i class="bi bi-diagram-3"></i> Compuesto</div>
+              <h4 class="section-title">Producto Compuesto (Opcional)</h4>
+              <span class="section-desc">Para productos cuya cantidad se calcula sumando varios Items en Siesa</span>
             </div>
             
-            <div class="inline-adder">
-              <div class="select-wrapper">
-                <select [(ngModel)]="selectedConsumoDoc" class="form-control select-premium">
-                  <option value="" disabled selected>Vincular documento...</option>
-                  <option *ngFor="let td of tiposDocumento" [value]="td.id">{{ td.codigo }} — {{ td.descripcion }}</option>
-                </select>
-                <i class="bi bi-plus-circle-dotted select-icon-inside"></i>
-              </div>
-              <button class="btn-inline-add" (click)="addDoc('CONSUMO')" title="Vincular">
-                <i class="bi bi-plus-lg"></i>
-              </button>
+            <div class="usa-suma-toggle" style="margin-bottom: 15px;">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="isCompuestoToggle" (change)="onCompuestoToggleChange()">
+                <span class="toggle-text">
+                  <i class="bi bi-plus-slash-minus"></i>
+                  ¿Es un producto compuesto?
+                </span>
+              </label>
             </div>
+            
+            <div *ngIf="isCompuestoToggle">
+              <div class="inline-adder">
+                <input type="text" [(ngModel)]="nuevoComponenteId" 
+                       (keyup.enter)="agregarComponente()" 
+                       placeholder="ID Siesa del Item (Ej: 7309)" 
+                       class="form-control">
+                <button class="btn-inline-add" (click)="agregarComponente()" [disabled]="isAddingComponent">
+                  <i class="bi" [class.bi-plus-lg]="!isAddingComponent" [class.bi-hourglass-split]="isAddingComponent"></i>
+                </button>
+              </div>
 
-            <div class="selected-tags-container">
-               <div class="doc-tag consumption" *ngFor="let doc of tempConsumoDocs">
-                 <span class="tag-label">{{ doc.codigo }}</span>
-                 <button class="btn-remove-tag" (click)="removeDoc('CONSUMO', doc.id)">
-                   <i class="bi bi-x"></i>
-                 </button>
-               </div>
-               <div class="no-tags-placeholder" *ngIf="tempConsumoDocs.length === 0">
-                 No hay documentos seleccionados
-               </div>
+              <div class="selected-tags-container">
+                 <div class="doc-tag composite-tag" *ngFor="let comp of tempComponentes; let i = index">
+                   <span class="tag-label"><i class="bi bi-box-seam"></i> {{ comp }}</span>
+                   <button class="btn-remove-tag" (click)="tempComponentes.splice(i, 1)">
+                     <i class="bi bi-x"></i>
+                   </button>
+                 </div>
+                 <div class="no-tags-placeholder" *ngIf="tempComponentes.length === 0">
+                   Sin componentes — producto simple
+                 </div>
+              </div>
             </div>
           </div>
 
-          <!-- Linking Section: Producción -->
-          <div class="modal-section docs-config-section section-appear">
-            <div class="section-header">
-              <div class="section-badge production"><i class="bi bi-arrow-up-right-circle"></i> Producción</div>
-              <h4 class="section-title">Documentos de Incremento</h4>
-              <span class="section-desc">Documentos que suman al seguimiento de la meta</span>
-            </div>
-            
-            <div class="inline-adder">
-              <div class="select-wrapper">
-                <select [(ngModel)]="selectedProduccionDoc" class="form-control select-premium">
-                  <option value="" disabled selected>Vincular documento...</option>
-                  <option *ngFor="let td of tiposDocumento" [value]="td.id">{{ td.codigo }} — {{ td.descripcion }}</option>
-                </select>
-                <i class="bi bi-plus-circle-dotted select-icon-inside"></i>
+          <div class="product-modal-grid">
+            <!-- Left Column: Document Sections -->
+            <div class="grid-column">
+              <!-- Linking Section: Consumo -->
+              <div class="doc-section-box section-appear">
+                <div class="section-header">
+                  <div class="section-badge consumption"><i class="bi bi-arrow-down-right-circle"></i> Consumo</div>
+                  <h4 class="section-title">Documentos de Consumo</h4>
+                  <span class="section-desc">Documentos que restan del seguimiento</span>
+                </div>
+                
+                <div class="available-docs-area mt-2">
+                  <div class="small-label mb-1">Disponibles (Clic para agregar):</div>
+                  <div class="available-chips">
+                    <div class="avail-chip" *ngFor="let td of getAvailableDocs('CONSUMO')" (click)="quickAddDoc('CONSUMO', td)">
+                      {{ td.codigo }}
+                    </div>
+                    <div class="no-data-mini" *ngIf="getAvailableDocs('CONSUMO').length === 0">Sin más docs</div>
+                  </div>
+                </div>
+
+                <div class="selected-tags-container mt-3">
+                   <div class="small-label mb-1">Vinculados:</div>
+                   <div class="doc-tag consumption" *ngFor="let doc of tempConsumoDocs">
+                     <span class="tag-label">{{ doc.codigo }}</span>
+                     <button class="btn-remove-tag" (click)="removeDoc('CONSUMO', doc.id)">
+                       <i class="bi bi-x"></i>
+                     </button>
+                   </div>
+                   <div class="no-tags-placeholder" *ngIf="tempConsumoDocs.length === 0">
+                     No hay documentos
+                   </div>
+                </div>
               </div>
-              <button class="btn-inline-add" (click)="addDoc('PRODUCCION')" title="Vincular">
-                <i class="bi bi-plus-lg"></i>
-              </button>
+
+              <!-- Linking Section: Producción -->
+              <div class="doc-section-box section-appear">
+                <div class="section-header">
+                  <div class="section-badge production"><i class="bi bi-arrow-up-right-circle"></i> Producción</div>
+                  <h4 class="section-title">Documentos de Producción</h4>
+                  <span class="section-desc">Documentos que suman al seguimiento</span>
+                </div>
+                
+                <div class="available-docs-area mt-2">
+                  <div class="small-label mb-1">Disponibles (Clic para agregar):</div>
+                  <div class="available-chips">
+                    <div class="avail-chip" *ngFor="let td of getAvailableDocs('PRODUCCION')" (click)="quickAddDoc('PRODUCCION', td)">
+                      {{ td.codigo }}
+                    </div>
+                    <div class="no-data-mini" *ngIf="getAvailableDocs('PRODUCCION').length === 0">Sin más docs</div>
+                  </div>
+                </div>
+
+                <div class="selected-tags-container mt-3">
+                   <div class="small-label mb-1">Vinculados:</div>
+                   <div class="doc-tag production" *ngFor="let doc of tempProduccionDocs">
+                     <span class="tag-label">{{ doc.codigo }}</span>
+                     <button class="btn-remove-tag" (click)="removeDoc('PRODUCCION', doc.id)">
+                       <i class="bi bi-x"></i>
+                     </button>
+                   </div>
+                   <div class="no-tags-placeholder" *ngIf="tempProduccionDocs.length === 0">
+                     No hay documentos
+                   </div>
+                </div>
+              </div>
             </div>
 
-            <div class="selected-tags-container">
-               <div class="doc-tag production" *ngFor="let doc of tempProduccionDocs">
-                 <span class="tag-label">{{ doc.codigo }}</span>
-                 <button class="btn-remove-tag" (click)="removeDoc('PRODUCCION', doc.id)">
-                   <i class="bi bi-x"></i>
-                 </button>
-               </div>
-               <div class="no-tags-placeholder" *ngIf="tempProduccionDocs.length === 0">
-                 No hay documentos seleccionados
-               </div>
+            <!-- Right Column: Formula / Simulation -->
+            <div class="grid-column">
+              <div class="formula-box section-appear">
+                <div class="section-header">
+                  <h4 class="section-title"><i class="bi bi-calculator"></i> Armar Fórmula de Cálculo</h4>
+                </div>
+                
+                <div class="formula-options">
+                  <label class="formula-option" [class.active]="tempUsaSuma === true">
+                    <input type="radio" name="formulaType" [value]="true" [(ngModel)]="tempUsaSuma">
+                    <div class="option-content">
+                      <i class="bi bi-plus-circle"></i>
+                      <span>Sumar Entradas + Salidas</span>
+                    </div>
+                  </label>
+                  <label class="formula-option" [class.active]="tempUsaSuma === false">
+                    <input type="radio" name="formulaType" [value]="false" [(ngModel)]="tempUsaSuma">
+                    <div class="option-content">
+                      <i class="bi bi-dash-circle"></i>
+                      <span>Entradas - Salidas (Neto)</span>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="simulation-display mt-auto" style="padding: 20px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                  <div style="font-weight: 700; margin-bottom: 12px; opacity: 0.9;"><i class="bi bi-braces"></i> Estructura del Cálculo:</div>
+                  
+                  <div style="margin-bottom: 15px;">
+                    <div style="font-size: 11px; text-transform: uppercase; opacity: 0.7; margin-bottom: 4px;">Fórmula Consumo</div>
+                    <div style="font-family: 'Courier New', Courier, monospace; font-size: 13px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                      ∑ Salidas [{{getDocsString(tempConsumoDocs)}}] 
+                      <span style="color: #64ffda; font-weight: 800; font-size: 1.1em;">{{ tempUsaSuma ? '+' : '-' }}</span> 
+                      ∑ Entradas [{{getDocsString(tempConsumoDocs)}}]
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom: 15px;">
+                    <div style="font-size: 11px; text-transform: uppercase; opacity: 0.7; margin-bottom: 4px;">Fórmula Producción</div>
+                    <div style="font-family: 'Courier New', Courier, monospace; font-size: 13px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
+                      ABS(∑ Entradas [{{getDocsString(tempProduccionDocs)}}] - ∑ Salidas [{{getDocsString(tempProduccionDocs)}}])
+                    </div>
+                  </div>
+
+                  <div *ngIf="isCompuestoToggle && tempComponentes.length > 0">
+                    <div style="font-size: 11px; text-transform: uppercase; opacity: 0.7; margin-bottom: 4px;">Alcance (Items Siesa)</div>
+                    <div style="font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #ffd180;">
+                      <i class="bi bi-diagram-3"></i> [{{tempComponentes.join(' + ')}}]
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

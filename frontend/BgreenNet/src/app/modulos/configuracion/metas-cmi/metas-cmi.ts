@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MetaDetalle, MetaResponse, productoservices } from '../../../servicios/productoservices';
 import { producto } from '../../../models/productos';
@@ -12,7 +12,7 @@ interface ToastState {
 
 @Component({
   selector: 'app-metas-cmi',
-  imports: [CommonModule, FormsModule, DecimalPipe],
+  imports: [CommonModule, FormsModule],
   templateUrl: './metas-cmi.html',
   styleUrl: './metas-cmi.css',
 })
@@ -34,18 +34,25 @@ export class MetasCMI implements OnInit {
   tiposDocumento: any[] = [];
   tiposMovimiento: any[] = [];
   
-  // Modal State for Document Linking
   selectedConsumoDoc: string = '';
   selectedProduccionDoc: string = '';
-  tempConsumoDocs: any[] = []; // { id, codigo }
-  tempProduccionDocs: any[] = []; // { id, codigo }
+  tempConsumoDocs: any[] = [];
+  tempProduccionDocs: any[] = [];
+
   
   // Dynamic Flow Variables
   siesaSearchId: string = '';
   productWasSaved: boolean = false;
   isSearchingSiesa: boolean = false;
   
-  // Isolated state for document linking per product row (OBSOLETE but kept for safety if needed)
+  // Composite Product State
+  tempComponentes: string[] = [];
+  nuevoComponenteId: string = '';
+  tempUsaSuma: boolean = false;
+  isCompuestoToggle: boolean = false;
+  isAddingComponent: boolean = false;
+  
+  // Isolated state for document linking per product row
   linkingState: { [productId: string]: { type: string, code: string } } = {};
 
   // UI state
@@ -58,6 +65,16 @@ export class MetasCMI implements OnInit {
   // Metas state
   metas: MetaDetalle[] = Array(12).fill(0).map(() => ({ valor: 0 }));
   cargando: boolean = false;
+
+  constructor(
+    private service: productoservices,
+    private cdr: ChangeDetectorRef
+  ) { }
+
+  ngOnInit(): void {
+    this.cargarCatalogos();
+    this.cargarProductos();
+  }
 
   getLinkingState(productId: string) {
     if (!this.linkingState[productId]) {
@@ -74,16 +91,6 @@ export class MetasCMI implements OnInit {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  constructor(
-    private service: productoservices,
-    private cdr: ChangeDetectorRef
-  ) { }
-
-  ngOnInit(): void {
-    this.cargarCatalogos();
-    this.cargarProductos();
-  }
-
   cargarCatalogos() {
     this.service.getTiposMovimiento().subscribe(res => {
       this.tiposMovimiento = res;
@@ -92,10 +99,6 @@ export class MetasCMI implements OnInit {
       this.tiposDocumento = res;
     });
   }
-
-  // ──────────────────────────────────────────────────────────
-  // Computed getters
-  // ──────────────────────────────────────────────────────────
 
   get selectedProductoNombre(): string {
     return this.productos.find(p => p.id === this.selectedProducto)?.nombre ?? '';
@@ -120,15 +123,9 @@ export class MetasCMI implements OnInit {
     return Math.round((val / this.maxMeta) * 100);
   }
 
-  // ──────────────────────────────────────────────────────────
-  // Data loading
-  // ──────────────────────────────────────────────────────────
-
   cargarProductos() {
     this.service.getProductos().subscribe({
       next: (data) => {
-
-        // Prepare list with special 'Costo Directo' entry
         const baseProducts = [...data];
         baseProducts.push({
           id: 'CostoDirecto',
@@ -136,12 +133,8 @@ export class MetasCMI implements OnInit {
           consumptionDocTypes: [],
           productionDocTypes: []
         });
-
         this.productosOriginales = [...baseProducts];
         this.productos = [...baseProducts];
-
-        // Notify Angular of the synchronous state change immediately so the
-        // template reads consistent values in the same CD pass (fixes NG0100).
         this.cdr.detectChanges();
       },
       error: () => this.showToast('Error al cargar productos', 'error')
@@ -159,7 +152,6 @@ export class MetasCMI implements OnInit {
 
   cargarMetas() {
     if (!this.selectedProducto || !this.selectedAnio) return;
-
     this.cargando = true;
     const obs = this.selectedProducto === 'CostoDirecto'
       ? this.service.getCostoDirecto(this.selectedAnio)
@@ -184,21 +176,9 @@ export class MetasCMI implements OnInit {
     });
   }
 
-  // ──────────────────────────────────────────────────────────
-  // Actions
-  // ──────────────────────────────────────────────────────────
-
-  onChange() {
-    this.cargarMetas();
-  }
-
-  onProductoChange() {
-    this.cargarMetas();
-  }
-
-  onAnioChange() {
-    this.cargarMetas();
-  }
+  onChange() { this.cargarMetas(); }
+  onProductoChange() { this.cargarMetas(); }
+  onAnioChange() { this.cargarMetas(); }
 
   cambiarAnio(delta: number) {
      const nuevoAnio = parseInt(this.selectedAnio) + delta;
@@ -213,25 +193,15 @@ export class MetasCMI implements OnInit {
     }
   }
 
-  onInputFocus(event: any) {
-    event.target.select();
-  }
-
-  onInputBlur(event: any) {
-    // Optional: save on blur logic already exists in html as @blur="guardar(i)"
-  }
-
   actualizarFiltro(event: any) {
     const valor = event.target.value.toLowerCase();
-    
     if (!valor) {
       this.productos = [...this.productosOriginales];
       return;
     }
-
     this.productos = this.productosOriginales.filter(p => 
       p.nombre.toLowerCase().includes(valor) || 
-      (p.idProductoSiesa && p.idProductoSiesa.toLowerCase().includes(valor))
+      (p.idProductoSiesa && String(p.idProductoSiesa).toLowerCase().includes(valor))
     );
   }
 
@@ -242,8 +212,6 @@ export class MetasCMI implements OnInit {
   }
 
   guardar(index?: number) {
-    // If index is provided, we save just that month. 
-    // If not, we could iterate and save all (global save button)
     if (index !== undefined) {
       this.guardarMes(index);
     } else {
@@ -255,7 +223,6 @@ export class MetasCMI implements OnInit {
     const valor = this.metas[index].valor;
     const mes = index + 1;
     const anio = parseInt(this.selectedAnio);
-
     const payload = {
       productoId: this.selectedProducto,
       anio: anio,
@@ -263,7 +230,6 @@ export class MetasCMI implements OnInit {
       valor: valor,
       usuario: 'ADMIN'
     };
-
     const obs = this.selectedProducto === 'CostoDirecto'
       ? this.service.guardarCostoDirecto(payload)
       : this.service.guardarMeta(payload);
@@ -276,9 +242,7 @@ export class MetasCMI implements OnInit {
         }
       },
       error: () => {
-        if (!skipRefresh) {
-          this.showToast('Error al cargar meta', 'error');
-        }
+        if (!skipRefresh) this.showToast('Error al guardar meta', 'error');
       }
     });
   }
@@ -286,22 +250,15 @@ export class MetasCMI implements OnInit {
   guardarTodo() {
     this.guardando = true;
     this.showToast('Guardando todas las metas...', 'success');
-    
-    // Simple implementation: save all 12 months using skipRefresh=true to avoid multiple GET calls
     let requestsPending = 12;
-
     this.metas.forEach((m, i) => {
-        const valor = m.valor;
-        const mes = i + 1;
-        const anio = parseInt(this.selectedAnio);
         const payload = {
           productoId: this.selectedProducto,
-          anio: anio,
-          mes: mes,
-          valor: valor,
+          anio: parseInt(this.selectedAnio),
+          mes: i + 1,
+          valor: m.valor,
           usuario: 'ADMIN'
         };
-
         const obs = this.selectedProducto === 'CostoDirecto'
           ? this.service.guardarCostoDirecto(payload)
           : this.service.guardarMeta(payload);
@@ -323,17 +280,13 @@ export class MetasCMI implements OnInit {
     this.guardando = false;
     this.showToast('Cambios sincronizados correctamente', 'success');
     this.cargarMetas();
-    this.cargarProductos(); // Refresh main table for metaActual column
+    this.cargarProductos();
   }
 
   showToast(message: string, type: 'success' | 'error') {
     this.toast = { visible: true, message, type };
     setTimeout(() => this.toast.visible = false, 3000);
   }
-
-  // ──────────────────────────────────────────────────────────
-  // Product & Docs Management
-  // ──────────────────────────────────────────────────────────
 
   removeDoc(type: 'CONSUMO' | 'PRODUCCION', docId: number) {
     if (type === 'CONSUMO') {
@@ -344,62 +297,84 @@ export class MetasCMI implements OnInit {
   }
 
   openProductModal(p?: producto) {
-  
     this.isEditingProduct = !!p;
     this.currentProduct = p ? { ...p } : { 
-      id: '', 
-      nombre: '', 
-      idProductoSiesa: '', 
-      consumptionDocTypes: [], 
-      productionDocTypes: [] 
+      id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [] 
     };
-    
-  
-    
     this.tempConsumoDocs = (p?.consumptionDocIds || []).map(id => {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
-
       return { id: id, codigo: doc ? doc.codigo : '?' };
     });
     this.tempProduccionDocs = (p?.productionDocIds || []).map(id => {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
       return { id: id, codigo: doc ? doc.codigo : '?' };
     });
-
     this.siesaSearchId = '';
     this.productWasSaved = false;
+    this.tempComponentes = [...(p?.componenteSiesaIds || [])];
+    this.isCompuestoToggle = this.tempComponentes.length > 0;
+    this.tempUsaSuma = p ? (p.usaSuma ?? false) : false;
+    this.nuevoComponenteId = '';
     this.showProductModal = true;
   }
 
-  addDoc(type: 'CONSUMO' | 'PRODUCCION') {
-    const docId = type === 'CONSUMO' ? this.selectedConsumoDoc : this.selectedProduccionDoc;
-    if (!docId) return;
 
-    const doc = this.tiposDocumento.find(d => d.id.toString() === docId.toString());
-    if (!doc) return;
 
+  getAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): any[] {
+    const selectedIds = type === 'CONSUMO' 
+      ? this.tempConsumoDocs.map(d => String(d.id)) 
+      : this.tempProduccionDocs.map(d => String(d.id));
+    
+    return this.tiposDocumento.filter(d => !selectedIds.includes(String(d.id)));
+  }
+
+  quickAddDoc(type: 'CONSUMO' | 'PRODUCCION', doc: any) {
     const list = type === 'CONSUMO' ? this.tempConsumoDocs : this.tempProduccionDocs;
-    if (list.find(d => d.id === doc.id)) {
-      this.showToast('Documento ya agregado', 'error');
-      return;
-    }
-
+    if (list.find(d => d.id === doc.id)) return;
     list.push({ id: doc.id, codigo: doc.codigo });
-    if (type === 'CONSUMO') this.selectedConsumoDoc = '';
-    else this.selectedProduccionDoc = '';
+  }
+
+  agregarComponente() {
+    const id = this.nuevoComponenteId?.trim();
+    if (!id) return this.showToast('Ingresa un ID Siesa', 'error');
+    if (this.tempComponentes.includes(id)) return this.showToast('Componente ya agregado', 'error');
+    
+    this.isAddingComponent = true;
+    this.service.validarProductoEnSiesa(id).subscribe({
+      next: (data) => {
+        this.isAddingComponent = false;
+        if (data) {
+          this.tempComponentes.push(id);
+          this.nuevoComponenteId = '';
+          this.showToast(`Componente ${data.nombre} agregado`, 'success');
+        } else {
+          this.showToast('Componente no encontrado en Siesa', 'error');
+        }
+      },
+      error: () => {
+        this.isAddingComponent = false;
+        this.showToast('Error al conectar con Siesa', 'error');
+      }
+    });
+  }
+
+  onCompuestoToggleChange() {
+    if (!this.isCompuestoToggle) {
+      this.tempComponentes = [];
+    }
+  }
+
+  getDocsString(docs: any[]): string {
+    if (!docs || docs.length === 0) return 'Vacío';
+    return docs.map(d => d.codigo).join(' + ');
   }
 
   buscarEnSiesa() {
-    if (!this.siesaSearchId) {
-      this.showToast('Ingresa un ID para buscar', 'error');
-      return;
-    }
-
+    if (!this.siesaSearchId) return this.showToast('Ingresa un ID para buscar', 'error');
     this.isSearchingSiesa = true;
     this.service.validarProductoEnSiesa(this.siesaSearchId).subscribe({
       next: (data) => {
         this.isSearchingSiesa = false;
-        console.log('>>> PRODUCTO RECIBIDO DE SIESA:', data);
         if (data) {
           this.currentProduct.nombre = data.nombre;
           this.currentProduct.idProductoSiesa = data.id;
@@ -415,55 +390,31 @@ export class MetasCMI implements OnInit {
     });
   }
 
-  closeProductModal() {
-    this.showProductModal = false;
-  }
+  closeProductModal() { this.showProductModal = false; }
 
   guardarProducto() {
-    if (!this.currentProduct.nombre) {
-      this.showToast('El nombre es obligatorio', 'error');
-      return;
-    }
-
-    // Validate duplicate Siesa ID
+    if (!this.currentProduct.nombre) return this.showToast('El nombre es obligatorio', 'error');
     if (this.currentProduct.idProductoSiesa) {
       const duplicate = this.productosOriginales.find(p =>
-        String(p.idProductoSiesa) === String(this.currentProduct.idProductoSiesa)
-        && p.id !== this.currentProduct.id
+        String(p.idProductoSiesa) === String(this.currentProduct.idProductoSiesa) && p.id !== this.currentProduct.id
       );
-      if (duplicate) {
-        this.showToast(`El ID Siesa "${this.currentProduct.idProductoSiesa}" ya está asignado a "${duplicate.nombre}"`, 'error');
-        return;
-      }
+      if (duplicate) return this.showToast(`ID Siesa ya asignado a ${duplicate.nombre}`, 'error');
     }
-
     this.ejecutarGuardadoProducto();
   }
 
   ejecutarGuardadoProducto() {
-    const productObs = this.isEditingProduct 
+    this.currentProduct.usaSuma = this.tempUsaSuma ?? false;
+    const obs = this.isEditingProduct 
       ? this.service.actualizarProducto(this.currentProduct)
       : this.service.insertarProducto(this.currentProduct);
 
-    productObs.subscribe({
+    obs.subscribe({
       next: (res: any) => {
-        console.log('--- PRODUCTO PROCESADO CORRECTAMENTE ---', res);
         this.productWasSaved = true;
-
-        // For new products, the backend returns { id: <newId> }. Use it directly.
-        // For edits, the current product already has the correct id.
-        const productId = this.isEditingProduct
-          ? this.currentProduct.id
-          : String(res?.id ?? '');
-
-        if (!productId) {
-          this.showToast('Error: No se obtuvo el ID del producto creado', 'error');
-          return;
-        }
-
-        // Store so downstream calls (close modal, etc.) have the right id.
+        const productId = this.isEditingProduct ? this.currentProduct.id : String(res?.id ?? '');
+        if (!productId) return this.showToast('Error al obtener ID del producto', 'error');
         this.currentProduct.id = productId;
-
         this.sincronizarDocumentos(productId);
       },
       error: () => this.showToast('Error al procesar producto', 'error')
@@ -475,69 +426,49 @@ export class MetasCMI implements OnInit {
       next: () => {
         const consumptionMov = this.tiposMovimiento.find(m => m.codigo === 'CONSUMO');
         const productionMov = this.tiposMovimiento.find(m => m.codigo === 'PRODUCCION');
-
-        if (!consumptionMov || !productionMov) {
-          this.showToast('Error: Tipos de movimiento no encontrados', 'error');
-          return;
-        }
+        if (!consumptionMov || !productionMov) return this.showToast('Tipos de movimiento no encontrados', 'error');
 
         const syncTasks: any[] = [];
-        this.tempConsumoDocs.forEach(d => {
-          syncTasks.push(this.service.insertarTipoDocumento(productId, consumptionMov.id.toString(), d.id.toString()));
-        });
-        this.tempProduccionDocs.forEach(d => {
-          syncTasks.push(this.service.insertarTipoDocumento(productId, productionMov.id.toString(), d.id.toString()));
-        });
+        this.tempConsumoDocs.forEach(d => syncTasks.push(this.service.insertarTipoDocumento(productId, consumptionMov.id.toString(), d.id.toString())));
+        this.tempProduccionDocs.forEach(d => syncTasks.push(this.service.insertarTipoDocumento(productId, productionMov.id.toString(), d.id.toString())));
 
-        if (syncTasks.length === 0) {
-          this.finalizeProductSave();
-          return;
-        }
-
+        if (syncTasks.length === 0) return this.finalizeProductSave();
         this.processSyncTasks(syncTasks);
       },
       error: () => {
-        this.showToast('Error al limpiar asociaciones anteriores', 'error');
+        this.showToast('Error al limpiar asociaciones', 'error');
         this.finalizeProductSave();
       }
     });
   }
 
   processSyncTasks(tasks: any[], index: number = 0) {
-    if (index >= tasks.length) {
-      this.finalizeProductSave();
-      return;
-    }
-
-    tasks[index].subscribe({
-      next: () => this.processSyncTasks(tasks, index + 1),
-      error: () => this.processSyncTasks(tasks, index + 1)
-    });
+    if (index >= tasks.length) return this.finalizeProductSave();
+    tasks[index].subscribe(() => this.processSyncTasks(tasks, index + 1));
   }
 
   finalizeProductSave() {
-    this.showToast(this.isEditingProduct ? 'Producto actualizado' : 'Producto creado', 'success');
-    this.cargarProductos();
-    if (this.isEditingProduct) {
-        this.closeProductModal();
-    }
+    const productId = this.currentProduct.id;
+    this.service.guardarComponentes(productId, this.tempComponentes, this.tempUsaSuma).subscribe({
+      next: () => {
+        this.showToast(this.isEditingProduct ? 'Producto actualizado' : 'Producto creado', 'success');
+        this.cargarProductos();
+        if (this.isEditingProduct) this.closeProductModal();
+      },
+      error: () => {
+        this.showToast('Error al guardar componentes', 'error');
+        this.cargarProductos();
+        if (this.isEditingProduct) this.closeProductModal();
+      }
+    });
   }
 
   agregarTipoDocumento(p: producto) {
     const state = this.getLinkingState(p.id);
-    
-    if (!state.code || !state.type) {
-      this.showToast('Selecciona movimiento y documento', 'error');
-      return;
-    }
-
-    this.service.insertarTipoDocumento(
-      p.id, 
-      state.type, 
-      state.code
-    ).subscribe({
+    if (!state.code || !state.type) return this.showToast('Selecciona movimiento y documento', 'error');
+    this.service.insertarTipoDocumento(p.id, state.type, state.code).subscribe({
       next: () => {
-        this.showToast('Documento vinculado correctamente', 'success');
+        this.showToast('Documento vinculado', 'success');
         state.code = '';
         this.cargarProductos();
       },

@@ -64,4 +64,17 @@ public class MetaService {
         return repository.validarProductoEnSiesa(id);
     }
 
+    // Componentes de productos compuestos
+    public List<Map<String, Object>> getComponentes(String productoId) {
+        return repository.obtenerComponentes(productoId);
+    }
+
+    public void eliminarComponentes(String productoId) {
+        repository.eliminarComponentes(productoId);
+    }
+
+    public void insertarComponente(String padreId, String hijoSiesaId, boolean usaSuma) {
+        repository.insertarComponente(padreId, hijoSiesaId, usaSuma);
+    }
+
 }

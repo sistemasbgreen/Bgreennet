@@ -8,4 +8,7 @@ export interface producto {
   consumptionDocIds?: number[];
   productionDocIds?: number[];
   metaActual?: number;
+  esCompuesto?: boolean;
+  componenteSiesaIds?: string[];
+  usaSuma?: boolean;
 }
