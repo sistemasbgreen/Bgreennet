@@ -28,11 +28,68 @@ public class MetaRepository {
     @Qualifier("siesaJdbcTemplate")
     private JdbcTemplate siesaJdbcTemplate;
     
+    private boolean schemaChecked = false;
+
+    private void ensureSchema() {
+        if (schemaChecked) return;
+        log.info(">>> Verificando esquema de base de datos...");
+        try {
+            // Intentar añadir columnas si no existen (SQL Server syntax)
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'sentido_meta') " +
+                                 "ALTER TABLE productos ADD sentido_meta BIT DEFAULT 1");
+            
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'usa_suma') " +
+                                 "ALTER TABLE productos ADD usa_suma BIT DEFAULT 0");
+
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'mostrar_cmi') " +
+                                 "ALTER TABLE productos ADD mostrar_cmi BIT DEFAULT 1");
+
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'produccion_base_id') " +
+                                 "ALTER TABLE productos ADD produccion_base_id VARCHAR(50) DEFAULT '26'");
+
+            // Garantizar tabla de componentes y sus columnas
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('producto_componentes') AND type in ('U')) " +
+                                 "CREATE TABLE producto_componentes (id INT IDENTITY(1,1), producto_padre_id VARCHAR(50), producto_hijo_siesa_id VARCHAR(50), usa_suma BIT, activo BIT DEFAULT 1)");
+
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('producto_componentes') AND name = 'activo') " +
+                                 "ALTER TABLE producto_componentes ADD activo BIT DEFAULT 1");
+            
+            log.info(">>> Esquema verificado/actualizado correctamente.");
+        } catch (Exception e) {
+            log.warn(">>> Aviso al verificar esquema (puede ser normal si no hay permisos): {}", e.getMessage());
+        }
+        schemaChecked = true;
+    }
+
     public List<ProductoDTO> obtenerProductos() {
+        ensureSchema();
         log.info(">>> Iniciando carga robusta de productos...");
         
-        // 1. Cargar lista base de productos
+        // 1. Cargar lista base de productos desde el SP
         List<Map<String, Object>> productRows = jdbcTemplate.queryForList("EXEC sp_producto_configuracion");
+        
+        // 1.1 Sincronizar valores directamente de la tabla para asegurar campos nuevos (sentido_meta, usa_suma)
+        // Esto es necesario si el Stored Procedure no incluye estas columnas todavía.
+        try {
+            List<Map<String, Object>> extraFields = jdbcTemplate.queryForList("SELECT id, sentido_meta, usa_suma, mostrar_cmi, produccion_base_id FROM productos");
+            Map<String, Map<String, Object>> extraMap = new HashMap<>();
+            for (Map<String, Object> ef : extraFields) {
+                extraMap.put(String.valueOf(ef.get("id")), ef);
+            }
+            
+            for (Map<String, Object> row : productRows) {
+                String id = String.valueOf(row.get("id"));
+                if (extraMap.containsKey(id)) {
+                    row.put("sentido_meta", extraMap.get(id).get("sentido_meta"));
+                    row.put("usa_suma", extraMap.get(id).get("usa_suma"));
+                    row.put("mostrar_cmi", extraMap.get(id).get("mostrar_cmi"));
+                    row.put("produccion_base_id", extraMap.get(id).get("produccion_base_id"));
+                }
+            }
+        } catch (Exception e) {
+            log.warn(">>> Error al sincronizar campos extra: {}", e.getMessage());
+        }
+
         Map<String, ProductoDTO> productosMap = new HashMap<>();
 
         for (Map<String, Object> row : productRows) {
@@ -60,6 +117,29 @@ public class MetaRepository {
                 } else {
                     p.setUsaSuma(false);
                 }
+
+                // Cargar sentido_meta
+                Object sentidoMetaObj = row.get("sentido_meta");
+                if (sentidoMetaObj instanceof Boolean) {
+                    p.setSentidoMeta((Boolean) sentidoMetaObj);
+                } else if (sentidoMetaObj instanceof Number) {
+                    p.setSentidoMeta(((Number) sentidoMetaObj).intValue() == 1);
+                } else {
+                    p.setSentidoMeta(true); // Default Ascending
+                }
+
+                // Cargar mostrar_cmi
+                Object mostrarCmiObj = row.get("mostrar_cmi");
+                if (mostrarCmiObj instanceof Boolean) {
+                    p.setMostrarCmi((Boolean) mostrarCmiObj);
+                } else if (mostrarCmiObj instanceof Number) {
+                    p.setMostrarCmi(((Number) mostrarCmiObj).intValue() == 1);
+                } else {
+                    p.setMostrarCmi(true); // Default Visible
+                }
+                
+                Object prodBaseIdObj = row.get("produccion_base_id");
+                p.setProduccionBaseId(prodBaseIdObj != null ? String.valueOf(prodBaseIdObj) : "26");
                 
                 productosMap.put(id, p);
             }
@@ -109,7 +189,8 @@ public class MetaRepository {
         // 4. Cargar componentes de productos compuestos
         try {
             log.info(">>> Cargando componentes de productos compuestos...");
-            String sqlComp = "SELECT producto_padre_id, producto_hijo_siesa_id, usa_suma FROM producto_componentes WHERE activo = 1";
+            // Usamos OR activo IS NULL para asegurar que no se pierdan datos si la columna se acaba de crear
+            String sqlComp = "SELECT producto_padre_id, producto_hijo_siesa_id, usa_suma FROM producto_componentes WHERE activo = 1 OR activo IS NULL";
             List<Map<String, Object>> compRows = jdbcTemplate.queryForList(sqlComp);
             
             for (Map<String, Object> row : compRows) {
@@ -235,35 +316,49 @@ public class MetaRepository {
             ? producto.getIdProductoSiesa().toString()
             : null;
 
-        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, date_create, date_Modify) " +
-                     "VALUES (?, ?, ?, 1, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, sentido_meta, mostrar_cmi, produccion_base_id, date_create, date_Modify) " +
+                     "VALUES (?, ?, ?, 1, ?, ?, ?, ?, GETDATE(), GETDATE())";
 
         jdbcTemplate.update(
             sql,
             nextId,
             producto.getNombre(),
             idSiesa,
-            producto.getUsaSuma() != null && producto.getUsaSuma() ? 1 : 0
+            producto.getUsaSuma() != null && producto.getUsaSuma() ? 1 : 0,
+            producto.getSentidoMeta() != null && producto.getSentidoMeta() ? 1 : 0,
+            producto.getMostrarCmi() != null && producto.getMostrarCmi() ? 1 : 0,
+            producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26"
         );
 
         return nextId;
     }
 
     public void actualizarProducto(ProductoDTO producto) {
-        String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, date_Modify = GETDATE() " +
-                     "WHERE id = ?";
+        ensureSchema();
+        try {
+            String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, sentido_meta = ?, mostrar_cmi = ?, produccion_base_id = ?, date_Modify = GETDATE() " +
+                         "WHERE id = ?";
 
-        String idSiesa = producto.getIdProductoSiesa() != null
-            ? producto.getIdProductoSiesa().toString()
-            : null;
-        
-        jdbcTemplate.update(
-            sql,
-            producto.getNombre(),
-            idSiesa,
-            producto.getUsaSuma() != null && producto.getUsaSuma() ? 1 : 0,
-            producto.getId()
-        );
+            String idSiesa = producto.getIdProductoSiesa() != null
+                ? producto.getIdProductoSiesa().toString()
+                : null;
+            
+            log.info("[actualizarProducto] Ejecutando SQL para id={}", producto.getId());
+            
+            jdbcTemplate.update(
+                sql,
+                producto.getNombre(),
+                idSiesa,
+                producto.getUsaSuma() != null ? producto.getUsaSuma() : false,
+                producto.getSentidoMeta() != null ? producto.getSentidoMeta() : true,
+                producto.getMostrarCmi() != null ? producto.getMostrarCmi() : true,
+                producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
+                producto.getId()
+            );
+        } catch (Exception e) {
+            log.error("[actualizarProducto] ERROR CRITICO AL ACTUALIZAR: {}", e.getMessage(), e);
+            throw e; // Relanzar para que el Controller devuelva 500
+        }
     }
 
     public void eliminarTiposDocumentoPorProducto(String productoId) {
@@ -319,7 +414,7 @@ public class MetaRepository {
     }
 
     public void insertarComponente(String padreId, String hijoSiesaId, boolean usaSuma) {
-        String sql = "INSERT INTO producto_componentes (producto_padre_id, producto_hijo_siesa_id, usa_suma) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO producto_componentes (producto_padre_id, producto_hijo_siesa_id, usa_suma, activo) VALUES (?, ?, ?, 1)";
         jdbcTemplate.update(sql, padreId, hijoSiesaId, usaSuma ? 1 : 0);
     }
 }

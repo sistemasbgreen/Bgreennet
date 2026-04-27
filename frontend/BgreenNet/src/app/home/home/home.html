@@ -592,13 +592,12 @@
             <table class="tabla-contactos tabla-tareas-historial">
               <thead>
                 <tr>
-                  <th>Tarea</th>
-                  <th>Fecha Inicio</th>
-                  <th>Fecha Fin</th>
-                  <th>Vencimiento</th>
-                  <th>Nota Cierre</th>
-                  <th>Duración</th>
-                  <th>Acción</th>
+                  <th style="width: 25%;">Tarea</th>
+                  <th style="width: 10%;">Prioridad</th>
+                  <th style="width: 15%;">Inicio y Vence</th>
+                  <th style="width: 15%;">Finalización</th>
+                  <th style="width: 30%;">Nota Cierre</th>
+                  <th style="width: 5%;">Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -606,30 +605,49 @@
                   <td>
                     <div class="tarea-info">
                       <strong>{{ tarea.titulo }}</strong>
-                      <p class="tarea-desc-mini">{{ tarea.descripcion || 'Sin descripción' }}</p>
+                      <p class="tarea-desc-mini" [title]="tarea.descripcion">{{ tarea.descripcion || 'Sin descripción' }}</p>
                     </div>
                   </td>
                   <td>
-                    <span class="activity-time">{{ (tarea.fechaInicio || tarea.fechaCreacion) | date:'dd/MM HH:mm' }}</span>
+                    <span class="tarea-prioridad-mini"
+                      [class.prioridad-alta]="tarea.prioridad.nombre === 'ALTA'"
+                      [class.prioridad-media]="tarea.prioridad.nombre === 'MEDIA'"
+                      [class.prioridad-baja]="tarea.prioridad.nombre === 'BAJA'">
+                      {{ tarea.prioridad.nombre }}
+                    </span>
                   </td>
                   <td>
-                    <span class="activity-time">{{ tarea.fechaCompletado | date:'dd/MM HH:mm' }}</span>
+                    <div class="fechas-col">
+                      <span class="fecha-item" title="Inicio"><i class="bi bi-play-circle"></i> {{ (tarea.fechaInicio || tarea.fechaCreacion) | date:'dd/MM HH:mm' }}</span>
+                      <span class="fecha-item" title="Vencimiento" *ngIf="tarea.fechaLimite">
+                        <i class="bi bi-calendar-x" style="color: #ef4444;"></i> {{ tarea.fechaLimite | date:'dd/MM HH:mm' }}
+                      </span>
+                    </div>
                   </td>
                   <td>
-                    <span class="activity-time" *ngIf="tarea.fechaLimite">{{ tarea.fechaLimite | date:'dd/MM/yyyy' }}</span>
-                    <span class="text-muted" *ngIf="!tarea.fechaLimite">-</span>
+                    <div class="fechas-col">
+                      <span class="fecha-item" title="Fin">
+                        <i class="bi bi-check-circle" style="color: #10b981;"></i> {{ tarea.fechaCompletado | date:'dd/MM HH:mm' }}
+                      </span>
+                      <div class="status-entrega-container">
+                        <span class="badge-entrega" [class.entrega-ok]="entregadaATiempo(tarea)" [class.entrega-late]="!entregadaATiempo(tarea)" *ngIf="tarea.fechaLimite">
+                          {{ entregadaATiempo(tarea) ? 'A tiempo' : 'Fuera de tiempo' }}
+                        </span>
+                      </div>
+                      <span class="fecha-item duration-inline" title="Duración Total" style="color: var(--green-primary); font-weight: 700;">
+                        <i class="bi bi-stopwatch"></i> {{ getDuracion(tarea) }}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <div class="nota-cierre-cell" [title]="tarea.notaCierre">
-                      {{ tarea.notaCierre || 'N/A' }}
+                      <i class="bi bi-chat-quote" *ngIf="tarea.notaCierre"></i>
+                      {{ tarea.notaCierre || '-' }}
                     </div>
                   </td>
                   <td>
-                    <span class="duracion-badge">{{ getDuracion(tarea) }}</span>
-                  </td>
-                  <td>
                     <button class="btn-accion-mini btn-detalle" (click)="abrirDetalle(tarea)" title="Ver detalle">
-                      <i class="bi bi-eye"></i>
+                      <i class="bi bi-eye-fill"></i>
                     </button>
                   </td>
                 </tr>
@@ -740,6 +758,74 @@
     </div>
 
     <!-- Modal de Detalle y Chat -->
+    <!-- MODAL EDITAR TAREA -->
+    <div class="modal-tarea-overlay" *ngIf="isModalEditarOpen" (click)="cerrarModalEditar()">
+      <div class="modal-tarea-container" (click)="$event.stopPropagation()">
+        <div class="modal-tarea-header">
+          <h3>
+            <i class="bi bi-pencil-square"></i>
+            Editar Tarea
+          </h3>
+          <button class="btn-close" (click)="cerrarModalEditar()">×</button>
+        </div>
+
+        <div class="modal-tarea-body">
+          <form #editForm="ngForm">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-fonts" style="color: #10b981;"></i>
+                Título de la Tarea
+              </label>
+              <input type="text" class="form-input" placeholder="Ej: Revisar documentos del proyecto"
+                [(ngModel)]="tareaEdit.titulo" name="titulo" required #tituloEdit="ngModel"
+                [class.input-error]="tituloEdit.invalid && tituloEdit.touched" />
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="bi bi-justify-left" style="color: #10b981;"></i>
+                Descripción Detallada
+              </label>
+              <textarea class="form-textarea" placeholder="Narra los detalles de la tarea..."
+                [(ngModel)]="tareaEdit.descripcion" name="descripcion"></textarea>
+            </div>
+
+            <div class="row-fields">
+              <div class="form-group">
+                <label>
+                  <i class="bi bi-flag" style="color: #10b981;"></i>
+                  Prioridad
+                </label>
+                <select class="form-select" [(ngModel)]="tareaEdit.idPrioridad" name="prioridad">
+                  <option [value]="3">🔵 Baja</option>
+                  <option [value]="2">🟡 Media</option>
+                  <option [value]="1">🔴 Alta</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <i class="bi bi-calendar-event" style="color: #10b981;"></i>
+                  Fecha Límite
+                </label>
+                <input type="datetime-local" class="form-input" [(ngModel)]="tareaEdit.fechaLimite"
+                  name="fechaLimite" />
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-tarea-footer">
+          <button class="btn-cancelar" (click)="cerrarModalEditar()">
+            Cerrar
+          </button>
+          <button class="btn-guardar" (click)="guardarCambiosTarea()" [disabled]="editForm.invalid">
+            <i class="bi bi-save"></i>
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="modal-overlay" *ngIf="isModalDetalleOpen" (click)="cerrarDetalle()">
       <div class="detalle-modal" (click)="$event.stopPropagation()"
            [class.highlight-notif]="tareaResaltadaId == tareaSeleccionada?.id">

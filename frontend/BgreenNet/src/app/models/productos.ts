@@ -11,4 +11,7 @@ export interface producto {
   esCompuesto?: boolean;
   componenteSiesaIds?: string[];
   usaSuma?: boolean;
+  sentidoMeta?: boolean;
+  mostrarCmi?: boolean;
+  produccionBaseId?: string;
 }

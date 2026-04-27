@@ -280,13 +280,19 @@ public class cmiplantaServices {
             if (!prodRows.isEmpty()) {
                 String productoInternoId = String.valueOf(prodRows.get(0).get("id"));
                 
-                String sqlComp = "SELECT producto_hijo_siesa_id FROM producto_componentes WHERE producto_padre_id = ? AND activo = 1";
+                String sqlComp = "SELECT producto_hijo_siesa_id FROM producto_componentes WHERE producto_padre_id = ? AND (activo = 1 OR activo IS NULL)";
                 List<Map<String, Object>> compRows = jdbcTemplate.queryForList(sqlComp, productoInternoId);
                 
                 if (!compRows.isEmpty()) {
                     List<String> ids = new ArrayList<>();
+                    // Incluir el ID del producto padre también, ya que puede tener movimientos propios
+                    ids.add(productoSiesaId); 
+                    
                     for (Map<String, Object> row : compRows) {
-                        ids.add(String.valueOf(row.get("producto_hijo_siesa_id")));
+                        String hijoId = String.valueOf(row.get("producto_hijo_siesa_id"));
+                        if (!ids.contains(hijoId)) {
+                            ids.add(hijoId);
+                        }
                     }
                     return ids;
                 }
@@ -306,7 +312,7 @@ public class cmiplantaServices {
      */
     private boolean consultarUsaSuma(String productoSiesaId) {
         try {
-            String sql = "SELECT usa_suma FROM productos WHERE id_producto_siesa = ? AND activo = 1";
+            String sql = "SELECT usa_suma FROM productos WHERE id_producto_siesa = ? AND (activo = 1 OR activo IS NULL)";
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, productoSiesaId);
             
             if (!rows.isEmpty() && rows.get(0).get("usa_suma") != null) {

@@ -759,12 +759,19 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       .subscribe({
         next: (data) => {
 
-          // Ordenar: prioridad ALTA → MEDIA → BAJA, luego más reciente primero
           const prioridadOrden: Record<string, number> = { 'ALTA': 0, 'MEDIA': 1, 'BAJA': 2 };
           const sortedData = data.sort((a, b) => {
+            // 1. Priorizar vencidas
+            const isVencidaA = this.esTareaVencida(a) ? 1 : 0;
+            const isVencidaB = this.esTareaVencida(b) ? 1 : 0;
+            if (isVencidaA !== isVencidaB) return isVencidaB - isVencidaA;
+
+            // 2. Prioridad normal
             const pA = prioridadOrden[a.prioridad?.nombre?.toUpperCase()] ?? 1;
             const pB = prioridadOrden[b.prioridad?.nombre?.toUpperCase()] ?? 1;
             if (pA !== pB) return pA - pB;
+            
+            // 3. Fecha de creación
             return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
           });
           
@@ -777,10 +784,14 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
             return ['CREADA', 'INICIADA', 'EN PROCESO', 'PENDIENTE'].includes(estado);
           });
           
-          this.tareasFinalizadas = sortedData.filter(t => {
+          this.tareasFinalizadas = data.filter(t => {
             const estado = t.estado?.nombre?.toUpperCase() || '';
             return ['FINALIZADA', 'COMPLETADA', 'CANCELADA'].includes(estado);
-          }).slice(0, 15); // Aumentar un poco el límite ya que es una tabla now
+          }).sort((a, b) => {
+            const dateA = new Date(a.fechaCompletado || a.fechaCreacion).getTime();
+            const dateB = new Date(b.fechaCompletado || b.fechaCreacion).getTime();
+            return dateB - dateA;
+          }).slice(0, 30);
 
           this.cdr.detectChanges();
         },
@@ -848,6 +859,70 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.nuevaTarea.titulo = '';
     this.nuevaTarea.descripcion = '';
     this.nuevaTarea.idPrioridad = 1;
+    this.nuevaTarea.fechaLimite = '';
+  }
+
+  // Modal Editar Tarea
+  isModalEditarOpen: boolean = false;
+  tareaEdit: any = {};
+
+  abrirModalEditar(tarea: Tarea): void {
+    if (tarea.idUsuarioCreador !== this.id_usuario) return;
+    
+    // Clonar para no editar directamente en la lista
+    this.tareaEdit = { ...tarea };
+    this.tareaEdit.idPrioridad = tarea.prioridad?.id || 2;
+    
+    // Formatear fecha para input datetime-local
+    if (tarea.fechaLimite) {
+      this.tareaEdit.fechaLimite = new Date(tarea.fechaLimite).toISOString().slice(0, 16);
+    } else {
+      this.tareaEdit.fechaLimite = '';
+    }
+    
+    this.isModalEditarOpen = true;
+  }
+
+  cerrarModalEditar(): void {
+    this.isModalEditarOpen = false;
+    this.tareaEdit = {};
+  }
+
+  guardarCambiosTarea(): void {
+    if (!this.tareaEdit.titulo?.trim()) return;
+
+    const payload = {
+      titulo: this.tareaEdit.titulo,
+      descripcion: this.tareaEdit.descripcion,
+      idPrioridad: this.tareaEdit.idPrioridad,
+      fechaLimite: this.tareaEdit.fechaLimite ? this.tareaEdit.fechaLimite + ':00' : null,
+      clearFechaLimite: !this.tareaEdit.fechaLimite
+    };
+
+    this.homeservice.actualizarTarea(this.tareaEdit.id, payload).subscribe({
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Tarea actualizada',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 2000
+        });
+        this.obtenerTareas();
+        this.cerrarModalEditar();
+        if (this.tareaSeleccionada?.id === this.tareaEdit.id) {
+          this.homeservice.getTareaPorId(this.tareaEdit.id).subscribe(t => this.tareaSeleccionada = t);
+        }
+      },
+      error: err => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: err.error?.message || 'No se pudieron guardar los cambios.'
+        });
+      }
+    });
   }
 
   cambiarEstado(tarea: Tarea, idEstado: number): void {
@@ -1015,108 +1090,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   }
 
   editarTarea(tarea: Tarea): void {
-    if (tarea.idUsuarioCreador !== this.id_usuario) return;
-
-    const fechaActual = tarea.fechaLimite
-      ? new Date(tarea.fechaLimite).toISOString().slice(0, 16)
-      : '';
-
-    Swal.fire({
-      title: 'Configuración de Tarea',
-      html: `
-        <div style="display:flex; flex-direction:column; gap:18px; text-align:left; padding:10px 5px;">
-          <!-- Título -->
-          <div class="swal-field-group">
-            <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:6px;">
-              <i class="bi bi-fonts" style="color:#10b981;"></i> Título de la tarea
-            </label>
-            <input id="swal-titulo" class="swal2-input" 
-              style="margin:0; width:100%; font-size:14px; border-radius:10px; border:1px solid #d1d5db; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
-              value="${tarea.titulo}" placeholder="Ej: Revisar informes de mantenimiento" />
-          </div>
-
-          <!-- Descripción -->
-          <div class="swal-field-group">
-            <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:6px;">
-              <i class="bi bi-justify-left" style="color:#10b981;"></i> Descripción detallada
-            </label>
-            <textarea id="swal-descripcion" class="swal2-textarea" 
-              style="margin:0; width:100%; font-size:14px; border-radius:10px; border:1px solid #d1d5db; height:80px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
-              placeholder="Escribe los detalles aquí...">${tarea.descripcion || ''}</textarea>
-          </div>
-
-          <!-- Grid de Prioridad y Fecha -->
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-            <div class="swal-field-group">
-              <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:6px;">
-                <i class="bi bi-flag" style="color:#10b981;"></i> Prioridad
-              </label>
-              <select id="swal-prioridad" class="swal2-select" 
-                style="margin:0; width:100%; font-size:14px; border-radius:10px; border:1px solid #d1d5db;">
-                <option value="1" ${tarea.prioridad?.id === 1 ? 'selected' : ''}>🔴 Alta Prioridad</option>
-                <option value="2" ${tarea.prioridad?.id === 2 ? 'selected' : ''}>🟡 Media</option>
-                <option value="3" ${tarea.prioridad?.id === 3 ? 'selected' : ''}>🔵 Baja</option>
-              </select>
-            </div>
-            <div class="swal-field-group">
-              <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#4b5563; text-transform:uppercase; margin-bottom:6px;">
-                <i class="bi bi-calendar-event" style="color:#10b981;"></i> Fecha Límite
-              </label>
-              <input id="swal-fechalimite" type="datetime-local" class="swal2-input"
-                style="margin:0; width:100%; font-size:14px; border-radius:10px; border:1px solid #d1d5db;"
-                value="${fechaActual}" />
-            </div>
-          </div>
-        </div>`,
-      showCancelButton: true,
-      confirmButtonText: '💾 Guardar Cambios',
-      cancelButtonText: 'Cerrar',
-      confirmButtonColor: '#10b981',
-      cancelButtonColor: '#9ca3af',
-      width: '550px',
-      padding: '1.5rem',
-      preConfirm: () => {
-        const titulo = (document.getElementById('swal-titulo') as HTMLInputElement)?.value?.trim();
-        if (!titulo) {
-          Swal.showValidationMessage('El título es obligatorio');
-          return false;
-        }
-        const val = (document.getElementById('swal-fechalimite') as HTMLInputElement)?.value;
-        return {
-          titulo,
-          descripcion: (document.getElementById('swal-descripcion') as HTMLTextAreaElement)?.value?.trim() || '',
-          idPrioridad: parseInt((document.getElementById('swal-prioridad') as HTMLSelectElement)?.value),
-          fechaLimite: val ? val + ':00' : null,
-          clearFechaLimite: !val // Si no hay valor, queremos borrarla
-        };
-      }
-    }).then(result => {
-      if (result.isConfirmed && result.value) {
-        this.homeservice.actualizarTarea(tarea.id, result.value).subscribe({
-          next: () => {
-            Swal.fire({
-              icon: 'success',
-              title: 'Tarea actualizada',
-              toast: true,
-              position: 'top-end',
-              showConfirmButton: false,
-              timer: 2500
-            });
-            this.obtenerTareas();
-            if (this.tareaSeleccionada?.id === tarea.id) {
-              this.homeservice.getTareaPorId(tarea.id).subscribe(t => this.tareaSeleccionada = t);
-            }
-          },
-          error: err => {
-            Swal.fire({
-              icon: 'error',
-              title: 'Error al guardar',
-              text: err.error?.message || 'No se pudieron guardar los cambios.'
-            });
-          }
-        });
-      }
-    });
+    this.abrirModalEditar(tarea);
   }
 
   // Modal de historial
@@ -1141,6 +1115,14 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     return vencimiento < ahora;
   }
 
+  // Verificar si se entregó a tiempo
+  entregadaATiempo(tarea: Tarea): boolean {
+    if (!tarea.fechaLimite || !tarea.fechaCompletado) return true;
+    const vencimiento = new Date(tarea.fechaLimite);
+    const fin = new Date(tarea.fechaCompletado);
+    return fin <= vencimiento;
+  }
+
   // Formatear tiempo relativo
   getTiempoRelativo(fecha: string): string {
     if (!fecha) return 'Sin fecha';
@@ -1163,9 +1145,11 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     const fin = tarea.fechaCompletado ? new Date(tarea.fechaCompletado) : new Date();
     const diff = fin.getTime() - inicio.getTime();
 
-    const horas = Math.floor(diff / 3600000);
+    const dias = Math.floor(diff / 86400000);
+    const horas = Math.floor((diff % 86400000) / 3600000);
     const minutos = Math.floor((diff % 3600000) / 60000);
 
+    if (dias > 0) return `${dias}d ${horas}h`;
     if (horas === 0) return `${minutos}m`;
     return `${horas}h ${minutos}m`;
   }

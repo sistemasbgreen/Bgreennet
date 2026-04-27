@@ -5,7 +5,7 @@
     <div class="header-left">
       <h1 class="page-title">
 
-        Configuración de Metas
+        Configuración de CMI
       </h1>
       <p class="page-subtitle">Define los objetivos mensuales por producto y año</p>
     </div>
@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  
+
   <!-- Products Detail Card (Moved to top) -->
   <div class="table-card products-detail-card" *ngIf="productosOriginales.length > 0">
     <div class="table-card-header">
@@ -28,10 +28,8 @@
       <div class="header-actions">
         <div class="search-container">
           <i class="bi bi-search search-icon"></i>
-          <input type="text" 
-                 class="search-input" 
-                 placeholder="Buscar por nombre o ID Siesa..." 
-                 (input)="actualizarFiltro($event)">
+          <input type="text" class="search-input" placeholder="Buscar por nombre o ID Siesa..."
+            (input)="actualizarFiltro($event)">
         </div>
         <div class="badge-total-items">
           {{ productos.length }} productos
@@ -46,9 +44,10 @@
       <table class="metas-table products-table">
         <thead>
           <tr>
-       
+
             <th class="col-nombre">Nombre</th>
             <th class="col-siesa">ID Siesa</th>
+            <th class="col-comportamiento">Comportamiento</th>
             <th class="col-meta-stat">Meta (Mes Actual)</th>
             <th class="col-docs">Tipos Consumo</th>
             <th class="col-docs">Tipos Producción</th>
@@ -57,16 +56,24 @@
         </thead>
         <tbody>
           <tr *ngFor="let p of productos">
-       
+
             <td class="td-nombre">
               <span class="product-name-txt">{{ p.nombre }}</span>
             </td>
             <td class="td-siesa">
               <span class="siesa-badge" *ngIf="p.idProductoSiesa">{{ p.idProductoSiesa }}</span>
               <span class="no-data" *ngIf="!p.idProductoSiesa">N/A</span>
-              <span class="composite-badge" *ngIf="p.esCompuesto" style="background-color: #fd7e14; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; margin-left: 6px;" title="Componentes del producto compuesto">
+              <span class="composite-badge" *ngIf="p.esCompuesto"
+                style="background-color: #fd7e14; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; margin-left: 6px;"
+                title="Componentes del producto compuesto">
                 <i class="bi bi-diagram-3"></i> {{ p.componenteSiesaIds?.join(' + ') }}
               </span>
+            </td>
+            <td class="td-comportamiento">
+              <span class="comportamiento-badge" [class.asc]="p.sentidoMeta !== false"
+                [class.desc]="p.sentidoMeta === false">
+               
+                {{ p.sentidoMeta !== false ? 'Mayor a la meta ( > )' : 'Menor a la meta ( < )' }} </span>
             </td>
             <td class="td-meta-stat">
               <span class="meta-value-badge" *ngIf="p.metaActual && p.metaActual > 0">
@@ -93,8 +100,13 @@
                 <button class="btn-action-pill metas" (click)="openMetasModal(p)" title="Configurar metas mensuales">
                   <i class="bi bi-calendar-check"></i> Metas
                 </button>
+
                 <button class="btn-action-pill edit" (click)="openProductModal(p)" title="Editar producto">
                   <i class="bi bi-pencil-square"></i> Editar
+                </button>
+                <button class="btn-action-pill dashboard" [class.active]="p.mostrarCmi !== false"
+                  [class.inactive]="p.mostrarCmi === false" (click)="goToDashboard(p)" title="Ver en Dashboard">
+                  <i class="bi bi-bar-chart-line"></i>
                 </button>
               </div>
             </td>
@@ -108,117 +120,160 @@
        METAS CONFIGURATION MODAL
        ═══════════════════════════════════════════════════════════ -->
   <div class="modal-overlay" *ngIf="showMetasModal" (click)="showMetasModal = false">
-    <div class="modal-content metas-config-modal" (click)="$event.stopPropagation()">
-      
-      <!-- Modal Header -->
-      <div class="metas-modal-header">
-        <div class="metas-header-left">
-          <div class="metas-header-icon-wrap">
-            <i class="bi bi-bar-chart-line-fill"></i>
+    <div class="modal-content metas-config-modal-v2" (click)="$event.stopPropagation()">
+
+      <!-- Modal Header (Redesigned) -->
+      <div class="metas-modal-header-v2">
+        <div class="header-main-info">
+          <div class="header-icon-container">
+            <i class="bi bi-bullseye"></i>
           </div>
-          <div class="metas-header-text">
-            <h3>Configuración de Metas</h3>
-            <p>{{ selectedProductoNombre }}</p>
+          <div class="header-title-wrap">
+            <span class="meta-label">Configuración de Objetivos</span>
+            <h3 class="product-display-name">{{ selectedProductoNombre }}</h3>
           </div>
         </div>
-        <div class="metas-header-right">
-          <!-- Year Picker -->
-          <div class="year-picker">
-            <button class="year-picker-btn" (click)="cambiarAnio(-1)">
-              <i class="bi bi-chevron-left"></i>
-            </button>
-            <span class="year-picker-value">{{ selectedAnio }}</span>
-            <button class="year-picker-btn" (click)="cambiarAnio(1)">
-              <i class="bi bi-chevron-right"></i>
-            </button>
+
+        <div class="header-control-center">
+          <!-- Mini Chart Visualizer -->
+          <div class="mini-chart-simulator-v2" *ngIf="selectedProductObj && selectedProductObj.id !== 'CostoDirecto'">
+            <div class="canvas-v2">
+              <div class="meta-line-v2"></div>
+              <div class="bars-v2">
+                <div class="v-bar-v2" [style.height.%]="75" [class.is-ok]="selectedProductObj.sentidoMeta !== false"
+                  [class.is-danger]="selectedProductObj.sentidoMeta === false"></div>
+                <div class="v-bar-v2" [style.height.%]="45" [class.is-ok]="selectedProductObj.sentidoMeta === false"
+                  [class.is-danger]="selectedProductObj.sentidoMeta !== false"></div>
+                <div class="v-bar-v2" [style.height.%]="90" [class.is-ok]="selectedProductObj.sentidoMeta !== false"
+                  [class.is-danger]="selectedProductObj.sentidoMeta === false"></div>
+              </div>
+            </div>
+            <span class="viz-lbl">Vista Previa</span>
           </div>
-          <button class="btn-close-modal" (click)="showMetasModal = false">
+
+          <div class="vertical-divider"></div>
+
+          <!-- Logic Picker -->
+          <div class="logic-picker-v2" *ngIf="selectedProductObj && selectedProductObj.id !== 'CostoDirecto'">
+            <span class="ctrl-lbl">Lógica de Meta</span>
+            <div class="toggle-group-v2">
+              <button class="tgl-btn" [class.active]="selectedProductObj.sentidoMeta !== false"
+                (click)="selectedProductObj.sentidoMeta = true" title="Mayor a la meta ( > )">
+                Mayor ( > )
+              </button>
+              <button class="tgl-btn" [class.active]="selectedProductObj.sentidoMeta === false"
+                (click)="selectedProductObj.sentidoMeta = false" title="Menor a la meta ( < )">
+                Menor ( < ) </button>
+            </div>
+          </div>
+
+          <div class="vertical-divider"></div>
+
+          <!-- Year Selector -->
+          <div class="year-selector-v2">
+            <span class="ctrl-lbl">Periodo</span>
+            <div class="year-nav">
+              <button class="nav-btn" (click)="cambiarAnio(-1)"><i class="bi bi-chevron-left"></i></button>
+              <span class="year-txt">{{ selectedAnio }}</span>
+              <button class="nav-btn" (click)="cambiarAnio(1)"><i class="bi bi-chevron-right"></i></button>
+            </div>
+          </div>
+
+          <button class="btn-close-v2" (click)="showMetasModal = false">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
       </div>
 
-      <!-- Stats Strip -->
-      <div class="metas-stats-strip" *ngIf="!cargando">
-        <div class="metas-stat">
-          <i class="bi bi-calendar-check stat-ico purple-ico"></i>
-          <div>
-            <span class="metas-stat-val">{{ mesesConMeta }}/12</span>
-            <span class="metas-stat-lbl">Configurados</span>
+      <!-- Stats Overview (Premium Cards) -->
+      <div class="metas-overview-cards" *ngIf="!cargando">
+        <div class="ov-card">
+          <div class="ov-icon orange"><i class="bi bi-calendar2-range"></i></div>
+          <div class="ov-data">
+            <span class="ov-val">{{ mesesConMeta }} <small>/ 12</small></span>
+            <span class="ov-lbl">Meses con Meta</span>
           </div>
         </div>
-        <div class="metas-stat-divider"></div>
-        <div class="metas-stat">
-          <i class="bi bi-arrow-up-circle stat-ico green-ico"></i>
-          <div>
-            <span class="metas-stat-val">{{ maxMeta | number:'1.0-0' }}</span>
-            <span class="metas-stat-lbl">Meta Máx.</span>
+        <div class="ov-card">
+          <div class="ov-icon green"><i class="bi bi-caret-up-fill"></i></div>
+          <div class="ov-data">
+            <span class="ov-val">{{ maxMeta | number:'1.0-0' }}</span>
+            <span class="ov-lbl">Objetivo Máximo</span>
           </div>
         </div>
-        <div class="metas-stat-divider"></div>
-        <div class="metas-stat">
-          <i class="bi bi-arrow-down-circle stat-ico blue-ico"></i>
-          <div>
-            <span class="metas-stat-val">{{ minMeta | number:'1.0-0' }}</span>
-            <span class="metas-stat-lbl">Meta Mín.</span>
+        <div class="ov-card">
+          <div class="ov-icon blue"><i class="bi bi-caret-down-fill"></i></div>
+          <div class="ov-data">
+            <span class="ov-val">{{ minMeta | number:'1.0-0' }}</span>
+            <span class="ov-lbl">Objetivo Mínimo</span>
+          </div>
+        </div>
+        <div class="ov-card status" [class.is-asc]="selectedProductObj?.sentidoMeta !== false">
+          <div class="ov-icon"><i class="bi" [class.bi-graph-up]="selectedProductObj?.sentidoMeta !== false"
+              [class.bi-graph-down]="selectedProductObj?.sentidoMeta === false"></i></div>
+          <div class="ov-data">
+            <span class="ov-val">{{ selectedProductObj?.sentidoMeta !== false ? 'Mayor a la meta ( > )' : 'Menor a la
+              meta ( < )' }}</span>
+                <span class="ov-lbl">Lógica Aplicada</span>
           </div>
         </div>
       </div>
 
       <!-- Scrollable Table Body -->
-      <div class="metas-table-scroll">
-        <table class="metas-modal-table">
+      <div class="metas-table-container-v2">
+        <table class="metas-table-v2">
           <thead>
             <tr>
-              <th class="th-num">#</th>
               <th class="th-mes">Mes</th>
               <th class="th-meta">Meta Estimada</th>
-              <th class="th-date">Modificado</th>
-              <th class="th-user">Usuario</th>
+              <th class="th-history">Última Modificación</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let mes of meses; let i = index" 
-                [class.row-filled]="metas[i].valor > 0"
-                [class.row-current]="i === mesActual && +selectedAnio === anioActual">
-              <td class="td-num">{{ i + 1 }}</td>
-              <td class="td-mes">
-                <span class="mes-label">{{ mes }}</span>
-                <span class="badge-current" *ngIf="i === mesActual && +selectedAnio === anioActual">Actual</span>
+            <tr *ngFor="let mes of meses; let i = index"
+              [class.row-active]="i === mesActual && +selectedAnio === anioActual"
+              [class.row-filled]="metas[i].valor > 0">
+              <td class="td-mes-v2">
+                <div class="mes-info">
+                  <span class="mes-num">{{ i + 1 }}</span>
+                  <span class="mes-name">{{ mes }}</span>
+                  <span class="current-tag" *ngIf="i === mesActual && +selectedAnio === anioActual">Actual</span>
+                </div>
               </td>
-              <td class="td-meta">
-                <input type="number" class="meta-modal-input" [value]="metas[i].valor" (input)="cambiarValor(i, $event)" placeholder="0" min="0">
+              <td class="td-input-v2">
+                <div class="input-wrapper-v2">
+                  <input type="number" class="meta-input-v2" [value]="metas[i].valor" (input)="cambiarValor(i, $event)"
+                    placeholder="0.00">
+                  <span class="input-unit">VAL</span>
+                </div>
               </td>
-              <td class="td-date">
-                <span *ngIf="metas[i].dateModify" class="date-chip">
-                  <i class="bi bi-clock"></i> {{ metas[i].dateModify | date:'dd/MM/yy' }}
-                </span>
-                <span *ngIf="!metas[i].dateModify" class="no-data">—</span>
-              </td>
-              <td class="td-user">
-                <span *ngIf="metas[i].userName" class="user-chip">
-                  <i class="bi bi-person"></i> {{ metas[i].userName }}
-                </span>
-                <span *ngIf="!metas[i].userName" class="no-data">—</span>
+              <td class="td-history-v2">
+                <div class="history-stack" *ngIf="metas[i].dateModify">
+                  <span class="hist-user"><i class="bi bi-person-circle"></i> {{ metas[i].userName }}</span>
+                  <span class="hist-date">{{ metas[i].dateModify | date:'dd MMM, yyyy - HH:mm' }}</span>
+                </div>
+                <span class="no-history" *ngIf="!metas[i].dateModify">Sin registros previos</span>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Modal Footer -->
-      <div class="metas-modal-footer">
-        <div class="distribute-bar">
-          <input type="number" [(ngModel)]="distribuirValor" placeholder="Valor masivo..." class="distribute-input-modal">
-          <button class="btn-distribute-modal" (click)="distribuirValorATodos()">
-            <i class="bi bi-layers"></i> Aplicar a Todos
-          </button>
+      <!-- Modal Footer (Improved) -->
+      <div class="metas-modal-footer-v2">
+        <div class="footer-left-v2">
+          <div class="batch-apply-box">
+            <input type="number" [(ngModel)]="distribuirValor" placeholder="Valor para todos..." class="batch-input">
+            <button class="btn-batch-apply" (click)="distribuirValorATodos()">
+              <i class="bi bi-magic"></i> Aplicar Masivo
+            </button>
+          </div>
         </div>
-        <div class="footer-actions">
-          <button class="btn-cancel-modal" (click)="showMetasModal = false">Cancelar</button>
-          <button class="btn-save-metas" (click)="guardar()" [disabled]="guardando || cargando">
-            <span *ngIf="!guardando"><i class="bi bi-check-lg"></i> Guardar</span>
-            <span *ngIf="guardando"><span class="spinner"></span> Guardando...</span>
+        <div class="footer-right-v2">
+          <button class="btn-secondary-v2" (click)="showMetasModal = false">Cancelar</button>
+          <button class="btn-primary-v2" (click)="guardar()" [disabled]="guardando || cargando">
+            <span *ngIf="!guardando"><i class="bi bi-cloud-arrow-up"></i> Guardar Cambios</span>
+            <span *ngIf="guardando" class="loading-state"><span class="spinner-v2"></span> Procesando...</span>
           </button>
         </div>
       </div>
@@ -228,7 +283,8 @@
   <!-- Toast Notifications -->
   <div class="toast-container" *ngIf="toast.visible">
     <div class="toast" [class.toast-success]="toast.type === 'success'" [class.toast-error]="toast.type === 'error'">
-      <i class="bi" [class.bi-check-circle-fill]="toast.type === 'success'" [class.bi-exclamation-triangle-fill]="toast.type === 'error'"></i>
+      <i class="bi" [class.bi-check-circle-fill]="toast.type === 'success'"
+        [class.bi-exclamation-triangle-fill]="toast.type === 'error'"></i>
       <span>{{ toast.message }}</span>
     </div>
   </div>
@@ -245,14 +301,15 @@
           <i class="bi bi-x"></i>
         </button>
       </div>
-      
+
       <div class="modal-body">
         <!-- Step 0: Siesa Search (Only for new products) -->
         <div class="modal-section siesa-search-area" *ngIf="!isEditingProduct && !productWasSaved">
           <div class="section-badge siesa"><i class="bi bi-search"></i> Siesa ERP</div>
           <h4 class="section-title">Buscar Producto en Siesa</h4>
           <div class="inline-adder">
-            <input type="text" [(ngModel)]="siesaSearchId" (keyup.enter)="buscarEnSiesa()" placeholder="Código del producto (Ej. 10)" class="form-control">
+            <input type="text" [(ngModel)]="siesaSearchId" (keyup.enter)="buscarEnSiesa()"
+              placeholder="Código del producto (Ej. 10)" class="form-control">
             <button class="btn-inline-add" (click)="buscarEnSiesa()" [disabled]="isSearchingSiesa">
               <i class="bi" [class.bi-search]="!isSearchingSiesa" [class.bi-hourglass-split]="isSearchingSiesa"></i>
             </button>
@@ -267,12 +324,22 @@
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label"><i class="bi bi-tag"></i> Nombre</label>
-              <input type="text" [(ngModel)]="currentProduct.nombre" placeholder="Ej. Empaque PET 250ml" class="form-control">
+              <input type="text" [(ngModel)]="currentProduct.nombre" placeholder="Ej. Empaque PET 250ml"
+                class="form-control">
             </div>
             <div class="form-group">
               <label class="form-label"><i class="bi bi-hash"></i> ID Siesa (Opcional)</label>
-              <input type="text" [(ngModel)]="currentProduct.idProductoSiesa" placeholder="Código Siesa" class="form-control" [readonly]="!isEditingProduct && !productWasSaved && currentProduct.idProductoSiesa">
+              <input type="text" [(ngModel)]="currentProduct.idProductoSiesa" placeholder="Código Siesa"
+                class="form-control"
+                [readonly]="!isEditingProduct && !productWasSaved && currentProduct.idProductoSiesa">
             </div>
+          </div>
+          <div class="form-group" style="margin-top: 15px;">
+            <label class="custom-checkbox-container">
+              <input type="checkbox" [(ngModel)]="currentProduct.mostrarCmi">
+              <span class="checkmark"></span>
+              <span class="checkbox-label"><i class="bi bi-display"></i> Mostrar en Dashboard CMI</span>
+            </label>
           </div>
         </div>
 
@@ -284,7 +351,7 @@
               <h4 class="section-title">Producto Compuesto (Opcional)</h4>
               <span class="section-desc">Para productos cuya cantidad se calcula sumando varios Items en Siesa</span>
             </div>
-            
+
             <div class="usa-suma-toggle" style="margin-bottom: 15px;">
               <label class="toggle-label">
                 <input type="checkbox" [(ngModel)]="isCompuestoToggle" (change)="onCompuestoToggleChange()">
@@ -294,28 +361,27 @@
                 </span>
               </label>
             </div>
-            
+
             <div *ngIf="isCompuestoToggle">
               <div class="inline-adder">
-                <input type="text" [(ngModel)]="nuevoComponenteId" 
-                       (keyup.enter)="agregarComponente()" 
-                       placeholder="ID Siesa del Item (Ej: 7309)" 
-                       class="form-control">
+                <input type="text" [(ngModel)]="nuevoComponenteId" (keyup.enter)="agregarComponente()"
+                  placeholder="ID Siesa del Item (Ej: 7309)" class="form-control">
                 <button class="btn-inline-add" (click)="agregarComponente()" [disabled]="isAddingComponent">
-                  <i class="bi" [class.bi-plus-lg]="!isAddingComponent" [class.bi-hourglass-split]="isAddingComponent"></i>
+                  <i class="bi" [class.bi-plus-lg]="!isAddingComponent"
+                    [class.bi-hourglass-split]="isAddingComponent"></i>
                 </button>
               </div>
 
               <div class="selected-tags-container">
-                 <div class="doc-tag composite-tag" *ngFor="let comp of tempComponentes; let i = index">
-                   <span class="tag-label"><i class="bi bi-box-seam"></i> {{ comp }}</span>
-                   <button class="btn-remove-tag" (click)="tempComponentes.splice(i, 1)">
-                     <i class="bi bi-x"></i>
-                   </button>
-                 </div>
-                 <div class="no-tags-placeholder" *ngIf="tempComponentes.length === 0">
-                   Sin componentes — producto simple
-                 </div>
+                <div class="doc-tag composite-tag" *ngFor="let comp of tempComponentes; let i = index">
+                  <span class="tag-label"><i class="bi bi-box-seam"></i> {{ comp }}</span>
+                  <button class="btn-remove-tag" (click)="tempComponentes.splice(i, 1)">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                <div class="no-tags-placeholder" *ngIf="tempComponentes.length === 0">
+                  Sin componentes — producto simple
+                </div>
               </div>
             </div>
           </div>
@@ -328,13 +394,14 @@
                 <div class="section-header">
                   <div class="section-badge consumption"><i class="bi bi-arrow-down-right-circle"></i> Consumo</div>
                   <h4 class="section-title">Documentos de Consumo</h4>
-                  <span class="section-desc">Documentos que restan del seguimiento</span>
+                  <span class="section-desc">Se aplicarán a: <strong>{{ getConsumptionScopeNames() }}</strong></span>
                 </div>
-                
+
                 <div class="available-docs-area mt-2">
                   <div class="small-label mb-1">Disponibles (Clic para agregar):</div>
                   <div class="available-chips">
-                    <div class="avail-chip" *ngFor="let td of getAvailableDocs('CONSUMO')" (click)="quickAddDoc('CONSUMO', td)">
+                    <div class="avail-chip" *ngFor="let td of getAvailableDocs('CONSUMO')"
+                      (click)="quickAddDoc('CONSUMO', td)">
                       {{ td.codigo }}
                     </div>
                     <div class="no-data-mini" *ngIf="getAvailableDocs('CONSUMO').length === 0">Sin más docs</div>
@@ -342,16 +409,16 @@
                 </div>
 
                 <div class="selected-tags-container mt-3">
-                   <div class="small-label mb-1">Vinculados:</div>
-                   <div class="doc-tag consumption" *ngFor="let doc of tempConsumoDocs">
-                     <span class="tag-label">{{ doc.codigo }}</span>
-                     <button class="btn-remove-tag" (click)="removeDoc('CONSUMO', doc.id)">
-                       <i class="bi bi-x"></i>
-                     </button>
-                   </div>
-                   <div class="no-tags-placeholder" *ngIf="tempConsumoDocs.length === 0">
-                     No hay documentos
-                   </div>
+                  <div class="small-label mb-1">Vinculados:</div>
+                  <div class="doc-tag consumption" *ngFor="let doc of tempConsumoDocs">
+                    <span class="tag-label">{{ doc.codigo }}</span>
+                    <button class="btn-remove-tag" (click)="removeDoc('CONSUMO', doc.id)">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                  <div class="no-tags-placeholder" *ngIf="tempConsumoDocs.length === 0">
+                    No hay documentos
+                  </div>
                 </div>
               </div>
 
@@ -360,13 +427,14 @@
                 <div class="section-header">
                   <div class="section-badge production"><i class="bi bi-arrow-up-right-circle"></i> Producción</div>
                   <h4 class="section-title">Documentos de Producción</h4>
-                  <span class="section-desc">Documentos que suman al seguimiento</span>
+                  <span class="section-desc">Se aplicarán a: <strong>{{ getProductionScopeNames() }}</strong></span>
                 </div>
-                
+
                 <div class="available-docs-area mt-2">
                   <div class="small-label mb-1">Disponibles (Clic para agregar):</div>
                   <div class="available-chips">
-                    <div class="avail-chip" *ngFor="let td of getAvailableDocs('PRODUCCION')" (click)="quickAddDoc('PRODUCCION', td)">
+                    <div class="avail-chip" *ngFor="let td of getAvailableDocs('PRODUCCION')"
+                      (click)="quickAddDoc('PRODUCCION', td)">
                       {{ td.codigo }}
                     </div>
                     <div class="no-data-mini" *ngIf="getAvailableDocs('PRODUCCION').length === 0">Sin más docs</div>
@@ -374,16 +442,26 @@
                 </div>
 
                 <div class="selected-tags-container mt-3">
-                   <div class="small-label mb-1">Vinculados:</div>
-                   <div class="doc-tag production" *ngFor="let doc of tempProduccionDocs">
-                     <span class="tag-label">{{ doc.codigo }}</span>
-                     <button class="btn-remove-tag" (click)="removeDoc('PRODUCCION', doc.id)">
-                       <i class="bi bi-x"></i>
-                     </button>
-                   </div>
-                   <div class="no-tags-placeholder" *ngIf="tempProduccionDocs.length === 0">
-                     No hay documentos
-                   </div>
+                  <div class="small-label mb-1">Vinculados:</div>
+                  <div class="doc-tag production" *ngFor="let doc of tempProduccionDocs">
+                    <span class="tag-label">{{ doc.codigo }}</span>
+                    <button class="btn-remove-tag" (click)="removeDoc('PRODUCCION', doc.id)">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                  <div class="no-tags-placeholder" *ngIf="tempProduccionDocs.length === 0">
+                    No hay documentos
+                  </div>
+                </div>
+
+                <div class="prod-base-selector mt-3 pt-3" style="border-top: 1px dashed #c3e6cb;">
+                  <div class="small-label mb-2" style="color: #006c2c;">Dividir la fórmula por (Base):</div>
+                  <select class="form-control" [(ngModel)]="currentProduct.produccionBaseId">
+                    <option value="26">Aceite Crudo de Palma (Por Defecto)</option>
+                    <option *ngFor="let prod of productosOriginales" [value]="prod.idProductoSiesa || prod.id">
+                      {{ prod.nombre }}
+                    </option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -394,7 +472,7 @@
                 <div class="section-header">
                   <h4 class="section-title"><i class="bi bi-calculator"></i> Armar Fórmula de Cálculo</h4>
                 </div>
-                
+
                 <div class="formula-options">
                   <label class="formula-option" [class.active]="tempUsaSuma === true">
                     <input type="radio" name="formulaType" [value]="true" [(ngModel)]="tempUsaSuma">
@@ -412,30 +490,58 @@
                   </label>
                 </div>
 
-                <div class="simulation-display mt-auto" style="padding: 20px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                  <div style="font-weight: 700; margin-bottom: 12px; opacity: 0.9;"><i class="bi bi-braces"></i> Estructura del Cálculo:</div>
-                  
-                  <div style="margin-bottom: 15px;">
-                    <div style="font-size: 11px; text-transform: uppercase; opacity: 0.7; margin-bottom: 4px;">Fórmula Consumo</div>
-                    <div style="font-family: 'Courier New', Courier, monospace; font-size: 13px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-                      ∑ Salidas [{{getDocsString(tempConsumoDocs)}}] 
-                      <span style="color: #64ffda; font-weight: 800; font-size: 1.1em;">{{ tempUsaSuma ? '+' : '-' }}</span> 
-                      ∑ Entradas [{{getDocsString(tempConsumoDocs)}}]
-                    </div>
+                <div class="simulation-display mt-auto"
+                  style="padding: 24px; background: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                  <div
+                    style="font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; color: #006c2c; display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-calculator-fill" style="font-size: 1.2em;"></i> ESTRUCTURA UNIFICADA DE CÁLCULO
                   </div>
 
-                  <div style="margin-bottom: 15px;">
-                    <div style="font-size: 11px; text-transform: uppercase; opacity: 0.7; margin-bottom: 4px;">Fórmula Producción</div>
-                    <div style="font-family: 'Courier New', Courier, monospace; font-size: 13px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-                      ABS(∑ Entradas [{{getDocsString(tempProduccionDocs)}}] - ∑ Salidas [{{getDocsString(tempProduccionDocs)}}])
+                  <div class="unified-formula-container"
+                    style="display: flex; flex-direction: column; align-items: center; gap: 15px; font-family: 'Outfit', 'Inter', sans-serif;">
+
+                    <!-- NUMERADOR: CONSUMO -->
+                    <div class="formula-row" style="width: 100%; text-align: center;">
+                      <div style="font-size: 10px; color: #ef4444; font-weight: 700; margin-bottom: 8px; opacity: 0.9;">
+                        CONSUMO TOTAL</div>
+                      <div
+                        style="padding: 15px; background: rgba(239, 68, 68, 0.05); border-radius: 12px; border: 1px dashed rgba(239, 68, 68, 0.3);">
+                        <span style="color: #ef4444; font-weight: 800; font-size: 1.1em;">( </span>
+                        <span style="color: #d97706; font-weight: 600;">{{ getConsumptionScopeNames() }}</span>
+                        <span style="color: #334155; margin: 0 8px;">[ ∑ Salidas<sub *ngIf="tempConsumoDocs.length > 0" style="color: #f87171; font-size: 0.6em; margin-left: 2px;">({{ getDocsString(tempConsumoDocs) }})</sub> <span
+                            style="color: #0284c7; font-weight: 900; margin: 0 4px;">{{ tempUsaSuma ? '+' : '-' }}</span> ∑ Entradas<sub *ngIf="tempConsumoDocs.length > 0" style="color: #f87171; font-size: 0.6em; margin-left: 2px;">({{ getDocsString(tempConsumoDocs) }})</sub>
+                          ]</span>
+                        <span style="color: #ef4444; font-weight: 800; font-size: 1.1em;"> )</span>
+                      </div>
                     </div>
+
+                    <!-- DIVISOR -->
+                    <div
+                      style="width: 100%; height: 2px; background: #e2e8f0; position: relative;">
+                      <div
+                        style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 2px 10px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 10px; color: #64748b; font-weight: 800;">
+                        DIVIDIDO POR</div>
+                    </div>
+
+                    <!-- DENOMINADOR: PRODUCCIÓN -->
+                    <div class="formula-row" style="width: 100%; text-align: center;">
+                      <div
+                        style="padding: 15px; background: rgba(16, 185, 129, 0.05); border-radius: 12px; border: 1px dashed rgba(16, 185, 129, 0.3);">
+                        <span style="color: #10b981; font-weight: 800; font-size: 1.1em;">( </span>
+                        <span style="color: #d97706; font-weight: 600;">{{ getProductionScopeNames() }}</span>
+                        <span style="color: #334155; margin: 0 8px;">[ ABS(∑ Entradas<sub *ngIf="tempProduccionDocs.length > 0" style="color: #34d399; font-size: 0.6em; margin-left: 2px;">({{ getDocsString(tempProduccionDocs) }})</sub> - ∑ Salidas<sub *ngIf="tempProduccionDocs.length > 0" style="color: #34d399; font-size: 0.6em; margin-left: 2px;">({{ getDocsString(tempProduccionDocs) }})</sub>) ]</span>
+                        <span style="color: #10b981; font-weight: 800; font-size: 1.1em;"> )</span>
+                      </div>
+                      <div style="font-size: 10px; color: #10b981; font-weight: 700; margin-top: 8px; opacity: 0.9;">
+                        PRODUCCIÓN BASE</div>
+                    </div>
+
                   </div>
 
-                  <div *ngIf="isCompuestoToggle && tempComponentes.length > 0">
-                    <div style="font-size: 11px; text-transform: uppercase; opacity: 0.7; margin-bottom: 4px;">Alcance (Items Siesa)</div>
-                    <div style="font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #ffd180;">
-                      <i class="bi bi-diagram-3"></i> [{{tempComponentes.join(' + ')}}]
-                    </div>
+                  <div
+                    style="margin-top: 25px; padding: 12px; background: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7; font-size: 11px; color: #166534; text-align: center;">
+                    <i class="bi bi-info-circle-fill"></i> Esta configuración define el comportamiento del ratio en el
+                    Dashboard CMI.
                   </div>
                 </div>
               </div>
@@ -446,7 +552,8 @@
 
       <div class="modal-footer">
         <button class="btn-save-modal" (click)="guardarProducto()" [disabled]="isSearchingSiesa">
-          {{ isEditingProduct ? 'Actualizar Producto' : (productWasSaved ? 'Finalizar Vinculación' : 'Crear y Continuar') }}
+          {{ isEditingProduct ? 'Actualizar Producto' : (productWasSaved ? 'Finalizar Vinculación' : 'Crear y
+          Continuar') }}
         </button>
       </div>
     </div>

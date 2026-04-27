@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MetaDetalle, MetaResponse, productoservices } from '../../../servicios/productoservices';
 import { producto } from '../../../models/productos';
 
@@ -28,7 +29,8 @@ export class MetasCMI implements OnInit {
   showProductModal: boolean = false;
   showMetasModal: boolean = false;
   isEditingProduct: boolean = false;
-  currentProduct: producto = { id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [] };
+  currentProduct: producto = { id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true };
+  selectedProductObj: producto | null = null;
   
   // Catalogos
   tiposDocumento: any[] = [];
@@ -68,7 +70,8 @@ export class MetasCMI implements OnInit {
 
   constructor(
     private service: productoservices,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -101,7 +104,7 @@ export class MetasCMI implements OnInit {
   }
 
   get selectedProductoNombre(): string {
-    return this.productos.find(p => p.id === this.selectedProducto)?.nombre ?? '';
+    return this.selectedProductObj?.nombre ?? '';
   }
 
   get maxMeta(): number {
@@ -142,6 +145,7 @@ export class MetasCMI implements OnInit {
   }
 
   openMetasModal(p: producto) {
+    this.selectedProductObj = p;
     this.selectedProducto = p.id;
     this.selectedAnio = new Date().getFullYear().toString();
     this.metas = Array(12).fill(0).map(() => ({ valor: 0 }));
@@ -277,10 +281,40 @@ export class MetasCMI implements OnInit {
   }
 
   finalizeBatchSave() {
-    this.guardando = false;
-    this.showToast('Cambios sincronizados correctamente', 'success');
-    this.cargarMetas();
-    this.cargarProductos();
+    if (this.selectedProductObj && this.selectedProductObj.id !== 'CostoDirecto') {
+      // Send only necessary fields to avoid Jackson issues with complex lists/objects
+      const updatePayload: any = {
+        id: this.selectedProductObj.id,
+        nombre: this.selectedProductObj.nombre,
+        sentidoMeta: this.selectedProductObj.sentidoMeta,
+        idProductoSiesa: this.selectedProductObj.idProductoSiesa,
+        usaSuma: this.selectedProductObj.usaSuma || false,
+        esCompuesto: this.selectedProductObj.esCompuesto,
+        componenteSiesaIds: this.selectedProductObj.componenteSiesaIds,
+        mostrarCmi: this.selectedProductObj.mostrarCmi ?? true
+      };
+
+      this.service.actualizarProducto(updatePayload).subscribe({
+        next: () => {
+          this.guardando = false;
+          this.showToast('Cambios sincronizados correctamente', 'success');
+          this.cargarMetas();
+          this.cargarProductos();
+        },
+        error: (err) => {
+          console.error('Error al actualizar producto:', err);
+          this.guardando = false;
+          this.showToast('Metas guardadas, pero error al actualizar comportamiento', 'error');
+          this.cargarMetas();
+          this.cargarProductos();
+        }
+      });
+    } else {
+      this.guardando = false;
+      this.showToast('Cambios sincronizados correctamente', 'success');
+      this.cargarMetas();
+      this.cargarProductos();
+    }
   }
 
   showToast(message: string, type: 'success' | 'error') {
@@ -299,7 +333,7 @@ export class MetasCMI implements OnInit {
   openProductModal(p?: producto) {
     this.isEditingProduct = !!p;
     this.currentProduct = p ? { ...p } : { 
-      id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [] 
+      id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, produccionBaseId: '26'
     };
     this.tempConsumoDocs = (p?.consumptionDocIds || []).map(id => {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
@@ -405,6 +439,9 @@ export class MetasCMI implements OnInit {
 
   ejecutarGuardadoProducto() {
     this.currentProduct.usaSuma = this.tempUsaSuma ?? false;
+    this.currentProduct.esCompuesto = this.isCompuestoToggle;
+    this.currentProduct.componenteSiesaIds = [...this.tempComponentes];
+    
     const obs = this.isEditingProduct 
       ? this.service.actualizarProducto(this.currentProduct)
       : this.service.insertarProducto(this.currentProduct);
@@ -474,5 +511,44 @@ export class MetasCMI implements OnInit {
       },
       error: () => this.showToast('Error al vincular documento', 'error')
     });
+  }
+
+  goToDashboard(p: producto) {
+    this.router.navigate(['/cmi/productos']);
+  }
+
+  getConsumptionScope(): string {
+    if (this.isCompuestoToggle && this.tempComponentes.length > 0) {
+      return this.tempComponentes.join(' + ');
+    }
+    return this.currentProduct.nombre || 'N/A';
+  }
+
+  getItemName(idSiesa: string): string {
+    if (idSiesa === '26') return 'Aceite Crudo de Palma';
+    const p = this.productosOriginales.find(p => String(p.idProductoSiesa) === String(idSiesa));
+    return p ? p.nombre : idSiesa;
+  }
+
+  getConsumptionScopeNames(): string {
+    if (this.isCompuestoToggle && this.tempComponentes.length > 0) {
+      return this.tempComponentes.map(id => this.getItemName(id)).join(' + ');
+    }
+    return this.getItemName(this.currentProduct.idProductoSiesa || '');
+  }
+
+  getProductionScopeNames(): string {
+    return this.getItemName(this.currentProduct.produccionBaseId || '26');
+  }
+
+  getProductionScope(): string {
+    return this.currentProduct.produccionBaseId || '26';
+  }
+
+  getProductScope(): string {
+    if (this.isCompuestoToggle && this.tempComponentes.length > 0) {
+      return this.tempComponentes.join(' + ');
+    }
+    return this.currentProduct.idProductoSiesa || 'N/A';
   }
 }
