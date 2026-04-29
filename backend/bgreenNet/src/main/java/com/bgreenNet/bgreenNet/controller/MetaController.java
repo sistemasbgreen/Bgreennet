@@ -50,14 +50,20 @@ public class MetaController {
     }
 
     @PostMapping("/agregar_metas")
-    public void guardarMeta(@RequestBody Map<String, Object> body) {
-        service.guardarMeta(
-            (String) body.get("productoId"),
-            (int) body.get("anio"),
-            (int) body.get("mes"),
-            Double.parseDouble(body.get("valor").toString()),
-            (String) body.get("usuario")
-        );
+    public ResponseEntity<?> guardarMeta(@RequestBody Map<String, Object> body) {
+        try {
+            service.guardarMeta(
+                (String) body.get("productoId"),
+                (int) body.get("anio"),
+                (int) body.get("mes"),
+                Double.parseDouble(body.get("valor").toString()),
+                (String) body.get("usuario")
+            );
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            log.error("[guardarMeta] ERROR: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
     }
 
     // =============================
@@ -69,13 +75,19 @@ public class MetaController {
     }
 
     @PostMapping("/metas/agregar_costo-directo")
-    public void guardarCosto(@RequestBody Map<String, Object> body) {
-        service.guardarCosto(
-            (int) body.get("anio"),
-            (int) body.get("mes"),
-            Double.parseDouble(body.get("valor").toString()),
-            (String) body.get("usuario")
-        );
+    public ResponseEntity<?> guardarCosto(@RequestBody Map<String, Object> body) {
+        try {
+            service.guardarCosto(
+                (int) body.get("anio"),
+                (int) body.get("mes"),
+                Double.parseDouble(body.get("valor").toString()),
+                (String) body.get("usuario")
+            );
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            log.error("[guardarCosto] ERROR: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
     }
 
     // =============================
@@ -96,8 +108,17 @@ public class MetaController {
     }
 
     @PostMapping("/productos/actualizar")
-    public void actualizarProducto(@RequestBody ProductoDTO producto) {
-        service.actualizarProducto(producto);
+    public ResponseEntity<?> actualizarProducto(@RequestBody ProductoDTO producto) {
+        try {
+            log.info("[actualizarProducto] Actualizando producto id={}, nombre={}, sentidoMeta={}", 
+                producto.getId(), producto.getNombre(), producto.getSentidoMeta());
+            service.actualizarProducto(producto);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            log.error("[actualizarProducto] ERROR: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/productos/tipo-documento")

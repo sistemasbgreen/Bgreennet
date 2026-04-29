@@ -27,7 +27,7 @@ export class Productos implements OnInit, OnDestroy {
   sidebarOpen = false;
   selectedYear: string = new Date().getFullYear().toString();
   selectedMonth: string = '';
-  selectedProduct: string = '10';
+  selectedProduct: string = '';
   
   // Stats
   monthlyData = {
@@ -61,25 +61,10 @@ productos: any[] = [];
     { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
   ];
   
-  metasPorProducto: Record<string, Record<string, number>> = {
-    '10': { '2025': 130, '2026': 135 },
-    '13': { '2025': 19.5, '2026': 19.5 },
-    '8': { '2025': 1031, '2026': 1031 },
-    '9264': { '2025': 30, '2026': 30 },
-    '32': { '2025': 103.3, '2026': 107.9 },
-    '3188': { '2025': 30, '2026': 30 },
-    '26': { '2025': 180, '2026': 179 }
-  };
-  
-metasMensualesB100: Record<string, number[]> = {
-    '2025': [5043, 4920, 5299, 5394, 5394, 5394, 5394, 5394, 5394, 5394, 5394, 5188],
-    '2026': [5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000]
-  };
-  
-  metasMensualesCosto: Record<string, number[]> = {
-    '2025': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    '2026': [5204, 5204, 5305, 5524, 0, 0, 0, 0, 0, 0, 0, 0]
-  };
+  // Metas dinámicas desde BD
+  metasDB: number[] = [];
+  metaActualDB: number = 0;
+
   
   // Charts - existentes
   dailyChartData: ChartData<'line'> = { labels: [], datasets: [] };
@@ -210,6 +195,7 @@ metasMensualesB100: Record<string, number[]> = {
     const mes = this.selectedMonth || (new Date().getMonth() + 1).toString().padStart(2, '0');
 
     if (this.isCostoDirecto()) {
+      this.cargarMetasCostoDirectoDB(mes, this.selectedYear);
       this.cargarDatosCostoDirecto(mes, this.selectedYear);
       this.cargarDatosCostoDirectoYTD(mes, this.selectedYear);
     } else {
@@ -222,10 +208,48 @@ metasMensualesB100: Record<string, number[]> = {
         acumulado_PxC: 0
       };
       
-      this.cargarDatosMes(mes, this.selectedYear, this.selectedProduct);
-      this.cargarDatosYTD(mes, this.selectedYear, this.selectedProduct);
-      this.cargarDatosMensuales(mes, this.selectedYear, this.selectedProduct);
+      // Primero cargamos las metas de la DB, luego los datos
+      this.cargarMetasDB(mes, this.selectedYear, this.selectedProduct, () => {
+        this.cargarDatosMes(mes, this.selectedYear, this.selectedProduct);
+        this.cargarDatosYTD(mes, this.selectedYear, this.selectedProduct);
+        this.cargarDatosMensuales(mes, this.selectedYear, this.selectedProduct);
+      });
     }
+  }
+
+  cargarMetasDB(mes: string, anio: string, productoId: string, callback?: Function): void {
+    const pid = this.getSelectedProductConfig().id;
+    this.productoservices.getMetas(pid, anio)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.metasDB = res.mensuales.map(m => m.valor);
+          const mesIdx = parseInt(mes, 10) - 1;
+          this.metaActualDB = this.metasDB[mesIdx] || 0;
+          if (callback) callback();
+        },
+        error: () => {
+          this.metasDB = Array(12).fill(0);
+          this.metaActualDB = 0;
+          if (callback) callback();
+        }
+      });
+  }
+
+  cargarMetasCostoDirectoDB(mes: string, anio: string): void {
+    this.productoservices.getCostoDirecto(anio)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.metasDB = res.mensuales.map(m => m.valor);
+          const mesIdx = parseInt(mes, 10) - 1;
+          this.metaActualDB = this.metasDB[mesIdx] || 0;
+        },
+        error: () => {
+          this.metasDB = Array(12).fill(0);
+          this.metaActualDB = 0;
+        }
+      });
   }
   
   getFechaRango(mes: string, anio: string) {
@@ -346,7 +370,7 @@ getSelectedProductConfig() {
         },
         {
           label: 'Meta',
-          data: Array(labels.length).fill(this.metasMensualesCosto[anio][parseInt(this.selectedMonth) - 1] || 0),
+          data: Array(labels.length).fill(this.metaActualDB),
           borderColor: '#000',
           pointBackgroundColor: '#2A9D03',
           borderWidth: 0.5,
@@ -408,7 +432,7 @@ getSelectedProductConfig() {
         },
         {
           label: 'Meta',
-          data: Array(labels.length).fill(this.metasMensualesCosto[anio][parseInt(this.selectedMonth) - 1] || 0),
+          data: Array(labels.length).fill(this.metaActualDB),
           borderColor: '#000',
           pointBackgroundColor: '#2A9D03',
           borderWidth: 0.5,
@@ -493,7 +517,7 @@ getSelectedProductConfig() {
     });
     
     if (this.isMpGrasas()) {
-      const metaCxP = this.metasPorProducto['8']?.[anio] || 1031;
+      const metaCxP = this.metaActualDB;
       const metaPxC = 97;
       const consumoEspecifico = datosOrdenados.map(d =>
         d.produccion > 0 ? (d.consumo / d.produccion) * 1000 : 0
@@ -588,7 +612,7 @@ getSelectedProductConfig() {
             pointBorderColor: '#FF9800',
           },
           {
-            label: `Meta (${metaPxC}%)`,
+            label: `Meta (${this.truncateDecimal(metaPxC, 1)}%)`,
             data: Array(labels.length).fill(metaPxC),
             borderColor: '#2c3e50',
             borderWidth: 2,
@@ -602,7 +626,7 @@ getSelectedProductConfig() {
         ]
       };
     } else if (this.isB100()) {
-      const meta = this.metasPorProducto[this.selectedProduct]?.[anio] || 130;
+      const meta = this.metaActualDB;
       const produccionDiaria = datosOrdenados.map(d => d.produccion);
       
       this.dailyChartData = {
@@ -648,7 +672,7 @@ getSelectedProductConfig() {
         promediosAcumulados.push(ratio);
       }
       
-      const meta = this.metasPorProducto[this.selectedProduct]?.[anio] || 130;
+      const meta = this.metaActualDB;
       
       this.dailyChartData = {
         labels: [...labels],
@@ -779,8 +803,7 @@ getSelectedProductConfig() {
         next: (results) => {
           if (this.isB100()) {
             const valoresProduccion = results.map(res => res.totalProduction || null);
-            const metasMensuales = this.metasMensualesB100[anio] || Array(12).fill(5000);
-            const metasFiltradas = metasMensuales.slice(0, numMeses);
+            const metasFiltradas = this.metasDB.slice(0, numMeses);
             
             this.monthlyChartData = {
               labels: [...labels],
@@ -789,9 +812,13 @@ getSelectedProductConfig() {
                   type: 'bar',
                   label: 'Producción (Toneladas)',
                   data: [...valoresProduccion],
-                  backgroundColor: valoresProduccion.map((v, idx) =>
-                    v === null ? '#ccc' : (v >= metasFiltradas[idx] ? '#27ae60' : '#e74c3c')
-                  ),
+                  backgroundColor: valoresProduccion.map((v, idx) => {
+                    if (v === null) return '#ccc';
+                    const meta = metasFiltradas[idx] || 0;
+                    const sentidoAsc = this.getSelectedProductConfig().sentidoMeta !== false;
+                    const esCumplido = sentidoAsc ? (v >= meta) : (v <= meta);
+                    return esCumplido ? '#27ae60' : '#e74c3c';
+                  }),
                   borderColor: 'transparent',
                   borderWidth: 0,
                   borderRadius: 8,
@@ -814,7 +841,7 @@ getSelectedProductConfig() {
               ]
             };
           } else if (this.isMpGrasas()) {
-            const metaCxP = this.metasPorProducto['8']?.[anio] || 1031;
+            const metasFiltradas = this.metasDB.slice(0, numMeses);
             const metaPxC = 97;
 
             const valoresCxP = results.map(res => {
@@ -836,9 +863,15 @@ getSelectedProductConfig() {
                   type: 'bar',
                   label: 'Consumo Específico (Kg/Ton)',
                   data: [...valoresCxP],
-                  backgroundColor: valoresCxP.map(v =>
-                    v === null ? '#ccc' : (v > metaCxP ? '#e74c3c' : '#27ae60')
-                  ),
+                  backgroundColor: valoresCxP.map((v, idx) => {
+                    if (v === null) return '#ccc';
+                    const meta = metasFiltradas[idx] || 0;
+                    // Round to 1 decimal to match display
+                    const valRound = Math.round(v * 10) / 10;
+                    const sentidoAsc = this.getSelectedProductConfig().sentidoMeta !== false;
+                    const esCumplido = sentidoAsc ? (valRound >= meta) : (valRound <= meta);
+                    return esCumplido ? '#27ae60' : '#e74c3c'; 
+                  }),
                   borderColor: 'transparent',
                   borderWidth: 0,
                   borderRadius: 8,
@@ -846,8 +879,8 @@ getSelectedProductConfig() {
                 },
                 {
                   type: 'line',
-                  label: `Meta (${metaCxP} Kg/Ton)`,
-                  data: Array(valoresCxP.length).fill(metaCxP),
+                  label: 'Meta Mensual',
+                  data: [...metasFiltradas],
                   borderColor: '#2c3e50',
                   borderWidth: 2,
                   borderDash: [5, 5],
@@ -892,21 +925,30 @@ getSelectedProductConfig() {
               ]
             };
           } else {
-            const meta = this.metasPorProducto[productoId]?.[anio] || 130;
             const valores = results.map(res => res.monthlyAccumulated || null);
+            const metasFiltradas = this.metasDB.slice(0, numMeses);
             
             this.monthlyChartData = {
               labels: [...labels],
               datasets: [
                 {
                   type: 'bar',
-                  label: this.isProduccionBase() ? 'Producción Mensual (Kg/Ton)' : 'Consumo Mensual (Kg/Ton)',
+                  label: this.isProduccionBase() ? 'Producción Kg/Ton' : 'Consumo Kg/Ton',
                   data: [...valores],
-                  backgroundColor: valores.map(v => {
-  if (v === null) return '#ccc';
-  if (this.selectedProduct === '3188') return v <= meta ? '#27ae60' : '#e74c3c';
-  return this.isProduccionBase() ? (v >= meta ? '#27ae60' : '#e74c3c') : (v > meta ? '#e74c3c' : '#27ae60');
-}),
+                  backgroundColor: valores.map((v, idx) => {
+                    if (v === null) return '#ccc';
+                    const meta = metasFiltradas[idx] || 0;
+                    
+                    // Aplicar la misma lógica de redondeo/truncado que en los datalabels
+                    let valForCompare = Math.round(v * 10) / 10;
+                    if (this.selectedProduct === '13') {
+                      valForCompare = Math.floor(v * 10) / 10;
+                    }
+
+                    const sentidoAsc = this.getSelectedProductConfig().sentidoMeta !== false;
+                    const esCumplido = sentidoAsc ? (valForCompare >= meta) : (valForCompare <= meta);
+                    return esCumplido ? '#27ae60' : '#e74c3c';
+                  }),
                   borderColor: 'transparent',
                   borderWidth: 0,
                   borderRadius: 8,
@@ -914,8 +956,8 @@ getSelectedProductConfig() {
                 },
                 {
                   type: 'line',
-                  label: `Meta (${meta} Kg/Ton)`,
-                  data: Array(valores.length).fill(meta),
+                  label: 'Meta Mensual',
+                  data: [...metasFiltradas],
                   borderColor: '#2c3e50',
                   borderWidth: 2,
                   borderDash: [5, 5],
@@ -1173,7 +1215,11 @@ getSelectedProductConfig() {
   }
   
   getProductoNombre(): string {
-    return this.productos.find(p => p.id === this.selectedProduct)?.nombre || 'Metanol';
+    const p = this.productos.find(p => 
+      String(p.id) === String(this.selectedProduct) || 
+      String(p.idProductoSiesa) === String(this.selectedProduct)
+    );
+    return p ? p.nombre : '...';
   }
   
   getMesesDisponibles(): { value: string; label: string }[] {
@@ -1197,9 +1243,9 @@ getSelectedProductConfig() {
       next: (data) => {
         console.log('Productos desde BD:', data);
 
-        // Agregamos Costo Directo manual (porque no viene de productos)
+        // Agregamos solo los marcados para CMI + Costo Directo
         this.productos = [
-          ...data,
+          ...data.filter(p => p.mostrarCmi !== false),
           {
             id: 'CostoDirecto',
             nombre: 'Costo Directo',
@@ -1209,9 +1255,10 @@ getSelectedProductConfig() {
           }
         ];
 
-        // Seleccionar el primero si no hay seleccionado
-        if (!this.selectedProduct && this.productos.length > 0) {
-          this.selectedProduct = this.productos[0].id;
+        // Seleccionar el primero siempre al cargar
+        if (this.productos.length > 0) {
+          this.selectedProduct = this.productos[0].idProductoSiesa || this.productos[0].id;
+          this.actualizarDatos(); // Forzar carga del primero
         }
 
         this.cdr.detectChanges();
@@ -1220,5 +1267,30 @@ getSelectedProductConfig() {
         console.error('Error cargando productos:', err);
       }
     });
-}
+  }
+
+  isGoalMet(): boolean {
+    const val = this.isB100() ? this.monthlyData.total_produccion : this.monthlyData.acumulado_mes;
+    if (val === 0 || this.metaActualDB === 0) return true;
+    
+    // Si es MpGrasas, evaluamos el CxP
+    if (this.isMpGrasas()) {
+       return this.monthlyData.acumulado_CxP <= this.metaActualDB;
+    }
+
+    const sentidoAsc = this.getSelectedProductConfig().sentidoMeta !== false;
+    return sentidoAsc ? (val >= this.metaActualDB) : (val <= this.metaActualDB);
+  }
+
+  isYtdGoalMet(): boolean {
+    const val = this.isB100() ? this.ytdData.total_produccion : this.ytdData.acumulado_mes;
+    if (val === 0 || this.metaActualDB === 0) return true;
+    
+    if (this.isMpGrasas()) {
+       return this.ytdData.acumulado_CxP <= this.metaActualDB;
+    }
+
+    const sentidoAsc = this.getSelectedProductConfig().sentidoMeta !== false;
+    return sentidoAsc ? (val >= this.metaActualDB) : (val <= this.metaActualDB);
+  }
 }

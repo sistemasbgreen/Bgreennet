@@ -15,6 +15,9 @@ public class ProductoDTO {
     private Boolean esCompuesto;
     private List<String> componenteSiesaIds;
     private Boolean usaSuma;
+    private Boolean sentidoMeta;
+    private Boolean mostrarCmi;
+    private String produccionBaseId;
 
     public String getId() {
         return id;
@@ -102,5 +105,29 @@ public class ProductoDTO {
 
     public void setUsaSuma(Boolean usaSuma) {
         this.usaSuma = usaSuma;
+    }
+
+    public Boolean getSentidoMeta() {
+        return sentidoMeta;
+    }
+
+    public void setSentidoMeta(Boolean sentidoMeta) {
+        this.sentidoMeta = sentidoMeta;
+    }
+
+    public Boolean getMostrarCmi() {
+        return mostrarCmi;
+    }
+
+    public void setMostrarCmi(Boolean mostrarCmi) {
+        this.mostrarCmi = mostrarCmi;
+    }
+
+    public String getProduccionBaseId() {
+        return produccionBaseId;
+    }
+
+    public void setProduccionBaseId(String produccionBaseId) {
+        this.produccionBaseId = produccionBaseId;
     }
 }

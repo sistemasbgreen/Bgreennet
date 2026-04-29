@@ -2713,9 +2713,10 @@ body.modal-open {
    ============================================ */
 .tabla-historial-container {
   overflow-x: auto;
-  margin-top: 15px;
-  border-radius: 12px;
+  margin: 20px 0;
+  border-radius: 16px;
   border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
 .tabla-tareas-historial {
@@ -2727,16 +2728,17 @@ body.modal-open {
 .tabla-tareas-historial th {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
-  font-weight: 600;
+  font-weight: 700;
   text-align: left;
-  padding: 12px 16px;
-  font-size: 13px;
+  padding: 16px 20px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .tabla-tareas-historial td {
-  padding: 12px 16px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
 }
@@ -2745,59 +2747,129 @@ body.modal-open {
   border-bottom: none;
 }
 
-.tabla-tareas-historial tr:hover td {
-  background: rgba(var(--bg-tertiary-rgb), 0.3);
+.tabla-tareas-historial tr {
+  transition: all 0.2s ease;
+}
+
+.tabla-tareas-historial tr:hover {
+  background: rgba(16, 185, 129, 0.03);
 }
 
 .tarea-info strong {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .tarea-desc-mini {
   font-size: 12px;
   color: var(--text-secondary);
   margin: 0;
-  max-width: 250px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.3;
+  opacity: 0.8;
 }
 
-.estado-badge-mini {
-  display: inline-flex;
+.fechas-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fecha-item {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
-.estado-finalizada {
-  background: #dcfce7;
-  color: #15803d;
+.fecha-item i {
+  font-size: 14px;
 }
 
-.estado-cancelada {
+.fecha-item i.bi-play-circle { color: #3b82f6; }
+.fecha-item i.bi-check-circle { color: #10b981; }
+
+.nota-cierre-cell {
+  max-width: 550px;
+  font-size: 13px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.duration-inline {
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border-color);
+  color: var(--green-primary) !important;
+  font-weight: 700;
+}
+
+.status-entrega-container {
+  margin: 2px 0;
+  display: flex;
+}
+
+.badge-entrega {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.entrega-ok {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.entrega-late {
   background: #fee2e2;
   color: #b91c1c;
 }
 
-.dark-mode .estado-finalizada {
-  background: rgba(21, 128, 61, 0.2);
-  color: #4ade80;
+.nota-cierre-cell i {
+  color: var(--green-primary);
+  font-size: 16px;
+  opacity: 0.6;
+  margin-top: 2px;
 }
 
-.dark-mode .estado-cancelada {
-  background: rgba(185, 28, 28, 0.2);
-  color: #f87171;
+.duracion-badge {
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green-primary);
+  white-space: nowrap;
 }
 
-.dark-mode .tarea-desc-mini {
-  color: #94a3b8;
+.btn-detalle {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: var(--green-primary) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-detalle:hover {
+  background: var(--green-primary) !important;
+  color: white !important;
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
 }
 
 /* ============================================
@@ -3028,31 +3100,13 @@ body.dark-mode .nota-cierre-text {
   white-space: nowrap;
 }
 
-.nota-cierre-cell {
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.duracion-badge {
-  background: var(--bg-tertiary);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
 
 /* ============================================
    NOTIFICACIONES DROPDOWN 
 ============================================ */
 .notifications-dropdown {
   position: absolute;
-  top: 60px;
-  right: 130px;
+  top: 90px;
   width: 350px;
   background: var(--bg-primary);
   border-radius: 16px;
@@ -3231,44 +3285,45 @@ body.dark-mode .nota-cierre-text {
 .tarea-card--media .tarea-card__stripe { background: linear-gradient(90deg, #f59e0b, #eab308); }
 .tarea-card--baja .tarea-card__stripe { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
 .tarea-card__header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; gap: 10px; }
-/* Tareas Vencidas: Pintar toda la tarjeta según prioridad */
-.tarea-card.tarea-vencida.tarea-card--alta {
+/* Tareas Vencidas: Pintar toda la tarjeta de rojo premium */
+.tarea-card.tarea-vencida {
   background: linear-gradient(135deg, #fee2e2, #ef4444) !important;
-  border-color: #b91c1c !important;
+
+}
+
+.tarea-card.tarea-vencida .tarea-card__titulo,
+.tarea-card.tarea-vencida .tarea-card__desc,
+.tarea-card.tarea-vencida .tarea-card__tiempo,
+.tarea-card.tarea-vencida .tarea-card__vence {
   color: white !important;
 }
-.tarea-card.tarea-vencida.tarea-card--alta .tarea-card__titulo,
-.tarea-card.tarea-vencida.tarea-card--alta .tarea-card__desc,
-.tarea-card.tarea-vencida.tarea-card--alta .tarea-card__tiempo,
-.tarea-card.tarea-vencida.tarea-card--alta .tarea-card__vence {
+
+.tarea-card.tarea-vencida .tarea-prioridad-mini {
+  background: rgba(255, 255, 255, 0.2) !important;
   color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
 }
-.tarea-card.tarea-vencida.tarea-card--alta .tarea-card__avatar {
+
+.tarea-card.tarea-vencida .tarea-card__avatar {
   background: white;
   color: #ef4444;
 }
 
-.tarea-card.tarea-vencida.tarea-card--media {
-  background: linear-gradient(135deg, #fef3c7, #f59e0b) !important;
-  border-color: #b45309 !important;
-}
-.tarea-card.tarea-vencida.tarea-card--media .tarea-card__titulo,
-.tarea-card.tarea-vencida.tarea-card--media .tarea-card__desc,
-.tarea-card.tarea-vencida.tarea-card--media .tarea-card__tiempo,
-.tarea-card.tarea-vencida.tarea-card--media .tarea-card__vence {
-  color: #451a03 !important;
+/* El footer debe ser blanco para resaltar los botones */
+.tarea-card.tarea-vencida .tarea-card__footer {
+  background: white !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.tarea-card.tarea-vencida.tarea-card--baja {
-  background: linear-gradient(135deg, #dbeafe, #3b82f6) !important;
-  border-color: #1d4ed8 !important;
-  color: white !important;
+.dark-mode .tarea-card.tarea-vencida .tarea-card__footer {
+  background: var(--bg-primary) !important;
 }
-.tarea-card.tarea-vencida.tarea-card--baja .tarea-card__titulo,
-.tarea-card.tarea-vencida.tarea-card--baja .tarea-card__desc,
-.tarea-card.tarea-vencida.tarea-card--baja .tarea-card__tiempo,
-.tarea-card.tarea-vencida.tarea-card--baja .tarea-card__vence {
-  color: white !important;
+
+/* Asegurar que los textos informativos en el footer tengan color oscuro sobre fondo blanco */
+.tarea-card.tarea-vencida .tarea-card__footer .estado-badge-mini,
+.tarea-card.tarea-vencida .tarea-card__footer .tarea-rol-mini {
+  /* Mantienen su estilo original ya que el fondo es blanco/bg-primary */
 }
 
 .tarea-card__avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #20710a, #88d3ce); color: white; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
