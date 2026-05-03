@@ -15,35 +15,35 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         
-        // ✅ Permitir credenciales si el frontend envía tokens/cookies
+
         config.setAllowCredentials(true); 
 
-        // ✅ URLs SIN espacios al final y solo las necesarias
+
         config.setAllowedOrigins(Arrays.asList(
-            "http://localhost:4200",              // Desarrollo local Angular
-            "http://172.30.72.200",
-            "https://bgreennet.bgreen.com.co",    // ✅ Producción frontend (SIN espacios)
-            "https://infos.bgreen.com.co"         // Si también la usas
-            // Elimina las URLs HTTP antiguas que ya no usas,
+            "http://localhost:4200", // ✅ Dev
+            "http://45.183.247.77:8070", // ✅ PreProd
+            "http://172.30.72.200", // ✅ QA
+            "https://bgreennet.bgreen.com.co", // ✅ Producción frontend
+            "https://infos.bgreen.com.co"
             
         ));
 
-        // ✅ Métodos permitidos
+
         config.setAllowedMethods(Arrays.asList(
             "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
         ));
         
-        // ✅ Headers permitidos
+
         config.setAllowedHeaders(Arrays.asList("*"));
         
-        // ✅ Headers expuestos (para que el frontend pueda leer respuestas)
+
         config.setExposedHeaders(Arrays.asList(
             "Authorization", 
             "Content-Type", 
             "X-Auth-Token"
         ));
 
-        // ✅ Máxima edad del preflight cache (en segundos)
+
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
