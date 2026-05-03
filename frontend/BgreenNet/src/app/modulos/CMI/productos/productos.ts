@@ -1033,6 +1033,7 @@ getSelectedProductConfig() {
     this.monthlyCxPOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       layout: { padding: { top: 70 } },
       clip: false,
       plugins: {
@@ -1071,6 +1072,7 @@ getSelectedProductConfig() {
     this.monthlyPxCOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       layout: { padding: { top: 70 } },
       clip: false,
       plugins: {
@@ -1112,6 +1114,7 @@ getSelectedProductConfig() {
     this.monthlyChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       layout: { padding: { top: 70 } },
       clip: false,
       plugins: {
