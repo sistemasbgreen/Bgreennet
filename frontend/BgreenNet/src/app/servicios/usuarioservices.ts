@@ -14,10 +14,7 @@ import { CrearUsuario } from "../models/CrearUsuario";
 export class UsuarioService {
   private baseUrl = `${environment.apiUrl}/api/usuarios`;
 
-  headers = new HttpHeaders({
-    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    'Content-Type': 'application/json'
-  });
+
 
   constructor(private http: HttpClient) { }
 
@@ -28,7 +25,7 @@ export class UsuarioService {
 
   // Crear un nuevo usuario
   createUsuario(usuario: CrearUsuario): Observable<CrearUsuario> {
-    return this.http.post<CrearUsuario>(this.baseUrl + '/crear', usuario, { headers: this.headers });
+    return this.http.post<CrearUsuario>(this.baseUrl + '/crear', usuario);
   }
 
   // Obtener usuario por ID
@@ -48,11 +45,11 @@ export class UsuarioService {
 
   // Cambiar clave (usuario cambia la suya: verifica clave actual)
   cambiarClave(dto: { idUsuario: number; claveActual: string; nuevaClave: string }): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/cambiar-clave`, dto, { headers: this.headers });
+    return this.http.post<any>(`${this.baseUrl}/cambiar-clave`, dto);
   }
 
   // Cambiar clave (admin: no requiere clave actual)
   cambiarClaveAdmin(dto: { idUsuario: number; claveActual: string; nuevaClave: string }): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/cambiar-clave-admin`, dto, { headers: this.headers });
+    return this.http.post<any>(`${this.baseUrl}/cambiar-clave-admin`, dto);
   }
 }

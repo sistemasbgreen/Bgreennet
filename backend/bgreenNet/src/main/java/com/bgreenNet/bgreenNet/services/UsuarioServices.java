@@ -96,24 +96,32 @@ public class UsuarioServices {
    
     @Transactional
     public void actualizarUsuario(UsuarioCompletoDTO dto) {
-        String sql = "{call sp_actualizar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? , ?)}";
+        String sql = "{call sp_actualizar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+
+        // ✅ Encriptar la contraseña si se proporciona una nueva
+        String contrasena = dto.getContrasena();
+        if (contrasena != null && !contrasena.isEmpty()) {
+            contrasena = passwordEncoder.encode(contrasena);
+        }
 
         jdbcTemplate.update(sql,
-        		dto.getIdUsuario(),             // 1  @id_usuario INT
-                dto.getUsuario(),               // 2  @usuario NVARCHAR(50)
-                dto.getContrasena(),            // 3  @contrasena NVARCHAR(255)
-                dto.getId_area_fk(),            // 4  @id_area INT
-                dto.getId_perfil_fk(),          // 5  @id_perfil INT
-                dto.getId_cargo_fk(),           // 6  @id_cargo INT
-                dto.getIdentificacion(),        // 7  @identificacion NVARCHAR(50)
-                dto.getNombre(),                // 8  @nombre NVARCHAR(100)
-                dto.getApellido(),              // 9  @apellido NVARCHAR(100)
-                dto.getRazon_social(),          // 10 @razon_social NVARCHAR(255)
-                dto.getCorreo(),                // 11 @correo NVARCHAR(100)
-                dto.getCelular(),               // 12 @celular NVARCHAR(20)
-                dto.getFechaNacimiento(),      // 13 @fecha_nacimiento DATE
-                dto.getId_empresa_fk(),         // 14 @id_empresa INT
-                dto.getId_tipoidentificacion_fk() // 15 @id_tipoidentificacion INT
+                dto.getIdUsuario(),               // 1  @id_usuario INT
+                dto.getId_detalle_usuario(),      // 2  @id_detalleusuario INT
+                dto.getUsuario(),                 // 3  @usuario NVARCHAR(50)
+                contrasena,                       // 4  @contrasena NVARCHAR(255)
+                dto.getId_area_fk(),              // 5  @id_area INT
+                dto.getId_perfil_fk(),            // 6  @id_perfil INT
+                dto.getId_cargo_fk(),             // 7  @id_cargo INT
+                dto.getIdentificacion(),          // 8  @identificacion NVARCHAR(50)
+                dto.getNombre(),                  // 9  @nombre NVARCHAR(100)
+                dto.getApellido(),                // 10 @apellido NVARCHAR(100)
+                dto.getRazon_social(),            // 11 @razon_social NVARCHAR(255)
+                dto.getCorreo(),                  // 12 @correo NVARCHAR(100)
+                dto.getCelular(),                 // 13 @celular NVARCHAR(20)
+                dto.getFechaNacimiento(),         // 14 @fecha_nacimiento DATE
+                dto.getId_empresa_fk(),           // 15 @id_empresa INT
+                dto.getId_tipoidentificacion_fk(),// 16 @id_tipoidentificacion INT
+                dto.getEstado()                   // 17 @activo BIT
         );
     }
 

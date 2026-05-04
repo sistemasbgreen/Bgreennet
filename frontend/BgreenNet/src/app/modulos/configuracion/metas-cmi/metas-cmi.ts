@@ -579,6 +579,12 @@ export class MetasCMI implements OnInit {
     }
   }
 
+  onCompuestoClick() {
+    if (this.isEditingProduct) {
+      this.showToast('No se puede cambiar el tipo de producto una vez creado', 'error');
+    }
+  }
+
   getDocsString(docs: any[]): string {
     if (!docs || docs.length === 0) return 'Vacío';
     return docs.map(d => d.codigo).join(' + ');
