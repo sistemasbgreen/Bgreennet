@@ -20,5 +20,6 @@ export interface Usuario {
   id_cargo_fk: number ;
   id_empresa_fk: number;
   id_tipoidentificacion_fk: number;
+  id_detalle_usuario: number;
   cargo: string;
 }

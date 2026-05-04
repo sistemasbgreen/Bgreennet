@@ -4,6 +4,7 @@ import { AuthService } from '../authservices';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgFor, NgIf, NgForOf } from '@angular/common';
 import { timeout } from 'rxjs';
+import Swal from 'sweetalert2';
 
 @Component({
   standalone: true,
@@ -90,14 +91,14 @@ imagenAleatoria: string = '';
           this.errorMessage = err.error?.error || 'Error al iniciar sesión';
         }
 
-        // Mostrar el error
-        this.showError = true;
-
-        // Ocultar automáticamente después de 3 segundos
-        setTimeout(() => {
-          this.showError = false;
-          this.errorMessage = '';
-        }, 3000);
+        // Mostrar el error usando SweetAlert
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de Autenticación',
+          text: this.errorMessage,
+          confirmButtonColor: '#006c2c',
+          timer: 3000
+        });
       }
     });
   }

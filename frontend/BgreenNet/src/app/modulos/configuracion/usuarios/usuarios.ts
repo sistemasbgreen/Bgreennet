@@ -57,6 +57,7 @@ export class Usuarios implements OnInit {
 
   // ── IDs en edición ───────────────────────────────────────
   usuarioIdEditar: number | null = null;
+  idDetalleUsuarioEditar: number | null = null;
   perfilIdEditar: number | null = null;
 
   // ── Perfil seleccionado para permisos ────────────────────
@@ -242,6 +243,7 @@ export class Usuarios implements OnInit {
     this.isEditModeUsuario = true;
     this.isViewModeUsuario = false;
     this.usuarioIdEditar = usuario.idUsuario!;
+    this.idDetalleUsuarioEditar = usuario.id_detalle_usuario;
     this.usuarioForm.enable();
     this._patchUsuario(usuario);
     this._setPasswordRequired(false);   // contraseña opcional al editar
@@ -264,6 +266,7 @@ export class Usuarios implements OnInit {
       this.isEditModeUsuario = false;
       this.isViewModeUsuario = false;
       this.usuarioIdEditar = null;
+      this.idDetalleUsuarioEditar = null;
       this.usuarioForm.enable();
       this.usuarioForm.reset();
       this._setPasswordRequired(true);
@@ -377,7 +380,8 @@ export class Usuarios implements OnInit {
       id_cargo_fk: Number(this.usuarioForm.value.id_cargo_fk),
       id_empresa_fk: Number(this.usuarioForm.value.id_empresa_fk),
       id_perfil_fk: Number(this.usuarioForm.value.id_perfil_fk),
-      id_tipoidentificacion_fk: Number(this.usuarioForm.value.id_tipoidentificacion_fk)
+      id_tipoidentificacion_fk: Number(this.usuarioForm.value.id_tipoidentificacion_fk),
+      id_detalle_usuario: this.idDetalleUsuarioEditar
     };
 
     if (this.isEditModeUsuario && this.usuarioIdEditar) {

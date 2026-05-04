@@ -22,10 +22,15 @@ export class JwtInterceptor implements HttpInterceptor {
           Authorization: `Bearer ${token}`
         }
       });
-
-      console.log('🔑 Token agregado:', token);
     }
 
-    return next.handle(request);
+    return next.handle(request).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          this.authService.logout();
+        }
+        return throwError(() => error);
+      })
+    );
   }
 }

@@ -41,7 +41,7 @@ BEGIN
         UPDATE Usuario
         SET
             usuario = @usuario,
-            contrasena = @contrasena,
+            contrasena = CASE WHEN @contrasena IS NULL OR @contrasena = '' THEN contrasena ELSE @contrasena END,
             Id_area_fk = @id_area,
             Id_perfil_fk = @id_perfil,
             Id_cargo_fk = @id_cargo,
