@@ -244,6 +244,7 @@ export class MetasCMI implements OnInit {
     const val = parseFloat(event.target.value);
     if (!isNaN(val)) {
       this.metas[index].valor = val;
+      this.cdr.detectChanges();
     }
   }
 
@@ -251,12 +252,14 @@ export class MetasCMI implements OnInit {
     const valor = event.target.value.toLowerCase();
     if (!valor) {
       this.productos = [...this.productosOriginales];
+      this.cdr.detectChanges();
       return;
     }
     this.productos = this.productosOriginales.filter(p => 
       p.nombre.toLowerCase().includes(valor) || 
       (p.idProductoSiesa && String(p.idProductoSiesa).toLowerCase().includes(valor))
     );
+    this.cdr.detectChanges();
   }
 
   distribuirValorATodos() {
@@ -562,6 +565,7 @@ export class MetasCMI implements OnInit {
           this.tempComponentes.push(id);
           this.nuevoComponenteId = '';
           this.showToast(`Componente ${data.nombre} agregado`, 'success');
+          this.cdr.detectChanges();
         } else {
           this.showToast('Componente no encontrado en Siesa', 'error');
         }
@@ -576,6 +580,7 @@ export class MetasCMI implements OnInit {
   onCompuestoToggleChange() {
     if (!this.isCompuestoToggle) {
       this.tempComponentes = [];
+      this.cdr.detectChanges();
     }
   }
 
@@ -600,6 +605,7 @@ export class MetasCMI implements OnInit {
           this.currentProduct.nombre = data.nombre;
           this.currentProduct.idProductoSiesa = data.id;
           this.showToast('Producto encontrado en Siesa', 'success');
+          this.cdr.detectChanges();
         } else {
           this.showToast('Producto no encontrado en Siesa', 'error');
         }

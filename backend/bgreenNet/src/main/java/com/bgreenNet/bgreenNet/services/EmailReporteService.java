@@ -1,8 +1,8 @@
-// services/EmailReporteService.java
 package com.bgreenNet.bgreenNet.services;
 
 import com.bgreenNet.bgreenNet.dto.DetalleInsumoDTO;
 import com.bgreenNet.bgreenNet.dto.ResumenCostosDTO;
+import com.bgreenNet.bgreenNet.dto.ReporteProduccionDTO;
 import com.bgreenNet.bgreenNet.repository.EmailReportesRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -20,11 +20,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 @Service
 public class EmailReporteService {
 
     @Autowired private EmailReportesRepository repository;
     @Autowired private JavaMailSender          mailSender;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate appJdbcTemplate;
 
     @Value("${report.email.from}") private String emailFrom;
     @Value("${report.email.to}")   private String emailTo;
@@ -74,77 +76,160 @@ public class EmailReporteService {
 
         System.out.println("[EmailReporte] 🚀 enviar=2 → Procesando reporte...");
 
-        try {
-            ejecutarEnvio();
-        } finally {
-            enviar.set(0);
-            System.out.println("[EmailReporte] 🔵 enviar=0 → Listo.");
+    try {
+        ejecutarEnvio();
+    } finally {
+        enviar.set(0);
+        System.out.println("[EmailReporte] 🔵 enviar=0 → Listo.");
+    }
+}
+
+// ── Envío para una fecha específica (invocado desde API) ─────────────
+public void enviarReporteParaFecha(String fechaStr) {
+    // fechaStr viene como "YYYY-MM-DD"
+    LocalDate ref = LocalDate.parse(fechaStr.substring(0, 10));
+    LocalDate fechaInicio = ref;
+    LocalDate fechaFin    = ref.plusDays(1); 
+    
+    System.out.println("[EmailReporte] Envío manual solicitado para fecha: " + fechaStr + " (Día único: " + ref + ")");
+    ejecutarEnvioParaRango(fechaInicio, fechaFin, true);
+}
+
+// ── Lógica de envío estándar (hoy) ────────────────────────────────────
+private void ejecutarEnvio() {
+    LocalDate hoy = LocalDate.now();
+    LocalDate fechaInicio = hoy.minusDays(15);
+    LocalDate fechaFin    = hoy;
+    ejecutarEnvioParaRango(fechaInicio, fechaFin, false);
+}
+
+// ── Núcleo del proceso de envío ───────────────────────────────────────
+private void ejecutarEnvioParaRango(LocalDate fechaInicio, LocalDate fechaFin, boolean esDiaUnico) {
+    ReporteProduccionDTO datos = obtenerDatosReporte(fechaInicio, fechaFin);
+    
+    if (datos.getCostos() == null && datos.getItemsBiodiesel().isEmpty() && datos.getItemsGlicerina().isEmpty()) {
+        System.err.println("[EmailReporte] ⚠️ No hay datos para enviar en el rango.");
+        return;
+    }
+
+    try {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        helper.setFrom(emailFrom);
+        helper.setTo(obtenerReceptoresConfigurados().split(","));
+        
+        String subject = esDiaUnico 
+            ? "Reporte de Producción BGREEN · Día " + fechaInicio.format(FMT_DISPLAY)
+            : "Reporte BGREEN SAS · ÚLTIMOS 15 DÍAS";
+        
+        helper.setSubject(subject);
+        helper.setText(construirHtml(datos.getCostos(), datos.getItemsBiodiesel(), datos.getItemsGlicerina(), fechaInicio, fechaFin, esDiaUnico), true);
+
+        mailSender.send(message);
+        registrarLogEnvio(fechaInicio, fechaFin);
+        System.out.println("[EmailReporte] ✅ Correo enviado correctamente.");
+
+    } catch (MessagingException e) {
+        System.err.println("[EmailReporte] ❌ Error enviando correo: " + e.getMessage());
+        throw new RuntimeException("Error al enviar correo: " + e.getMessage());
+    }
+}
+
+public ReporteProduccionDTO obtenerDatosReporte(LocalDate inicio, LocalDate fin) {
+    ResumenCostosDTO resumen = repository.obtenerResumenCostos(inicio, fin);
+    List<DetalleInsumoDTO> detalles = repository.obtenerDetalleInsumos(inicio, fin);
+
+    java.util.Set<String> idsBio = new java.util.HashSet<>(java.util.Arrays.asList("8", "7309", "10", "13", "12", "26"));
+    java.util.Set<String> idsGli = new java.util.HashSet<>(java.util.Arrays.asList("34", "15", "2549", "32"));
+
+    List<DetalleInsumoDTO> grupoB = new java.util.ArrayList<>();
+    List<DetalleInsumoDTO> grupoG = new java.util.ArrayList<>();
+
+    if (detalles != null) {
+        for (DetalleInsumoDTO det : detalles) {
+            String it = det.getItem() != null ? det.getItem().trim() : "";
+            if (idsBio.contains(it))      grupoB.add(det);
+            else if (idsGli.contains(it)) grupoG.add(det);
         }
     }
 
-    // ── Lógica de envío ───────────────────────────────────────────────────
-    private void ejecutarEnvio() {
-    //    LocalDate ayer        = LocalDate.now().minusDays(1);
-    	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-    	LocalDate ayer = LocalDate.parse("08-04-2026", formatter);
-        LocalDate fechaInicio = ayer;
-        LocalDate fechaFin    = ayer.plusDays(1);
+    ReporteProduccionDTO dto = new ReporteProduccionDTO();
+    dto.setFecha(inicio);
+    dto.setItemsBiodiesel(grupoB);
+    dto.setItemsGlicerina(grupoG);
+    dto.setCostos(resumen);
+    return dto;
+}
 
-        System.out.println("[EmailReporte] Procesando fecha: " + ayer);
-
-        ResumenCostosDTO resumen = repository.obtenerResumenCostos(fechaInicio, fechaFin);
-        if (resumen == null) {
-            System.err.println("[EmailReporte] ⚠️  Sin datos de costos para " + ayer);
-            return;
-        }
-
-        List<DetalleInsumoDTO> detalles = repository.obtenerDetalleInsumos(fechaInicio, fechaFin);
-
+    public String obtenerReceptoresConfigurados() {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            asegurarTablaConfig();
+            return appJdbcTemplate.queryForObject("SELECT destinatarios FROM config_receptores_reporte WHERE id = 1", String.class);
+        } catch (Exception e) {
+            return emailTo; // Fallback a properties
+        }
+    }
 
-            helper.setFrom(emailFrom);
-            helper.setTo(emailTo);
-            helper.setSubject("Reporte BGREEN SAS · " + ayer.format(FMT_DISPLAY));
-            helper.setText(construirHtml(resumen, detalles, ayer), true);
+    public void guardarReceptores(String nuevosDestinatarios) {
+        asegurarTablaConfig();
+        int rows = appJdbcTemplate.update(
+            "UPDATE config_receptores_reporte SET destinatarios = ? WHERE id = 1",
+            nuevosDestinatarios);
 
-            mailSender.send(message);
-            System.out.println("[EmailReporte] ✅ Correo enviado correctamente.");
+        // Si no existía la fila, insertarla
+        if (rows == 0) {
+            appJdbcTemplate.update(
+                "INSERT INTO config_receptores_reporte (id, destinatarios) VALUES (1, ?)",
+                nuevosDestinatarios);
+        }
+    }
 
-        } catch (MessagingException e) {
-            System.err.println("[EmailReporte] ❌ Error enviando correo: " + e.getMessage());
+    private void asegurarTablaConfig() {
+        appJdbcTemplate.execute("""
+            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[config_receptores_reporte]') AND type in (N'U'))
+            BEGIN
+                CREATE TABLE [dbo].[config_receptores_reporte](
+                    [id] [int] PRIMARY KEY,
+                    [destinatarios] [varchar](MAX) NOT NULL
+                )
+                INSERT INTO [dbo].[config_receptores_reporte] (id, destinatarios) VALUES (1, '""" + emailTo + """
+                ')
+            END
+        """);
+    }
+
+    private void registrarLogEnvio(LocalDate inicio, LocalDate fin) {
+        try {
+            // Asegurar que la tabla existe
+            appJdbcTemplate.execute("""
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[log_envio_reportes]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE [dbo].[log_envio_reportes](
+                        [id] [int] IDENTITY(1,1) PRIMARY KEY,
+                        [fecha_inicio] [date] NOT NULL,
+                        [fecha_fin] [date] NOT NULL,
+                        [fecha_registro] [datetime] DEFAULT GETDATE()
+                    )
+                END
+            """);
+
+            appJdbcTemplate.update("INSERT INTO log_envio_reportes (fecha_inicio, fecha_fin) VALUES (?, ?)",
+                java.sql.Date.valueOf(inicio), java.sql.Date.valueOf(fin));
+        } catch (Exception e) {
+            System.err.println("[EmailReporte] Error registrando log: " + e.getMessage());
         }
     }
 
     private String construirHtml(ResumenCostosDTO resumen,
-            List<DetalleInsumoDTO> detalles,
-            LocalDate fechaReporte) {
+            List<DetalleInsumoDTO> grupoB,
+            List<DetalleInsumoDTO> grupoG,
+            LocalDate fechaInicio, LocalDate fechaFin,
+            boolean esDiaUnico) {
 
 BigDecimal totalGlicerina = nvl(resumen.getTotalPurificacionGlicerina());
 BigDecimal totalMod       = nvl(resumen.getTotalManoObra());
 BigDecimal totalOtros     = nvl(resumen.getTotalOtrosCostos());
-BigDecimal grandTotal     = totalGlicerina.add(totalMod).add(totalOtros);
-
-// ── Conjuntos de items por grupo ──────────────────────────────────
-java.util.Set<String> itemsBiodiesel = new java.util.HashSet<>(
-java.util.Arrays.asList("8", "7309", "10", "13", "12", "26")
-);
-java.util.Set<String> itemsGlicerina = new java.util.HashSet<>(
-java.util.Arrays.asList("34", "15", "2549", "32")
-);
-
-// ── Separar en dos listas ─────────────────────────────────────────
-List<DetalleInsumoDTO> grupoB = new java.util.ArrayList<>();
-List<DetalleInsumoDTO> grupoG = new java.util.ArrayList<>();
-
-if (detalles != null) {
-for (DetalleInsumoDTO det : detalles) {
-String it = det.getItem() != null ? det.getItem().trim() : "";
-if (itemsBiodiesel.contains(it))      grupoB.add(det);
-else if (itemsGlicerina.contains(it)) grupoG.add(det);
-}
-}
 
 StringBuilder sb = new StringBuilder();
 
@@ -174,11 +259,18 @@ sb.append("<!DOCTYPE html>")
 .append("</style></head><body><div class='wrap'>")
 
 // ── HEADER ────────────────────────────────────────────────────
-.append("<div class='hdr'>")
-.append("<img src='https://bgreen.com.co/Img/bgreen_Logo.png' width='50' height='50' style='object-fit:contain' alt='Bgreen'>")
-.append("<p class='sub'>Reporte de Producci&oacute;n Diario</p>")
-.append("<p class='fecha'>&#128197;&nbsp; ").append(fechaReporte.format(FMT_DISPLAY)).append("</p>")
-.append("</div>");
+        .append("<div class='hdr'>")
+        .append("<img src='https://bgreen.com.co/Img/bgreen_Logo.png' width='50' height='50' style='object-fit:contain' alt='Bgreen'>")
+        .append("<p class='sub'>Reporte de Producción").append(esDiaUnico ? "" : " (Últimos 15 días)").append("</p>")
+        .append("<p class='fecha'>&#128197;&nbsp; ");
+        
+        if (esDiaUnico) {
+            sb.append(fechaInicio.format(FMT_DISPLAY));
+        } else {
+            sb.append(fechaInicio.format(FMT_DISPLAY)).append(" - ").append(fechaFin.minusDays(1).format(FMT_DISPLAY));
+        }
+        
+        sb.append("</p></div>");
 
 //── BLOQUE BIODIESEL ──────────────────────────────────────────
 sb.append("<div class='sec-hdr'>Biodiesel Destilado</div>");
@@ -268,6 +360,4 @@ private String construirTablaGrupo(List<DetalleInsumoDTO> items, BigDecimal otro
         return text.replace("&", "&amp;").replace("<", "&lt;")
                    .replace(">", "&gt;").replace("\"", "&quot;");
     }
-    
-
 }
