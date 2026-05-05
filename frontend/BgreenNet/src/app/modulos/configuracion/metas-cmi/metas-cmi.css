@@ -15,7 +15,7 @@
    ---------------------------------------------------------- */
 .metas-page {
   padding: 0;
-  max-width: 1100px;
+  max-width: 1500px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -397,7 +397,8 @@
   transform: translateY(-50%);
   color: #006c2c;
   font-size: 14px;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   opacity: 0.7;
 }
 
@@ -944,10 +945,9 @@
   font-style: italic;
 }
 
-.products-table th.col-id { width: 80px; }
-.products-table th.col-nombre { width: 250px; }
-.products-table th.col-siesa { width: 120px; }
-.products-table th.col-docs { width: auto; }
+.products-table th.col-id { width: 70px; }
+.products-table th.col-nombre { width: auto; min-width: 200px; }
+.products-table th.col-siesa { width: 180px; }
 
 /* ----------------------------------------------------------
    RESPONSIVE
@@ -2885,6 +2885,16 @@
   min-height: 25px;
 }
 
+.custom-checkbox-container.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.custom-checkbox-container.is-disabled .checkbox-label {
+  color: #94a3b8 !important;
+}
+
 .custom-checkbox-container input {
   position: absolute;
   opacity: 0;
@@ -2943,5 +2953,155 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* ----------------------------------------------------------
+   MULTI-STEP PRODUCT FLOW STYLES
+   ---------------------------------------------------------- */
+.type-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.type-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.type-card:hover {
+  transform: translateY(-5px);
+  border-color: #006c2c;
+  box-shadow: 0 12px 24px rgba(0, 108, 44, 0.1);
+}
+
+.type-card.active {
+  border-color: #006c2c;
+  background: #f0faf4;
+  box-shadow: 0 12px 24px rgba(0, 108, 44, 0.1);
+}
+
+.type-card.active::after {
+  content: '\F26A'; /* bi-check-circle-fill */
+  font-family: 'bootstrap-icons';
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  color: #006c2c;
+  font-size: 20px;
+}
+
+.type-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.type-icon.simple { background: #eff6ff; color: #2563eb; }
+.type-icon.composite { background: #fff7ed; color: #ea580c; }
+
+.type-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.type-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.validation-result {
+  animation: slideInUp 0.3s ease;
+}
+
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.result-badge.success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-validation .inline-adder {
+  margin-top: 10px;
+}
+
+.btn-secondary-v2 i, .btn-primary-v2 i {
+  font-size: 1.1em;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px 30px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Adjustments for Step 3 scroll */
+.step-config {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
 

@@ -18,6 +18,9 @@ public class OpDoctoRepository {
     @Qualifier("siesaJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private JdbcTemplate appJdbcTemplate;
+
     private final RowMapper<OpDoctoDTO> rowMapper = (rs, rowNum) -> {
         OpDoctoDTO d = new OpDoctoDTO();
         d.setOp(rs.getString("OP"));
@@ -38,6 +41,13 @@ public class OpDoctoRepository {
     };
 
 	public List<OpDoctoDTO> findAll() {
+		return findByRangoFechas(
+			LocalDate.now().minusDays(15),
+			LocalDate.now()
+		);
+	}
+
+	public List<OpDoctoDTO> findByRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
 		String sql = """
 				SELECT
 				    'OP - ' + CONVERT(VARCHAR(10), CAST(mov.f470_id_fecha AS DATE), 23) AS OP,
@@ -68,43 +78,44 @@ public class OpDoctoRepository {
 
 				LEFT JOIN (
 				    SELECT
-				        CAST(mfop.f867_ts AS DATE) AS f_costo,
+				        CAST(t.f880_id_fecha AS DATE) AS f_costo,
 				        SUM(CASE
-				            WHEN mfo.f865_descripcion_operacion = 'PURIFICACION GLICERINA'
-				            THEN mfop.f867_costo_este_nivel_acum
+				            WHEN t865.f865_descripcion_operacion = 'PURIFICACION GLICERINA'
+				            THEN c.f881_costo_este_nivel_total
 				            ELSE 0
 				        END) AS total_purificacion_glicerina,
 				        SUM(CASE
-				            WHEN mf.f804_descripcion IN ('MANO DE OBRA DIRECTA', 'FACTOR PRESTACIONAL DE MOD')
-				                 AND mfo.f865_descripcion_operacion <> 'PURIFICACION GLICERINA'
-				            THEN mfop.f867_costo_este_nivel_acum
+				            WHEN t804.f804_descripcion IN ('MANO DE OBRA DIRECTA', 'FACTOR PRESTACIONAL DE MOD')
+				                 AND t865.f865_descripcion_operacion <> 'PURIFICACION GLICERINA'
+				            THEN c.f881_costo_este_nivel_total
 				            ELSE 0
 				        END) AS total_mano_obra,
 				        SUM(CASE
 				            WHEN NOT (
-				                mfo.f865_descripcion_operacion = 'PURIFICACION GLICERINA'
-				                OR mf.f804_descripcion IN ('MANO DE OBRA DIRECTA', 'FACTOR PRESTACIONAL DE MOD')
+				                t865.f865_descripcion_operacion = 'PURIFICACION GLICERINA'
+				                OR t804.f804_descripcion IN ('MANO DE OBRA DIRECTA', 'FACTOR PRESTACIONAL DE MOD')
 				            )
-				            THEN mfop.f867_costo_este_nivel_acum
+				            THEN c.f881_costo_este_nivel_total
 				            ELSE 0
 				        END) AS total_otros_costos
-				    FROM t867_mf_op_operaciones_costos mfop
-				    INNER JOIN t804_mf_segmentos_costos mf
-				        ON mf.f804_id = mfop.f867_id_segmento_costo
-				    INNER JOIN t865_mf_op_operaciones mfo
-				        ON mfo.f865_rowid = mfop.f867_rowid_op_operacion
-				    GROUP BY CAST(mfop.f867_ts AS DATE)
+				    FROM t881_mf_movto_tep_costo c
+				    INNER JOIN t880_mf_movto_tep t
+				        ON t.f880_rowid = c.f881_rowid_movto_tep
+				    INNER JOIN t865_mf_op_operaciones t865
+				        ON t865.f865_rowid = t.f880_rowid_op_operaciones
+				    INNER JOIN t804_mf_segmentos_costos t804
+				        ON t804.f804_id = c.f881_id_segmento_costo
+				    GROUP BY CAST(t.f880_id_fecha AS DATE)
 				) costos ON costos.f_costo = CAST(mov.f470_id_fecha AS DATE)
 
 				WHERE
-				    mov.f470_id_fecha >= '2026-03-5'
-				    AND mov.f470_id_fecha < '2026-04-10'
+				    CAST(mov.f470_id_fecha AS DATE) >= ?
+				    AND CAST(mov.f470_id_fecha AS DATE) <= ?
 				    AND f120_id_cia = 2
 				    AND f350_ind_estado = 1
 				    AND f120_id IN ('8','7309','10','13','12','26','34','15','2549','32')
-				    AND f350_id_tipo_docto IN ('TEP','EI','EDP')
+				    AND f350_id_tipo_docto IN ('TEP','EI','SDI','EDP')
 				    AND NOT (f120_id = '34' AND f350_id_tipo_docto = 'EDP')
-				    AND f350_rowid NOT IN ('695891','696066','692530')
 
 				GROUP BY
 				    f120_id,
@@ -115,13 +126,41 @@ public class OpDoctoRepository {
 				    costos.total_otros_costos
 
 				ORDER BY
+				    fecha DESC,
 				    f120_id,
-				    f120_descripcion,
-				    fecha;
+				    f120_descripcion;
 				""";
 
-		return jdbcTemplate.query(sql, rowMapper);
+		List<OpDoctoDTO> docs = jdbcTemplate.query(sql, rowMapper,
+			java.sql.Date.valueOf(fechaInicio),
+			java.sql.Date.valueOf(fechaFin));
+
+		// Cruzar con log de envíos
+		try {
+			List<java.util.Map<String, Object>> logs = appJdbcTemplate.queryForList(
+				"SELECT fecha_inicio, fecha_fin FROM log_envio_reportes");
+
+			for (OpDoctoDTO d : docs) {
+				boolean enviado = false;
+				if (d.getFecha() != null) {
+					for (java.util.Map<String, Object> log : logs) {
+						LocalDate inicio = ((java.sql.Date) log.get("fecha_inicio")).toLocalDate();
+						LocalDate fin    = ((java.sql.Date) log.get("fecha_fin")).toLocalDate();
+						if (!d.getFecha().isBefore(inicio) && d.getFecha().isBefore(fin)) {
+							enviado = true;
+							break;
+						}
+					}
+				}
+				d.setStatusEnvio(enviado ? "Enviado" : "Pendiente");
+			}
+		} catch (Exception e) {
+			docs.forEach(d -> d.setStatusEnvio("Pendiente"));
+		}
+
+		return docs;
 	}
+
 
     public boolean existeFechaCumplidaAyer() {
         LocalDate ayer = LocalDate.now().minusDays(1);

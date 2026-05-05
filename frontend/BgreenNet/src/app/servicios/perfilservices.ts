@@ -13,14 +13,11 @@ import { AsignarPermiso } from '../models/asignarpermisos';
 export class Perfilservices {
   private baseUrl = `${environment.apiUrl}/api/perfil`;
 
-  headers = new HttpHeaders({
-    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    'Content-Type': 'application/json'
-  });
+
   constructor(private http: HttpClient) { }
 
   Obtenerperfil(): Observable<Perfil[]> {
-    return this.http.get<Perfil[]>(this.baseUrl, { headers: this.headers });
+    return this.http.get<Perfil[]>(this.baseUrl);
   }
 
   crearPerfil(perfil: Perfil): Observable<Perfil> {
@@ -36,7 +33,7 @@ export class Perfilservices {
   }
 
   obtenerpermisos(id: number): Observable<PermisosXperfil> {
-    return this.http.get<PermisosXperfil>(`${this.baseUrl}/${id}`, { headers: this.headers });
+    return this.http.get<PermisosXperfil>(`${this.baseUrl}/${id}`);
   }
 
 eliminarPermiso(dto: AsignarPermiso): Observable<boolean> {

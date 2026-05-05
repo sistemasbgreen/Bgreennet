@@ -27,7 +27,6 @@ public class JwtUtil {
 
 	    private SecretKey getSignInKey() {
 	        byte[] keyBytes = SECRET_KEY.getBytes(StandardCharsets.UTF_8);
-	        System.out.println("Clave secreta usada (UTF-8 bytes): " + Arrays.length(keyBytes));
 	        return Keys.hmacShaKeyFor(keyBytes);
 	    }
 	    

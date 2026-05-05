@@ -118,8 +118,13 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   tareasActivas: Tarea[] = []; // Solo CREADA y EN PROCESO
   tareasFinalizadas: Tarea[] = []; // Solo FINALIZADAS
   focusTasksMode: boolean = false; // Modo enfoque de tareas
+  tasksViewMode: 'cards' | 'list' = 'cards'; // Modo de visualización de tareas
   
   usuarioAsignadoId: number | null = null; // Para asignar a otros
+
+  setTasksViewMode(mode: 'cards' | 'list'): void {
+    this.tasksViewMode = mode;
+  }
 
 
   nuevaTarea: CreateTareaRequest = {
@@ -182,6 +187,13 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   contactoSearchQuery: string = '';
   contactosFiltrados: any;
   usuariosList: any[] = []; // Lista oficial de usuarios para asignación
+  areasList: any[] = []; // Lista de áreas para determinar direcciones
+  
+  // Datos del usuario actual para filtrado
+  idAreaUsuario: number = 0;
+  idCargoUsuario: number = 0;
+  idDireccionUsuario: number = 0;
+  
   notificationInterval: any;
 
 
@@ -200,6 +212,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.cargarContactosIniciales();
     this.cargarUsuariosOficiales();
+    this.cargarAreas();
     this.loadTrmData();
     this.startClock();
     this.loadPreferences();
@@ -601,6 +614,11 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
         this.userEmail = user.email || user.correo || 'No disponible';
         this.userRole = user.rol || user.perfil || user.descripcionPerfil || 'Usuario';
         this.perfil_Fk = user.idPerfilFk || user.Id_perfil_fk || user.id_perfil_fk;
+        
+        // Datos para filtrado de asignación
+        this.idAreaUsuario = user.id_area_fk || user.idArea || 0;
+        this.idCargoUsuario = user.id_cargo_fk || user.id_cargo || user.idCargo || 0;
+        this.idDireccionUsuario = user.id_direccion_fk || user.idDireccion || 0;
 
         this.obtenerTareas();
 
@@ -640,6 +658,66 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error al cargar usuarios oficiales', err);
+      }
+    });
+  }
+
+  cargarAreas(): void {
+    this.listass.obtenerAreas().subscribe({
+      next: (data) => {
+        this.areasList = data;
+        // Reforzar la obtención de la dirección del usuario logueado desde la lista de áreas
+        if (this.idAreaUsuario) {
+          const area = this.areasList.find(a => Number(a.idArea || a.id_area) === Number(this.idAreaUsuario));
+          if (area) {
+            this.idDireccionUsuario = Number(area.idDireccionFk || area.id_direccion_fk || (area.direccion ? area.direccion.idDireccion : 0));
+          }
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cargar áreas', err);
+      }
+    });
+  }
+
+  get filteredUsuariosList(): any[] {
+    if (!this.usuariosList || this.usuariosList.length === 0) return [];
+
+    const myCargo = Number(this.idCargoUsuario);
+    // Aquellos que el cargo sea = 1, puedan ver todas las áreas
+    if (myCargo === 1) {
+      return this.usuariosList;
+    }
+
+    const myArea = Number(this.idAreaUsuario);
+    const myDireccion = Number(this.idDireccionUsuario);
+
+    return this.usuariosList.filter(u => {
+      // Normalizar IDs para comparación (soportando variaciones de nombres de campos del backend)
+      const uArea = Number(u.id_area_fk || u.Id_area_fk || u.idArea || 0);
+      
+      // Intentar obtener dirección directamente o por búsqueda en la lista de áreas
+      let uDireccion = Number(u.id_direccion_fk || u.Id_direccion_fk || u.idDireccion || 0);
+      
+      if (!uDireccion && uArea && this.areasList.length > 0) {
+        const areaInfo = this.areasList.find(a => Number(a.idArea || a.id_area) === uArea);
+        if (areaInfo) {
+          uDireccion = Number(areaInfo.idDireccionFk || areaInfo.id_direccion_fk || (areaInfo.direccion ? areaInfo.direccion.idDireccion : 0));
+        }
+      }
+
+      const mismaDireccion = uDireccion !== 0 && uDireccion === myDireccion;
+      const mismaArea = uArea !== 0 && uArea === myArea;
+
+      // Aplicar reglas según el cargo
+      if (myCargo === 1) {
+        // Cargo 1 ve todas las áreas de su propia dirección
+        // Si por alguna razón la dirección es 0, al menos mostramos su área
+        return mismaDireccion || mismaArea || Number(u.idUsuario || u.id_usuario) === Number(this.id_usuario);
+      } else {
+        // Otros cargos solo ven su propia área y dirección
+        return (mismaArea && mismaDireccion) || Number(u.idUsuario || u.id_usuario) === Number(this.id_usuario);
       }
     });
   }
@@ -777,7 +855,18 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
           
           this.tareas = sortedData;
 
- 
+          // DEBUG: Mostrar datos de tareas en consola
+          console.log('📋 Tareas cargadas:', sortedData.length);
+          sortedData.forEach(t => {
+            console.log(`  Tarea #${t.id} "${t.titulo}"`, {
+              idUsuario: t.idUsuario,
+              idUsuarioCreador: t.idUsuarioCreador,
+              'DisplayName(asignado)': this.getUserDisplayName(t.idUsuario),
+              'Initials(asignado)': this.getUserInitials(t.idUsuario),
+              'DisplayName(creador)': this.getUserDisplayName(t.idUsuarioCreador),
+              'Initials(creador)': this.getUserInitials(t.idUsuarioCreador),
+            });
+          });
           
           this.tareasActivas = sortedData.filter(t => {
             const estado = t.estado?.nombre?.toUpperCase() || '';
@@ -843,7 +932,14 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
 
     this.nuevaTarea.idEstado = 1; // CREADA
 
-    this.homeservice.crearTarea(this.nuevaTarea)
+    const payload: CreateTareaRequest = {
+      ...this.nuevaTarea,
+      fechaLimite: this.nuevaTarea.fechaLimite ? 
+        (this.nuevaTarea.fechaLimite.length === 16 ? this.nuevaTarea.fechaLimite + ':00' : this.nuevaTarea.fechaLimite) 
+        : undefined
+    };
+
+    this.homeservice.crearTarea(payload)
       .subscribe({
         next: () => {
           this.obtenerTareas();
@@ -1190,6 +1286,10 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     return this.notificaciones.some(n => n.referenciaId === idTarea && n.tipo === 'NUEVO_MENSAJE');
   }
 
+  getMensajesSinLeerCount(idTarea: number): number {
+    return this.notificaciones.filter(n => n.referenciaId === idTarea && n.tipo === 'NUEVO_MENSAJE').length;
+  }
+
   cerrarDetalle(): void {
     this.isModalDetalleOpen = false;
     this.tareaSeleccionada = null;
@@ -1197,10 +1297,48 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.mensajeSeguimiento = '';
   }
 
-getInitial(nombre?: string): string {
-  if (!nombre) return 'U';
-  return nombre.substring(0, 2).toUpperCase();
-}
+  getUserById(id?: number | null): any {
+    if (id === undefined || id === null) return null;
+    return this.usuariosList.find(u => Number(u.idUsuario || u.id_usuario) === Number(id));
+  }
+
+  getUserInitials(id?: number | null): string {
+    if (id === undefined || id === null) return 'U';
+    const user = this.getUserById(id);
+    if (!user) return 'U';
+    
+    // Si tiene nombre y apellido
+    if (user.nombre && user.apellido) {
+      return (user.nombre.charAt(0) + user.apellido.charAt(0)).toUpperCase();
+    }
+    
+    // Si solo tiene nombre o usuario
+    const name = user.nombre || user.usuario || 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  getUserDisplayName(id?: number | null): string {
+    if (id === undefined || id === null) return 'Usuario';
+    const user = this.getUserById(id);
+    if (!user) return 'Usuario';
+    if (user.nombre && user.apellido) {
+      return `${user.nombre} ${user.apellido}`;
+    }
+    return user.nombre || user.usuario || 'Usuario';
+  }
+
+  getInitial(nombre?: string): string {
+    if (!nombre) return 'U';
+    const parts = nombre.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+    return nombre.substring(0, 2).toUpperCase();
+  }
   cargarSeguimientos(idTarea: number, forceScroll: boolean = false): void {
     this.homeservice.getSeguimientos(idTarea).subscribe({
       next: (data) => {
@@ -1412,18 +1550,25 @@ cargarPulsos(): void {
   }
 
   iniciarTemporizadorNotificaciones(): void {
-    // Revisar cada 1 minuto (60000 ms)
+    // Ejecutar inmediatamente al entrar
+    this.verificarNotificacionesPendientes();
+
+    // Luego, revisar cada 10 minutos (600000 ms) como recordatorio
     this.notificationInterval = setInterval(() => {
       this.verificarNotificacionesPendientes();
-    }, 60000);
+    }, 600000);
   }
 
   verificarNotificacionesPendientes(): void {
     if (!this.id_usuario) return;
 
+    // Log para verificar el chequeo de recordatorios (cada 10 min)
+    console.log(`[${new Date().toLocaleTimeString()}] 🔔 Ejecutando recordatorio de tareas pendientes (Ciclo de 10 min)...`);
+
     this.homeservice.getNotificacionesPendientes(this.id_usuario).subscribe({
       next: (tareasNotificar: any[]) => {
         if (tareasNotificar && tareasNotificar.length > 0) {
+          console.log('✨ Recordatorio: Tareas pendientes encontradas:', tareasNotificar);
           this.playNotificationSound();
 
           // Notificación nativa del navegador (funciona aunque la consola no esté abierta)

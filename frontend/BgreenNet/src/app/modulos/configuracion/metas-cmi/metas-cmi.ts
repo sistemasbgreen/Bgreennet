@@ -19,6 +19,19 @@ interface ToastState {
 })
 export class MetasCMI implements OnInit {
 
+  soloNumeros(event: KeyboardEvent) {
+    const pattern = /[0-9]/;
+    
+    // Permitir teclas especiales como Backspace, Tab, etc.
+    if (event.key === 'Backspace' || event.key === 'Tab' || event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Delete') {
+      return;
+    }
+
+    if (!pattern.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
   productos: producto[] = [];
   productosOriginales: producto[] = [];
   selectedProducto: string = '';
@@ -53,6 +66,19 @@ export class MetasCMI implements OnInit {
   tempUsaSuma: boolean = false;
   isCompuestoToggle: boolean = false;
   isAddingComponent: boolean = false;
+  
+  // Single-view flow properties
+  esConsumoEspecifico: boolean = true;
+  
+  // Drag and drop state for formula builder
+  tempConsumoSalidas: any[] = [];
+  tempConsumoEntradas: any[] = [];
+  tempProduccionSalidas: any[] = [];
+  tempProduccionEntradas: any[] = [];
+  draggedDoc: any = null;
+  dragSource: string = '';
+  draggedSign: boolean | null = null;
+  isFormulaDividedConsumo: boolean = false;
   
   // Isolated state for document linking per product row
   linkingState: { [productId: string]: { type: string, code: string } } = {};
@@ -138,9 +164,33 @@ export class MetasCMI implements OnInit {
         });
         this.productosOriginales = [...baseProducts];
         this.productos = [...baseProducts];
+        this.cargarMetasActuales();
         this.cdr.detectChanges();
       },
       error: () => this.showToast('Error al cargar productos', 'error')
+    });
+  }
+
+  cargarMetasActuales() {
+    const anio = new Date().getFullYear().toString();
+    const mesIdx = new Date().getMonth(); // 0-11
+
+    this.productos.forEach(p => {
+      const obs = p.id === 'CostoDirecto'
+        ? this.service.getCostoDirecto(anio)
+        : this.service.getMetas(p.id, anio);
+
+      obs.subscribe({
+        next: (res) => {
+          if (res.mensuales && res.mensuales[mesIdx]) {
+            p.metaActual = res.mensuales[mesIdx].valor;
+            this.cdr.detectChanges();
+          }
+        },
+        error: () => {
+          p.metaActual = 0;
+        }
+      });
     });
   }
 
@@ -194,6 +244,7 @@ export class MetasCMI implements OnInit {
     const val = parseFloat(event.target.value);
     if (!isNaN(val)) {
       this.metas[index].valor = val;
+      this.cdr.detectChanges();
     }
   }
 
@@ -201,12 +252,14 @@ export class MetasCMI implements OnInit {
     const valor = event.target.value.toLowerCase();
     if (!valor) {
       this.productos = [...this.productosOriginales];
+      this.cdr.detectChanges();
       return;
     }
     this.productos = this.productosOriginales.filter(p => 
       p.nombre.toLowerCase().includes(valor) || 
       (p.idProductoSiesa && String(p.idProductoSiesa).toLowerCase().includes(valor))
     );
+    this.cdr.detectChanges();
   }
 
   distribuirValorATodos() {
@@ -322,12 +375,15 @@ export class MetasCMI implements OnInit {
     setTimeout(() => this.toast.visible = false, 3000);
   }
 
-  removeDoc(type: 'CONSUMO' | 'PRODUCCION', docId: number) {
-    if (type === 'CONSUMO') {
-      this.tempConsumoDocs = this.tempConsumoDocs.filter(d => d.id !== docId);
-    } else {
-      this.tempProduccionDocs = this.tempProduccionDocs.filter(d => d.id !== docId);
-    }
+  isEntradaDoc(codigo: string): boolean {
+    if (!codigo) return false;
+    const upperCode = codigo.toUpperCase();
+    // Typical Siesa Entradas
+    if (upperCode === 'EI' || upperCode === 'EDP' || upperCode === 'AI' || upperCode === 'EPA') return true;
+    // Typical Siesa Salidas
+    if (upperCode === 'TEP' || upperCode === 'RM' || upperCode === 'SM' || upperCode === 'SIP') return false;
+    // Fallback heuristic
+    return upperCode.startsWith('E') || upperCode.startsWith('A');
   }
 
   openProductModal(p?: producto) {
@@ -335,22 +391,41 @@ export class MetasCMI implements OnInit {
     this.currentProduct = p ? { ...p } : { 
       id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, produccionBaseId: '26'
     };
+    
     this.tempConsumoDocs = (p?.consumptionDocIds || []).map(id => {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
       return { id: id, codigo: doc ? doc.codigo : '?' };
     });
+    this.tempConsumoEntradas = this.tempConsumoDocs.filter(d => this.isEntradaDoc(d.codigo));
+    this.tempConsumoSalidas = this.tempConsumoDocs.filter(d => !this.isEntradaDoc(d.codigo));
+    this.isFormulaDividedConsumo = this.tempConsumoSalidas.length > 0;
+    
     this.tempProduccionDocs = (p?.productionDocIds || []).map(id => {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
       return { id: id, codigo: doc ? doc.codigo : '?' };
     });
-    this.siesaSearchId = '';
+    this.tempProduccionEntradas = this.tempProduccionDocs.filter(d => this.isEntradaDoc(d.codigo));
+    this.tempProduccionSalidas = this.tempProduccionDocs.filter(d => !this.isEntradaDoc(d.codigo));
+
+    this.siesaSearchId = p?.idProductoSiesa || '';
     this.productWasSaved = false;
     this.tempComponentes = [...(p?.componenteSiesaIds || [])];
     this.isCompuestoToggle = this.tempComponentes.length > 0;
-    this.tempUsaSuma = p ? (p.usaSuma ?? false) : false;
+    this.tempUsaSuma = p ? (p.usaSuma ?? true) : true;
     this.nuevoComponenteId = '';
+    
+    // Determine if it was "Consumo Especifico"
+    if (this.isEditingProduct) {
+      const isDefaultBase = this.currentProduct.produccionBaseId === '26';
+      const hasSpecificDocs = this.tempProduccionDocs.some(d => ['EI', 'EDP', 'AI'].includes(d.codigo));
+      this.esConsumoEspecifico = isDefaultBase && hasSpecificDocs;
+    } else {
+      this.esConsumoEspecifico = true;
+    }
+    
     this.showProductModal = true;
   }
+
 
 
 
@@ -363,13 +438,122 @@ export class MetasCMI implements OnInit {
   }
 
   quickAddDoc(type: 'CONSUMO' | 'PRODUCCION', doc: any) {
-    const list = type === 'CONSUMO' ? this.tempConsumoDocs : this.tempProduccionDocs;
-    if (list.find(d => d.id === doc.id)) return;
-    list.push({ id: doc.id, codigo: doc.codigo });
+    if (type === 'CONSUMO') {
+      if (!this.tempConsumoDocs.find(d => d.id === doc.id)) {
+        this.tempConsumoSalidas.push({ id: doc.id, codigo: doc.codigo });
+        this.tempConsumoDocs = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
+      }
+    } else {
+      if (!this.tempProduccionDocs.find(d => d.id === doc.id)) {
+        this.tempProduccionEntradas.push({ id: doc.id, codigo: doc.codigo });
+        this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
+      }
+    }
   }
 
+  removeDoc(type: 'CONSUMO' | 'PRODUCCION', docId: number) {
+    if (type === 'CONSUMO') {
+      this.tempConsumoSalidas = this.tempConsumoSalidas.filter(d => d.id !== docId);
+      this.tempConsumoEntradas = this.tempConsumoEntradas.filter(d => d.id !== docId);
+      this.tempConsumoDocs = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
+    } else {
+      this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => d.id !== docId);
+      this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => d.id !== docId);
+      this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
+    }
+  }
+
+  // --- Drag and Drop Logic ---
+  onDragStart(event: DragEvent, doc: any, source: string) {
+    this.draggedDoc = doc;
+    this.dragSource = source;
+  }
+
+  onDragStartSign(event: DragEvent, sign: boolean) {
+    this.draggedSign = sign;
+  }
+
+  onDropSign(event: DragEvent) {
+    event.preventDefault();
+    if (this.draggedSign !== null) {
+      this.tempUsaSuma = this.draggedSign;
+      this.isFormulaDividedConsumo = true;
+      this.draggedSign = null;
+    }
+  }
+
+  removeDivision() {
+    this.isFormulaDividedConsumo = false;
+    this.tempConsumoEntradas = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
+    this.tempConsumoSalidas = [];
+  }
+
+  allowDrop(event: DragEvent) {
+    event.preventDefault();
+  }
+
+  onDropSalidas(event: DragEvent) {
+    event.preventDefault();
+    if (this.draggedSign !== null) {
+      this.tempUsaSuma = this.draggedSign;
+      this.isFormulaDividedConsumo = true;
+      this.draggedSign = null;
+    } else if (this.draggedDoc) {
+      this.moveDoc(this.draggedDoc, this.dragSource, 'SALIDAS');
+    }
+  }
+
+  onDropEntradas(event: DragEvent) {
+    event.preventDefault();
+    if (this.draggedSign !== null) {
+      this.tempUsaSuma = this.draggedSign;
+      this.isFormulaDividedConsumo = true;
+      this.draggedSign = null;
+    } else if (this.draggedDoc) {
+      this.moveDoc(this.draggedDoc, this.dragSource, 'ENTRADAS');
+    }
+  }
+
+  onDropAvailable(event: DragEvent) {
+    event.preventDefault();
+    this.moveDoc(this.draggedDoc, this.dragSource, 'AVAILABLE');
+  }
+
+  onDropProdSalidas(event: DragEvent) {
+    event.preventDefault();
+    this.moveDoc(this.draggedDoc, this.dragSource, 'PROD_SALIDAS');
+  }
+
+  onDropProdEntradas(event: DragEvent) {
+    event.preventDefault();
+    this.moveDoc(this.draggedDoc, this.dragSource, 'PROD_ENTRADAS');
+  }
+
+  onDropProdAvailable(event: DragEvent) {
+    event.preventDefault();
+    this.moveDoc(this.draggedDoc, this.dragSource, 'PROD_AVAILABLE');
+  }
+
+  moveDoc(doc: any, from: string, to: string) {
+    if (!doc || from === to) return;
+    
+    if (from === 'SALIDAS') this.tempConsumoSalidas = this.tempConsumoSalidas.filter(d => d.id !== doc.id);
+    else if (from === 'ENTRADAS') this.tempConsumoEntradas = this.tempConsumoEntradas.filter(d => d.id !== doc.id);
+    else if (from === 'PROD_SALIDAS') this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => d.id !== doc.id);
+    else if (from === 'PROD_ENTRADAS') this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => d.id !== doc.id);
+
+    if (to === 'SALIDAS') this.tempConsumoSalidas.push(doc);
+    else if (to === 'ENTRADAS') this.tempConsumoEntradas.push(doc);
+    else if (to === 'PROD_SALIDAS') this.tempProduccionSalidas.push(doc);
+    else if (to === 'PROD_ENTRADAS') this.tempProduccionEntradas.push(doc);
+
+    this.tempConsumoDocs = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
+    this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
+  }
+  // ---------------------------
+
   agregarComponente() {
-    const id = this.nuevoComponenteId?.trim();
+    const id = String(this.nuevoComponenteId || '').trim();
     if (!id) return this.showToast('Ingresa un ID Siesa', 'error');
     if (this.tempComponentes.includes(id)) return this.showToast('Componente ya agregado', 'error');
     
@@ -381,6 +565,7 @@ export class MetasCMI implements OnInit {
           this.tempComponentes.push(id);
           this.nuevoComponenteId = '';
           this.showToast(`Componente ${data.nombre} agregado`, 'success');
+          this.cdr.detectChanges();
         } else {
           this.showToast('Componente no encontrado en Siesa', 'error');
         }
@@ -395,6 +580,13 @@ export class MetasCMI implements OnInit {
   onCompuestoToggleChange() {
     if (!this.isCompuestoToggle) {
       this.tempComponentes = [];
+      this.cdr.detectChanges();
+    }
+  }
+
+  onCompuestoClick() {
+    if (this.isEditingProduct) {
+      this.showToast('No se puede cambiar el tipo de producto una vez creado', 'error');
     }
   }
 
@@ -413,6 +605,7 @@ export class MetasCMI implements OnInit {
           this.currentProduct.nombre = data.nombre;
           this.currentProduct.idProductoSiesa = data.id;
           this.showToast('Producto encontrado en Siesa', 'success');
+          this.cdr.detectChanges();
         } else {
           this.showToast('Producto no encontrado en Siesa', 'error');
         }
@@ -428,19 +621,41 @@ export class MetasCMI implements OnInit {
 
   guardarProducto() {
     if (!this.currentProduct.nombre) return this.showToast('El nombre es obligatorio', 'error');
+    
+    // Check for duplicates
     if (this.currentProduct.idProductoSiesa) {
       const duplicate = this.productosOriginales.find(p =>
         String(p.idProductoSiesa) === String(this.currentProduct.idProductoSiesa) && p.id !== this.currentProduct.id
       );
-      if (duplicate) return this.showToast(`ID Siesa ya asignado a ${duplicate.nombre}`, 'error');
+      if (duplicate && !this.isCompuestoToggle) return this.showToast(`ID Siesa ya asignado a ${duplicate.nombre}`, 'error');
     }
+
+    if (this.isCompuestoToggle && this.tempComponentes.length < 2) {
+      return this.showToast('Un producto compuesto debe tener al menos 2 componentes', 'error');
+    }
+
+    if (this.tempConsumoDocs.length === 0) {
+      return this.showToast('La selección debe tener al menos un documento', 'error');
+    }
+
     this.ejecutarGuardadoProducto();
   }
 
   ejecutarGuardadoProducto() {
+    if (this.isCompuestoToggle) {
+      this.currentProduct.idProductoSiesa = ''; // Forzar ID vacío para usar el ID interno en el dashboard
+    }
     this.currentProduct.usaSuma = this.tempUsaSuma ?? false;
     this.currentProduct.esCompuesto = this.isCompuestoToggle;
     this.currentProduct.componenteSiesaIds = [...this.tempComponentes];
+
+    if (this.esConsumoEspecifico) {
+      this.currentProduct.produccionBaseId = '26';
+      const requiredDocs = ['EI', 'EDP', 'AI'];
+      this.tempProduccionDocs = this.tiposDocumento
+        .filter(d => requiredDocs.includes(d.codigo))
+        .map(d => ({ id: d.id, codigo: d.codigo }));
+    }
     
     const obs = this.isEditingProduct 
       ? this.service.actualizarProducto(this.currentProduct)
@@ -551,4 +766,5 @@ export class MetasCMI implements OnInit {
     }
     return this.currentProduct.idProductoSiesa || 'N/A';
   }
+  
 }

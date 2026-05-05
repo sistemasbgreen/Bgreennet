@@ -409,13 +409,17 @@
       <div class="section-header">
         <div class="section-title-with-badge">
           <h3>📋 Tareas</h3>
-          <span class="tareas-badge" *ngIf="tareasActivas.length > 0">
-            {{ tareasActivas.length }} activa{{ tareasActivas.length !== 1 ? 's' : '' }}
-            <span class="notification-dot mini" *ngIf="tieneTareasNuevas"></span>
-          </span>
         </div>
 
         <div class="section-actions">
+          <div class="view-toggle">
+            <button class="btn-toggle" [class.active]="tasksViewMode === 'cards'" (click)="setTasksViewMode('cards')" title="Vista Tarjetas">
+              <i class="bi bi-grid-3x3-gap-fill"></i>
+            </button>
+            <button class="btn-toggle" [class.active]="tasksViewMode === 'list'" (click)="setTasksViewMode('list')" title="Vista Lista">
+              <i class="bi bi-list-ul"></i>
+            </button>
+          </div>
           <button class="btn-accion-redondo btn-focus" (click)="toggleTasksFocus()"
             [title]="focusTasksMode ? 'Desactivar modo enfoque' : 'Activar modo enfoque'">
             <i class="bi" [class.bi-fullscreen-exit]="focusTasksMode" [class.bi-fullscreen]="!focusTasksMode"></i>
@@ -431,99 +435,211 @@
         </div>
       </div>
 
-      <!-- Lista de tareas estilo tarjetas -->
-      <div class="tareas-cards-grid" *ngIf="tareasActivas.length > 0">
-        <div *ngFor="let tarea of tareasActivas" class="tarea-card"
-             [attr.data-tarea-id]="tarea.id"
-             [class.tarea-card--alta]="tarea.prioridad.nombre === 'ALTA'"
-             [class.tarea-card--media]="tarea.prioridad.nombre === 'MEDIA'"
-             [class.tarea-card--baja]="tarea.prioridad.nombre === 'BAJA'"
-             [class.tarea-vencida]="esTareaVencida(tarea)"
-             [class.highlight-notif]="tareaResaltadaId == tarea.id">
-
-          <!-- Barra de color superior según prioridad -->
-          <div class="tarea-card__stripe"></div>
-
-          <!-- Header de la card -->
-          <div class="tarea-card__header">
-            <div class="tarea-card__avatar">
-              {{ getInitial(tarea.usuario?.usuario || tarea.usuarioCreador?.usuario) }}
+      <div class="tareas-scroll-container" *ngIf="tareasActivas.length > 0">
+        <!-- Lista de tareas estilo tarjetas -->
+        <div class="tareas-cards-grid" *ngIf="tasksViewMode === 'cards'">
+          <div *ngFor="let tarea of tareasActivas" class="tarea-card"
+               [attr.data-tarea-id]="tarea.id"
+               [class.tarea-card--alta]="tarea.prioridad.nombre === 'ALTA'"
+               [class.tarea-card--media]="tarea.prioridad.nombre === 'MEDIA'"
+               [class.tarea-card--baja]="tarea.prioridad.nombre === 'BAJA'"
+               [class.tarea-vencida]="esTareaVencida(tarea)"
+               [class.highlight-notif]="tareaResaltadaId == tarea.id">
+  
+            <!-- Barra de color superior según prioridad -->
+            <div class="tarea-card__stripe"></div>
+  
+            <!-- Header: #ID + Titulo  |  Badge Prioridad -->
+            <div class="tarea-card__header">
+              <div class="tarea-card__header-left">
+                <span class="tarea-card__id">#{{ tarea.id }}</span>
+                <h4 class="tarea-card__titulo" [title]="tarea.titulo">{{ tarea.titulo }}</h4>
+              </div>
+              <div class="tarea-card__header-right">
+                <span class="tarea-prioridad-mini"
+                  [class.prioridad-alta]="tarea.prioridad.nombre === 'ALTA'"
+                  [class.prioridad-media]="tarea.prioridad.nombre === 'MEDIA'"
+                  [class.prioridad-baja]="tarea.prioridad.nombre === 'BAJA'">
+                  {{ tarea.prioridad.nombre }}
+                </span>
+                <span class="vencida-badge" *ngIf="esTareaVencida(tarea)">Vencida</span>
+              </div>
             </div>
-            <div class="tarea-card__meta">
-              <span class="tarea-card__tiempo">{{ getTiempoRelativo(tarea.fechaCreacion) }}</span>
-              <span class="tarea-prioridad-mini"
-                [class.prioridad-alta]="tarea.prioridad.nombre === 'ALTA'"
-                [class.prioridad-media]="tarea.prioridad.nombre === 'MEDIA'"
-                [class.prioridad-baja]="tarea.prioridad.nombre === 'BAJA'">
-                {{ tarea.prioridad.nombre }}
-              </span>
+  
+            <!-- Cuerpo: descripción + asignación + fecha -->
+            <div class="tarea-card__body">
+              <p class="tarea-card__desc">{{ tarea.descripcion || 'Sin descripción' }}</p>
+
+              <!-- Avatares -->
+              <div class="tarea-card__assign-row">
+                <div class="tarea-card__avatars">
+                  <div class="tarea-card__avatar" [title]="getUserDisplayName(tarea.idUsuarioCreador)">
+                    {{ getUserInitials(tarea.idUsuarioCreador) }}
+                  </div>
+                  <div class="tarea-card__avatar tarea-card__avatar--secondary" 
+                       *ngIf="tarea.idUsuario !== tarea.idUsuarioCreador"
+                       [title]="getUserDisplayName(tarea.idUsuario)">
+                    {{ getUserInitials(tarea.idUsuario) }}
+                  </div>
+                  <!-- El botón '+' se oculta por ahora -->
+                  <!-- <div class="tarea-card__avatar tarea-card__avatar--add" 
+                       *ngIf="tarea.idUsuario === tarea.idUsuarioCreador"
+                       (click)="editarTarea(tarea)"
+                       title="Asignar a otra persona">
+                    <i class="bi bi-plus"></i>
+                  </div> -->
+                </div>
+              </div>
+
+              <!-- Fecha de vencimiento (Siempre ocupa espacio) -->
+              <div class="tarea-card__date-row">
+                <i class="bi bi-calendar3"></i>
+                <span>Vence: {{ tarea.fechaLimite ? (tarea.fechaLimite | date:'dd/MM/yyyy HH:mm') : '' }}</span>
+              </div>
+            </div>
+  
+            <!-- Footer: SOLO iconos de acción -->
+            <div class="tarea-card__footer">
+              <div class="tarea-card__acciones-row">
+                <button class="btn-card-icon btn-iniciar"
+                  *ngIf="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                  (click)="cambiarEstado(tarea, 2)" title="Iniciar tarea">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <button class="btn-card-icon btn-finalizar"
+                  [disabled]="!tarea.fechaInicio"
+                  [title]="!tarea.fechaInicio ? 'Debe iniciar la tarea antes de finalizarla' : 'Finalizar tarea'"
+                  (click)="cambiarEstado(tarea, 3)">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+                <button class="btn-card-icon btn-cancelar-tarea"
+                  (click)="cambiarEstado(tarea, 4)" title="Cancelar tarea">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+                <button class="btn-card-icon btn-editar"
+                  *ngIf="tarea.idUsuarioCreador === id_usuario"
+                  (click)="editarTarea(tarea)" title="Editar tarea">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-card-icon btn-chat" style="position: relative;"
+                  (click)="abrirDetalle(tarea)" title="Ver detalle y chat">
+                  <i class="bi bi-chat-left-dots"></i>
+                  <span class="chat-badge-count" *ngIf="tieneMensajesSinLeer(tarea.id)">
+                    {{ getMensajesSinLeerCount(tarea.id) }}
+                  </span>
+                </button>
+                <span class="tarea-card__estado-badge"
+                  [class.estado-creada]="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                  [class.estado-en-proceso]="tarea.estado.nombre.toUpperCase() === 'EN PROCESO' || tarea.estado.nombre.toUpperCase() === 'INICIADA'">
+                  {{ tarea.estado.nombre }}
+                </span>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- Cuerpo: título y descripción -->
-          <div class="tarea-card__body">
-            <h4 class="tarea-card__titulo">{{ tarea.titulo }}</h4>
-            <p class="tarea-card__desc">{{ tarea.descripcion || 'Sin descripción' }}</p>
-            <p class="tarea-card__vence" *ngIf="tarea.fechaLimite">
-              <i class="bi bi-calendar-event"></i> Vence: {{ tarea.fechaLimite | date:'dd/MM/yyyy HH:mm' }}
-            </p>
-          </div>
-
-          <!-- Footer: estado, asignación y acciones -->
-          <div class="tarea-card__footer">
-            <!-- Fila 1: Estado y asignación -->
-            <div class="tarea-card__meta-row">
-              <span class="estado-badge-mini"
-                [class.estado-creada]="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
-                [class.estado-en-proceso]="tarea.estado.nombre.toUpperCase() === 'EN PROCESO' || tarea.estado.nombre.toUpperCase() === 'INICIADA'">
-                {{ tarea.estado.nombre }}
-              </span>
-              <span class="tarea-rol-mini" *ngIf="tarea.idUsuarioCreador !== id_usuario">
-                <i class="bi bi-person-up"></i> De: {{ tarea.usuarioCreador?.usuario || 'Otro' }}
-              </span>
-              <span class="tarea-rol-mini highlight" *ngIf="tarea.idUsuarioCreador === id_usuario && tarea.idUsuario !== id_usuario">
-                <i class="bi bi-person-check"></i> Para: {{ tarea.usuario?.usuario || 'Otro' }}
-              </span>
-            </div>
-            <!-- Fila 2: Botones de acción -->
-            <div class="tarea-card__acciones-row">
-              <button class="btn-card-accion btn-iniciar"
-                *ngIf="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
-                (click)="cambiarEstado(tarea, 2)" title="Iniciar tarea">
-                <i class="bi bi-play-fill"></i>
-              </button>
-              <button class="btn-card-accion btn-finalizar"
-                [disabled]="!tarea.fechaInicio"
-                [title]="!tarea.fechaInicio ? 'Debe iniciar la tarea antes de finalizarla' : 'Finalizar tarea'"
-                (click)="cambiarEstado(tarea, 3)">
-                <i class="bi bi-check-lg"></i>
-              </button>
-              <button class="btn-card-accion btn-cancelar-tarea"
-                (click)="cambiarEstado(tarea, 3)" title="Cancelar tarea">
-                <i class="bi bi-x-lg"></i>
-              </button>
-              <button class="btn-card-accion btn-editar"
-                *ngIf="tarea.idUsuarioCreador === id_usuario"
-                (click)="editarTarea(tarea)" title="Editar tarea">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button class="btn-card-accion btn-chat" style="position: relative;"
-                (click)="abrirDetalle(tarea)" title="Ver detalle y chat">
-                <i class="bi bi-chat-left-dots"></i>
-                <span class="notification-dot" *ngIf="tieneMensajesSinLeer(tarea.id)"></span>
-              </button>
-            </div>
-          </div>
-
+        <!-- Lista de tareas estilo tabla -->
+        <div class="tareas-list-view" *ngIf="tasksViewMode === 'list'">
+          <table class="tabla-tareas-list">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tarea</th>
+                <th>Prioridad</th>
+                <th>Estado</th>
+                <th>Asignación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tarea of tareasActivas" 
+                  [class.highlight-notif]="tareaResaltadaId == tarea.id"
+                  [class.list-vencida]="esTareaVencida(tarea)">
+                <td><span class="list-id-badge">#{{ tarea.id }}</span></td>
+                <td>
+                  <div class="list-tarea-info">
+                    <span class="list-tarea-titulo" [title]="tarea.titulo">{{ tarea.titulo }}</span>
+                    <span class="list-tarea-vence" *ngIf="tarea.fechaLimite">
+                      <i class="bi bi-calendar-event"></i> {{ tarea.fechaLimite | date:'dd/MM HH:mm' }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="tarea-prioridad-mini"
+                    [class.prioridad-alta]="tarea.prioridad.nombre === 'ALTA'"
+                    [class.prioridad-media]="tarea.prioridad.nombre === 'MEDIA'"
+                    [class.prioridad-baja]="tarea.prioridad.nombre === 'BAJA'">
+                    {{ tarea.prioridad.nombre }}
+                  </span>
+                  <span class="vencida-badge" *ngIf="esTareaVencida(tarea)">Vencida</span>
+                </td>
+                <td>
+                  <span class="estado-badge-mini"
+                    [class.estado-creada]="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                    [class.estado-en-proceso]="tarea.estado.nombre.toUpperCase() === 'EN PROCESO' || tarea.estado.nombre.toUpperCase() === 'INICIADA'">
+                    {{ tarea.estado.nombre }} 
+                  </span>
+                </td>
+                <td>
+                  <div class="list-asignacion">
+                    <div class="mini-avatar" [title]="getUserDisplayName(tarea.idUsuario)">
+                      {{ getUserInitials(tarea.idUsuario) }}
+                    </div>
+                    <span class="list-user-name">{{ getUserDisplayName(tarea.idUsuario) }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="list-acciones">
+                    <button class="btn-list-accion btn-iniciar"
+                      *ngIf="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                      (click)="cambiarEstado(tarea, 2)" title="Iniciar">
+                      <i class="bi bi-play-fill"></i>
+                    </button>
+                    <button class="btn-list-accion btn-finalizar"
+                      [disabled]="!tarea.fechaInicio"
+                      (click)="cambiarEstado(tarea, 3)" title="Finalizar">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button class="btn-list-accion btn-chat" style="position: relative;"
+                      (click)="abrirDetalle(tarea)" title="Chat">
+                      <i class="bi bi-chat-left-dots"></i>
+                      <span class="chat-badge-count" *ngIf="tieneMensajesSinLeer(tarea.id)">
+                        {{ getMensajesSinLeerCount(tarea.id) }}
+                      </span>
+                    </button>
+                    <!-- Botón Editar -->
+                    <button class="btn-list-accion btn-editar"
+                      *ngIf="tarea.idUsuarioCreador === id_usuario"
+                      (click)="editarTarea(tarea)" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <!-- Botón Cancelar -->
+                    <button class="btn-list-accion btn-cancelar-tarea"
+                      *ngIf="tarea.idUsuarioCreador === id_usuario && tarea.estado.nombre.toUpperCase() !== 'FINALIZADA'"
+                      (click)="cambiarEstado(tarea, 4)" title="Cancelar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
       <!-- Estado vacío -->
-      <div class="empty-state-inline" *ngIf="tareasActivas.length === 0">
-        <i class="bi bi-inbox"></i>
-        <div>
-          <p><strong>No tienes tareas activas</strong></p>
-          <p class="text-muted">Crea una nueva tarea para comenzar</p>
+      <div class="tareas-empty-state-v2" *ngIf="tareasActivas.length === 0">
+        <div class="empty-state-viz">
+          <i class="bi bi-check2-all"></i>
+          <div class="viz-glow"></div>
+        </div>
+        <div class="empty-state-content">
+          <h4>¡Todo al día!</h4>
+          <p>No tienes tareas activas por el momento.</p>
+          <button class="btn-nueva-v2" (click)="abrirModalTarea()">
+            <i class="bi bi-plus-circle"></i>
+            Crear nueva tarea
+          </button>
         </div>
       </div>
     </section>
@@ -727,7 +843,7 @@
                 </label>
                 <select class="form-select" [(ngModel)]="usuarioAsignadoId" name="usuarioAsignado">
                   <option [ngValue]="null">Mismo (Yo)</option>
-                  <option *ngFor="let user of usuariosList" [value]="user.idUsuario">
+                  <option *ngFor="let user of filteredUsuariosList" [value]="user.idUsuario">
                     {{ user.nombre }} {{ user.apellido }}
                   </option>
                 </select>
@@ -841,7 +957,7 @@
         <div class="detalle-modal__header">
           <div class="detalle-modal__header-left">
             <div class="detalle-modal__avatar">
-              {{ getInitial(tareaSeleccionada?.usuarioCreador?.usuario) }}
+              {{ getUserInitials(tareaSeleccionada?.idUsuarioCreador) }}
             </div>
             <div>
               <h2 class="detalle-modal__titulo">{{ tareaSeleccionada?.titulo }}</h2>
@@ -898,14 +1014,14 @@
                 <i class="bi bi-person-plus"></i>
                 <div>
                   <span class="detalle-info-label">Creada por</span>
-                  <span class="detalle-info-value">{{ tareaSeleccionada?.usuarioCreador?.usuario || 'Sistema' }}</span>
+                  <span class="detalle-info-value">{{ getUserDisplayName(tareaSeleccionada?.idUsuarioCreador) }}</span>
                 </div>
               </div>
               <div class="detalle-info-item">
                 <i class="bi bi-person-check"></i>
                 <div>
                   <span class="detalle-info-label">Asignada a</span>
-                  <span class="detalle-info-value">{{ tareaSeleccionada?.usuario?.usuario || 'Ninguno' }}</span>
+                  <span class="detalle-info-value">{{ getUserDisplayName(tareaSeleccionada?.idUsuario) }}</span>
                 </div>
               </div>
             </div>
@@ -962,12 +1078,12 @@
                 class="chat-msg-wrapper"
                 [class.own-msg]="msg.usuario?.idUsuario === id_usuario">
                 <div class="chat-user-avatar">
-                  {{ getInitial(msg.usuario?.usuario) }}
+                  {{ getUserInitials(msg.usuario?.idUsuario) }}
                 </div>
                 <div class="chat-msg-content">
                   <div class="chat-msg-info">
                     <span class="chat-date">{{ msg.fecha | date:'dd/MM HH:mm' }}</span>
-                    <span class="chat-name">{{ msg.usuario?.usuario || 'Desconocido' }}</span>
+                    <span class="chat-name">{{ getUserDisplayName(msg.usuario?.idUsuario) }}</span>
                   </div>
                   <div class="chat-msg-body">{{ msg.mensaje }}</div>
                 </div>
