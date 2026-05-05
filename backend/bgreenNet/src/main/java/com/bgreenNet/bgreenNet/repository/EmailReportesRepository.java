@@ -21,44 +21,32 @@ public class EmailReportesRepository {
 
     public ResumenCostosDTO obtenerResumenCostos(LocalDate fechaInicio, LocalDate fechaFin) {
         String sql = "SELECT " +
-            "    -- 1. PURIFICACION GLICERINA " +
-            "    SUM(CASE " +
-            "        WHEN t865.f865_descripcion_operacion = 'PURIFICACION GLICERINA' " +
-            "        THEN c.f881_costo_este_nivel_total " +
-            "        ELSE 0 " +
-            "    END) AS total_purificacion_glicerina, " +
-            "    -- 2. MANO DE OBRA " +
-            "    SUM(CASE " +
-            "        WHEN t804.f804_descripcion IN ('MANO DE OBRA DIRECTA', 'FACTOR PRESTACIONAL DE MOD') " +
-            "             AND t865.f865_descripcion_operacion <> 'PURIFICACION GLICERINA' " +
-            "        THEN c.f881_costo_este_nivel_total " +
-            "        ELSE 0 " +
-            "    END) AS total_mano_obra, " +
-            "    -- 3. OTROS COSTOS " +
-            "    SUM(CASE " +
-            "        WHEN NOT ( " +
-            "            t865.f865_descripcion_operacion = 'PURIFICACION GLICERINA' " +
-            "            OR t804.f804_descripcion IN ('MANO DE OBRA DIRECTA', 'FACTOR PRESTACIONAL DE MOD') " +
-            "        ) " +
-            "        THEN c.f881_costo_este_nivel_total " +
-            "        ELSE 0 " +
-            "    END) AS total_otros_costos " +
-            "FROM t881_mf_movto_tep_costo c " +
-            "INNER JOIN t880_mf_movto_tep t " +
-            "    ON t.f880_rowid = c.f881_rowid_movto_tep " +
-            "INNER JOIN t865_mf_op_operaciones t865 " +
-            "    ON t865.f865_rowid = t.f880_rowid_op_operaciones " +
-            "INNER JOIN t804_mf_segmentos_costos t804 " +
-            "    ON t804.f804_id = c.f881_id_segmento_costo " +
-            "WHERE t.f880_id_fecha = ?";
+            " SUM(CASE WHEN t865.f865_descripcion_operacion = 'PURIFICACION GLICERINA' THEN c.f881_costo_este_nivel_total ELSE 0 END) AS total_purificacion_glicerina, " +
+            " SUM(CASE WHEN t804.f804_descripcion IN ('MANO DE OBRA DIRECTA', 'FACTOR PRESTACIONAL DE MOD') AND t865.f865_descripcion_operacion <> 'PURIFICACION GLICERINA' THEN c.f881_costo_este_nivel_total ELSE 0 END) AS total_mano_obra, " +
+            " SUM(CASE WHEN NOT (t865.f865_descripcion_operacion = 'PURIFICACION GLICERINA' OR t804.f804_descripcion IN ('MANO DE OBRA DIRECTA', 'FACTOR PRESTACIONAL DE MOD')) THEN c.f881_costo_este_nivel_total ELSE 0 END) AS total_otros_costos " +
+            " FROM t881_mf_movto_tep_costo c " +
+            " INNER JOIN t880_mf_movto_tep t ON t.f880_rowid = c.f881_rowid_movto_tep " +
+            " INNER JOIN t865_mf_op_operaciones t865 ON t865.f865_rowid = t.f880_rowid_op_operaciones " +
+            " INNER JOIN t804_mf_segmentos_costos t804 ON t804.f804_id = c.f881_id_segmento_costo " +
+            " WHERE t.f880_id_fecha >= ? AND t.f880_id_fecha < ?";
 
-        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
-            ResumenCostosDTO dto = new ResumenCostosDTO();
-            dto.setTotalPurificacionGlicerina(rs.getBigDecimal("total_purificacion_glicerina"));
-            dto.setTotalManoObra(rs.getBigDecimal("total_mano_obra"));
-            dto.setTotalOtrosCostos(rs.getBigDecimal("total_otros_costos"));
-            return dto;
-        }, java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay()));
+        Object[] params = {
+            java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay()),
+            java.sql.Timestamp.valueOf(fechaFin.atStartOfDay())
+        };
+
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                ResumenCostosDTO dto = new ResumenCostosDTO();
+                dto.setTotalPurificacionGlicerina(rs.getBigDecimal("total_purificacion_glicerina"));
+                dto.setTotalManoObra(rs.getBigDecimal("total_mano_obra"));
+                dto.setTotalOtrosCostos(rs.getBigDecimal("total_otros_costos"));
+                return dto;
+            }, params);
+        } catch (Exception e) {
+            System.err.println("Error en obtenerResumenCostos: " + e.getMessage());
+            return new ResumenCostosDTO(); // Retornar vacío en lugar de null
+        }
     }
 
     public List<DetalleInsumoDTO> obtenerDetalleInsumos(LocalDate fechaInicio, LocalDate fechaFin) {
@@ -100,6 +88,11 @@ public class EmailReportesRepository {
             "    itm.f120_descripcion, " +
             "    fecha";
 
+        Object[] params = {
+            java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay()),
+            java.sql.Timestamp.valueOf(fechaFin.atStartOfDay())
+        };
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             DetalleInsumoDTO dto = new DetalleInsumoDTO();
             dto.setItem(rs.getString("item"));
@@ -110,7 +103,6 @@ public class EmailReportesRepository {
             }
             dto.setCantidadConsumida(rs.getBigDecimal("cantidad_consumida"));
             return dto;
-        }, java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay()),
-           java.sql.Timestamp.valueOf(fechaFin.atStartOfDay()));
+        }, params);
     }
 }

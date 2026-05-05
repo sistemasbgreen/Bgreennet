@@ -14,6 +14,7 @@ public class OpDoctoDTO {
     private Double totalPurificacionGlicerina;
     private Double totalManoObra;
     private Double totalOtrosCostos;
+    private String statusEnvio; // "Enviado" o "Pendiente"
 
     public String getOp() {
         return op;
@@ -77,5 +78,13 @@ public class OpDoctoDTO {
 
     public void setTotalOtrosCostos(Double totalOtrosCostos) {
         this.totalOtrosCostos = totalOtrosCostos;
+    }
+
+    public String getStatusEnvio() {
+        return statusEnvio;
+    }
+
+    public void setStatusEnvio(String statusEnvio) {
+        this.statusEnvio = statusEnvio;
     }
 }

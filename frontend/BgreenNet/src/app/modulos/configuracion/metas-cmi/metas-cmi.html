@@ -22,8 +22,8 @@
       </div>
       <div class="header-actions">
         <div class="search-container">
-          <i class="bi bi-search search-icon"></i>
-          <input type="text" class="search-input" placeholder="Buscar por nombre o ID Siesa..."
+          <i class="bi bi-search search-icon" (click)="searchBar.focus()"></i>
+          <input #searchBar type="text" class="search-input" placeholder="Buscar por nombre o ID Siesa..."
             (input)="actualizarFiltro($event)">
         </div>
         <div class="badge-total-items">
