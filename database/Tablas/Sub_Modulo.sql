@@ -19,5 +19,6 @@ CREATE TABLE Sub_Modulo (
     id_modulo_fk INT NOT NULL,
 	date_create DATETIME NOT NULL DEFAULT GETDATE(),
 	date_Modify DATETIME NOT NULL DEFAULT GETDATE(),
+    ruta NVARCHAR(255) NOT NULL,
     FOREIGN KEY (id_modulo_fk) REFERENCES Modulo(id_modulo)
 );

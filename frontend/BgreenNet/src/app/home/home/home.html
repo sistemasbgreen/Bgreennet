@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BGREENNET - Sistema Completo</title>
+</head>
+
+<body [class.dark-mode]="darkMode">
+
+  <header class="header">
+    <div class="logo-section">
+      <img src="https://bgreen.com.co/Img/bgreen_Logo.png" width="100px" alt="BGREEN Logo">
+
+      <div class="stats" *ngIf="dashboardWidgets.stats">
+
+        <div class="stat-item" (click)="openTrmModal()">
+          <span class="indicador_precios">📊 TRM: $ {{ currentTrmValue || 'Cargando...' }}</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="indicador_precios">💰 CPO FEP: $ 4.483,399</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="indicador_precios">📈 B100: $ 20.192,53</span>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="brand">
+
+      <h1 class="logo-text">BGREEN<span>NET</span></h1>
+
+      <p class="clock-display">
+        <i class="bi bi-clock"></i> {{ currentTime | date:'HH:mm:ss' }}
+      </p>
+
+    </div>
+
+    <div class="nav">
+      <!-- Búsqueda -->
+      <div class="search-container">
+        <input type="text" class="search-input" placeholder="Buscar... (Ctrl+K)" [(ngModel)]="searchQuery" />
+        <button class="search-btn">
+          <i class="bi bi-search"></i>
+        </button>
+        <button *ngIf="searchQuery" class="clear-search-btn" (click)="clearSearch()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+
+      <!-- Botón modo oscuro -->
+      <button class="theme-toggle" (click)="toggleDarkMode()" title="Cambiar tema">
+        <i class="bi" [class.bi-moon-stars]="!darkMode" [class.bi-sun-fill]="darkMode"></i>
+      </button>
+
+      <!-- Notificaciones -->
+      <button class="notification-btn" (click)="toggleNotifications($event)">
+        <i class="bi bi-bell"></i>
+        <span class="notification-badge" *ngIf="notificaciones.length > 0">{{notificaciones.length}}</span>
+      </button>
+
+      <!-- Dropdown de Notificaciones -->
+      <div class="notifications-dropdown" *ngIf="isNotificationMenuOpen" (click)="$event.stopPropagation()">
+        <div class="notifications-header">
+          <span>Notificaciones</span>
+          <button class="btn-clear-all" *ngIf="notificaciones.length > 0" (click)="marcarTodasComoLeidas()">Limpiar todo</button>
+        </div>
+        <div class="notifications-list">
+          <div *ngFor="let n of notificaciones" class="notification-item" (click)="irANotificacion(n)">
+            <div class="notification-icon" [ngClass]="n.tipo.toLowerCase()">
+              <i class="bi" [class.bi-plus-circle]="n.tipo === 'NUEVA_TAREA'" [class.bi-chat-left-dots]="n.tipo === 'NUEVO_MENSAJE'"></i>
+            </div>
+            <div class="notification-content">
+              <p class="notif-msg">{{ n.mensaje }}</p>
+              <span class="notif-date">{{ n.fecha | date:'dd/MM HH:mm' }}</span>
+            </div>
+            <button class="btn-check-notif" (click)="leida(n, $event)">
+              <i class="bi bi-check2"></i>
+            </button>
+          </div>
+          <div *ngIf="notificaciones.length === 0" class="notif-empty">
+            <i class="bi bi-bell-slash"></i>
+            <p>No tienes notificaciones pendientes</p>
+          </div>
+        </div>
+      </div>
+
+      <a (click)="openModalformatos('contactos')">Contactos</a>
+      <a (click)="openModalformatos('formatos')">Formatos</a>
+
+      <!-- Menú de usuario  -->
+      <div class="user-menu-container">
+        <button class="user-avatar" (click)="toggleUserMenu()">
+          {{ initials }}
+        </button>
+
+        <!-- Dropdown del usuario -->
+        <div class="user-dropdown" *ngIf="isUserMenuOpen">
+          <div class="user-dropdown-header">
+            <div class="user-avatar-large">{{ initials }}</div>
+            <div class="user-info">
+              <p class="user-name">{{ fullName }}</p>
+              <p class="user-email">{{ userEmail }}</p>
+              <p class="user-role">{{ userRole }} • {{ nameempresa }}</p>
+            </div>
+          </div>
+
+          <div class="user-dropdown-menu">
+            <div class="dropdown-section-title">Personalización</div>
+
+            <!-- Eliminado Ver Gráfico TRM por solicitud del usuario -->
+
+
+            <button class="dropdown-item" (click)="toggleWidget('tasks'); $event.stopPropagation()">
+              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.tasks"
+                [class.bi-circle]="!dashboardWidgets.tasks"
+                [style.color]="dashboardWidgets.tasks ? 'var(--green-secondary)' : ''"></i>
+              <span>Ver Mis Tareas</span>
+            </button>
+            <button class="dropdown-item" (click)="toggleWidget('quickAccess'); $event.stopPropagation()">
+              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.quickAccess"
+                [class.bi-circle]="!dashboardWidgets.quickAccess"
+                [style.color]="dashboardWidgets.quickAccess ? 'var(--green-secondary)' : ''"></i>
+              <span>Ver Acceso Rápido</span>
+            </button>
+
+            <div class="dropdown-divider"></div>
+
+            <button class="dropdown-item" (click)="toggleAllWidgets(); $event.stopPropagation()">
+              <i class="bi bi-layout-sidebar"></i>
+              <span>Mostrar/Ocultar Todo</span>
+            </button>
+          </div>
+
+          <div class="dropdown-divider"></div>
+
+          <button class="dropdown-item" (click)="irAConfiguracion(); closeUserMenu()" *ngIf="tienePermisoConfiguracion">
+            <i class="bi bi-gear"></i>
+            <span>Configuración</span>
+          </button>
+
+
+          <button class="dropdown-item" (click)="abrirModalCambiarClave()">
+            <i class="bi bi-key"></i>
+            <span>Cambiar Clave</span>
+          </button>
+
+          <button class="dropdown-item logout-item" (click)="logout()">
+            <i class="bi bi-box-arrow-left"></i>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- </div> -->
+  </header>
+
+  <!-- Modal de Contactos/Formatos -->
+  <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModalformatos()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon">
+            <span *ngIf="modalType === 'contactos'">📧</span>
+            <span *ngIf="modalType === 'formatos'">📋</span>
+          </div>
+          <h2 class="modal-title">{{ modalTitle }}</h2>
+        </div>
+        <button class="btn-close" (click)="closeModalformatos()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tabla de Contactos -->
+        <div *ngIf="modalType === 'contactos'">
+          <!-- Buscador de contactos -->
+          <div class="contacto-search-wrapper">
+            <div class="contacto-search-container">
+              <i class="bi bi-search search-icon"></i>
+              <input type="text" class="contacto-search-input"
+                placeholder="Buscar contacto por nombre, cargo o correo..." [(ngModel)]="contactoSearchQuery" />
+              <button *ngIf="contactoSearchQuery" class="contacto-clear-btn" (click)="contactoSearchQuery = ''">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+
+          <table class="tabla-contactos" *ngIf="filteredContactos.length > 0">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Cargo</th>
+                <th>Correo</th>
+                <th>Extensión</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let contacto of filteredContactos; let i = index">
+                <td>
+                  <div class="nombre-cell">
+                    <div class="avatar avatar-{{(i % 5) + 1}}">
+                      {{ contacto.nombre?.charAt(0) || '?' }}
+                    </div>
+                    <div class="nombre-info">
+                      <strong>{{ contacto.nombre }}</strong>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="cargo-badge">{{ contacto.cargo }}</span>
+                </td>
+                <td>
+                  <a [href]="'mailto:' + contacto.correo" class="correo-link">
+                    <span>✉</span>
+                    {{ contacto.correo }}
+                  </a>
+                </td>
+                <td>
+                  <span class="ext-badge">
+                    <span>📞</span>
+                    {{ contacto.ext }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" *ngIf="filteredContactos.length === 0">
+            <div class="empty-state-icon">📭</div>
+            <p>{{ contactoSearchQuery ? 'No se encontraron contactos que coincidan con "' + contactoSearchQuery + '"' :
+              'No hay contactos disponibles en este momento' }}</p>
+            <button *ngIf="contactoSearchQuery" class="btn-cerrar" style="margin-top: 10px;"
+              (click)="contactoSearchQuery = ''">Limpiar búsqueda</button>
+          </div>
+        </div>
+
+        <!-- Tabla de Formatos -->
+        <div *ngIf="modalType === 'formatos'">
+          <table class="tabla-contactos" *ngIf="formatosData.length > 0">
+            <thead>
+              <tr>
+                <th>Formato</th>
+                <th>Descripción</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let formato of formatosData; let i = index">
+                <td>
+                  <div class="nombre-cell">
+                    <div class="avatar avatar-{{(i % 5) + 1}}">📄</div>
+                    <div class="nombre-info">
+                      <strong>{{ formato.nombre }}</strong>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ formato.descripcion || 'Documento descargable' }}</td>
+                <td>
+                  <a [href]="formato.url" target="_blank" class="formato-link">
+                    <span>⬇</span>
+                    Descargar
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" *ngIf="formatosData.length === 0">
+            <div class="empty-state-icon">📂</div>
+            <p>No hay formatos disponibles en este momento</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="footer-info">
+          <strong *ngIf="modalType === 'contactos'">{{ filteredContactos.length }}</strong>
+          <strong *ngIf="modalType === 'formatos'">{{ formatosData.length }}</strong>
+          {{ modalType === 'contactos' ? 'contacto(s)' : 'formato(s)' }} disponible(s)
+        </span>
+        <button class="btn-cerrar" (click)="closeModalformatos()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido Principal -->
+  <main class="main-content" [class.focus-mode-active]="focusTasksMode">
+    <!-- Hero Section -->
+    <section class="hero-section" *ngIf="!focusTasksMode">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h2 class="hero-greeting">{{ greeting }}, {{ fullName.split(' ')[0] }}</h2>
+          <p class="hero-subtitle">Bienvenido a tu centro de mando empresarial</p>
+        </div>
+        <button class="customize-btn" (click)="toggleAllWidgets()">
+          <i class="bi bi-gear"></i>
+          Personalizar Vista
+        </button>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat-card">
+          <i class="bi bi-calendar-check"></i>
+          <div>
+            <p class="stat-value">{{ tareasHoy }}</p>
+            <p class="stat-label">Tareas hoy</p>
+          </div>
+        </div>
+
+        <div class="hero-stat-card">
+          <i class="bi bi-people"></i>
+          <div>
+            <p class="stat-value">0</p>
+            <p class="stat-label">Usuarios activos</p>
+          </div>
+        </div>
+        <div class="hero-stat-card">
+          <i class="bi bi-file-text"></i>
+          <div>
+            <p class="stat-value">0</p>
+            <p class="stat-label">Documentos</p>
+          </div>
+        </div>
+        <div class="hero-stat-card">
+          <i class="bi bi-activity"></i>
+          <div>
+            <p class="stat-value">0</p>
+            <p class="stat-label">Uptime</p>
+          </div>
+        </div>
+
+
+      </div>
+    </section>
+
+    <!-- Sistemas Disponibles -->
+    <section *ngIf="dashboardWidgets.quickAccess && !focusTasksMode">
+      <div class="section-header">
+        <h3>{{ searchQuery ? 'Resultados de búsqueda' : 'Sistemas Disponibles' }}</h3>
+        <div class="favorites-info" *ngIf="favorites.length > 0">
+          <i class="bi bi-star-fill"></i>
+          {{ favorites.length }} favorito(s)
+        </div>
+      </div>
+
+      <div class="apps-grid">
+        <div class="apps-container">
+          <div *ngFor="let s of filteredSistemas" class="app-item" [class.favorite]="isFavorite(s.id)">
+            <button class="favorite-btn" (click)="toggleFavorite(s.id)">
+              <i class="bi" [class.bi-star]="!isFavorite(s.id)" [class.bi-star-fill]="isFavorite(s.id)"></i>
+            </button>
+            <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="app-link">
+              <img [src]="s.imagenUrl" [alt]="s.nombre" width="100" height="100" />
+              <span class="app-name">{{ s.nombre }}</span>
+              <span class="app-category" *ngIf="s.category">{{ s.category }}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-search" *ngIf="filteredSistemas.length === 0 && searchQuery">
+        <i class="bi bi-search"></i>
+        <p>No se encontraron sistemas que coincidan con "{{ searchQuery }}"</p>
+        <button class="btn-cerrar" (click)="clearSearch()">Limpiar búsqueda</button>
+      </div>
+    </section>
+
+    <!-- Actividad Reciente 
+    <section class="activity-section" *ngIf="dashboardWidgets.activity">
+      <div class="section-header">
+        <h3>Actividad Reciente</h3>
+        <button class="close-widget-btn" (click)="toggleWidget('activity')">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="activity-list">
+        <div class="activity-item">
+          <div class="activity-indicator blue"></div>
+          <div class="activity-content">
+            <p class="activity-title">Nuevo documento</p>
+            <p class="activity-detail">Informe Q4 2024.pdf</p>
+          </div>
+          <span class="activity-time">Hace 5 min</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-indicator green"></div>
+          <div class="activity-content">
+            <p class="activity-title">Usuario conectado</p>
+            <p class="activity-detail">María García - Contabilidad</p>
+          </div>
+          <span class="activity-time">Hace 12 min</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-indicator orange"></div>
+          <div class="activity-content">
+            <p class="activity-title">Actualización TRM</p>
+            <p class="activity-detail">Nuevo valor: $4,483.39</p>
+          </div>
+          <span class="activity-time">Hace 1 hora</span>
+        </div>
+      </div>
+    </section>-->
+
+
+    <!-- 🆕 Sección de Tareas  -->
+    <section id="tareas-section" class="activity-section tareas-section-mejorada" [class.focus-mode]="focusTasksMode"
+      *ngIf="dashboardWidgets.tasks">
+      <div class="section-header">
+        <div class="section-title-with-badge">
+          <h3>📋 Tareas</h3>
+        </div>
+
+        <div class="section-actions">
+          <div class="view-toggle">
+            <button class="btn-toggle" [class.active]="tasksViewMode === 'cards'" (click)="setTasksViewMode('cards')" title="Vista Tarjetas">
+              <i class="bi bi-grid-3x3-gap-fill"></i>
+            </button>
+            <button class="btn-toggle" [class.active]="tasksViewMode === 'list'" (click)="setTasksViewMode('list')" title="Vista Lista">
+              <i class="bi bi-list-ul"></i>
+            </button>
+          </div>
+          <button class="btn-accion-redondo btn-focus" (click)="toggleTasksFocus()"
+            [title]="focusTasksMode ? 'Desactivar modo enfoque' : 'Activar modo enfoque'">
+            <i class="bi" [class.bi-fullscreen-exit]="focusTasksMode" [class.bi-fullscreen]="!focusTasksMode"></i>
+          </button>
+          <button class="btn-historial" (click)="abrirHistorial()" *ngIf="tareasFinalizadas.length > 0">
+            <i class="bi bi-clock-history"></i>
+            Historial ({{ tareasFinalizadas.length }})
+          </button>
+          <button class="btn-nueva-tarea-compacto" (click)="abrirModalTarea()">
+            <i class="bi bi-plus-lg"></i>
+            Nueva
+          </button>
+        </div>
+      </div>
+
+      <div class="tareas-scroll-container" *ngIf="tareasActivas.length > 0">
+        <!-- Lista de tareas estilo tarjetas -->
+        <div class="tareas-cards-grid" *ngIf="tasksViewMode === 'cards'">
+          <div *ngFor="let tarea of tareasActivas" class="tarea-card"
+               [attr.data-tarea-id]="tarea.id"
+               [class.tarea-card--alta]="tarea.prioridad.nombre === 'ALTA'"
+               [class.tarea-card--media]="tarea.prioridad.nombre === 'MEDIA'"
+               [class.tarea-card--baja]="tarea.prioridad.nombre === 'BAJA'"
+               [class.tarea-vencida]="esTareaVencida(tarea)"
+               [class.highlight-notif]="tareaResaltadaId == tarea.id">
+  
+            <!-- Barra de color superior según prioridad -->
+            <div class="tarea-card__stripe"></div>
+  
+            <!-- Header: #ID + Titulo  |  Badge Prioridad -->
+            <div class="tarea-card__header">
+              <div class="tarea-card__header-left">
+                <span class="tarea-card__id">#{{ tarea.id }}</span>
+                <h4 class="tarea-card__titulo" [title]="tarea.titulo">{{ tarea.titulo }}</h4>
+              </div>
+              <div class="tarea-card__header-right">
+                <span class="tarea-prioridad-mini"
+                  [class.prioridad-alta]="tarea.prioridad.nombre === 'ALTA'"
+                  [class.prioridad-media]="tarea.prioridad.nombre === 'MEDIA'"
+                  [class.prioridad-baja]="tarea.prioridad.nombre === 'BAJA'">
+                  {{ tarea.prioridad.nombre }}
+                </span>
+                <span class="vencida-badge" *ngIf="esTareaVencida(tarea)">Vencida</span>
+              </div>
+            </div>
+  
+            <!-- Cuerpo: descripción + asignación + fecha -->
+            <div class="tarea-card__body">
+              <p class="tarea-card__desc">{{ tarea.descripcion || 'Sin descripción' }}</p>
+
+              <!-- Avatares -->
+              <div class="tarea-card__assign-row">
+                <div class="tarea-card__avatars">
+                  <div class="tarea-card__avatar" [title]="getUserDisplayName(tarea.idUsuarioCreador)">
+                    {{ getUserInitials(tarea.idUsuarioCreador) }}
+                  </div>
+                  <div class="tarea-card__avatar tarea-card__avatar--secondary" 
+                       *ngIf="tarea.idUsuario !== tarea.idUsuarioCreador"
+                       [title]="getUserDisplayName(tarea.idUsuario)">
+                    {{ getUserInitials(tarea.idUsuario) }}
+                  </div>
+                  <!-- El botón '+' se oculta por ahora -->
+                  <!-- <div class="tarea-card__avatar tarea-card__avatar--add" 
+                       *ngIf="tarea.idUsuario === tarea.idUsuarioCreador"
+                       (click)="editarTarea(tarea)"
+                       title="Asignar a otra persona">
+                    <i class="bi bi-plus"></i>
+                  </div> -->
+                </div>
+              </div>
+
+              <!-- Fecha de vencimiento (Siempre ocupa espacio) -->
+              <div class="tarea-card__date-row">
+                <i class="bi bi-calendar3"></i>
+                <span>Vence: {{ tarea.fechaLimite ? (tarea.fechaLimite | date:'dd/MM/yyyy HH:mm') : '' }}</span>
+              </div>
+            </div>
+  
+            <!-- Footer: SOLO iconos de acción -->
+            <div class="tarea-card__footer">
+              <div class="tarea-card__acciones-row">
+                <button class="btn-card-icon btn-iniciar"
+                  *ngIf="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                  (click)="cambiarEstado(tarea, 2)" title="Iniciar tarea">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <button class="btn-card-icon btn-finalizar"
+                  [disabled]="!tarea.fechaInicio"
+                  [title]="!tarea.fechaInicio ? 'Debe iniciar la tarea antes de finalizarla' : 'Finalizar tarea'"
+                  (click)="cambiarEstado(tarea, 3)">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+                <button class="btn-card-icon btn-cancelar-tarea"
+                  (click)="cambiarEstado(tarea, 4)" title="Cancelar tarea">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+                <button class="btn-card-icon btn-editar"
+                  *ngIf="tarea.idUsuarioCreador === id_usuario"
+                  (click)="editarTarea(tarea)" title="Editar tarea">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-card-icon btn-chat" style="position: relative;"
+                  (click)="abrirDetalle(tarea)" title="Ver detalle y chat">
+                  <i class="bi bi-chat-left-dots"></i>
+                  <span class="chat-badge-count" *ngIf="tieneMensajesSinLeer(tarea.id)">
+                    {{ getMensajesSinLeerCount(tarea.id) }}
+                  </span>
+                </button>
+                <span class="tarea-card__estado-badge"
+                  [class.estado-creada]="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                  [class.estado-en-proceso]="tarea.estado.nombre.toUpperCase() === 'EN PROCESO' || tarea.estado.nombre.toUpperCase() === 'INICIADA'">
+                  {{ tarea.estado.nombre }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de tareas estilo tabla -->
+        <div class="tareas-list-view" *ngIf="tasksViewMode === 'list'">
+          <table class="tabla-tareas-list">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tarea</th>
+                <th>Prioridad</th>
+                <th>Estado</th>
+                <th>Asignación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tarea of tareasActivas" 
+                  [class.highlight-notif]="tareaResaltadaId == tarea.id"
+                  [class.list-vencida]="esTareaVencida(tarea)">
+                <td><span class="list-id-badge">#{{ tarea.id }}</span></td>
+                <td>
+                  <div class="list-tarea-info">
+                    <span class="list-tarea-titulo" [title]="tarea.titulo">{{ tarea.titulo }}</span>
+                    <span class="list-tarea-vence" *ngIf="tarea.fechaLimite">
+                      <i class="bi bi-calendar-event"></i> {{ tarea.fechaLimite | date:'dd/MM HH:mm' }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="tarea-prioridad-mini"
+                    [class.prioridad-alta]="tarea.prioridad.nombre === 'ALTA'"
+                    [class.prioridad-media]="tarea.prioridad.nombre === 'MEDIA'"
+                    [class.prioridad-baja]="tarea.prioridad.nombre === 'BAJA'">
+                    {{ tarea.prioridad.nombre }}
+                  </span>
+                  <span class="vencida-badge" *ngIf="esTareaVencida(tarea)">Vencida</span>
+                </td>
+                <td>
+                  <span class="estado-badge-mini"
+                    [class.estado-creada]="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                    [class.estado-en-proceso]="tarea.estado.nombre.toUpperCase() === 'EN PROCESO' || tarea.estado.nombre.toUpperCase() === 'INICIADA'">
+                    {{ tarea.estado.nombre }} 
+                  </span>
+                </td>
+                <td>
+                  <div class="list-asignacion">
+                    <div class="mini-avatar" [title]="getUserDisplayName(tarea.idUsuario)">
+                      {{ getUserInitials(tarea.idUsuario) }}
+                    </div>
+                    <span class="list-user-name">{{ getUserDisplayName(tarea.idUsuario) }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="list-acciones">
+                    <button class="btn-list-accion btn-iniciar"
+                      *ngIf="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                      (click)="cambiarEstado(tarea, 2)" title="Iniciar">
+                      <i class="bi bi-play-fill"></i>
+                    </button>
+                    <button class="btn-list-accion btn-finalizar"
+                      [disabled]="!tarea.fechaInicio"
+                      (click)="cambiarEstado(tarea, 3)" title="Finalizar">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button class="btn-list-accion btn-chat" style="position: relative;"
+                      (click)="abrirDetalle(tarea)" title="Chat">
+                      <i class="bi bi-chat-left-dots"></i>
+                      <span class="chat-badge-count" *ngIf="tieneMensajesSinLeer(tarea.id)">
+                        {{ getMensajesSinLeerCount(tarea.id) }}
+                      </span>
+                    </button>
+                    <!-- Botón Editar -->
+                    <button class="btn-list-accion btn-editar"
+                      *ngIf="tarea.idUsuarioCreador === id_usuario"
+                      (click)="editarTarea(tarea)" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <!-- Botón Cancelar -->
+                    <button class="btn-list-accion btn-cancelar-tarea"
+                      *ngIf="tarea.idUsuarioCreador === id_usuario && tarea.estado.nombre.toUpperCase() !== 'FINALIZADA'"
+                      (click)="cambiarEstado(tarea, 4)" title="Cancelar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="tareas-empty-state-v2" *ngIf="tareasActivas.length === 0">
+        <div class="empty-state-viz">
+          <i class="bi bi-check2-all"></i>
+          <div class="viz-glow"></div>
+        </div>
+        <div class="empty-state-content">
+          <h4>¡Todo al día!</h4>
+          <p>No tienes tareas activas por el momento.</p>
+          <button class="btn-nueva-v2" (click)="abrirModalTarea()">
+            <i class="bi bi-plus-circle"></i>
+            Crear nueva tarea
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="activity-sectio-notice tareas-section-" *ngIf="!focusTasksMode">
+      <div class="section-header">
+        <div class="section-title-with-badge">
+          <h3>Descubre todo lo que está pasando</h3>
+        </div>
+      </div>
+
+      <!-- Grid de pulsos -->
+      <div class="pulsos-grid" *ngIf="pulsos && pulsos.length > 0">
+        <div class="pulso-card" *ngFor="let pulso of pulsos" (click)="abrirPulso(pulso)">
+          <div class="pulso-icon">
+            <img [src]="pulso.imagenUrl" [alt]="pulso.titulo" width="80" height="80" />
+
+          </div>
+          <div class="pulso-content">
+            <h4 class="pulso-titulo">{{ pulso.titulo }}</h4>
+            <p class="pulso-fecha" *ngIf="pulso.dateModify">
+              {{ pulso.dateCreate| date: 'dd/MM/yyyy' }}
+            </p>
+          </div>
+          <i class="bi bi-chevron-right pulso-arrow"></i>
+        </div>
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="empty-state-inline" *ngIf="!pulsos || pulsos.length === 0">
+        <i class="bi bi-inbox"></i>
+        <div>
+          <p><strong>No tienes novedades</strong></p>
+          <p class="text-muted">Vuelve más tarde</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal para mostrar la imagen del pulso -->
+    <div class="pulso-modal" *ngIf="pulsoSeleccionado" (click)="cerrarPulso()">
+      <div class="pulso-modal-content" (click)="$event.stopPropagation()">
+        <button class="pulso-modal-close" (click)="cerrarPulso()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+        <h3>{{ pulsoSeleccionado.titulo }}</h3>
+        <img [src]="pulsoSeleccionado.imagenUrl" [alt]="pulsoSeleccionado.titulo">
+      </div>
+    </div>
+
+
+    <!-- 🆕 Modal de Historial de Tareas -->
+    <div class="modal-overlay" *ngIf="isModalHistorialOpen" (click)="cerrarHistorial()">
+      <div class="modal-container" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-icon">
+              <i class="bi bi-clock-history"></i>
+            </div>
+            <h2 class="modal-title">Historial de Tareas</h2>
+          </div>
+          <button class="btn-close" (click)="cerrarHistorial()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="tabla-historial-container" *ngIf="tareasFinalizadas.length > 0">
+            <table class="tabla-contactos tabla-tareas-historial">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">Tarea</th>
+                  <th style="width: 10%;">Prioridad</th>
+                  <th style="width: 15%;">Inicio y Vence</th>
+                  <th style="width: 15%;">Finalización</th>
+                  <th style="width: 30%;">Nota Cierre</th>
+                  <th style="width: 5%;">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let tarea of tareasFinalizadas">
+                  <td>
+                    <div class="tarea-info">
+                      <strong>{{ tarea.titulo }}</strong>
+                      <p class="tarea-desc-mini" [title]="tarea.descripcion">{{ tarea.descripcion || 'Sin descripción' }}</p>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="tarea-prioridad-mini"
+                      [class.prioridad-alta]="tarea.prioridad.nombre === 'ALTA'"
+                      [class.prioridad-media]="tarea.prioridad.nombre === 'MEDIA'"
+                      [class.prioridad-baja]="tarea.prioridad.nombre === 'BAJA'">
+                      {{ tarea.prioridad.nombre }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="fechas-col">
+                      <span class="fecha-item" title="Inicio"><i class="bi bi-play-circle"></i> {{ (tarea.fechaInicio || tarea.fechaCreacion) | date:'dd/MM HH:mm' }}</span>
+                      <span class="fecha-item" title="Vencimiento" *ngIf="tarea.fechaLimite">
+                        <i class="bi bi-calendar-x" style="color: #ef4444;"></i> {{ tarea.fechaLimite | date:'dd/MM HH:mm' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="fechas-col">
+                      <span class="fecha-item" title="Fin">
+                        <i class="bi bi-check-circle" style="color: #10b981;"></i> {{ tarea.fechaCompletado | date:'dd/MM HH:mm' }}
+                      </span>
+                      <div class="status-entrega-container">
+                        <span class="badge-entrega" [class.entrega-ok]="entregadaATiempo(tarea)" [class.entrega-late]="!entregadaATiempo(tarea)" *ngIf="tarea.fechaLimite">
+                          {{ entregadaATiempo(tarea) ? 'A tiempo' : 'Fuera de tiempo' }}
+                        </span>
+                      </div>
+                      <span class="fecha-item duration-inline" title="Duración Total" style="color: var(--green-primary); font-weight: 700;">
+                        <i class="bi bi-stopwatch"></i> {{ getDuracion(tarea) }}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="nota-cierre-cell" [title]="tarea.notaCierre">
+                      <i class="bi bi-chat-quote" *ngIf="tarea.notaCierre"></i>
+                      {{ tarea.notaCierre || '-' }}
+                    </div>
+                  </td>
+                  <td>
+                    <button class="btn-accion-mini btn-detalle" (click)="abrirDetalle(tarea)" title="Ver detalle">
+                      <i class="bi bi-eye-fill"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-state-inline" *ngIf="tareasFinalizadas.length === 0">
+            <i class="bi bi-inbox"></i>
+            <div>
+              <p><strong>No hay tareas finalizadas</strong></p>
+              <p class="text-muted">Las tareas completadas aparecerán aquí</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <span class="footer-info">
+            <strong>{{ tareasFinalizadas.length }}</strong>
+            tarea{{ tareasFinalizadas.length !== 1 ? 's' : '' }} finalizada{{ tareasFinalizadas.length !== 1 ? 's' : ''
+            }}
+          </span>
+          <button class="btn-cerrar" (click)="cerrarHistorial()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de nueva tarea -->
+    <div class="modal-tarea-overlay" *ngIf="isModalTareaOpen" (click)="cerrarModalTarea()">
+      <div class="modal-tarea-container" (click)="$event.stopPropagation()">
+        <div class="modal-tarea-header">
+          <h3>
+            <i class="bi bi-plus-circle-fill"></i>
+            Nueva Tarea
+          </h3>
+          <button class="btn-close" (click)="cerrarModalTarea()">×</button>
+        </div>
+
+        <div class="modal-tarea-body">
+          <form #tareaForm="ngForm">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-fonts" style="color: #10b981;"></i>
+                Título de la Tarea
+              </label>
+              <input type="text" class="form-input" placeholder="Ej: Revisar documentos del proyecto"
+                [(ngModel)]="nuevaTarea.titulo" name="titulo" required #titulo="ngModel"
+                [class.input-error]="titulo.invalid && titulo.touched" />
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="bi bi-justify-left" style="color: #10b981;"></i>
+                Descripción Detallada
+              </label>
+              <textarea class="form-textarea" placeholder="Narra los detalles de la tarea..."
+                [(ngModel)]="nuevaTarea.descripcion" name="descripcion"></textarea>
+            </div>
+
+            <div class="row-fields">
+              <div class="form-group">
+                <label>
+                  <i class="bi bi-flag" style="color: #10b981;"></i>
+                  Prioridad
+                </label>
+                <select class="form-select" [(ngModel)]="nuevaTarea.idPrioridad" name="prioridad">
+                  <option [value]="3">🔵 Baja</option>
+                  <option [value]="2">🟡 Media</option>
+                  <option [value]="1">🔴 Alta</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <i class="bi bi-person-plus" style="color: #10b981;"></i>
+                  Asignar a
+                </label>
+                <select class="form-select" [(ngModel)]="usuarioAsignadoId" name="usuarioAsignado">
+                  <option [ngValue]="null">Mismo (Yo)</option>
+                  <option *ngFor="let user of filteredUsuariosList" [value]="user.idUsuario">
+                    {{ user.nombre }} {{ user.apellido }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="bi bi-calendar-event" style="color: #10b981;"></i>
+                Fecha Límite
+              </label>
+              <input type="datetime-local" class="form-input" [(ngModel)]="nuevaTarea.fechaLimite"
+                name="fechaLimite" />
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-tarea-footer">
+          <button class="btn-cancelar" (click)="cerrarModalTarea()">
+            Cerrar
+          </button>
+          <button class="btn-guardar" (click)="crearTarea()" [disabled]="!nuevaTarea.titulo.trim()">
+            <i class="bi bi-check-lg"></i>
+            Crear Tarea
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Detalle y Chat -->
+    <!-- MODAL EDITAR TAREA -->
+    <div class="modal-tarea-overlay" *ngIf="isModalEditarOpen" (click)="cerrarModalEditar()">
+      <div class="modal-tarea-container" (click)="$event.stopPropagation()">
+        <div class="modal-tarea-header">
+          <h3>
+            <i class="bi bi-pencil-square"></i>
+            Editar Tarea
+          </h3>
+          <button class="btn-close" (click)="cerrarModalEditar()">×</button>
+        </div>
+
+        <div class="modal-tarea-body">
+          <form #editForm="ngForm">
+            <div class="form-group">
+              <label>
+                <i class="bi bi-fonts" style="color: #10b981;"></i>
+                Título de la Tarea
+              </label>
+              <input type="text" class="form-input" placeholder="Ej: Revisar documentos del proyecto"
+                [(ngModel)]="tareaEdit.titulo" name="titulo" required #tituloEdit="ngModel"
+                [class.input-error]="tituloEdit.invalid && tituloEdit.touched" />
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="bi bi-justify-left" style="color: #10b981;"></i>
+                Descripción Detallada
+              </label>
+              <textarea class="form-textarea" placeholder="Narra los detalles de la tarea..."
+                [(ngModel)]="tareaEdit.descripcion" name="descripcion"></textarea>
+            </div>
+
+            <div class="row-fields">
+              <div class="form-group">
+                <label>
+                  <i class="bi bi-flag" style="color: #10b981;"></i>
+                  Prioridad
+                </label>
+                <select class="form-select" [(ngModel)]="tareaEdit.idPrioridad" name="prioridad">
+                  <option [value]="3">🔵 Baja</option>
+                  <option [value]="2">🟡 Media</option>
+                  <option [value]="1">🔴 Alta</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <i class="bi bi-calendar-event" style="color: #10b981;"></i>
+                  Fecha Límite
+                </label>
+                <input type="datetime-local" class="form-input" [(ngModel)]="tareaEdit.fechaLimite"
+                  name="fechaLimite" />
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-tarea-footer">
+          <button class="btn-cancelar" (click)="cerrarModalEditar()">
+            Cerrar
+          </button>
+          <button class="btn-guardar" (click)="guardarCambiosTarea()" [disabled]="editForm.invalid">
+            <i class="bi bi-save"></i>
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" *ngIf="isModalDetalleOpen" (click)="cerrarDetalle()">
+      <div class="detalle-modal" (click)="$event.stopPropagation()"
+           [class.highlight-notif]="tareaResaltadaId == tareaSeleccionada?.id">
+
+        <!-- Franja de color superior según prioridad -->
+        <div class="detalle-modal__stripe"
+          [class.stripe--alta]="tareaSeleccionada?.prioridad?.nombre === 'ALTA'"
+          [class.stripe--media]="tareaSeleccionada?.prioridad?.nombre === 'MEDIA'"
+          [class.stripe--baja]="tareaSeleccionada?.prioridad?.nombre === 'BAJA'">
+        </div>
+
+        <!-- Header compacto con título y close -->
+        <div class="detalle-modal__header">
+          <div class="detalle-modal__header-left">
+            <div class="detalle-modal__avatar">
+              {{ getUserInitials(tareaSeleccionada?.idUsuarioCreador) }}
+            </div>
+            <div>
+              <h2 class="detalle-modal__titulo">{{ tareaSeleccionada?.titulo }}</h2>
+              <p class="detalle-modal__subtitulo">{{ tareaSeleccionada?.descripcion || 'Sin descripción adicional.' }}</p>
+            </div>
+          </div>
+          <button class="detalle-modal__close" (click)="cerrarDetalle()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <!-- Cuerpo dividido -->
+        <div class="detalle-modal__body">
+
+          <!-- Columna izquierda: Información -->
+          <div class="detalle-col-info">
+
+            <!-- Badges de estado y prioridad -->
+            <div class="detalle-badges-row">
+              <span class="estado-badge-mini"
+                [class.estado-creada]="tareaSeleccionada?.estado?.nombre === 'CREADA'"
+                [class.estado-en-proceso]="tareaSeleccionada?.estado?.nombre === 'EN PROCESO' || tareaSeleccionada?.estado?.nombre === 'INICIADA'"
+                [class.estado-finalizada]="tareaSeleccionada?.estado?.nombre === 'FINALIZADA'">
+                <i class="bi bi-circle-fill" style="font-size:7px"></i>
+                {{ tareaSeleccionada?.estado?.nombre }}
+              </span>
+              <span class="tarea-prioridad-mini"
+                [class.prioridad-alta]="tareaSeleccionada?.prioridad?.nombre === 'ALTA'"
+                [class.prioridad-media]="tareaSeleccionada?.prioridad?.nombre === 'MEDIA'"
+                [class.prioridad-baja]="tareaSeleccionada?.prioridad?.nombre === 'BAJA'">
+                {{ tareaSeleccionada?.prioridad?.nombre }}
+              </span>
+            </div>
+
+            <!-- Info grid -->
+            <div class="detalle-info-grid">
+              <div class="detalle-info-item">
+                <i class="bi bi-calendar3"></i>
+                <div>
+                  <span class="detalle-info-label">Creada</span>
+                  <span class="detalle-info-value">{{ tareaSeleccionada?.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              </div>
+              <div class="detalle-info-item">
+                <i class="bi bi-calendar-x"></i>
+                <div>
+                  <span class="detalle-info-label">Vencimiento</span>
+                  <span class="detalle-info-value" [class.text-danger]="tareaSeleccionada?.fechaLimite">
+                    {{ (tareaSeleccionada?.fechaLimite | date:'dd/MM/yyyy HH:mm') || 'No definida' }}
+                  </span>
+                </div>
+              </div>
+              <div class="detalle-info-item">
+                <i class="bi bi-person-plus"></i>
+                <div>
+                  <span class="detalle-info-label">Creada por</span>
+                  <span class="detalle-info-value">{{ getUserDisplayName(tareaSeleccionada?.idUsuarioCreador) }}</span>
+                </div>
+              </div>
+              <div class="detalle-info-item">
+                <i class="bi bi-person-check"></i>
+                <div>
+                  <span class="detalle-info-label">Asignada a</span>
+                  <span class="detalle-info-value">{{ getUserDisplayName(tareaSeleccionada?.idUsuario) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nota cierre -->
+            <div class="detalle-nota-cierre" *ngIf="tareaSeleccionada?.notaCierre">
+              <i class="bi bi-journal-text"></i>
+              <div>
+                <span class="detalle-info-label">Nota de Cierre</span>
+                <p>{{ tareaSeleccionada?.notaCierre }}</p>
+              </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="detalle-acciones-premium" *ngIf="tareaSeleccionada?.estado?.nombre !== 'FINALIZADA'">
+              <button class="btn-detalle-accion btn-iniciar-detalle"
+                *ngIf="tareaSeleccionada?.estado?.nombre === 'CREADA'"
+                (click)="cambiarEstado(tareaSeleccionada!, 2)">
+                <i class="bi bi-play-fill"></i> Iniciar
+              </button>
+              <button class="btn-detalle-accion btn-finalizar-detalle"
+                [disabled]="!tareaSeleccionada?.fechaInicio"
+                [title]="!tareaSeleccionada?.fechaInicio ? 'Debe iniciar la tarea antes de finalizarla' : 'Finalizar tarea'"
+                (click)="cambiarEstado(tareaSeleccionada!, 3)">
+                <i class="bi bi-check-lg"></i> Finalizar
+              </button>
+              <button class="btn-detalle-accion btn-editar-detalle"
+                *ngIf="tareaSeleccionada?.idUsuarioCreador === id_usuario"
+                (click)="editarTarea(tareaSeleccionada!)">
+                <i class="bi bi-pencil"></i> Editar tarea
+              </button>
+              <button class="btn-detalle-accion btn-fecha-detalle"
+                *ngIf="tareaSeleccionada?.idUsuarioCreador === id_usuario"
+                (click)="editarFechaLimite(tareaSeleccionada!)">
+                <i class="bi bi-calendar-event"></i> Cambiar fecha límite
+              </button>
+            </div>
+          </div>
+
+          <!-- Columna derecha: Chat -->
+          <div class="detalle-col-chat">
+            <!-- Chat header -->
+            <div class="detalle-chat-header">
+              <div class="detalle-chat-header-left">
+                <i class="bi bi-chat-dots-fill"></i>
+                <span>Seguimiento</span>
+                <span class="chat-count-badge" *ngIf="seguimientos.length > 0">{{ seguimientos.length }}</span>
+              </div>
+            </div>
+
+            <!-- Mensajes -->
+            <div class="detalle-chat-messages">
+              <div *ngFor="let msg of seguimientos"
+                class="chat-msg-wrapper"
+                [class.own-msg]="msg.usuario?.idUsuario === id_usuario">
+                <div class="chat-user-avatar">
+                  {{ getUserInitials(msg.usuario?.idUsuario) }}
+                </div>
+                <div class="chat-msg-content">
+                  <div class="chat-msg-info">
+                    <span class="chat-date">{{ msg.fecha | date:'dd/MM HH:mm' }}</span>
+                    <span class="chat-name">{{ getUserDisplayName(msg.usuario?.idUsuario) }}</span>
+                  </div>
+                  <div class="chat-msg-body">{{ msg.mensaje }}</div>
+                </div>
+              </div>
+
+              <div *ngIf="seguimientos.length === 0" class="chat-empty">
+                <i class="bi bi-chat-square-text" style="font-size:32px; opacity:0.3; display:block; margin-bottom:8px;"></i>
+                Inicia el seguimiento enviando el primer mensaje
+              </div>
+            </div>
+
+            <!-- Input -->
+            <div class="detalle-chat-input" *ngIf="tareaSeleccionada?.estado?.nombre !== 'FINALIZADA'">
+              <input type="text"
+                [(ngModel)]="mensajeSeguimiento"
+                (keyup.enter)="enviarMensaje()"
+                placeholder="Escribe un mensaje de seguimiento...">
+              <button (click)="enviarMensaje()" [disabled]="!mensajeSeguimiento.trim()">
+                <i class="bi bi-send-fill"></i>
+              </button>
+            </div>
+
+            <!-- Aviso si está finalizada -->
+            <div class="chat-finalizada-aviso" *ngIf="tareaSeleccionada?.estado?.nombre === 'FINALIZADA'">
+              <i class="bi bi-lock-fill"></i> Esta tarea está finalizada
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+
+
+  <!-- Modal TRM Detallado -->
+  <div class="modal-overlay" *ngIf="isTrmModalOpen" (click)="closeTrmModal()">
+    <div class="modal-container modal-trm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon">📊</div>
+          <h2 class="modal-title">Análisis Completo TRM</h2>
+        </div>
+        <button class="btn-close" (click)="closeTrmModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Resumen TRM -->
+        <div class="trm-summary-grid">
+          <div class="trm-summary-card">
+            <p class="summary-label">Valor Actual</p>
+            <p class="summary-value">$ {{ currentTrmValue }}</p>
+          </div>
+          <div class="trm-summary-card">
+            <p class="summary-label">Máximo (7d)</p>
+            <p class="summary-value">$ {{MaximoTrm}}</p>
+          </div>
+          <div class="trm-summary-card">
+            <p class="summary-label">Mínimo (7d)</p>
+            <p class="summary-value">${{MinimoTrm}}</p>
+          </div>
+        </div>
+
+        <!-- Selector de fecha -->
+        <div class="date-filter">
+          <label for="trm-date">Consultar fecha específica:</label>
+          <input type="date" id="trm-date" [(ngModel)]="selectedTrmDate" />
+          <button (click)="searchTrmByDate()" class="btn-search">
+            <i class="bi bi-search"></i> Consultar
+          </button>
+        </div>
+
+        <!-- Resultado de búsqueda -->
+        <div *ngIf="trmResult" class="trm-result">
+          <p><strong>Fecha:</strong> {{ formatDate(trmResult.vigenciadesde) }}</p>
+          <p><strong>TRM:</strong> $ {{ trmResult.valor }}</p>
+        </div>
+
+        <div *ngIf="!trmResult && selectedTrmDate" class="trm-result empty">
+          <p>⚠️ No se encontró un valor de TRM para esa fecha.</p>
+        </div>
+
+        <!-- Histórico detallado -->
+        <div class="history-section">
+          <h4>Últimos 7 días:</h4>
+          <div class="history-list">
+            <div *ngFor="let item of trmHistory" class="history-item">
+              <span class="history-date">{{ item.fecha }}</span>
+              <span class="history-value">$ {{ item.valor | number:'1.2-2':'es-CO' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cerrar" (click)="closeTrmModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+<!-- Modal Cambiar Clave -->
+<div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen" (click)="cerrarModalCambiarClave()">
+  <div class="modal-tarea-container clave-modal-container" (click)="$event.stopPropagation()">
+
+    <div class="modal-tarea-header">
+      <h3>
+        <i class="bi bi-key-fill"></i>
+        Cambiar Clave
+      </h3>
+      <button class="btn-close" (click)="cerrarModalCambiarClave()">×</button>
+    </div>
+
+    <div class="modal-tarea-body">
+
+      <!-- Clave actual -->
+      <div class="form-group">
+        <label>Clave actual <span class="required">*</span></label>
+        <div class="password-input-wrapper">
+          <input [type]="mostrarClaveActual ? 'text' : 'password'" class="form-input"
+            placeholder="Ingresa tu clave actual" [(ngModel)]="claveActual" name="claveActual" />
+          <button type="button" class="toggle-eye" (click)="mostrarClaveActual = !mostrarClaveActual">
+            <i class="bi" [class.bi-eye]="!mostrarClaveActual" [class.bi-eye-slash]="mostrarClaveActual"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Nueva clave -->
+      <div class="form-group">
+        <label>Nueva clave <span class="required">*</span></label>
+        <div class="password-input-wrapper">
+          <input [type]="mostrarNuevaClave ? 'text' : 'password'" class="form-input"
+            placeholder="Ingresa tu nueva clave" [(ngModel)]="nuevaClave" name="nuevaClave" />
+          <button type="button" class="toggle-eye" (click)="mostrarNuevaClave = !mostrarNuevaClave">
+            <i class="bi" [class.bi-eye]="!mostrarNuevaClave" [class.bi-eye-slash]="mostrarNuevaClave"></i>
+          </button>
+        </div>
+
+        <!-- Indicadores de requisitos -->
+        <div class="password-requirements" *ngIf="nuevaClave.length > 0">
+          <span [class.req-ok]="tieneMayuscula" [class.req-fail]="!tieneMayuscula">
+            <i class="bi" [class.bi-check-circle-fill]="tieneMayuscula" [class.bi-x-circle-fill]="!tieneMayuscula"></i>
+            Mayúscula
+          </span>
+          <span [class.req-ok]="tieneMinuscula" [class.req-fail]="!tieneMinuscula">
+            <i class="bi" [class.bi-check-circle-fill]="tieneMinuscula" [class.bi-x-circle-fill]="!tieneMinuscula"></i>
+            Minúscula
+          </span>
+          <span [class.req-ok]="tieneNumero" [class.req-fail]="!tieneNumero">
+            <i class="bi" [class.bi-check-circle-fill]="tieneNumero" [class.bi-x-circle-fill]="!tieneNumero"></i>
+            Número
+          </span>
+          <span [class.req-ok]="tieneLongitud" [class.req-fail]="!tieneLongitud">
+            <i class="bi" [class.bi-check-circle-fill]="tieneLongitud" [class.bi-x-circle-fill]="!tieneLongitud"></i>
+            Mínimo 8 caracteres
+          </span>
+          <span [class.req-ok]="tieneCaracterEspecial" [class.req-fail]="!tieneCaracterEspecial">
+            <i class="bi" [class.bi-check-circle-fill]="tieneCaracterEspecial"
+              [class.bi-x-circle-fill]="!tieneCaracterEspecial"></i>
+            Carácter especial (!@#$...)
+          </span>
+        </div>
+      </div>
+
+      <!-- Confirmar nueva clave -->
+      <div class="form-group">
+        <label>Confirmar nueva clave <span class="required">*</span></label>
+        <div class="password-input-wrapper">
+          <input [type]="mostrarConfirmarClave ? 'text' : 'password'" class="form-input"
+            [class.input-error]="confirmarClave.length > 0 && !claveConfirmadaValida"
+            [class.input-ok]="confirmarClave.length > 0 && claveConfirmadaValida" placeholder="Confirma tu nueva clave"
+            [(ngModel)]="confirmarClave" name="confirmarClave" />
+          <button type="button" class="toggle-eye" (click)="mostrarConfirmarClave = !mostrarConfirmarClave">
+            <i class="bi" [class.bi-eye]="!mostrarConfirmarClave" [class.bi-eye-slash]="mostrarConfirmarClave"></i>
+          </button>
+        </div>
+        <small class="match-hint" *ngIf="confirmarClave.length > 0 && !claveConfirmadaValida">Las claves no
+          coinciden</small>
+      </div>
+
+      <!-- Mensajes -->
+      <div class="clave-error" *ngIf="errorClave">⚠️ {{ errorClave }}</div>
+      <div class="clave-success" *ngIf="successClave">✅ {{ successClave }}</div>
+
+    </div>
+
+    <div class="modal-tarea-footer">
+      <button class="btn-cancelar" (click)="cerrarModalCambiarClave()">Cancelar</button>
+      <button class="btn-guardar" (click)="guardarClave()"
+        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida">
+        <i class="bi bi-shield-lock"></i>
+        Guardar Clave
+      </button>
+    </div>
+
+  </div>
+</div>
+
+</html>

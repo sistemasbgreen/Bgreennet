@@ -1,0 +1,283 @@
+<div class="pulsos-admin-container">
+
+  <!-- ========== VISTA LISTA ========== -->
+  <div class="vista-lista" *ngIf="vistaActual === 'lista'">
+
+    <!-- Header -->
+    <div class="admin-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h2>
+            <i class="bi bi-lightning-charge-fill"></i>
+            Administración de Pulsos
+          </h2>
+          <p class="text-muted">Gestiona los anuncios y novedades de la plataforma</p>
+        </div>
+        <button class="btn btn-primary" (click)="mostrarFormularioCrear()">
+          <i class="bi bi-plus-lg"></i>
+          Crear Pulso
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="filters-section">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Buscar pulsos..." [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()">
+      </div>
+
+
+      <div class="filter-buttons">
+        <button class="filter-btn" [class.active]="filtroEstado === 'todos'" (click)="onFiltroEstadoChange('todos')">
+          Todos
+        </button>
+        <button class="filter-btn" [class.active]="filtroEstado === 'activos'"
+          (click)="onFiltroEstadoChange('activos')">
+          Activos
+        </button>
+        <button class="filter-btn" [class.active]="filtroEstado === 'inactivos'"
+          (click)="onFiltroEstadoChange('inactivos')">
+          Inactivos
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-container" *ngIf="loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p>Cargando pulsos...</p>
+    </div>
+
+    <!-- Lista de pulsos -->
+    <div class="pulsos-list" *ngIf="!loading">
+      <!-- Estado vacío -->
+      <div class="empty-state" *ngIf="pulsosFiltrados.length === 0">
+        <i class="bi bi-inbox"></i>
+        <h3>No hay pulsos</h3>
+        <p *ngIf="searchTerm || filtroEstado !== 'todos'">
+          No se encontraron pulsos con los filtros seleccionados
+        </p>
+        <p *ngIf="!searchTerm && filtroEstado === 'todos'">
+          Crea tu primer pulso para comenzar
+        </p>
+        <button class="btn btn-primary" (click)="mostrarFormularioCrear()">
+          <i class="bi bi-plus-lg"></i>
+          Crear Pulso
+        </button>
+      </div>
+
+      <!-- Tarjetas de pulsos -->
+      <div class="pulsos-grid" *ngIf="pulsosFiltrados.length > 0">
+        <div class="pulso-card" *ngFor="let pulso of pulsosFiltrados">
+          <!-- Preview de imagen -->
+          <div class="pulso-image" *ngIf="pulso.imagenUrl">
+            <img [src]="pulso.imagenUrl" [alt]="pulso.titulo">
+            <div class="image-overlay">
+              <button class="btn-icon" (click)="mostrarFormularioEditar(pulso)">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </div>
+          </div>
+          <div class="pulso-no-image" *ngIf="!pulso.imagenUrl">
+            <i class="bi bi-image"></i>
+            <span>Sin imagen</span>
+          </div>
+
+          <!-- Contenido -->
+          <div class="pulso-body">
+            <div class="pulso-header-info">
+              <h4 class="pulso-titulo">{{ pulso.titulo }}</h4>
+              <span class="badge" [ngClass]="getEstadoBadgeClass(pulso)">
+                {{ getEstadoTexto(pulso) }}
+              </span>
+            </div>
+
+            <p class="pulso-descripcion" *ngIf="pulso.descripcion">
+              {{ pulso.descripcion }}
+            </p>
+
+            <!-- Metadata -->
+            <div class="pulso-meta">
+              <div class="meta-item">
+                <i class="bi bi-calendar-event"></i>
+                <span>Vence: {{ pulso.fechaFinal | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="meta-item" *ngIf="pulso.fechaActivacion">
+                <i class="bi bi-calendar-check"></i>
+                <span>Activa: {{ pulso.fechaActivacion | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="meta-item" *ngIf="pulso.creadoPor">
+                <i class="bi bi-person"></i>
+                <span>{{ pulso.creadoPor }}</span>
+              </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="pulso-actions">
+              <button class="btn btn-sm btn-outline-primary" (click)="mostrarFormularioEditar(pulso)" title="Editar">
+                <i class="bi bi-pencil"></i>
+                Editar
+              </button>
+
+              <button class="btn btn-sm" [class.btn-outline-success]="!pulso.activo"
+                [class.btn-outline-warning]="pulso.activo" (click)="cambiarEstado(pulso)"
+                [title]="pulso.activo ? 'Desactivar' : 'Activar'">
+                <i class="bi" [class.bi-toggle-on]="pulso.activo" [class.bi-toggle-off]="!pulso.activo"></i>
+                {{ pulso.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+
+              <button class="btn btn-sm btn-outline-danger" (click)="eliminarPulso(pulso)" title="Eliminar">
+                <i class="bi bi-trash"></i>
+                Eliminar
+              </button>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========== VISTA FORMULARIO ========== -->
+  <div class="vista-formulario" *ngIf="vistaActual === 'formulario'">
+    <!-- Header -->
+    <div class="form-header">
+      <button class="btn-back" (click)="volverALista()">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <h2>
+        <i class="bi bi-lightning-charge-fill"></i>
+        {{ isEditMode ? 'Editar Pulso' : 'Crear Nuevo Pulso' }}
+      </h2>
+    </div>
+
+    <!-- Formulario -->
+    <form [formGroup]="pulsoForm" (ngSubmit)="onSubmit()" class="pulso-form">
+      <div class="form-content">
+        <!-- Sección Izquierda - Imagen -->
+        <div class="image-section">
+          <label class="section-label">Imagen del pulso</label>
+
+          <!-- Preview de imagen -->
+          <div class="image-upload-area">
+            <div class="image-preview" *ngIf="imagePreview">
+              <img [src]="imagePreview" alt="Preview">
+              <div class="image-overlay">
+                <button type="button" class="btn-delete-image" (click)="eliminarImagen()">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="upload-placeholder" *ngIf="!imagePreview">
+              <i class="bi bi-cloud-upload"></i>
+              <p>Arrastra una imagen o haz clic para seleccionar</p>
+              <small>PNG, JPG o WEBP (máx. 5MB)</small>
+            </div>
+
+            <input type="file" #imageInput accept="image/*" (change)="onFileSelected($event)" style="display: none;">
+
+            <button type="button" class="btn btn-outline-primary btn-select-image" (click)="imageInput.click()"
+              *ngIf="!imagePreview">
+              <i class="bi bi-image"></i>
+              Seleccionar Imagen
+            </button>
+          </div>
+        </div>
+
+        <!-- Sección Derecha - Datos -->
+        <div class="data-section">
+          <!-- Título -->
+          <div class="form-group">
+            <label for="titulo">
+              Título *
+              <span class="char-count">
+                {{ pulsoForm.get('titulo')?.value?.length || 0 }}/200
+              </span>
+            </label>
+            <input type="text" id="titulo" class="form-control" formControlName="titulo"
+              placeholder="Ej: Nueva funcionalidad disponible" [class.is-invalid]="isFieldInvalid('titulo')">
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('titulo')">
+              {{ getErrorMessage('titulo') }}
+            </div>
+          </div>
+
+          <!-- Descripción -->
+          <div class="form-group">
+            <label for="descripcion">
+              Descripción
+              <span class="char-count">
+                {{ pulsoForm.get('descripcion')?.value?.length || 0 }}/1000
+              </span>
+            </label>
+            <textarea id="descripcion" class="form-control" formControlName="descripcion" rows="4"
+              placeholder="Describe brevemente de qué trata este pulso..."
+              [class.is-invalid]="isFieldInvalid('descripcion')"></textarea>
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('descripcion')">
+              {{ getErrorMessage('descripcion') }}
+            </div>
+          </div>
+
+          <!-- Fecha Final -->
+          <div class="form-group">
+            <label for="fechaFinal">Fecha de finalización *</label>
+            <input type="date" id="fechaFinal" class="form-control" formControlName="fechaFinal" [min]="minDate"
+              [class.is-invalid]="isFieldInvalid('fechaFinal')">
+            <small class="form-text text-muted">
+              El pulso se ocultará automáticamente después de esta fecha
+            </small>
+            <div class="invalid-feedback" *ngIf="isFieldInvalid('fechaFinal')">
+              {{ getErrorMessage('fechaFinal') }}
+            </div>
+          </div>
+
+          <!-- Fecha de Activación -->
+          <div class="form-group">
+            <label for="fechaActivacion">Fecha de activación (opcional)</label>
+            <input type="date" id="fechaActivacion" class="form-control" formControlName="fechaActivacion" [min]="minDate">
+            <small class="form-text text-muted">
+              El pulso se activará automáticamente en esta fecha. Si se deja vacío, se activará de inmediato.
+            </small>
+          </div>
+
+          <!-- Estado -->
+          <div class="form-group" *ngIf="isEditMode">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="activo" formControlName="activo">
+              <label class="form-check-label" for="activo">
+                Pulso activo
+              </label>
+            </div>
+            <small class="form-text text-muted">
+              Los pulsos inactivos no se mostrarán a los usuarios
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="volverALista()" [disabled]="loading">
+          <i class="bi bi-x-lg"></i>
+          Cancelar
+        </button>
+
+        <button type="submit" class="btn btn-primary" [disabled]="loading || uploadingImage">
+          <span *ngIf="loading || uploadingImage" class="spinner-border spinner-border-sm me-2"></span>
+          <i class="bi bi-check-lg" *ngIf="!loading && !uploadingImage"></i>
+          <span *ngIf="uploadingImage">Subiendo imagen...</span>
+          <span *ngIf="loading && !uploadingImage">Guardando...</span>
+          <span *ngIf="!loading && !uploadingImage">
+            {{ isEditMode ? 'Actualizar Pulso' : 'Crear Pulso' }}
+          </span>
+        </button>
+      </div>
+    </form>
+
+  </div>
+
+</div>

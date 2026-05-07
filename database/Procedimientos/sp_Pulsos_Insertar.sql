@@ -1,0 +1,65 @@
+/***************************
+Project      : BgreenNet
+Created By   : Jose Angulo
+Created Date : 18/03/2026
+Description  : Inserta un nuevo pulso
+History      : - /
+***************************/
+
+CREATE OR ALTER PROCEDURE [dbo].[sp_Pulsos_Insertar]
+    @titulo NVARCHAR(255),
+    @descripcion NVARCHAR(MAX) = NULL,
+    @imagen_url NVARCHAR(500) = NULL,
+    @imagen_nombre_original NVARCHAR(255) = NULL,
+    @imagen_tipo_mime NVARCHAR(100) = NULL,
+    @imagen_tamano_bytes INT = NULL,
+    @Fecha_Final DATETIME,
+    @creado_por NVARCHAR(100),
+    @fecha_Activacion DATETIME = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Si no se especifica fecha de activación, se asume activo de inmediato
+    -- EXPLICACIÓN: Si fecha_Activacion es NULL, activo=1. 
+    -- Si fecha_Activacion > hoy, activo=0 (el scheduler lo activará).
+    -- Si fecha_Activacion <= hoy, activo=1.
+    
+    DECLARE @activo BIT = 1;
+    IF (@fecha_Activacion IS NOT NULL AND @fecha_Activacion > GETDATE())
+    BEGIN
+        SET @activo = 0;
+    END
+
+    INSERT INTO [dbo].[Pulsos] (
+        [titulo],
+        [descripcion],
+        [imagen_url],
+        [imagen_nombre_original],
+        [imagen_tipo_mime],
+        [imagen_tamano_bytes],
+        [Fecha_Final],
+        [activo],
+        [creado_por],
+        [fecha_Activacion],
+        [date_create],
+        [date_Modify]
+    )
+    VALUES (
+        @titulo,
+        @descripcion,
+        @imagen_url,
+        @imagen_nombre_original,
+        @imagen_tipo_mime,
+        @imagen_tamano_bytes,
+        @Fecha_Final,
+        @activo,
+        @creado_por,
+        @fecha_Activacion,
+        GETDATE(),
+        GETDATE()
+    );
+
+    SELECT SCOPE_IDENTITY() AS id_nuevo;
+END
+GO

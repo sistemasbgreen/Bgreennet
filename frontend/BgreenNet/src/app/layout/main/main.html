@@ -1,0 +1,101 @@
+<div class="app-container">
+  <!-- Header -->
+  <header class="header">
+    <!-- Icono del menú -->
+    <div class="menu-toggle" 
+         (click)="toggleSidebar()" 
+         role="button" 
+         tabindex="0"
+         aria-label="Toggle sidebar"
+         (keydown.enter)="toggleSidebar()">
+      <i class="bi bi-list icon-menu"></i>
+    </div>
+
+    <!-- Logo -->
+    <div class="logo">BGREEN</div>
+
+    <!-- Sección usuario -->
+    <div class="user-info">
+      <span class="user-name">{{ user }}</span>
+
+      <div class="user-dropdown" 
+           (click)="toggleUserMenu()" 
+           #userDropdown
+           role="button"
+           tabindex="0"
+           aria-label="User menu"
+           (keydown.enter)="toggleUserMenu()">
+        <i class="bi bi-person-circle icon-user"></i>
+        
+        <!-- Dropdown menu -->
+        <div class="dropdown-menu" *ngIf="isUserMenuOpen">
+          <button (click)="home()" class="dropdown-item">
+            <i class="bi bi-house-door"></i>
+            <span>Home</span>
+          </button>
+          <button (click)="logout()" class="dropdown-item">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" 
+           [class.collapsed]="isSidebarCollapsed"
+           role="navigation"
+           aria-label="Main navigation">
+      <nav>
+        <ul class="menu-list">
+          <!-- Iterar sobre módulos dinámicos -->
+          <li *ngFor="let modulo of modulos; let i = index" 
+              class="menu-item" 
+              [class.expanded]="modulo.expandido"
+              [style.animation-delay]="(i * 0.05) + 's'">
+            
+            <!-- Header del módulo -->
+            <div class="menu-header" 
+                 (click)="toggleSubmodulos(modulo)"
+                 role="button"
+                 tabindex="0"
+                 [attr.aria-expanded]="modulo.expandido"
+                 [attr.aria-label]="'Toggle ' + modulo.nombre + ' submenu'"
+                 (keydown.enter)="toggleSubmodulos(modulo)">
+              <i [class]="modulo.icono" aria-hidden="true"></i>
+              <span class="module-name" *ngIf="!isSidebarCollapsed">{{ modulo.nombre }}</span>
+              <i class="arrow" 
+                 [class.down]="modulo.expandido"
+                 *ngIf="!isSidebarCollapsed && modulo.subModulos?.length"
+                 aria-hidden="true">▼</i>
+            </div>
+
+            <!-- Submódulos -->
+            <ul *ngIf="modulo.expandido && modulo.subModulos?.length" 
+                class="submenu"
+                role="menu"
+                [attr.aria-label]="modulo.nombre + ' submenu'">
+              <li *ngFor="let sub of modulo.subModulos" role="none">
+                <a [routerLink]="[modulo.ruta, sub.ruta]" 
+                   routerLinkActive="active" 
+                   class="submenu-item"
+                   role="menuitem"
+                   [attr.aria-label]="sub.nombre">
+                  <i [class]="sub.icono" aria-hidden="true"></i>
+                  <span>{{ sub.nombre }}</span>
+                </a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="content-wrapper" role="main">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

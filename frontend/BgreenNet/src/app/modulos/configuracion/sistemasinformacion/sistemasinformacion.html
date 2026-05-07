@@ -1,0 +1,206 @@
+<div class="sistemas-container">
+  <!-- Header con estadísticas -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <i class="bi bi-grid-3x3-gap-fill"></i>
+      <div class="stat-info">
+        <span class="stat-label">Total</span>
+        <span class="stat-value">{{ contadorEstados.total }}</span>
+      </div>
+    </div>
+    <div class="stat-card stat-success">
+      <i class="bi bi-check-circle-fill"></i>
+      <div class="stat-info">
+        <span class="stat-label">Activos</span>
+        <span class="stat-value">{{ contadorEstados.activos }}</span>
+      </div>
+    </div>
+    <div class="stat-card stat-danger">
+      <i class="bi bi-x-circle-fill"></i>
+      <div class="stat-info">
+        <span class="stat-label">Inactivos</span>
+        <span class="stat-value">{{ contadorEstados.inactivos }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de búsqueda y filtros -->
+  <div class="search-filter-bar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" class="search-input" [(ngModel)]="terminoBusqueda" (ngModelChange)="onBusquedaChange()"
+        placeholder="Buscar por nombre o URL...">
+      <button *ngIf="terminoBusqueda" class="btn-clear-search" (click)="terminoBusqueda = ''; onBusquedaChange()"
+        title="Limpiar búsqueda">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="filter-group">
+      <select class="filter-select" [(ngModel)]="filtroEstado" (ngModelChange)="onFiltroEstadoChange()">
+        <option value="todos">Todos los estados</option>
+        <option value="activo">Solo activos</option>
+        <option value="inactivo">Solo inactivos</option>
+      </select>
+
+      <button class="btn-limpiar-filtros" (click)="limpiarFiltros()" *ngIf="terminoBusqueda || filtroEstado !== 'todos'"
+        title="Limpiar filtros">
+        <i class="bi bi-arrow-clockwise"></i>
+        Limpiar
+      </button>
+
+      <button class="btn-crear" (click)="abrirModal()">
+        <i class="bi bi-plus-circle"></i>
+        Crear Sistema
+      </button>
+    </div>
+  </div>
+
+  <!-- Resultados de búsqueda -->
+  <div class="results-info" *ngIf="terminoBusqueda || filtroEstado !== 'todos'">
+    <span class="results-count">
+      <i class="bi bi-funnel"></i>
+      Mostrando {{ sistemasFiltrados.length }} de {{ sistemaInformacionData.length }} sistemas
+    </span>
+  </div>
+
+  <!-- Loader -->
+  <div class="loading-overlay" *ngIf="cargando">
+    <div class="spinner"></div>
+    <p>Cargando...</p>
+  </div>
+
+  <!-- Tabla de sistemas (restaurada) -->
+  <div class="table-container" *ngIf="!cargando">
+    <table class="table-sistemas">
+      <thead>
+        <tr>
+          <th>Logo</th>
+          <th class="sortable" (click)="cambiarOrden('nombre')">
+            Sistema
+            <i class="bi" [class.bi-arrow-up]="ordenColumna === 'nombre' && ordenDireccion === 'asc'"
+              [class.bi-arrow-down]="ordenColumna === 'nombre' && ordenDireccion === 'desc'"
+              [class.bi-arrow-down-up]="ordenColumna !== 'nombre'"></i>
+          </th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of sistemasFiltrados" class="system-row">
+          <td class="logo-cell">
+            <div class="image-wrapper">
+              <img [src]="s.imagenUrl" [alt]="s.nombre" 
+                (error)="$event.target.src='https://via.placeholder.com/100?text=Sin+Imagen'">
+            </div>
+          </td>
+          <td class="name-cell">
+            <div class="system-info-cell">
+              <span class="system-name-text">{{ s.nombre }}</span>
+              <span class="system-url-text">{{ s.url }}</span>
+            </div>
+          </td>
+          <td class="actions-cell">
+            <div class="action-btn-group">
+              <button class="btn-icon-action btn-status" [class.active]="s.estado" (click)="toggleEstado(s)" 
+                [title]="s.estado ? 'Desactivar' : 'Activar'">
+                <i class="bi" [class.bi-check-lg]="s.estado" [class.bi-x-lg]="!s.estado"></i>
+              </button>
+              <button class="btn-icon-action btn-edit-icon" (click)="abrirModal(s)" title="Editar">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+              <button class="btn-icon-action btn-delete-icon" (click)="eliminarSistema(s)" title="Eliminar">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Sin resultados -->
+        <tr *ngIf="sistemasFiltrados.length === 0">
+          <td colspan="3" class="empty-table-cell">
+            <i class="bi bi-search"></i>
+            <p *ngIf="terminoBusqueda || filtroEstado !== 'todos'">No se encontraron sistemas con esos filtros</p>
+            <p *ngIf="!terminoBusqueda && filtroEstado === 'todos'">No hay sistemas registrados todavía</p>
+            <button class="btn-crear-row" (click)="abrirModal()" *ngIf="!terminoBusqueda && filtroEstado === 'todos'">
+               Crear primer sistema
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>
+        <i class="bi" [class.bi-pencil-square]="modoEdicion" [class.bi-plus-circle]="!modoEdicion"></i>
+        {{ modoEdicion ? 'Editar Sistema' : 'Crear Sistema' }}
+      </h2>
+      <button class="btn-close" (click)="cerrarModal()" type="button">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form class="modal-body" (ngSubmit)="guardarSistema()">
+      <div class="form-group">
+        <label for="nombre">
+          Nombre del Sistema <span class="required">*</span>
+        </label>
+        <input type="text" id="nombre" [(ngModel)]="sistemaForm.nombre" name="nombre"
+          placeholder="Ej: Sistema de Gestión" required maxlength="100">
+        <small class="form-hint">Nombre descriptivo del sistema</small>
+      </div>
+
+      <div class="form-group">
+        <label for="url">
+          URL del Sistema <span class="required">*</span>
+        </label>
+        <input type="url" id="url" [(ngModel)]="sistemaForm.url" name="url" placeholder="https://ejemplo.com" required>
+        <small class="form-hint">Enlace de acceso al sistema</small>
+      </div>
+
+      <div class="form-group">
+        <label for="imagenUrl">
+          URL del Logo/Imagen <span class="required">*</span>
+        </label>
+        <input type="url" id="imagenUrl" [(ngModel)]="sistemaForm.imagenUrl" name="imagenUrl"
+          placeholder="https://ejemplo.com/logo.png" required>
+        <small class="form-hint">Imagen representativa del sistema (100x100px recomendado)</small>
+      </div>
+
+      <!-- Preview de la imagen -->
+      <div class="form-group" *ngIf="sistemaForm.imagenUrl">
+        <label>Vista previa</label>
+        <div class="image-preview">
+          <img [src]="sistemaForm.imagenUrl" alt="Preview"
+            (error)="$event.target.src='https://via.placeholder.com/100?text=Error'">
+        </div>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="sistemaForm.estado" name="activo">
+          <span class="checkbox-text">
+            <i class="bi bi-check-circle-fill"></i>
+            Sistema activo
+          </span>
+        </label>
+        <small class="form-hint">Los sistemas inactivos no serán visibles para los usuarios</small>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancelar" (click)="cerrarModal()">
+          <i class="bi bi-x-circle"></i>
+          Cancelar
+        </button>
+        <button type="submit" class="btn-guardar" [disabled]="cargando">
+          <i class="bi" [class.bi-check-circle]="!cargando" [class.bi-arrow-repeat]="cargando"></i>
+          {{ modoEdicion ? 'Actualizar' : 'Crear' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

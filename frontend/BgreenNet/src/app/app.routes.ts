@@ -1,3 +1,58 @@
+// routes.ts
 import { Routes } from '@angular/router';
+import { Login } from './auth/login/login';
+import { AuthGuard } from './guard/auth.guard';
+import { layoutRoutes } from './layout/layout-routes';
 
-export const routes: Routes = [];
+
+
+
+export const routes: Routes = [
+  {
+    path: 'login',
+    component: Login
+  },
+  {
+    path: 'orden-produccion',
+    loadComponent: () =>
+      import('./modulos/orden-produccion/orden-produccion').then(o => o.OrdenProduccion)
+  },
+
+  // Rutas CMI
+  {
+    path: 'cmi',
+    canActivate: [AuthGuard],
+    children: [
+      { path: '', redirectTo: 'home', pathMatch: 'full' },
+      {
+        path: 'home',
+        loadComponent: () =>
+          import('./modulos/CMI/cmi-home/cmi-home').then(h => h.CmiHome)
+      },
+
+      {
+        path: 'productos',
+        loadComponent: () =>
+          import('./modulos/CMI/productos/productos').then(p => p.Productos)
+      },
+      {
+        path: 'industrializacion-aceite',
+        loadComponent: () =>
+          import('./modulos/CMI/industrializacion-aceite/industrializacion-aceite').then(i => i.IndustrializacionAceite)
+      }
+    ]
+  },
+
+  // Layout principal (/app/...)
+  {
+    path: '',
+    canActivate: [AuthGuard],
+    children: layoutRoutes
+  },
+
+  // Fallback
+  {
+    path: '**',
+    redirectTo: 'login'
+  }
+];

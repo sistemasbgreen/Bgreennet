@@ -1,0 +1,343 @@
+<head>
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <!-- Estilos embebidos -->
+
+</head>
+
+<body>
+
+  <header class="header">
+    <div class="header-content">
+      <div class="logo-section">
+        <a href="">
+          <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo Bgreen" class="logo" />
+        </a>
+      </div>
+      <div class="title-section">
+        <h1>CUADRO DE MANDO INTEGRAL</h1>
+      </div>
+      <div class="filter-section">
+        <select id="category-select">
+          <option value="">Todas las categorías</option>
+          <option value="estrategia">Estrategia</option>
+          <option value="financiero">Financiero</option>
+          <option value="operacional">Operacional</option>
+          <option value="comercial">Comercial</option>
+          <option value="organizacional">Organizacional</option>
+          <option value="sostenibilidad">Sostenibilidad</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+
+
+  <main class="main-container">
+    <!-- Stats Overview -->
+    <div class="stats-overview fade-in">
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background: #27ae60;">
+            <i class="fas fa-chart-line"></i>
+          </div>
+        </div>
+        <div class="stat-title">MP Grasas</div>
+        <div class="stat-value" id="stat-mp-grasas">##</div>
+        <div class="stat-change positive"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background: #4a90e2;">
+            <i class="fas fa-flask"></i>
+          </div>
+        </div>
+        <div class="stat-title">Consumo Metanol</div>
+        <div class="stat-value" id="stat-metanol">##</div>
+        <div class="stat-change"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background:#f39c12;">
+            <i class="fas fa-bullseye"></i>
+          </div>
+        </div>
+        <div class="stat-title">Cumplimiento Ventas</div>
+        <div class="stat-value" id="stat-ventas">##</div>
+        <div class="stat-change positive"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-icon" style="background: #2c5f2d;">
+            <i class="fas fa-warehouse"></i>
+          </div>
+        </div>
+        <div class="stat-title">Nivel Abastecimiento</div>
+        <div class="stat-value" id="stat-abastecimiento">##</div>
+        <div class="stat-change positive"></div>
+      </div>
+    </div>
+
+    <!-- Categories Grid -->
+    <div class="categories-grid">
+      <!-- Estrategia -->
+      <div class="category slide-in" data-category="estrategia" id="estrategia">
+        <div class="category-header">
+          <div class="category-icon" style="background: linear-gradient(45deg, #667eea, #764ba2);">
+            <i class="fas fa-chess-king"></i>
+          </div>
+          <div class="category-title">Estrategia</div>
+        </div>
+        <div class="indicators-grid">
+          <div class="indicator" style="border-left: 4px solid  #2c5f2d;;" (click)="irindustrializacion()">
+            <div class="indicator-title">Industrialización del Aceite</div>
+            <div *ngIf="industrializacionAceite_number !== 0">
+  {{ industrializacionAceite_number }} %
+</div>
+          </div>
+          <!--
+            <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="valor_agregado.html">
+            <div class="indicator-title">Generación de valor agregado CPO</div>
+            <div class="indicator-meta">Monitoreo continuo</div>
+          </div>
+
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="valor_patrimonial.html">
+            <div class="indicator-title">Valor patrimonial de la compañía</div>
+            <div class="indicator-meta">Evaluación anual</div>
+          </div>
+
+          <div class="indicator" data-page="nuevas_lineas_negocio.html">
+            <div class="indicator-title">Nuevas líneas de negocio</div>
+            <div class="indicator-meta">Exploración</div>
+          </div>
+
+          <div class="indicator" data-page="proyectos_estrategicos.html">
+            <div class="indicator-title">Cumplimiento proyectos estratégicos</div>
+            <div class="indicator-meta">75% completado</div>
+          </div>
+          -->
+        
+
+        </div>
+      </div>
+
+      <!-- Financiero -->
+      <div class="category slide-in" data-category="financiero" id="financiero">
+        <div class="category-header">
+          <div class="category-icon" style="background: linear-gradient(45deg, #f093fb, #f5576c);">
+            <i class="fas fa-chart-pie"></i>
+          </div>
+          <div class="category-title">Financiero</div>
+        </div>
+        <div class="indicators-grid">
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="ebida.php">
+            <div class="indicator-title">Cumplimiento del EBITDA</div>
+            <div class="indicator-value">##</div>
+            <div class="indicator-meta"></div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="endeudamiento.html">
+            <div class="indicator-title">Nivel endeudamiento</div>
+            <div class="indicator-meta">Control trimestral</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="rentabilidad.html">
+            <div class="indicator-title">Rentabilidad</div>
+            <div class="indicator-meta">ROI mensual</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="capital_trabajo.html">
+            <div class="indicator-title">Capital de trabajo</div>
+            <div class="indicator-meta">Flujo semanal</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="cumplimiento_ppto.php">
+            <div class="indicator-title">Cumplimiento de presupuestos</div>
+            <div class="indicator-meta">Seguimiento mensual</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operacional -->
+      <div class="category slide-in" data-category="operacional" id="operacional">
+        <div class="category-header">
+          <div class="category-icon" style="background: linear-gradient(45deg, #4facfe, #00f2fe);">
+            <i class="fas fa-cogs"></i>
+          </div>
+          <div class="category-title">Operacional</div>
+        </div>
+
+        <div class="indicators-grid">
+          <!--
+          <div class="indicator" style="border-left: 4px solid #0d5905;" (click)="irAProductos()">
+            <div class="indicator-title">% - MP Grasas</div>
+            <div class="indicator-value text-green">##</div>
+            <div class="indicator-meta">Mensual</div>
+          </div>
+
+          <div class="indicator" style="border-left: 4px solid #0d5905;" data-page="metanol.php">
+            <div class="indicator-title">Consumo de Metanol</div>
+            <div class="indicator-value text-green">##</div>
+            <div class="indicator-meta">Mensual</div>
+          </div>
+
+          <div class="indicator" style="border-left: 4px solid #0d5905;" data-page="metilato.php">
+            <div class="indicator-title">Consumo de Metilato</div>
+            <div class="indicator-value text-red">##</div>
+            <div class="indicator-meta">Mensual</div>
+          </div>
+-->
+          <div class="indicator" style="border-left: 4px solid #0d5905;" (click)="irAProductos()">
+            <div class="indicator-title">Consumos y produccion</div>
+            <div class="indicator-meta">Mensual</div>
+          </div>
+
+          <!--
+          <div class="indicator" data-page="metanol_Js.php">
+            <div class="indicator-title">OEE</div>
+            <div class="indicator-meta">Capacidad, Disponibilidad, Cumplimiento</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="nivel_abastecimiento.php">
+            <div class="indicator-title">Nivel de abastecimiento MP e Insumos</div>
+            <div class="indicator-value">##</div>
+            <div class="indicator-meta">Disponibilidad</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="accidentalidad.html">
+            <div class="indicator-title">Nivel Accidentalidad</div>
+            <div class="indicator-meta">Control diario</div>
+          </div>
+          
+          -->
+
+          
+        </div>
+
+      </div>
+
+      <!-- Comercial -->
+      <div class="category slide-in" data-category="comercial" id="comercial">
+        <div class="category-header">
+          <div class="category-icon" style="background: linear-gradient(45deg, #43e97b, #38f9d7);">
+            <i class="fas fa-handshake"></i>
+          </div>
+          <div class="category-title">Comercial</div>
+        </div>
+        <div class="indicators-grid">
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="rentabilidad_ventas.html">
+            <div class="indicator-title">Rentabilidad de las ventas</div>
+            <div class="indicator-meta">Margen mensual</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="Cumplimiento_ventas.php">
+            <div class="indicator-title">Cumplimiento de ventas</div>
+            <div class="indicator-value">##</div>
+            <div class="indicator-meta">Meta mensual</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="participacion_mercado.php">
+            <div class="indicator-title">Participación en el mercado</div>
+            <div class="indicator-meta">Share trimestral</div>
+          </div>
+          <div class="indicator" data-page="satisfaccion_clientes.html">  
+            <div class="indicator-title">Satisfacción de los clientes</div>
+            <div class="indicator-meta">Encuestas NPS</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Organizacional -->
+      <div class="category slide-in" data-category="organizacional" id="organizacional">
+        <div class="category-header">
+          <div class="category-icon" style="background: linear-gradient(45deg, #fa709a, #fee140);">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="category-title">Organizacional & Gestión Humana</div>
+        </div>
+        <div class="indicators-grid">
+          <div class="indicator" data-page="modelo_gestion.html">
+            <div class="indicator-title">Implementación del modelo de gestión</div>
+            <div class="indicator-meta">Progreso continuo</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="transformacion_digital.html">
+            <div class="indicator-title">Proyecto de Transformación Digital</div>
+            <div class="indicator-meta">Fase 2 activa</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="presentismo.html">
+            <div class="indicator-title">Nivel Presentismo</div>
+            <div class="indicator-meta">Control mensual</div>
+          </div>
+          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="rotacion.html">
+            <div class="indicator-title">Rotación Anual</div>
+            <div class="indicator-meta">Meta < 15%</div>
+            </div>
+            <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="clima.html">
+              <div class="indicator-title">Clima organizacional</div>
+              <div class="indicator-meta">Encuesta semestral</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sostenibilidad -->
+        <div class="category slide-in" data-category="sostenibilidad" id="sostenibilidad">
+          <div class="category-header">
+            <div class="category-icon" style="background: linear-gradient(45deg, #a8edea, #fed6e3);">
+              <i class="fas fa-leaf"></i>
+            </div>
+            <div class="category-title">Sostenibilidad</div>
+          </div>
+          <div class="indicators-grid">
+            <div class="indicator" data-page="gobierno_corporativo.html">
+              <div class="indicator-title">Implementación de Gobierno Corporativo</div>
+              <div class="indicator-meta">Estructura definida</div>
+            </div>
+            <div class="indicator" data-page="satisfaccion_proveedores.html">
+              <div class="indicator-title">Satisfacción de proveedores</div>
+              <div class="indicator-meta">Evaluación trimestral</div>
+            </div>
+            <div class="indicator" data-page="cumplimiento_legal.html">
+              <div class="indicator-title">Cumplimiento normativo y legal</div>
+              <div class="indicator-meta">Auditoría continua</div>
+            </div>
+            <div class="indicator" data-page="plan_social.html">
+              <div class="indicator-title">Implementación del plan social</div>
+              <div class="indicator-meta">Impacto comunitario</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </main>
+
+  <!-- Script mínimo para interactividad básica (opcional en Angular) -->
+  <script>
+    // Filtro por categoría
+    document.addEventListener('DOMContentLoaded', function () {
+      const select = document.getElementById('category-select');
+      const categories = document.querySelectorAll('.category');
+
+      select.addEventListener('change', function () {
+        const selectedValue = this.value;
+        categories.forEach((category, index) => {
+          if (selectedValue === '' || selectedValue === category.getAttribute('data-category')) {
+            category.style.display = 'block';
+            category.style.animationDelay = `${index * 0.1}s`;
+            setTimeout(() => category.classList.add('fade-in'), 50);
+          } else {
+            category.style.display = 'none';
+            category.classList.remove('fade-in');
+          }
+        });
+      });
+    });
+
+    // Redirección al hacer clic en indicador
+    document.querySelectorAll('.indicator').forEach((indicator) => {
+      indicator.addEventListener('click', function () {
+        const page = this.getAttribute('data-page');
+        if (!page) {
+          alert('Página no asignada');
+          return;
+        }
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => window.location.href = page, 150);
+      });
+    });
+  </script>
+</body>
