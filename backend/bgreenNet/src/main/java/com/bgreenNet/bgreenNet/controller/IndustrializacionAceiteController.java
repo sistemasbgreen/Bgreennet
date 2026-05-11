@@ -11,7 +11,8 @@ import com.bgreenNet.bgreenNet.services.IndustrializacionAceiteServices;
 
 
 @RestController
-@RequestMapping("/api/estrategicos")
+@RequestMapping({"/api/estrategicos", "/estrategicos"})
+@org.springframework.web.bind.annotation.CrossOrigin(origins = "*")
 public class IndustrializacionAceiteController {
 	
 	private final IndustrializacionAceiteServices industrializacionAceiteServices;

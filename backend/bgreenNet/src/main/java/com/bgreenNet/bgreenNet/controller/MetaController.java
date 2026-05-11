@@ -22,7 +22,7 @@ import com.bgreenNet.bgreenNet.dto.ProductoDTO;
 import com.bgreenNet.bgreenNet.services.MetaService;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping({"/api", ""})
 @CrossOrigin("*")
 public class MetaController {
 	

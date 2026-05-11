@@ -130,4 +130,14 @@ public class ProductoDTO {
     public void setProduccionBaseId(String produccionBaseId) {
         this.produccionBaseId = produccionBaseId;
     }
+
+    public Boolean getMetaDiariaManual() {
+        return metaDiariaManual;
+    }
+
+    public void setMetaDiariaManual(Boolean metaDiariaManual) {
+        this.metaDiariaManual = metaDiariaManual;
+    }
+
+    private Boolean metaDiariaManual;
 }
