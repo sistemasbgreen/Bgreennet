@@ -52,4 +52,9 @@ export class UsuarioService {
   cambiarClaveAdmin(dto: { idUsuario: number; claveActual: string; nuevaClave: string }): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/cambiar-clave-admin`, dto);
   }
+
+  // Bloquear o desbloquear usuario
+  toggleBloqueo(idUsuario: number, bloqueado: boolean): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/${idUsuario}/bloqueo`, { bloqueado });
+  }
 }

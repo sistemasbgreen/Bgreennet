@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NgFor, NgIf, NgForOf } from '@angular/common';
 import { timeout } from 'rxjs';
 import Swal from 'sweetalert2';
+import { ListasService } from '../../servicios/listasServices';
 
 @Component({
   standalone: true,
@@ -23,29 +24,22 @@ export class Login {
   returnUrl: string = '/home';
   error = 1;
 
-  imagenes: string[] = [
-  'https://bgreennet.bgreen.com.co/imagenes/Fondo_Pantalla.jpg',
-  'https://cdn.pixabay.com/photo/2025/07/17/10/48/nature-9719280_1280.png',
-  'https://bgreen.com.co/Img/Inicio/Carousel4.jpg',
-  'https://bgreen.com.co/Img/Inicio/Carousel3.jpg',
-  'https://bgreen.com.co/Img/Galeria/bgreen10.jpg',
-  'https://bgreen.com.co/Img/Galeria/bgreen13.jpg'
-];
+  imagenes: string[] = [];
 
-imagenAleatoria: string = '';
+  imagenAleatoria: string = ''; // Empezamos vacío para detectar si la API carga algo
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private listasService: ListasService
   ) {
     this.loginForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(3)]],
       contrasena: ['', [Validators.required, Validators.minLength(6)]]
     });
 
-    //  NUEVO: Decodificar la returnUrl
     const rawReturnUrl = this.route.snapshot.queryParams['returnUrl'];
     this.returnUrl = rawReturnUrl ? decodeURIComponent(rawReturnUrl) : '/home';
   }
@@ -80,7 +74,6 @@ imagenAleatoria: string = '';
       error: (err) => {
         this.isLoading = false;
 
-        // Establecer el mensaje de error según el tipo
         if (err.status === 401) {
           this.errorMessage = err.error?.error || 'Usuario o contraseña incorrectos';
         } else if (err.status === 500) {
@@ -91,7 +84,6 @@ imagenAleatoria: string = '';
           this.errorMessage = err.error?.error || 'Error al iniciar sesión';
         }
 
-        // Mostrar el error usando SweetAlert
         Swal.fire({
           icon: 'error',
           title: 'Error de Autenticación',
@@ -104,8 +96,26 @@ imagenAleatoria: string = '';
   }
 
   ngOnInit(): void {
-  this.imagenAleatoria = this.obtenerImagenAleatoria();
-}
+    console.log('--- Iniciando carga de imágenes de login ---');
+    this.listasService.getImagenesLogin().subscribe({
+      next: (images) => {
+        console.log('API Response (Imágenes activas):', images);
+        this.imagenes = images.map(img => img.url);
+        
+        if (this.imagenes.length > 0) {
+          this.imagenAleatoria = this.obtenerImagenAleatoria();
+          console.log('Imagen seleccionada con éxito:', this.imagenAleatoria);
+        } else {
+          console.warn('La API no devolvió ninguna imagen ACTIVA. Usando imagen por defecto.');
+          this.imagenAleatoria = 'https://bgreennet.bgreen.com.co/imagenes/Fondo_Pantalla.jpg';
+        }
+      },
+      error: (err) => {
+        console.error('Error FATAL al llamar a la API de imágenes:', err);
+        this.imagenAleatoria = 'https://bgreennet.bgreen.com.co/imagenes/Fondo_Pantalla.jpg';
+      }
+    });
+  }
 
 obtenerImagenAleatoria(): string {
   const indice = Math.floor(Math.random() * this.imagenes.length);

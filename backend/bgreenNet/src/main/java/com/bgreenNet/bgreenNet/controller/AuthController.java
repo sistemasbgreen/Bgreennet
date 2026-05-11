@@ -22,6 +22,13 @@ import com.bgreenNet.bgreenNet.dto.LoginResponseDTO;
 import com.bgreenNet.bgreenNet.jwt.JwtUtil;
 import com.bgreenNet.bgreenNet.services.AuthService;
 import com.bgreenNet.bgreenNet.services.CustomUserDetailsService;
+import com.bgreenNet.bgreenNet.services.ConfiguracionSeguridadService;
+import com.bgreenNet.bgreenNet.repository.UsuarioRepository;
+import com.bgreenNet.bgreenNet.models.Usuario;
+import com.bgreenNet.bgreenNet.models.ConfiguracionSeguridad;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
@@ -38,12 +45,30 @@ public class AuthController {
 	@Autowired
 	private CustomUserDetailsService customUserDetailsService;
 
+	@Autowired
+	private UsuarioRepository usuarioRepository;
+
+	@Autowired
+	private ConfiguracionSeguridadService configuracionSeguridadService;
+
 	public AuthController(AuthService authService) {
 		this.authService = authService;
 	}
 
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
+		Optional<Usuario> userOpt = usuarioRepository.findByUsuario(request.getUsuario());
+		ConfiguracionSeguridad config = configuracionSeguridadService.obtenerConfiguracion();
+
+		if (userOpt.isPresent()) {
+			Usuario user = userOpt.get();
+			if (user.getBloqueado()) {
+				Map<String, String> error = new HashMap<>();
+				error.put("error", "La cuenta está bloqueada por demasiados intentos fallidos. Contacte al administrador.");
+				return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+			}
+		}
+
 		try {
 			System.out.println("Intentando autenticar usuario: " + request.getUsuario());
 
@@ -52,8 +77,41 @@ public class AuthController {
 
 			System.out.println("Autenticación exitosa");
 
+
+			if (userOpt.isPresent()) {
+				Usuario user = userOpt.get();
+				user.setIntentosFallidos(0);
+				user.setUltimaConexion(LocalDateTime.now());
+				usuarioRepository.save(user);
+
+
+				if (config.getExpiracionDias() > 0 && user.getFechaActualizacionContrasena() != null) {
+					long diasPasados = ChronoUnit.DAYS.between(user.getFechaActualizacionContrasena(), LocalDateTime.now());
+					if (diasPasados >= config.getExpiracionDias()) {
+
+						System.out.println("Contraseña expirada para el usuario: " + request.getUsuario());
+					}
+				}
+			}
+
 		} catch (BadCredentialsException e) {
 			System.err.println("Credenciales inválidas para: " + request.getUsuario());
+			
+			if (userOpt.isPresent()) {
+				Usuario user = userOpt.get();
+				if (config.getIntentosInvalidos() > 0) {
+					user.setIntentosFallidos(user.getIntentosFallidos() + 1);
+					if (user.getIntentosFallidos() >= config.getIntentosInvalidos()) {
+						user.setBloqueado(true);
+						usuarioRepository.save(user);
+						Map<String, String> error = new HashMap<>();
+						error.put("error", "Cuenta bloqueada tras " + user.getIntentosFallidos() + " intentos fallidos.");
+						return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+					}
+					usuarioRepository.save(user);
+				}
+			}
+
 			Map<String, String> error = new HashMap<>();
 			error.put("error", "Usuario o contraseña incorrectos");
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
