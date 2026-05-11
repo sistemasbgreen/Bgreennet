@@ -42,7 +42,7 @@ export class MetasCMI implements OnInit {
   showProductModal: boolean = false;
   showMetasModal: boolean = false;
   isEditingProduct: boolean = false;
-  currentProduct: producto = { id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true };
+  currentProduct: producto = { id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, metaDiariaManual: false };
   selectedProductObj: producto | null = null;
   
   // Catalogos
@@ -92,7 +92,12 @@ export class MetasCMI implements OnInit {
 
   // Metas state
   metas: MetaDetalle[] = Array(12).fill(0).map(() => ({ valor: 0 }));
+  metaDiaria: number = 0;
   cargando: boolean = false;
+  
+  // Usuario
+  userEmail: string = '';
+  fullName: string = '';
 
   constructor(
     private service: productoservices,
@@ -103,6 +108,20 @@ export class MetasCMI implements OnInit {
   ngOnInit(): void {
     this.cargarCatalogos();
     this.cargarProductos();
+    this.loadUserData();
+  }
+
+  private loadUserData(): void {
+    const userString = localStorage.getItem('usuario');
+    if (userString) {
+      try {
+        const user = JSON.parse(userString);
+        this.fullName = `${user.nombre} ${user.apellido}`.toUpperCase();
+        this.userEmail = user.Usuario || user.correo;
+      } catch (error) {
+        console.error('Error al cargar datos del usuario', error);
+      }
+    }
   }
 
   getLinkingState(productId: string) {
@@ -152,6 +171,13 @@ export class MetasCMI implements OnInit {
     return Math.round((val / this.maxMeta) * 100);
   }
 
+  onMetaDiariaChange(val: number) {
+    if (this.selectedProductObj && val > 1) {
+      this.selectedProductObj.metaDiariaManual = true;
+      this.cdr.detectChanges();
+    }
+  }
+
   cargarProductos() {
     this.service.getProductos().subscribe({
       next: (data) => {
@@ -182,10 +208,12 @@ export class MetasCMI implements OnInit {
 
       obs.subscribe({
         next: (res) => {
-          if (res.mensuales && res.mensuales[mesIdx]) {
-            p.metaActual = res.mensuales[mesIdx].valor;
-            this.cdr.detectChanges();
-          }
+          // Buscar por campo 'mes' en vez de índice posicional
+          // (el Mes 0 puede desplazar índices si viene primero)
+          const mesNum = new Date().getMonth() + 1; // 1-12
+          const metaMes = res.mensuales?.find(m => m.mes === mesNum);
+          p.metaActual = metaMes ? metaMes.valor : 0;
+          this.cdr.detectChanges();
         },
         error: () => {
           p.metaActual = 0;
@@ -199,6 +227,7 @@ export class MetasCMI implements OnInit {
     this.selectedProducto = p.id;
     this.selectedAnio = new Date().getFullYear().toString();
     this.metas = Array(12).fill(0).map(() => ({ valor: 0 }));
+    this.distribuirValor = 0; // Solo se limpia el campo de Aplicar Masivo
     this.showMetasModal = true;
     this.cdr.detectChanges();
     this.cargarMetas();
@@ -213,18 +242,36 @@ export class MetasCMI implements OnInit {
 
     obs.subscribe({
       next: (res: MetaResponse) => {
-        if (res.mensuales && res.mensuales.length === 12) {
-          this.metas = res.mensuales;
-        } else {
-          this.metas = Array(12).fill(0).map(() => ({ valor: 0 }));
+        const mensuales = res?.mensuales ?? [];
+
+        // Extraer meta diaria (Mes 0) si existe — comparar con Number()
+        const diaria = mensuales.find(m => Number(m.mes) === 0);
+        this.metaDiaria = diaria ? diaria.valor : 0;
+
+        // Auto-activar el check si ya existe un valor guardado significativo (> 1)
+        if (this.selectedProductObj && this.metaDiaria > 1) {
+          this.selectedProductObj.metaDiariaManual = true;
         }
+
+        // Mapear meses del 1 al 12 usando el campo 'mes'
+        const nuevasMetas = Array(12).fill(0).map(() => ({ valor: 0 }));
+        mensuales.forEach(m => {
+          const mesNum = Number(m.mes);
+          if (mesNum >= 1 && mesNum <= 12) {
+            nuevasMetas[mesNum - 1] = m;
+          }
+        });
+        this.metas = nuevasMetas;
+
         this.cargando = false;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error al cargar metas:', err);
         this.showToast('Error al cargar metas', 'error');
         this.cargando = false;
         this.metas = Array(12).fill(0).map(() => ({ valor: 0 }));
+        this.metaDiaria = 0;
         this.cdr.detectChanges();
       }
     });
@@ -285,7 +332,7 @@ export class MetasCMI implements OnInit {
       anio: anio,
       mes: mes,
       valor: valor,
-      usuario: 'ADMIN'
+      usuario: this.fullName || this.userEmail || 'ADMIN'
     };
     const obs = this.selectedProducto === 'CostoDirecto'
       ? this.service.guardarCostoDirecto(payload)
@@ -307,14 +354,33 @@ export class MetasCMI implements OnInit {
   guardarTodo() {
     this.guardando = true;
     this.showToast('Guardando todas las metas...', 'success');
-    let requestsPending = 12;
+    let requestsPending = 13; // 12 meses + 1 diaria
+    
+    // Guardar Meta Diaria (Mes 0)
+    const payloadDiario = {
+      productoId: this.selectedProducto,
+      anio: parseInt(this.selectedAnio),
+      mes: 0,
+      valor: this.metaDiaria,
+      usuario: this.fullName || this.userEmail || 'ADMIN'
+    };
+    const obsDiario = this.selectedProducto === 'CostoDirecto'
+      ? this.service.guardarCostoDirecto(payloadDiario)
+      : this.service.guardarMeta(payloadDiario);
+
+    obsDiario.subscribe({
+      next: () => { requestsPending--; if (requestsPending === 0) this.finalizeBatchSave(); },
+      error: () => { requestsPending--; if (requestsPending === 0) this.finalizeBatchSave(); }
+    });
+
+    // Guardar Metas Mensuales (1-12)
     this.metas.forEach((m, i) => {
         const payload = {
           productoId: this.selectedProducto,
           anio: parseInt(this.selectedAnio),
           mes: i + 1,
           valor: m.valor,
-          usuario: 'ADMIN'
+          usuario: this.fullName || this.userEmail || 'ADMIN'
         };
         const obs = this.selectedProducto === 'CostoDirecto'
           ? this.service.guardarCostoDirecto(payload)
@@ -344,7 +410,8 @@ export class MetasCMI implements OnInit {
         usaSuma: this.selectedProductObj.usaSuma || false,
         esCompuesto: this.selectedProductObj.esCompuesto,
         componenteSiesaIds: this.selectedProductObj.componenteSiesaIds,
-        mostrarCmi: this.selectedProductObj.mostrarCmi ?? true
+        mostrarCmi: this.selectedProductObj.mostrarCmi ?? true,
+        metaDiariaManual: this.selectedProductObj.metaDiariaManual ?? false
       };
 
       this.service.actualizarProducto(updatePayload).subscribe({

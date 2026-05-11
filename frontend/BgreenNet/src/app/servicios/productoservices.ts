@@ -7,6 +7,7 @@ import { producto } from '../models/productos';
 
 export interface MetaDetalle {
   valor: number;
+  mes?: number;
   dateCreate?: string;
   dateModify?: string;
   userName?: string;
