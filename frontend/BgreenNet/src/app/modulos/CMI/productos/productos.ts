@@ -64,6 +64,7 @@ productos: any[] = [];
   // Metas dinámicas desde BD
   metasDB: number[] = [];
   metaActualDB: number = 0;
+  metaDiariaDB: number = 0;
 
   
   // Charts - existentes
@@ -87,7 +88,7 @@ productos: any[] = [];
   costoDirectoOptions!: ChartOptions<'line'>;
 
   // Plugins permitidos para la vista
-  barChartPlugins = [ChartDataLabels];
+  barChartPlugins: any[] = [ChartDataLabels];
 
   constructor(
     private plantaService: cmiplantaservices,
@@ -141,10 +142,23 @@ productos: any[] = [];
   }
 
   // Métodos de verificación
-  isB100(): boolean { return this.selectedProduct === '26'; }
-  isMpGrasas(): boolean { return this.selectedProduct === '8'; }
+  isB100(): boolean {
+    const p = this.getSelectedProductConfig();
+    return String(this.selectedProduct) === '26' || p.nombre === 'B100';
+  }
+
+  isMpGrasas(): boolean {
+    const p = this.getSelectedProductConfig();
+    return String(this.selectedProduct) === '8' || p.nombre?.toUpperCase().includes('GRASAS');
+  }
+
   isCostoDirecto(): boolean { return this.selectedProduct === 'CostoDirecto'; }
-  isProduccionBase(): boolean { return ['26', '9264', '3188', '32'].includes(this.selectedProduct); }
+
+  isProduccionBase(): boolean {
+    const p = this.getSelectedProductConfig();
+    const bases = ['26', '9264', '3188', '32'];
+    return bases.includes(String(this.selectedProduct)) || ['B100', 'AGG', 'Glicerina', 'Generacion Fondos'].includes(p.nombre);
+  }
 
   // Método para limpiar todos los datos antes de cargar nuevos
   limpiarDatos(): void {
@@ -208,11 +222,18 @@ productos: any[] = [];
         acumulado_PxC: 0
       };
       
-      // Primero cargamos las metas de la DB, luego los datos
-      this.cargarMetasDB(mes, this.selectedYear, this.selectedProduct, () => {
-        this.cargarDatosMes(mes, this.selectedYear, this.selectedProduct);
-        this.cargarDatosYTD(mes, this.selectedYear, this.selectedProduct);
-        this.cargarDatosMensuales(mes, this.selectedYear, this.selectedProduct);
+      // Primero cargamos la lista de productos para tener los flags actualizados
+      this.productoservices.getProductos().subscribe(data => {
+        this.productos = [
+          ...data.filter(p => p.mostrarCmi !== false),
+          { id: 'CostoDirecto', nombre: 'Costo Directo', esCostoDirecto: true, consumptionDocTypes: [], productionDocTypes: [] }
+        ];
+
+        this.cargarMetasDB(mes, this.selectedYear, this.selectedProduct, () => {
+          this.cargarDatosMes(mes, this.selectedYear, this.selectedProduct);
+          this.cargarDatosYTD(mes, this.selectedYear, this.selectedProduct);
+          this.cargarDatosMensuales(mes, this.selectedYear, this.selectedProduct);
+        });
       });
     }
   }
@@ -223,14 +244,31 @@ productos: any[] = [];
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          this.metasDB = res.mensuales.map(m => m.valor);
+          const mensuales = res?.mensuales ?? [];
+
+          // Meta Diaria (Mes 0)
+          const diaria = mensuales.find(m => Number(m.mes) === 0);
+          this.metaDiariaDB = diaria ? diaria.valor : 0;
+
+          // Mapear meses 1-12
+          const valores = Array(12).fill(0);
+          mensuales.forEach(m => {
+            const mNum = Number(m.mes);
+            if (mNum >= 1 && mNum <= 12) {
+              valores[mNum - 1] = m.valor;
+            }
+          });
+          this.metasDB = valores;
+
           const mesIdx = parseInt(mes, 10) - 1;
           this.metaActualDB = this.metasDB[mesIdx] || 0;
           if (callback) callback();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.metasDB = Array(12).fill(0);
           this.metaActualDB = 0;
+          this.metaDiariaDB = 0;
           if (callback) callback();
         }
       });
@@ -264,15 +302,18 @@ productos: any[] = [];
 
 
 getSelectedProductConfig() {
-  console.log('Buscando config para selectedProduct:', this.selectedProduct);
-  const found = this.productos.find(p => p.id === this.selectedProduct || p.idProductoSiesa === this.selectedProduct);
-  console.log('Producto encontrado:', found);
+  const selectedStr = String(this.selectedProduct);
+  const found = this.productos.find(p => 
+    String(p.id) === selectedStr || 
+    String(p.idProductoSiesa) === selectedStr
+  );
   
   return found || {
     id: '',
     nombre: '',
     consumptionDocTypes: [],
-    productionDocTypes: []
+    productionDocTypes: [],
+    metaDiariaManual: false
   };
 }
 
@@ -627,6 +668,9 @@ getSelectedProductConfig() {
       };
     } else if (this.isB100()) {
       const meta = this.metaActualDB;
+      const config = this.getSelectedProductConfig();
+      // SEGURO DE VIDA: Si el flag está activo O si el valor de la meta diaria es > 1, usamos la meta manual
+      const metaToUse = (config.metaDiariaManual || this.metaDiariaDB > 1) ? this.metaDiariaDB : meta;
       const produccionDiaria = datosOrdenados.map(d => d.produccion);
       
       this.dailyChartData = {
@@ -647,17 +691,17 @@ getSelectedProductConfig() {
             order: 2,
           },
           {
-            label: `Meta Diaria (${meta} Ton)`,
-            data: Array(labels.length).fill(meta),
+            label: `Meta Diaria (${metaToUse} Ton)`,
+            data: Array(labels.length).fill(metaToUse),
             borderColor: '#2c3e50',
             borderWidth: 2,
             borderDash: [5, 5],
             pointRadius: 0,
             fill: false,
-            order: 1,
-            pointStyle: 'line',
-            pointBorderColor: '#2c3e50',
-          }
+              order: 1,
+              pointStyle: 'line',
+              pointBorderColor: '#2c3e50',
+            }
         ]
       };
     } else {
@@ -672,7 +716,9 @@ getSelectedProductConfig() {
         promediosAcumulados.push(ratio);
       }
       
-      const meta = this.metaActualDB;
+      const config = this.getSelectedProductConfig();
+      // SEGURO DE VIDA: Si el flag está activo O si el valor de la meta diaria es > 1, usamos la meta manual
+      const meta = (config.metaDiariaManual || this.metaDiariaDB > 1) ? this.metaDiariaDB : this.metaActualDB;
       
       this.dailyChartData = {
         labels: [...labels],
@@ -692,7 +738,7 @@ getSelectedProductConfig() {
             order: 3
           },
           {
-            label: `Meta (${meta} Kg/Ton)`,
+            label: `Meta Diaria (${meta} Kg/Ton)`,
             data: Array(labels.length).fill(meta),
             borderColor: '#2c3e50',
             borderWidth: 2,
@@ -989,16 +1035,42 @@ getSelectedProductConfig() {
   }
   
   configurarGraficos(): void {
+    const adjustYAxisLimits = (scale: any) => {
+      const datasets = scale.chart.data.datasets;
+      const scaleId = scale.id;
+      let minVal = Infinity;
+      let maxVal = -Infinity;
+      datasets.forEach((ds: any) => {
+        if (ds.yAxisID === scaleId || (!ds.yAxisID && scaleId === 'y')) {
+          ds.data.forEach((val: any) => {
+            if (typeof val === 'number') {
+              if (val < minVal && val > 0) minVal = val;
+              if (val > maxVal) maxVal = val;
+            }
+          });
+        }
+      });
+      if (minVal !== Infinity && maxVal !== -Infinity) {
+        const range = maxVal - minVal;
+        scale.min = minVal - (range * 0.08);
+        scale.max = maxVal + (range * 0.15); // Aumentado a 15% para evitar desbordamiento
+      }
+    };
+
     this.dailyChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: 'index' },
+      layout: { padding: { top: 30 } },
+      clip: false,
       plugins: {
         legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 15, font: { size: 12 } } },
         datalabels: { display: false }
       },
       scales: {
         y: {
+          beginAtZero: false,
+          afterDataLimits: adjustYAxisLimits,
           title: { display: true, text: this.isB100() ? 'Toneladas' : 'Consumo Kg/Ton' },
           grid: { display: false }
         },
@@ -1010,14 +1082,16 @@ getSelectedProductConfig() {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: 'index' },
+      layout: { padding: { top: 30 } },
+      clip: false,
       plugins: {
         legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 15, font: { size: 12 } } },
         datalabels: { display: false }
       },
       scales: {
         y: {
-          min: 80,
-          max: 110,
+          beginAtZero: false,
+          afterDataLimits: adjustYAxisLimits,
           title: { display: true, text: 'Conversión (%)' },
           ticks: { callback: (value) => value + '%' },
           grid: { display: false }
@@ -1035,7 +1109,7 @@ getSelectedProductConfig() {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       layout: { padding: { top: 70 } },
-      clip: false,
+      clip: true,
       plugins: {
         legend: {
           position: 'top',
@@ -1058,7 +1132,25 @@ getSelectedProductConfig() {
       },
       scales: {
         y: {
-          min: 0,
+          afterDataLimits: (axis: any) => {
+            // Recalcular min/max ignorando ceros para que no fuerce el inicio en 0
+            let minVal = Infinity;
+            let maxVal = -Infinity;
+            
+            axis.chart.data.datasets.forEach((ds: any) => {
+              ds.data.forEach((v: any) => {
+                if (v !== null && v > 0) {
+                  if (v < minVal) minVal = v;
+                  if (v > maxVal) maxVal = v;
+                }
+              });
+            });
+
+            if (minVal !== Infinity) {
+              axis.min = minVal * 0.95; // -5% margen inferior
+              axis.max = maxVal * 1.10; // +10% margen superior
+            }
+          },
           title: { display: true, text: 'Consumo Específico (Kg/Ton)' },
           grid: { display: false }
         },
@@ -1074,7 +1166,7 @@ getSelectedProductConfig() {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       layout: { padding: { top: 70 } },
-      clip: false,
+      clip: true,
       plugins: {
         legend: {
           position: 'top',
@@ -1097,8 +1189,22 @@ getSelectedProductConfig() {
       },
       scales: {
         y: {
-          min: 80,
-          max: 110,
+          afterDataLimits: (axis: any) => {
+            let minVal = Infinity;
+            let maxVal = -Infinity;
+            axis.chart.data.datasets.forEach((ds: any) => {
+              ds.data.forEach((v: any) => {
+                if (v !== null && v > 0) {
+                  if (v < minVal) minVal = v;
+                  if (v > maxVal) maxVal = v;
+                }
+              });
+            });
+            if (minVal !== Infinity) {
+              axis.min = minVal * 0.95; // -5% margen inferior
+              axis.max = maxVal * 1.10; // +10% margen superior
+            }
+          },
           title: { display: true, text: '% Conversión' },
           ticks: { callback: (value: string) => value + '%' },
           grid: { display: false }
@@ -1116,7 +1222,7 @@ getSelectedProductConfig() {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       layout: { padding: { top: 70 } },
-      clip: false,
+      clip: true,
       plugins: {
         legend: {
           position: 'top',
@@ -1144,7 +1250,22 @@ getSelectedProductConfig() {
       },
       scales: {
         y: {
-          min: 0,
+          afterDataLimits: (axis: any) => {
+            let minVal = Infinity;
+            let maxVal = -Infinity;
+            axis.chart.data.datasets.forEach((ds: any) => {
+              ds.data.forEach((v: any) => {
+                if (v !== null && v > 0) {
+                  if (v < minVal) minVal = v;
+                  if (v > maxVal) maxVal = v;
+                }
+              });
+            });
+            if (minVal !== Infinity) {
+              axis.min = minVal * 0.95; // -5% margen inferior
+              axis.max = maxVal * 1.10; // +10% margen superior
+            }
+          },
           title: {
             display: true,
             text: this.isB100()
@@ -1172,12 +1293,16 @@ getSelectedProductConfig() {
       },
       scales: {
         'y-costo': {
+          beginAtZero: false,
+          afterDataLimits: adjustYAxisLimits,
           type: 'linear',
           position: 'left',
           title: { display: true, text: 'Costo ($/Ton)' },
           grid: { display: true }
         },
         'y-consumo': {
+          beginAtZero: false,
+          afterDataLimits: adjustYAxisLimits,
           type: 'linear',
           position: 'right',
           title: { display: true, text: 'Consumo (Kg/Ton)' },
@@ -1296,4 +1421,20 @@ getSelectedProductConfig() {
     const sentidoAsc = this.getSelectedProductConfig().sentidoMeta !== false;
     return sentidoAsc ? (val >= this.metaActualDB) : (val <= this.metaActualDB);
   }
+}
+
+/**
+ * Función global para ajustar los límites del eje Y de forma dinámica.
+ * - Reduce el mínimo en un 8% del rango para que no inicie en 0.
+ * - Aumenta el máximo en un 15% del rango para dejar espacio a las etiquetas arriba.
+ */
+function adjustYAxisLimits(axis: any) {
+  const min = axis.min;
+  const max = axis.max;
+  const range = max - min;
+  
+  // 5% de margen hacia abajo
+  axis.min = min - (range * 0.05);
+  // 10% de margen hacia arriba
+  axis.max = max + (range * 0.10);
 }

@@ -53,115 +53,129 @@ public class cmiplantaServices {
         validateDocTypes(consumptionDocTypes, "consumptionDocTypes");
         validateDocTypes(productionDocTypes, "productionDocTypes");
 
-        // 1️ CONSUMO — Cargar componentes dinámicamente
-        List<String> consumoProductIds = cargarComponentesDinamicos(consumptionProductId);
-        boolean useSumForConsumption = consultarUsaSuma(consumptionProductId);
-
-        String consumoProductPlaceholders = consumoProductIds.stream()
-            .map(id -> "?")
-            .collect(Collectors.joining(", "));
-            
-        String consumoExpression = useSumForConsumption
-            ? "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END + CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)"
-            : "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END - CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)";
-
-        String consumoDocPlaceholders = consumptionDocTypes.stream()
-            .map(t -> "?")
-            .collect(Collectors.joining(", "));
-
-        String sqlConsumo = """
-            SELECT
-                CONVERT(VARCHAR, mov.f470_id_fecha, 23) AS fecha_documento,
-                %s AS cantidad_consumida
-            FROM [t124_mc_items_referencias]
-            LEFT JOIN [t120_mc_items] item ON f120_rowid = f124_rowid_item
-            INNER JOIN [t121_mc_items_extensiones] ON f121_rowid_item = f120_rowid
-            INNER JOIN [t470_cm_movto_invent] mov ON mov.f470_rowid_item_ext = f121_rowid
-            INNER JOIN [t350_co_docto_contable] doc ON doc.f350_rowid = mov.f470_rowid_docto
-            INNER JOIN [t150_mc_bodegas] bod ON bod.f150_rowid = mov.f470_rowid_bodega
-            WHERE mov.f470_id_fecha BETWEEN ? AND ?
-              AND f120_id_cia = 2
-              AND f350_ind_estado = 1
-              AND f120_id IN (%s)
-              AND f350_id_tipo_docto IN (%s)
-            GROUP BY mov.f470_id_fecha
-            ORDER BY mov.f470_id_fecha
-            """.formatted(consumoExpression, consumoProductPlaceholders, consumoDocPlaceholders);
-
         Map<String, Double> consumoMap = new HashMap<>();
         double[] totalConsumption = { 0.0 };
 
-        List<Object> consumoParams = new ArrayList<>();
-        consumoParams.add(startDate);
-        consumoParams.add(endDate);
-        consumoParams.addAll(consumoProductIds);
-        consumoParams.addAll(consumptionDocTypes);
+        // 1️ CONSUMO — Cargar componentes dinámicamente
+        if (consumptionDocTypes != null && !consumptionDocTypes.isEmpty()) {
+            List<String> consumoProductIds = cargarComponentesDinamicos(consumptionProductId);
+            boolean useSumForConsumption = consultarUsaSuma(consumptionProductId);
 
-        siesaJdbcTemplate.query(sqlConsumo, rs -> {
-            String date = rs.getString("fecha_documento");
-            double qty = rs.getDouble("cantidad_consumida");
-            consumoMap.put(date, qty);
-            totalConsumption[0] += qty;
-        }, consumoParams.toArray());
+            String consumoProductPlaceholders = consumoProductIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(", "));
+                
+            String consumoExpression = useSumForConsumption
+                ? "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END + CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)"
+                : "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END - CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)";
 
-        // 2️ PRODUCCIÓN
-        String produccionPlaceholders = productionDocTypes.stream()
+            String consumoDocPlaceholders = consumptionDocTypes.stream()
                 .map(t -> "?")
                 .collect(Collectors.joining(", "));
 
-        String produccionExpression = "ABS(SUM(CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END - CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END))";
+            String sqlConsumo = """
+                SELECT
+                    CONVERT(VARCHAR, mov.f470_id_fecha, 23) AS fecha_documento,
+                    %s AS cantidad_consumida
+                FROM [t124_mc_items_referencias]
+                LEFT JOIN [t120_mc_items] item ON f120_rowid = f124_rowid_item
+                INNER JOIN [t121_mc_items_extensiones] ON f121_rowid_item = f120_rowid
+                INNER JOIN [t470_cm_movto_invent] mov ON mov.f470_rowid_item_ext = f121_rowid
+                INNER JOIN [t350_co_docto_contable] doc ON doc.f350_rowid = mov.f470_rowid_docto
+                INNER JOIN [t150_mc_bodegas] bod ON bod.f150_rowid = mov.f470_rowid_bodega
+                WHERE mov.f470_id_fecha BETWEEN ? AND ?
+                  AND f120_id_cia = 2
+                  AND f350_ind_estado = 1
+                  AND f120_id IN (%s)
+                  AND f350_id_tipo_docto IN (%s)
+                GROUP BY mov.f470_id_fecha
+                ORDER BY mov.f470_id_fecha
+                """.formatted(consumoExpression, consumoProductPlaceholders, consumoDocPlaceholders);
 
-        String sqlProduccion = """
-            SELECT
-                CONVERT(VARCHAR, mov.f470_id_fecha, 23) AS fecha_documento,
-                %s AS total_produccion
-            FROM [t124_mc_items_referencias]
-            LEFT JOIN [t120_mc_items] item ON f120_rowid = f124_rowid_item
-            INNER JOIN [t121_mc_items_extensiones] ON f121_rowid_item = f120_rowid
-            INNER JOIN [t470_cm_movto_invent] mov ON mov.f470_rowid_item_ext = f121_rowid
-            INNER JOIN [t350_co_docto_contable] doc ON doc.f350_rowid = mov.f470_rowid_docto
-            INNER JOIN [t150_mc_bodegas] bod ON bod.f150_rowid = mov.f470_rowid_bodega
-            WHERE mov.f470_id_fecha BETWEEN ? AND ?
-              AND f120_id_cia = 2
-              AND f350_ind_estado = 1
-              AND f120_id = ?
-              AND f350_id_tipo_docto IN (%s)
-            GROUP BY mov.f470_id_fecha
-            ORDER BY mov.f470_id_fecha
-            """.formatted(produccionExpression, produccionPlaceholders);
+            List<Object> consumoParams = new ArrayList<>();
+            consumoParams.add(startDate);
+            consumoParams.add(endDate);
+            consumoParams.addAll(consumoProductIds);
+            consumoParams.addAll(consumptionDocTypes);
+
+            siesaJdbcTemplate.query(sqlConsumo, rs -> {
+                String date = rs.getString("fecha_documento");
+                double qty = rs.getDouble("cantidad_consumida");
+                consumoMap.put(date, qty);
+                totalConsumption[0] += qty;
+            }, consumoParams.toArray());
+        }
 
         Map<String, Double> produccionMap = new HashMap<>();
         double[] totalProduction = { 0.0 };
 
-        List<Object> produccionParams = new ArrayList<>();
-        produccionParams.add(startDate);
-        produccionParams.add(endDate);
-        produccionParams.add(productionProductId);
-        produccionParams.addAll(productionDocTypes);
+        // 2️ PRODUCCIÓN
+        if (productionDocTypes != null && !productionDocTypes.isEmpty()) {
+            String produccionPlaceholders = productionDocTypes.stream()
+                    .map(t -> "?")
+                    .collect(Collectors.joining(", "));
 
-        siesaJdbcTemplate.query(sqlProduccion, rs -> {
-            String date = rs.getString("fecha_documento");
-            double qty = Math.max(rs.getDouble("total_produccion"), 0.001);
-            produccionMap.put(date, qty);
-            totalProduction[0] += qty;
-        }, produccionParams.toArray());
+            String produccionExpression = "ABS(SUM(CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END - CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END))";
+
+            String sqlProduccion = """
+                SELECT
+                    CONVERT(VARCHAR, mov.f470_id_fecha, 23) AS fecha_documento,
+                    %s AS total_produccion
+                FROM [t124_mc_items_referencias]
+                LEFT JOIN [t120_mc_items] item ON f120_rowid = f124_rowid_item
+                INNER JOIN [t121_mc_items_extensiones] ON f121_rowid_item = f120_rowid
+                INNER JOIN [t470_cm_movto_invent] mov ON mov.f470_rowid_item_ext = f121_rowid
+                INNER JOIN [t350_co_docto_contable] doc ON doc.f350_rowid = mov.f470_rowid_docto
+                INNER JOIN [t150_mc_bodegas] bod ON bod.f150_rowid = mov.f470_rowid_bodega
+                WHERE mov.f470_id_fecha BETWEEN ? AND ?
+                  AND f120_id_cia = 2
+                  AND f350_ind_estado = 1
+                  AND f120_id = ?
+                  AND f350_id_tipo_docto IN (%s)
+                GROUP BY mov.f470_id_fecha
+                ORDER BY mov.f470_id_fecha
+                """.formatted(produccionExpression, produccionPlaceholders);
+
+            List<Object> produccionParams = new ArrayList<>();
+            produccionParams.add(startDate);
+            produccionParams.add(endDate);
+            produccionParams.add(productionProductId);
+            produccionParams.addAll(productionDocTypes);
+
+            siesaJdbcTemplate.query(sqlProduccion, rs -> {
+                String date = rs.getString("fecha_documento");
+                double qty = Math.max(rs.getDouble("total_produccion"), 0.001);
+                produccionMap.put(date, qty);
+                totalProduction[0] += qty;
+            }, produccionParams.toArray());
+        }
 
         // 3️ CÁLCULO DIARIO
         List<CmiplantaDTO> dailyData = new ArrayList<>();
+        
+        java.util.Set<String> allDates = new java.util.TreeSet<>();
+        allDates.addAll(consumoMap.keySet());
+        allDates.addAll(produccionMap.keySet());
+        
+        boolean isConsumoEspecifico = (productionDocTypes != null && !productionDocTypes.isEmpty());
 
-        for (String date : consumoMap.keySet()) {
-            if (produccionMap.containsKey(date)) {
-                double cons = consumoMap.get(date);
-                double prod = produccionMap.get(date);
-                double ratio = (cons / prod) * 1000;
-
-                CmiplantaDTO rec = new CmiplantaDTO();
-                rec.setDate(date);
-                rec.setConsumo(cons);
-                rec.setProduccion(prod);
-                rec.setConsumo_diario(ratio);
-                dailyData.add(rec);
+        for (String date : allDates) {
+            double cons = consumoMap.getOrDefault(date, 0.0);
+            double prod = produccionMap.getOrDefault(date, 0.0);
+            
+            double ratio = 0.0;
+            if (isConsumoEspecifico) {
+                ratio = (prod > 0) ? (cons / prod) * 1000 : 0.0;
+            } else {
+                ratio = cons; // Consumo absoluto si no hay documentos de producción
             }
+
+            CmiplantaDTO rec = new CmiplantaDTO();
+            rec.setDate(date);
+            rec.setConsumo(cons);
+            rec.setProduccion(prod);
+            rec.setConsumo_diario(ratio);
+            dailyData.add(rec);
         }
 
         double monthlyAccumulated = (totalProduction[0] > 0)
@@ -248,7 +262,7 @@ public class cmiplantaServices {
     // Validación segura de tipos de documento
     private void validateDocTypes(List<String> docTypes, String paramName) {
         if (docTypes == null || docTypes.isEmpty()) {
-            throw new IllegalArgumentException(paramName + " cannot be null or empty");
+            return;
         }
         if (docTypes.size() > 20) {
             throw new IllegalArgumentException(paramName + " has too many elements (max 20)");
@@ -267,26 +281,26 @@ public class cmiplantaServices {
     // MÉTODOS DINÁMICOS: Componentes de producto
     // ========================================
     
-    /**
-     * Carga los IDs Siesa de los componentes de un producto.
-     * Si el producto no tiene componentes, retorna una lista con su propio ID Siesa.
-     */
     private List<String> cargarComponentesDinamicos(String productoSiesaId) {
         try {
-            // Buscar producto interno por su id_producto_siesa
-            String sqlBuscar = "SELECT id FROM productos WHERE id_producto_siesa = ?";
-            List<Map<String, Object>> prodRows = jdbcTemplate.queryForList(sqlBuscar, productoSiesaId);
+            // Buscar producto interno por su id o su id_producto_siesa
+            String sqlBuscar = "SELECT id, id_producto_siesa FROM productos WHERE id = ? OR id_producto_siesa = ?";
+            List<Map<String, Object>> prodRows = jdbcTemplate.queryForList(sqlBuscar, productoSiesaId, productoSiesaId);
             
             if (!prodRows.isEmpty()) {
                 String productoInternoId = String.valueOf(prodRows.get(0).get("id"));
+                Object siesaIdObj = prodRows.get(0).get("id_producto_siesa");
+                String siesaId = siesaIdObj != null ? String.valueOf(siesaIdObj) : null;
                 
                 String sqlComp = "SELECT producto_hijo_siesa_id FROM producto_componentes WHERE producto_padre_id = ? AND (activo = 1 OR activo IS NULL)";
                 List<Map<String, Object>> compRows = jdbcTemplate.queryForList(sqlComp, productoInternoId);
                 
                 if (!compRows.isEmpty()) {
                     List<String> ids = new ArrayList<>();
-                    // Incluir el ID del producto padre también, ya que puede tener movimientos propios
-                    ids.add(productoSiesaId); 
+                    // Incluir el ID de Siesa del padre si existe
+                    if (siesaId != null && !siesaId.trim().isEmpty()) {
+                        ids.add(siesaId);
+                    }
                     
                     for (Map<String, Object> row : compRows) {
                         String hijoId = String.valueOf(row.get("producto_hijo_siesa_id"));
@@ -294,7 +308,9 @@ public class cmiplantaServices {
                             ids.add(hijoId);
                         }
                     }
-                    return ids;
+                    if (!ids.isEmpty()) {
+                        return ids;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -312,8 +328,8 @@ public class cmiplantaServices {
      */
     private boolean consultarUsaSuma(String productoSiesaId) {
         try {
-            String sql = "SELECT usa_suma FROM productos WHERE id_producto_siesa = ? AND (activo = 1 OR activo IS NULL)";
-            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, productoSiesaId);
+            String sql = "SELECT usa_suma FROM productos WHERE (id = ? OR id_producto_siesa = ?) AND (activo = 1 OR activo IS NULL)";
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, productoSiesaId, productoSiesaId);
             
             if (!rows.isEmpty() && rows.get(0).get("usa_suma") != null) {
                 Object val = rows.get(0).get("usa_suma");

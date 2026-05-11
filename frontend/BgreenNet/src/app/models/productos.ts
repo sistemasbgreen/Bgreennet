@@ -14,4 +14,5 @@ export interface producto {
   sentidoMeta?: boolean;
   mostrarCmi?: boolean;
   produccionBaseId?: string;
+  metaDiariaManual?: boolean;
 }
