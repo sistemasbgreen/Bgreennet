@@ -498,6 +498,28 @@ export class Usuarios implements OnInit {
   }
 
   // ======================================================
+  //  BLOQUEAR / DESBLOQUEAR USUARIO
+  // ======================================================
+
+  toggleBloqueo(usuario: Usuario): void {
+    const nuevoEstado = !usuario.bloqueado;
+    const accion = nuevoEstado ? 'bloquear' : 'desbloquear';
+    const confirmar = confirm(`¿Desea ${accion} la cuenta de "${usuario.usuario}"?`);
+    if (!confirmar) return;
+
+    this.usuarioService.toggleBloqueo(usuario.idUsuario!, nuevoEstado).subscribe({
+      next: () => {
+        usuario.bloqueado = nuevoEstado;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cambiar bloqueo:', err);
+        alert('No se pudo cambiar el estado de bloqueo.');
+      }
+    });
+  }
+
+  // ======================================================
   //  ACORDEÓN
   // ======================================================
 

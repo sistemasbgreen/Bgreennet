@@ -86,7 +86,11 @@ public class UsuarioServices {
             dto.setId_cargo_fk(rs.getInt("Id_cargo_fk"));                       
             dto.setId_tipoidentificacion_fk(rs.getInt("Id_tipoidentificacion_fk"));
             dto.setId_detalle_usuario(rs.getInt("Id_detalle_usuario"));
-           
+            try {
+                dto.setBloqueado(rs.getBoolean("bloqueado"));
+            } catch (Exception e) {
+                dto.setBloqueado(false); // campo puede no existir en queries antiguas
+            }
 
             return dto;
         });
@@ -161,6 +165,13 @@ public class UsuarioServices {
         if (updated == 0) {
             throw new RuntimeException("No se encontró el usuario para actualizar la clave");
         }
+    }
+
+    @Transactional
+    public void toggleBloqueo(Integer idUsuario, boolean bloqueado) {
+        String sql = "UPDATE Usuario SET bloqueado = ?, intentos_fallidos = ? WHERE id_usuario = ?";
+        int intentos = bloqueado ? 0 : 0; // Resetear intentos al desbloquear
+        jdbcTemplate.update(sql, bloqueado, intentos, idUsuario);
     }
 
     // RowMapper_Actualizado
