@@ -92,11 +92,11 @@
           <div class="category-title">Estrategia</div>
         </div>
         <div class="indicators-grid">
-          <div class="indicator" style="border-left: 4px solid  #2c5f2d;;" (click)="irindustrializacion()">
+          <div class="indicator no-hover" style="border-left: 4px solid #2c5f2d; cursor: default;">
             <div class="indicator-title">Industrialización del Aceite</div>
             <div *ngIf="industrializacionAceite_number !== 0">
-  {{ industrializacionAceite_number }} %
-</div>
+              {{ industrializacionAceite_number | number:'1.2-2' }} %
+            </div>
           </div>
           <!--
             <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="valor_agregado.html">

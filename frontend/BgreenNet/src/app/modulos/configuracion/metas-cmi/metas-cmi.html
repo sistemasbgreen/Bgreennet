@@ -169,38 +169,54 @@
         </div>
       </div>
 
-      <!-- Stats Overview (Premium Cards) -->
+      <!-- Stats Overview (4 Cards) -->
       <div class="metas-overview-cards" *ngIf="!cargando">
+
         <div class="ov-card">
-          <div class="ov-icon orange"><i class="bi bi-calendar2-range"></i></div>
+          <div class="ov-icon orange"><i class="bi bi-calendar2-check"></i></div>
           <div class="ov-data">
-            <span class="ov-val">{{ mesesConMeta }} <small>/ 12</small></span>
-            <span class="ov-lbl">Meses con Meta</span>
+            <span class="ov-val">{{ mesesConMeta }}<small>/12</small></span>
+            <span class="ov-lbl">Meses con meta</span>
           </div>
         </div>
+
         <div class="ov-card">
-          <div class="ov-icon green"><i class="bi bi-caret-up-fill"></i></div>
+          <div class="ov-icon green"><i class="bi bi-arrow-up-short"></i></div>
           <div class="ov-data">
             <span class="ov-val">{{ maxMeta | number:'1.0-0' }}</span>
-            <span class="ov-lbl">Objetivo Máximo</span>
+            <span class="ov-lbl">Máximo del año</span>
           </div>
         </div>
+
         <div class="ov-card">
-          <div class="ov-icon blue"><i class="bi bi-caret-down-fill"></i></div>
+          <div class="ov-icon blue"><i class="bi bi-arrow-down-short"></i></div>
           <div class="ov-data">
             <span class="ov-val">{{ minMeta | number:'1.0-0' }}</span>
-            <span class="ov-lbl">Objetivo Mínimo</span>
+            <span class="ov-lbl">Mínimo del año</span>
           </div>
         </div>
-        <div class="ov-card status" [class.is-asc]="selectedProductObj?.sentidoMeta !== false">
-          <div class="ov-icon"><i class="bi" [class.bi-graph-up]="selectedProductObj?.sentidoMeta !== false"
-              [class.bi-graph-down]="selectedProductObj?.sentidoMeta === false"></i></div>
-          <div class="ov-data">
-            <span class="ov-val">{{ selectedProductObj?.sentidoMeta !== false ? 'Mayor a la meta ( > )' : 'Menor a la
-              meta ( < )' }}</span>
-                <span class="ov-lbl">Lógica Aplicada</span>
+
+        <!-- 4ta tarjeta: Meta Diaria con toggle -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 0 2px;">
+            <label class="custom-checkbox-container" style="padding-left: 22px; min-height: 16px; margin-bottom: 0;">
+              <input type="checkbox" [(ngModel)]="selectedProductObj!.metaDiariaManual">
+              <span class="checkmark" style="height: 14px; width: 14px; border-radius: 4px;"></span>
+            </label>
+            <span style="font-size: 10px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.4px;">¿Meta diaria diferente?</span>
+          </label>
+          <div class="ov-card"
+               [style.opacity]="selectedProductObj?.metaDiariaManual ? '1' : '0.6'"
+               style="border-color: #bfdbfe; background: #f0f7ff; transition: all 0.25s ease; flex: 1;">
+            <div class="ov-icon blue"><i class="bi bi-clock-history"></i></div>
+            <div class="ov-data">
+              <input type="number" [(ngModel)]="metaDiaria" (ngModelChange)="onMetaDiariaChange($event)" 
+                     class="ov-val-input" placeholder="0">
+              <span class="ov-lbl" style="color: #2563eb;">Meta diaria</span>
+            </div>
           </div>
         </div>
+
       </div>
 
       <!-- Scrollable Table Body -->
@@ -247,10 +263,15 @@
       <div class="metas-modal-footer-v2">
         <div class="footer-left-v2">
           <div class="batch-apply-box">
-            <input type="number" [(ngModel)]="distribuirValor" placeholder="Valor para todos..." class="batch-input">
-            <button class="btn-batch-apply" (click)="distribuirValorATodos()">
-              <i class="bi bi-magic"></i> Aplicar Masivo
-            </button>
+            <div class="input-group-v2">
+              <span class="ctrl-lbl" style="margin-bottom: 5px; display: block; font-size: 11px;">Aplicar Masivo</span>
+              <div style="display: flex; gap: 5px;">
+                <input type="number" [(ngModel)]="distribuirValor" placeholder="Valor..." class="batch-input">
+                <button class="btn-batch-apply" (click)="distribuirValorATodos()">
+                  <i class="bi bi-magic"></i>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="footer-right-v2">

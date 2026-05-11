@@ -3,6 +3,7 @@ package com.bgreenNet.bgreenNet.dto;
 import java.time.LocalDateTime;
 
 public class MetaDetalleDTO {
+    private Integer mes;
     private Double valor;
     private LocalDateTime dateCreate;
     private LocalDateTime dateModify;
@@ -10,16 +11,26 @@ public class MetaDetalleDTO {
 
     public MetaDetalleDTO() {}
 
-    public MetaDetalleDTO(Double valor, LocalDateTime dateCreate, LocalDateTime dateModify, String userName) {
+    public MetaDetalleDTO(Integer mes, Double valor, LocalDateTime dateCreate, LocalDateTime dateModify, String userName) {
+        this.mes = mes;
         this.valor = valor;
         this.dateCreate = dateCreate;
         this.dateModify = dateModify;
         this.userName = userName;
     }
 
+    public Integer getMes() {
+        return mes;
+    }
+
+    public void setMes(Integer mes) {
+        this.mes = mes;
+    }
+
     public Double getValor() {
         return valor;
     }
+// ... rest of the file
 
     public void setValor(Double valor) {
         this.valor = valor;

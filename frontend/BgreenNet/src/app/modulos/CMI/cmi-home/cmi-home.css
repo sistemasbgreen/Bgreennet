@@ -391,3 +391,14 @@ body {
     transform: translateX(0);
   }
 }
+
+.indicator.no-hover:hover {
+  transform: none;
+  box-shadow: none;
+  background: #f8f9fa;
+  cursor: default;
+}
+
+.indicator.no-hover::before {
+  display: none;
+}

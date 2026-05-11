@@ -47,6 +47,12 @@ public class MetaRepository {
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'produccion_base_id') " +
                                  "ALTER TABLE productos ADD produccion_base_id VARCHAR(50) DEFAULT '26'");
 
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'date_create') " +
+                                 "ALTER TABLE productos ADD date_create DATETIME DEFAULT GETDATE()");
+
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'meta_diaria_manual') " +
+                                 "ALTER TABLE productos ADD meta_diaria_manual BIT DEFAULT 0");
+
             // Garantizar tabla de componentes y sus columnas
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('producto_componentes') AND type in ('U')) " +
                                  "CREATE TABLE producto_componentes (id INT IDENTITY(1,1), producto_padre_id VARCHAR(50), producto_hijo_siesa_id VARCHAR(50), usa_suma BIT, activo BIT DEFAULT 1)");
@@ -65,30 +71,12 @@ public class MetaRepository {
         ensureSchema();
         log.info(">>> Iniciando carga robusta de productos...");
         
-        // 1. Cargar lista base de productos desde el SP
-        List<Map<String, Object>> productRows = jdbcTemplate.queryForList("EXEC sp_producto_configuracion");
-        
-        // 1.1 Sincronizar valores directamente de la tabla para asegurar campos nuevos (sentido_meta, usa_suma)
-        // Esto es necesario si el Stored Procedure no incluye estas columnas todavía.
-        try {
-            List<Map<String, Object>> extraFields = jdbcTemplate.queryForList("SELECT id, sentido_meta, usa_suma, mostrar_cmi, produccion_base_id FROM productos");
-            Map<String, Map<String, Object>> extraMap = new HashMap<>();
-            for (Map<String, Object> ef : extraFields) {
-                extraMap.put(String.valueOf(ef.get("id")), ef);
-            }
-            
-            for (Map<String, Object> row : productRows) {
-                String id = String.valueOf(row.get("id"));
-                if (extraMap.containsKey(id)) {
-                    row.put("sentido_meta", extraMap.get(id).get("sentido_meta"));
-                    row.put("usa_suma", extraMap.get(id).get("usa_suma"));
-                    row.put("mostrar_cmi", extraMap.get(id).get("mostrar_cmi"));
-                    row.put("produccion_base_id", extraMap.get(id).get("produccion_base_id"));
-                }
-            }
-        } catch (Exception e) {
-            log.warn(">>> Error al sincronizar campos extra: {}", e.getMessage());
-        }
+        // 1. Cargar lista base de productos directamente de la tabla en lugar del SP
+        // El SP 'sp_producto_configuracion' filtra productos sin id_producto_siesa,
+        // lo cual excluye a los productos compuestos.
+        String sql = "SELECT id, nombre, id_producto_siesa, sentido_meta, usa_suma, mostrar_cmi, produccion_base_id, meta_diaria_manual " +
+                     "FROM productos WHERE activo = 1 ORDER BY nombre";
+        List<Map<String, Object>> productRows = jdbcTemplate.queryForList(sql);
 
         Map<String, ProductoDTO> productosMap = new HashMap<>();
 
@@ -140,6 +128,16 @@ public class MetaRepository {
                 
                 Object prodBaseIdObj = row.get("produccion_base_id");
                 p.setProduccionBaseId(prodBaseIdObj != null ? String.valueOf(prodBaseIdObj) : "26");
+                
+                // Cargar meta_diaria_manual
+                Object mdmObj = row.get("meta_diaria_manual");
+                if (mdmObj instanceof Boolean) {
+                    p.setMetaDiariaManual((Boolean) mdmObj);
+                } else if (mdmObj instanceof Number) {
+                    p.setMetaDiariaManual(((Number) mdmObj).intValue() == 1);
+                } else {
+                    p.setMetaDiariaManual(false);
+                }
                 
                 productosMap.put(id, p);
             }
@@ -232,11 +230,7 @@ public class MetaRepository {
             productoId, anio
         );
 
-        MetaDetalleDTO[] meses = new MetaDetalleDTO[12];
-        for (int i = 0; i < 12; i++) {
-            meses[i] = new MetaDetalleDTO(0.0, null, null, null);
-        }
-
+        List<MetaDetalleDTO> metas = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             int mes = (int) row.get("mes");
             double valor = ((Number) row.get("valor")).doubleValue();
@@ -248,10 +242,10 @@ public class MetaRepository {
             LocalDateTime dateCreate = (tsCreate != null) ? tsCreate.toLocalDateTime() : null;
             LocalDateTime dateModify = (tsModify != null) ? tsModify.toLocalDateTime() : null;
 
-            meses[mes - 1] = new MetaDetalleDTO(valor, dateCreate, dateModify, usuario);
+            metas.add(new MetaDetalleDTO(mes, valor, dateCreate, dateModify, usuario));
         }
 
-        return Arrays.asList(meses);
+        return metas;
     }
     
     
@@ -269,11 +263,7 @@ public class MetaRepository {
             anio
         );
 
-        MetaDetalleDTO[] meses = new MetaDetalleDTO[12];
-        for (int i = 0; i < 12; i++) {
-            meses[i] = new MetaDetalleDTO(0.0, null, null, null);
-        }
-
+        List<MetaDetalleDTO> metas = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             int mes = (int) row.get("mes");
             double valor = ((Number) row.get("valor")).doubleValue();
@@ -285,10 +275,10 @@ public class MetaRepository {
             LocalDateTime dateCreate = (tsCreate != null) ? tsCreate.toLocalDateTime() : null;
             LocalDateTime dateModify = (tsModify != null) ? tsModify.toLocalDateTime() : null;
 
-            meses[mes - 1] = new MetaDetalleDTO(valor, dateCreate, dateModify, usuario);
+            metas.add(new MetaDetalleDTO(mes, valor, dateCreate, dateModify, usuario));
         }
 
-        return Arrays.asList(meses);
+        return metas;
     }
 
     
@@ -304,10 +294,11 @@ public class MetaRepository {
     // GESTION PRODUCTOS
     // =============================
     public int insertarProducto(ProductoDTO producto) {
+        ensureSchema();
         // La columna 'id' NO es IDENTITY — se calcula manualmente como MAX(id) + 1.
         // ISNULL maneja el caso de tabla vacía (devuelve 0, por lo que el primer id será 1).
         Integer nextId = jdbcTemplate.queryForObject(
-            "SELECT ISNULL(MAX(CAST(id AS INT)), 0) + 1 FROM productos",
+            "SELECT ISNULL(MAX(TRY_CAST(id AS INT)), 0) + 1 FROM productos",
             Integer.class
         );
 
@@ -316,8 +307,8 @@ public class MetaRepository {
             ? producto.getIdProductoSiesa().toString()
             : null;
 
-        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, sentido_meta, mostrar_cmi, produccion_base_id, date_create, date_Modify) " +
-                     "VALUES (?, ?, ?, 1, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, sentido_meta, mostrar_cmi, produccion_base_id, meta_diaria_manual, date_create, date_Modify) " +
+                     "VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
 
         jdbcTemplate.update(
             sql,
@@ -327,7 +318,8 @@ public class MetaRepository {
             producto.getUsaSuma() != null && producto.getUsaSuma() ? 1 : 0,
             producto.getSentidoMeta() != null && producto.getSentidoMeta() ? 1 : 0,
             producto.getMostrarCmi() != null && producto.getMostrarCmi() ? 1 : 0,
-            producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26"
+            producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
+            producto.getMetaDiariaManual() != null && producto.getMetaDiariaManual() ? 1 : 0
         );
 
         return nextId;
@@ -336,7 +328,7 @@ public class MetaRepository {
     public void actualizarProducto(ProductoDTO producto) {
         ensureSchema();
         try {
-            String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, sentido_meta = ?, mostrar_cmi = ?, produccion_base_id = ?, date_Modify = GETDATE() " +
+            String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, sentido_meta = ?, mostrar_cmi = ?, produccion_base_id = ?, meta_diaria_manual = ?, date_Modify = GETDATE() " +
                          "WHERE id = ?";
 
             String idSiesa = producto.getIdProductoSiesa() != null
@@ -353,6 +345,7 @@ public class MetaRepository {
                 producto.getSentidoMeta() != null ? producto.getSentidoMeta() : true,
                 producto.getMostrarCmi() != null ? producto.getMostrarCmi() : true,
                 producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
+                producto.getMetaDiariaManual() != null ? producto.getMetaDiariaManual() : false,
                 producto.getId()
             );
         } catch (Exception e) {
