@@ -362,7 +362,7 @@ export class Usuarios implements OnInit {
     this.perfilIdEditar = perfil.idPerfil!;
     this.perfilForm.patchValue({
       descripcionPerfil: perfil.descripcionPerfil,
-      activo: perfil.estado
+      activo: !!perfil.activo
     });
     this.showModalPerfil = true;
   }

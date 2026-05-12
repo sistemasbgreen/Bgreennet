@@ -30,6 +30,9 @@ public class ImagenLogin {
     @Column(nullable = false, length = 500)
     private String url;
 
+    @Column(length = 255)
+    private String nombre;
+
     @Column(nullable = false)
     private Integer activo = 1;
 
@@ -47,6 +50,8 @@ public class ImagenLogin {
     public void setId(Long id) { this.id = id; }
     public String getUrl() { return url; }
     public void setUrl(String url) { this.url = url; }
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
     public Integer getActivo() { return activo; }
     public void setActivo(Integer activo) { this.activo = activo; }
     public LocalDateTime getDateCreate() { return dateCreate; }

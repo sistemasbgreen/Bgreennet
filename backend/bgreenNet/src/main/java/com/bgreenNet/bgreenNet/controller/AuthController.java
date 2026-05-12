@@ -101,14 +101,22 @@ public class AuthController {
 				Usuario user = userOpt.get();
 				if (config.getIntentosInvalidos() > 0) {
 					user.setIntentosFallidos(user.getIntentosFallidos() + 1);
-					if (user.getIntentosFallidos() >= config.getIntentosInvalidos()) {
+					int intentosRestantes = config.getIntentosInvalidos() - user.getIntentosFallidos();
+					
+					if (intentosRestantes <= 0) {
 						user.setBloqueado(true);
 						usuarioRepository.save(user);
 						Map<String, String> error = new HashMap<>();
-						error.put("error", "Cuenta bloqueada tras " + user.getIntentosFallidos() + " intentos fallidos.");
+						error.put("error", "La cuenta ha sido bloqueada tras " + config.getIntentosInvalidos() + " intentos fallidos. Contacte al administrador.");
 						return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+					} else {
+						usuarioRepository.save(user);
+						Map<String, String> error = new HashMap<>();
+						String mensaje = "Usuario o contraseña incorrectos. ";
+						mensaje += (intentosRestantes == 1) ? "Le queda 1 intento restante." : "Le quedan " + intentosRestantes + " intentos restantes.";
+						error.put("error", mensaje);
+						return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
 					}
-					usuarioRepository.save(user);
 				}
 			}
 

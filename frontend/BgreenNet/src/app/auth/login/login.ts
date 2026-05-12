@@ -73,6 +73,11 @@ export class Login {
       },
       error: (err) => {
         this.isLoading = false;
+        
+        // Limpiar el campo de contraseña
+        this.loginForm.get('contrasena')?.setValue('');
+        this.loginForm.get('contrasena')?.markAsPristine();
+        this.loginForm.get('contrasena')?.markAsUntouched();
 
         if (err.status === 401) {
           this.errorMessage = err.error?.error || 'Usuario o contraseña incorrectos';

@@ -144,13 +144,15 @@
               </td>
               <td>
                 <div class="action-group">
-                  <!-- Estado -->
-                  <span class="estado-icon"
-                    [class.estado-activo]="!p.estado"
-                    [class.estado-inactivo]="p.estado"
-                    [title]="p.estado ? 'Inactivo' : 'Activo'">
-                    <i [class]="!p.estado ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
-                  </span>
+                  <!-- ✅ Estado activo/inactivo -->
+                  <button class="btn-action btn-estado"
+                    [style.background-color]="p.activo ? '#dcfce7' : '#fef2f2'"
+                    [style.color]="p.activo ? '#15803d' : '#b91c1c'"
+                    [style.border]="p.activo ? '1.5px solid #86efac' : '1.5px solid #fecaca'"
+                    [title]="p.activo ? 'Activo' : 'Inactivo'"
+                    style="cursor:default;">
+                    <i [class]="p.activo ? 'bi bi-check-lg' : 'bi bi-x-lg'"></i>
+                  </button>
 
                   <!-- Editar -->
                   <button class="btn-action btn-editar" (click)="ModalEditarPerfil(p)" title="Editar perfil">

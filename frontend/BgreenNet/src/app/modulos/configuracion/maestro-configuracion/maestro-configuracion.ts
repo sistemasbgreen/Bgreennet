@@ -20,6 +20,8 @@ export class MaestroConfiguracion implements OnInit {
   imagenes: ImagenLogin[] = [];
   loadingImagenes = false;
   nuevaImagenUrl: string = '';
+  nuevaImagenNombre: string = '';
+  filtroBusqueda: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -114,6 +116,7 @@ export class MaestroConfiguracion implements OnInit {
     
     const nuevaImg: ImagenLogin = {
       url: this.nuevaImagenUrl.trim(),
+      nombre: this.nuevaImagenNombre.trim(),
       activo: 1,
       usuarioCreacion: nombreCompleto
     };
@@ -122,6 +125,7 @@ export class MaestroConfiguracion implements OnInit {
     this.listasService.saveImagenLogin(nuevaImg).subscribe({
       next: () => {
         this.nuevaImagenUrl = '';
+        this.nuevaImagenNombre = '';
         this.loadImagenes();
         Swal.fire('¡Añadida!', 'La imagen ha sido agregada correctamente.', 'success');
       },
@@ -195,5 +199,38 @@ export class MaestroConfiguracion implements OnInit {
         }
       });
     }
+  }
+
+  actualizarNombre(imagen: ImagenLogin, event: any): void {
+    const nuevoNombre = event.target.value;
+    if (nuevoNombre !== imagen.nombre) {
+      imagen.nombre = nuevoNombre;
+      this.listasService.saveImagenLogin(imagen).subscribe({
+        next: () => {
+          Swal.fire({
+            title: 'Nombre Actualizado',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        },
+        error: (err) => {
+          console.error('Error al actualizar nombre', err);
+          this.loadImagenes(); // Recargar para revertir
+          Swal.fire('Error', 'No se pudo actualizar el nombre.', 'error');
+        }
+      });
+    }
+  }
+
+  get filteredImagenes(): ImagenLogin[] {
+    if (!this.filtroBusqueda || !this.filtroBusqueda.trim()) {
+      return this.imagenes;
+    }
+    const search = this.filtroBusqueda.toLowerCase().trim();
+    return this.imagenes.filter(img => 
+      (img.nombre && img.nombre.toLowerCase().includes(search)) || 
+      (img.url && img.url.toLowerCase().includes(search))
+    );
   }
 }
