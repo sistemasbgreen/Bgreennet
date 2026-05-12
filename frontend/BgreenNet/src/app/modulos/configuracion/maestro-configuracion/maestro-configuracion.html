@@ -1,0 +1,256 @@
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      <div class="card shadow-lg border-0 overflow-hidden rounded-4">
+
+        <!-- ===== HEADER ===== -->
+        <div class="card-header-custom">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <div class="header-icon">
+                <i class="bi bi-shield-lock-fill"></i>
+              </div>
+              <div>
+                <h4 class="mb-0 fw-bold text-white">Configuración de Seguridad</h4>
+                <p class="mb-0 text-white-50 small">Control de acceso, contraseñas y políticas del sistema</p>
+              </div>
+            </div>
+            <div *ngIf="loading" class="d-flex align-items-center gap-2 text-white">
+              <div class="spinner-border spinner-border-sm" role="status"></div>
+              <small class="fw-semibold">Guardando...</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== BODY ===== -->
+        <div class="card-body p-4 p-lg-5">
+          <form [formGroup]="configForm" (ngSubmit)="saveConfig()">
+
+            <!-- ===== FILA 1: ACCESO + LONGITUD ===== -->
+            <div class="section-block mb-4">
+              <div class="section-title mb-3">
+                <span class="section-icon-badge"><i class="bi bi-sliders"></i></span>
+                <span>Parámetros de Seguridad</span>
+              </div>
+
+              <div class="row g-4">
+                <!-- Expiración -->
+                <div class="col-md-4">
+                  <label class="field-label">Expiración de Contraseña</label>
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text field-prefix"><i class="bi bi-clock-history"></i></span>
+                    <select class="form-select field-select" formControlName="expiracionDias">
+                      <option [value]="90">90 días — Recomendado</option>
+                      <option [value]="60">60 días</option>
+                      <option [value]="30">30 días — Alta seguridad</option>
+                      <option [value]="0">Nunca — Sin expiración</option>
+                    </select>
+                  </div>
+                  <div class="field-hint">Días antes de exigir cambio de clave.</div>
+                </div>
+
+                <!-- Intentos -->
+                <div class="col-md-4">
+                  <label class="field-label">Intentos Fallidos</label>
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text field-prefix"><i class="bi bi-shield-exclamation"></i></span>
+                    <select class="form-select field-select" formControlName="intentosInvalidos">
+                      <option [value]="3">3 intentos — Máxima seguridad</option>
+                      <option [value]="5">5 intentos — Equilibrado</option>
+                      <option [value]="10">10 intentos</option>
+                      <option [value]="0">Sin límite — No recomendado</option>
+                    </select>
+                  </div>
+                  <div class="field-hint">Bloqueo automático al superar el límite.</div>
+                </div>
+
+                <!-- Longitud -->
+                <div class="col-md-4">
+                  <label class="field-label">Longitud Mínima</label>
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text field-prefix"><i class="bi bi-ruler"></i></span>
+                    <input type="number" class="form-control field-input"
+                      formControlName="minCaracteres" min="4" max="20">
+                  </div>
+                  <div class="field-hint">Entre 4 y 20 caracteres.</div>
+                </div>
+              </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- ===== FILA 2: COMPLEJIDAD ===== -->
+            <div class="section-block mt-4">
+              <div class="section-title mb-3">
+                <span class="section-icon-badge"><i class="bi bi-key-fill"></i></span>
+                <span>La contraseña debe incluir</span>
+              </div>
+
+              <div class="row g-3">
+                <!-- Letras -->
+                <div class="col-md-4">
+                  <label class="toggle-item" for="swLetras">
+                    <div class="toggle-item-icon icon-purple"><i class="bi bi-fonts"></i></div>
+                    <div class="toggle-item-text">
+                      <span class="toggle-item-name">Letras</span>
+                      <span class="toggle-item-sub">A-Z, a-z</span>
+                    </div>
+                    <div class="form-check form-switch ms-auto mb-0">
+                      <input class="form-check-input bgreen-toggle" type="checkbox"
+                        id="swLetras" formControlName="requiereLetras">
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Números -->
+                <div class="col-md-4">
+                  <label class="toggle-item" for="swNumeros">
+                    <div class="toggle-item-icon icon-amber"><i class="bi bi-123"></i></div>
+                    <div class="toggle-item-text">
+                      <span class="toggle-item-name">Números</span>
+                      <span class="toggle-item-sub">0 — 9</span>
+                    </div>
+                    <div class="form-check form-switch ms-auto mb-0">
+                      <input class="form-check-input bgreen-toggle" type="checkbox"
+                        id="swNumeros" formControlName="requiereNumeros">
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Especiales -->
+                <div class="col-md-4">
+                  <label class="toggle-item" for="swEspeciales">
+                    <div class="toggle-item-icon icon-red"><i class="bi bi-asterisk"></i></div>
+                    <div class="toggle-item-text">
+                      <span class="toggle-item-name">Caracteres Especiales</span>
+                      <span class="toggle-item-sub">&#64; # $ % &amp; !</span>
+                    </div>
+                    <div class="form-check form-switch ms-auto mb-0">
+                      <input class="form-check-input bgreen-toggle" type="checkbox"
+                        id="swEspeciales" formControlName="requiereEspeciales">
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <hr class="section-divider mt-5">
+
+            <!-- ===== SECCIÓN: IMÁGENES DE LOGIN ===== -->
+            <div class="section-block mt-4">
+              <div class="section-title mb-4">
+                <span class="section-icon-badge"><i class="bi bi-images"></i></span>
+                <span>Imágenes de Fondo de Login</span>
+              </div>
+
+              <!-- Agregar nueva imagen -->
+              <div class="row mb-4 align-items-end g-3">
+                <div class="col-lg-4">
+                  <label class="field-label">Nombre de la imagen</label>
+                  <div class="input-group">
+                    <span class="input-group-text field-prefix"><i class="bi bi-tag-fill"></i></span>
+                    <input type="text" class="form-control field-input" 
+                           placeholder="Ej: Fondo Principal"
+                           [(ngModel)]="nuevaImagenNombre" [ngModelOptions]="{standalone: true}">
+                  </div>
+                </div>
+                <div class="col-lg-5">
+                  <label class="field-label">URL de imagen</label>
+                  <div class="input-group">
+                    <span class="input-group-text field-prefix"><i class="bi bi-link-45deg"></i></span>
+                    <input type="text" class="form-control field-input" 
+                           placeholder="https://ejemplo.com/imagen.jpg"
+                           [(ngModel)]="nuevaImagenUrl" [ngModelOptions]="{standalone: true}">
+                  </div>
+                </div>
+                <div class="col-lg-3">
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn-bgreen flex-grow-1" 
+                            (click)="agregarImagen()" [disabled]="!nuevaImagenUrl || loadingImagenes">
+                      <i class="bi bi-plus-lg me-1"></i>Añadir
+                    </button>
+                    <div class="input-group search-group" style="width: 150px;">
+                      <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                      <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar..." 
+                             [(ngModel)]="filtroBusqueda" [ngModelOptions]="{standalone: true}">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lista de imágenes -->
+              <div class="table-responsive rounded-3 border border-light-subtle">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="ps-3" style="width: 80px;">Vista</th>
+                      <th style="width: 200px;">Nombre</th>
+                      <th>URL / Enlace</th>
+                      <th style="width: 120px;">Estado</th>
+                      <th class="text-center" style="width: 80px;">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let img of filteredImagenes">
+                      <td class="ps-3">
+                        <div class="image-preview">
+                          <img [src]="img.url" (error)="$any($event.target).src='assets/img/placeholder.png'">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" class="form-control form-control-sm border-0 bg-transparent fw-semibold" 
+                               [value]="img.nombre || ''" (blur)="actualizarNombre(img, $event)" placeholder="Sin nombre">
+                      </td>
+                      <td>
+                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" 
+                               [value]="img.url" (blur)="actualizarUrl(img, $event)">
+                        <small class="text-muted d-block mt-1" style="font-size: 0.65rem;">
+                          Creado por: {{img.usuarioCreacion || 'Sistema'}} — {{img.dateCreate | date:'dd/MM/yyyy HH:mm'}}
+                        </small>
+                      </td>
+                      <td>
+                        <div class="form-check form-switch mb-0">
+                          <input class="form-check-input bgreen-toggle" type="checkbox" 
+                                 [checked]="img.activo === 1" (change)="toggleImagen(img)">
+                          <span class="ms-2 small fw-semibold" [ngClass]="img.activo === 1 ? 'text-success' : 'text-danger'">
+                            {{img.activo === 1 ? 'Activa' : 'Inactiva'}}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        <button type="button" class="btn btn-link text-danger p-0" (click)="eliminarImagen(img.id!)">
+                          <i class="bi bi-trash3-fill"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr *ngIf="filteredImagenes.length === 0 && !loadingImagenes">
+                      <td colspan="5" class="text-center py-4 text-muted">
+                        <i class="bi bi-info-circle me-2"></i>No se encontraron imágenes.
+                      </td>
+                    </tr>
+                    <tr *ngIf="loadingImagenes">
+                      <td colspan="5" class="text-center py-4">
+                        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                        <span class="ms-2">Cargando...</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ===== ACCIONES ===== -->
+            <div class="mt-5 pt-4 d-flex justify-content-end gap-3 border-top">
+              <button type="submit" class="btn-bgreen btn-lg px-5"
+                [disabled]="configForm.invalid || loading">
+                <span *ngIf="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                <i *ngIf="!loading" class="bi bi-save me-2"></i>Guardar Cambios
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

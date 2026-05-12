@@ -47,30 +47,43 @@
               <td>{{ u.nombre }} {{ u.apellido }}</td>
               <td>{{ u.descripcionPerfil }}</td>
 
-              <!-- ACCIONES: estado + ver + editar -->
+              <!-- ACCIONES -->
               <td>
                 <div class="action-group">
-                  <!-- Estado -->
-                  <span class="estado-icon"
-                    [class.estado-activo]="u.estado"
-                    [class.estado-inactivo]="!u.estado"
-                    [title]="u.estado ? 'Activo' : 'Inactivo'">
-                    <i [class]="u.estado ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
-                  </span>
-
-                  <!-- 👁 Botón Ver (solo lectura) -->
+                 
+                  <!-- 👁 Ver -->
                   <button class="btn-action btn-ver" (click)="abrirVerModal(u)" title="Ver usuario">
                     <i class="bi bi-eye-fill"></i>
                   </button>
 
-                  <!-- Botón Editar -->
+                  <!-- ✏️ Editar -->
                   <button class="btn-action btn-editar" (click)="abrirEditarModal(u)" title="Editar usuario">
                     <i class="bi bi-pencil-fill"></i>
                   </button>
 
-                  <!-- 🔑 Botón Cambiar Clave -->
+                  <!-- 🔑 Restablecer clave -->
                   <button class="btn-action btn-clavereset" (click)="abrirCambiarClaveModal(u)" title="Restablecer contraseña">
                     <i class="bi bi-key-fill"></i>
+                  </button>
+
+                   <!-- ✅ Estado activo/inactivo -->
+                  <button class="btn-action btn-estado"
+                    [style.background-color]="u.estado ? '#dcfce7' : '#fef2f2'"
+                    [style.color]="u.estado ? '#15803d' : '#b91c1c'"
+                    [style.border]="u.estado ? '1.5px solid #86efac' : '1.5px solid #fecaca'"
+                    [title]="u.estado ? 'Activo' : 'Inactivo'"
+                    style="cursor:default;">
+                    <i [class]="u.estado ? 'bi bi-check-lg' : 'bi bi-x-lg'"></i>
+                  </button>
+
+
+                  <!-- 🔒 Bloquear / Desbloquear -->
+                  <button class="btn-action"
+                    [class.btn-desbloquear]="u.bloqueado"
+                    [class.btn-bloquear]="!u.bloqueado"
+                    (click)="toggleBloqueo(u)"
+                    [title]="u.bloqueado ? 'Desbloquear cuenta' : 'Bloquear cuenta'">
+                    <i [class]="u.bloqueado ? 'bi bi-lock-fill' : 'bi bi-unlock-fill'"></i>
                   </button>
                 </div>
               </td>
@@ -131,13 +144,15 @@
               </td>
               <td>
                 <div class="action-group">
-                  <!-- Estado -->
-                  <span class="estado-icon"
-                    [class.estado-activo]="!p.estado"
-                    [class.estado-inactivo]="p.estado"
-                    [title]="p.estado ? 'Inactivo' : 'Activo'">
-                    <i [class]="!p.estado ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
-                  </span>
+                  <!-- ✅ Estado activo/inactivo -->
+                  <button class="btn-action btn-estado"
+                    [style.background-color]="p.activo ? '#dcfce7' : '#fef2f2'"
+                    [style.color]="p.activo ? '#15803d' : '#b91c1c'"
+                    [style.border]="p.activo ? '1.5px solid #86efac' : '1.5px solid #fecaca'"
+                    [title]="p.activo ? 'Activo' : 'Inactivo'"
+                    style="cursor:default;">
+                    <i [class]="p.activo ? 'bi bi-check-lg' : 'bi bi-x-lg'"></i>
+                  </button>
 
                   <!-- Editar -->
                   <button class="btn-action btn-editar" (click)="ModalEditarPerfil(p)" title="Editar perfil">

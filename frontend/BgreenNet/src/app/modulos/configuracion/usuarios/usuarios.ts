@@ -362,7 +362,7 @@ export class Usuarios implements OnInit {
     this.perfilIdEditar = perfil.idPerfil!;
     this.perfilForm.patchValue({
       descripcionPerfil: perfil.descripcionPerfil,
-      activo: perfil.estado
+      activo: !!perfil.activo
     });
     this.showModalPerfil = true;
   }
@@ -495,6 +495,28 @@ export class Usuarios implements OnInit {
 
   tienePermisoModulo(submodulo: SubModuloDTO): boolean {
     return !!this.nombre_perfil && (submodulo.roles?.includes(this.nombre_perfil) ?? false);
+  }
+
+  // ======================================================
+  //  BLOQUEAR / DESBLOQUEAR USUARIO
+  // ======================================================
+
+  toggleBloqueo(usuario: Usuario): void {
+    const nuevoEstado = !usuario.bloqueado;
+    const accion = nuevoEstado ? 'bloquear' : 'desbloquear';
+    const confirmar = confirm(`¿Desea ${accion} la cuenta de "${usuario.usuario}"?`);
+    if (!confirmar) return;
+
+    this.usuarioService.toggleBloqueo(usuario.idUsuario!, nuevoEstado).subscribe({
+      next: () => {
+        usuario.bloqueado = nuevoEstado;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cambiar bloqueo:', err);
+        alert('No se pudo cambiar el estado de bloqueo.');
+      }
+    });
   }
 
   // ======================================================
