@@ -59,6 +59,7 @@ public class AuthController {
 	public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
 		Optional<Usuario> userOpt = usuarioRepository.findByUsuario(request.getUsuario());
 		ConfiguracionSeguridad config = configuracionSeguridadService.obtenerConfiguracion();
+		boolean contrasenaExpirada = false;
 
 		if (userOpt.isPresent()) {
 			Usuario user = userOpt.get();
@@ -88,7 +89,7 @@ public class AuthController {
 				if (config.getExpiracionDias() > 0 && user.getFechaActualizacionContrasena() != null) {
 					long diasPasados = ChronoUnit.DAYS.between(user.getFechaActualizacionContrasena(), LocalDateTime.now());
 					if (diasPasados >= config.getExpiracionDias()) {
-
+						contrasenaExpirada = true;
 						System.out.println("Contraseña expirada para el usuario: " + request.getUsuario());
 					}
 				}
@@ -140,6 +141,7 @@ public class AuthController {
 			System.out.println("Token generado exitosamente");
 			LoginResponseDTO response = authService.login(request);
 			response.setToken(token);
+			response.setContrasenaExpirada(contrasenaExpirada);
 
 			System.out.println("Login completado exitosamente para: " + request.getUsuario());
 

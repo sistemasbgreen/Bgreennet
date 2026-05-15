@@ -153,13 +153,13 @@ public class UsuarioServices {
             throw new RuntimeException("La clave actual es incorrectA");
         }
 
-        String sqlUpdate = "UPDATE Usuario SET contrasena = ? WHERE id_usuario = ?";
+        String sqlUpdate = "UPDATE Usuario SET contrasena = ?, fecha_actualizacion_contrasena = GETDATE() WHERE id_usuario = ?";
         jdbcTemplate.update(sqlUpdate, passwordEncoder.encode(dto.getNuevaClave()), dto.getIdUsuario());
     }
 
     @Transactional
     public void cambiarClaveAdmin(CambiarClaveDTO dto) {
-        String sqlUpdate = "UPDATE Usuario SET contrasena = ? WHERE id_usuario = ?";
+        String sqlUpdate = "UPDATE Usuario SET contrasena = ?, fecha_actualizacion_contrasena = GETDATE() WHERE id_usuario = ?";
         int updated = jdbcTemplate.update(sqlUpdate, passwordEncoder.encode(dto.getNuevaClave()), dto.getIdUsuario());
         
         if (updated == 0) {
