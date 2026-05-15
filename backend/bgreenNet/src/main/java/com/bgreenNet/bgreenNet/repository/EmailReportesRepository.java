@@ -51,6 +51,8 @@ public class EmailReportesRepository {
 
     public List<DetalleInsumoDTO> obtenerDetalleInsumos(LocalDate fechaInicio, LocalDate fechaFin) {
         String sql = "SELECT " +
+            "    'OP - ' + CONVERT(VARCHAR(10), CAST(mov.f470_id_fecha AS DATE), 23) AS OP, " +
+            "    FORMAT(mov.f470_id_fecha, 'yyyyMM') + RIGHT('000' + CAST(DENSE_RANK() OVER (PARTITION BY FORMAT(mov.f470_id_fecha, 'yyyyMM') ORDER BY CAST(mov.f470_id_fecha AS DATE)) AS VARCHAR(10)), 3) AS id_orden, " +
             "    f120_id AS item, " +
             "    f120_descripcion, " +
             "    CAST(mov.f470_id_fecha AS DATE) AS fecha, " +
@@ -82,7 +84,8 @@ public class EmailReportesRepository {
             "GROUP BY " +
             "    itm.f120_id, " +
             "    itm.f120_descripcion, " +
-            "    CAST(mov.f470_id_fecha AS DATE) " +
+            "    CAST(mov.f470_id_fecha AS DATE), " +
+            "    FORMAT(mov.f470_id_fecha, 'yyyyMM') " +
             "ORDER BY " +
             "    itm.f120_id, " +
             "    itm.f120_descripcion, " +
@@ -97,6 +100,7 @@ public class EmailReportesRepository {
             DetalleInsumoDTO dto = new DetalleInsumoDTO();
             dto.setItem(rs.getString("item"));
             dto.setDescripcion(rs.getString("f120_descripcion"));
+            dto.setOrdenProduccion(rs.getString("id_orden")); // Asignar el nuevo ID
             Date sqlDate = rs.getDate("fecha");
             if (sqlDate != null) {
                 dto.setFecha(sqlDate.toLocalDate());

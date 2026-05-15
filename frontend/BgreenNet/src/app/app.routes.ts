@@ -12,12 +12,6 @@ export const routes: Routes = [
     path: 'login',
     component: Login
   },
-  {
-    path: 'orden-produccion',
-    loadComponent: () =>
-      import('./modulos/orden-produccion/orden-produccion').then(o => o.OrdenProduccion)
-  },
-
   // Rutas CMI
   {
     path: 'cmi',

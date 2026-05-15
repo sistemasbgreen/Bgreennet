@@ -60,6 +60,20 @@ public class MetaRepository {
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('producto_componentes') AND name = 'activo') " +
                                  "ALTER TABLE producto_componentes ADD activo BIT DEFAULT 1");
             
+            // Garantizar tabla de mapeos ERP (productos_tbs)
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('productos_tbs') AND type in ('U')) " +
+                                 "CREATE TABLE productos_tbs (" +
+                                 "  id INT IDENTITY(1,1) PRIMARY KEY, " +
+                                 "  id_tbs_producto INT NOT NULL, " +
+                                 "  id_producto_tbs VARCHAR(50) NOT NULL, " +
+                                 "  descripcion VARCHAR(255), " +
+                                 "  id_tbs_tipodoc VARCHAR(20), " +
+                                 "  datecreate DATETIME DEFAULT GETDATE(), " +
+                                 "  datemodify DATETIME DEFAULT GETDATE(), " +
+                                 "  usuario_creacion VARCHAR(100), " +
+                                 "  estado BIT DEFAULT 1, " +
+                                 "  CONSTRAINT FK_productos_tbs_productos FOREIGN KEY (id_tbs_producto) REFERENCES productos(id))");
+
             log.info(">>> Esquema verificado/actualizado correctamente.");
         } catch (Exception e) {
             log.warn(">>> Aviso al verificar esquema (puede ser normal si no hay permisos): {}", e.getMessage());
@@ -71,11 +85,12 @@ public class MetaRepository {
         ensureSchema();
         log.info(">>> Iniciando carga robusta de productos...");
         
-        // 1. Cargar lista base de productos directamente de la tabla en lugar del SP
-        // El SP 'sp_producto_configuracion' filtra productos sin id_producto_siesa,
-        // lo cual excluye a los productos compuestos.
-        String sql = "SELECT id, nombre, id_producto_siesa, sentido_meta, usa_suma, mostrar_cmi, produccion_base_id, meta_diaria_manual " +
-                     "FROM productos WHERE activo = 1 ORDER BY nombre";
+        // 1. Cargar lista base de productos con sus mapeos ERP
+        String sql = "SELECT p.id, p.nombre, p.id_producto_siesa, p.sentido_meta, p.usa_suma, p.mostrar_cmi, p.produccion_base_id, p.meta_diaria_manual, " +
+                     "tbs.id_producto_tbs, tbs.id_tbs_tipodoc, tbs.descripcion as tbs_desc " +
+                     "FROM productos p " +
+                     "LEFT JOIN productos_tbs tbs ON TRY_CAST(p.id AS INT) = tbs.id_tbs_producto AND tbs.estado = 1 " +
+                     "WHERE p.activo = 1 ORDER BY p.nombre";
         List<Map<String, Object>> productRows = jdbcTemplate.queryForList(sql);
 
         Map<String, ProductoDTO> productosMap = new HashMap<>();
@@ -131,13 +146,12 @@ public class MetaRepository {
                 
                 // Cargar meta_diaria_manual
                 Object mdmObj = row.get("meta_diaria_manual");
-                if (mdmObj instanceof Boolean) {
-                    p.setMetaDiariaManual((Boolean) mdmObj);
-                } else if (mdmObj instanceof Number) {
-                    p.setMetaDiariaManual(((Number) mdmObj).intValue() == 1);
-                } else {
-                    p.setMetaDiariaManual(false);
-                }
+                p.setMetaDiariaManual(mdmObj instanceof Boolean ? (Boolean) mdmObj : (mdmObj instanceof Number ? ((Number) mdmObj).intValue() == 1 : false));
+                
+                // Mapeos ERP
+                p.setIdProductoTbs(row.get("id_producto_tbs") != null ? String.valueOf(row.get("id_producto_tbs")) : null);
+                p.setIdTbsTipoDoc(row.get("id_tbs_tipodoc") != null ? String.valueOf(row.get("id_tbs_tipodoc")) : null);
+                p.setTbsDescripcion(row.get("tbs_desc") != null ? String.valueOf(row.get("tbs_desc")) : null);
                 
                 productosMap.put(id, p);
             }
@@ -322,6 +336,19 @@ public class MetaRepository {
             producto.getMetaDiariaManual() != null && producto.getMetaDiariaManual() ? 1 : 0
         );
 
+        // Insertar mapeo ERP si existe
+        if (producto.getIdProductoTbs() != null && !producto.getIdProductoTbs().isEmpty()) {
+            String desc = (producto.getTbsDescripcion() != null && !producto.getTbsDescripcion().isEmpty()) 
+                ? producto.getTbsDescripcion() 
+                : producto.getNombre();
+
+            jdbcTemplate.update(
+                "INSERT INTO productos_tbs (id_tbs_producto, id_producto_tbs, id_tbs_tipodoc, descripcion, datecreate, datemodify, estado) " +
+                "VALUES (?, ?, ?, ?, GETDATE(), GETDATE(), 1)",
+                nextId, producto.getIdProductoTbs(), producto.getIdTbsTipoDoc(), desc
+            );
+        }
+
         return nextId;
     }
 
@@ -348,6 +375,25 @@ public class MetaRepository {
                 producto.getMetaDiariaManual() != null ? producto.getMetaDiariaManual() : false,
                 producto.getId()
             );
+
+            // Actualizar mapeo ERP
+            if (producto.getIdProductoTbs() != null) {
+                // Primero desactivar mapeos anteriores
+                jdbcTemplate.update("UPDATE productos_tbs SET estado = 0 WHERE id_tbs_producto = ?", producto.getId());
+                
+                // Insertar nuevo si no está vacío
+                if (!producto.getIdProductoTbs().isEmpty()) {
+                    String desc = (producto.getTbsDescripcion() != null && !producto.getTbsDescripcion().isEmpty()) 
+                        ? producto.getTbsDescripcion() 
+                        : producto.getNombre();
+
+                    jdbcTemplate.update(
+                        "INSERT INTO productos_tbs (id_tbs_producto, id_producto_tbs, id_tbs_tipodoc, descripcion, datecreate, datemodify, estado) " +
+                        "VALUES (?, ?, ?, ?, GETDATE(), GETDATE(), 1)",
+                        producto.getId(), producto.getIdProductoTbs(), producto.getIdTbsTipoDoc(), desc
+                    );
+                }
+            }
         } catch (Exception e) {
             log.error("[actualizarProducto] ERROR CRITICO AL ACTUALIZAR: {}", e.getMessage(), e);
             throw e; // Relanzar para que el Controller devuelva 500

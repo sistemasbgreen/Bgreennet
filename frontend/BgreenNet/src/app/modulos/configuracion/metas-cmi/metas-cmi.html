@@ -43,8 +43,10 @@
             <th class="col-nombre">Nombre</th>
             <th class="col-siesa">ID Siesa</th>
             <th class="col-meta-stat">Meta (Mes Actual)</th>
-
             <th class="col-actions">Acciones</th>
+            <th class="col-erp blue-hdr">ID TBS</th>
+            <th class="col-erp blue-hdr">Doc TBS</th>
+            <th class="col-erp blue-hdr">Nombre TBS</th>
           </tr>
         </thead>
         <tbody>
@@ -69,7 +71,6 @@
               <span class="no-data" *ngIf="!p.idProductoSiesa && !p.esCompuesto">N/A</span>
             </td>
 
-           
             <td class="td-meta-stat">
               <span class="meta-value-badge" *ngIf="p.metaActual && p.metaActual > 0">
                 {{ p.sentidoMeta !== false ? '>' : '<' }}{{ p.metaActual | number:'1.0-0' }}
@@ -94,6 +95,11 @@
                 </button>
               </div>
             </td>
+
+            <!-- ERP Columns in Blue Section -->
+            <td class="td-erp-blue">{{ p.idProductoTbs || '-' }}</td>
+            <td class="td-erp-blue">{{ p.idTbsTipoDoc || '-' }}</td>
+            <td class="td-erp-blue desc">{{ p.tbsDescripcion || '-' }}</td>
           </tr>
         </tbody>
       </table>
@@ -380,6 +386,32 @@
         </div>
 
         <div class="dynamic-sections-wrapper" *ngIf="isEditingProduct || productWasSaved || currentProduct.idProductoSiesa || tempComponentes.length > 0">
+          
+          <!-- Mapeo ERP -->
+          <div class="product-config-section" style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #ffffff;">
+            <div class="section-hdr" style="font-weight: 800; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+              <i class="bi bi-link-45deg"></i>
+              <span>Mapeo ERP (TBS)</span>
+            </div>
+            <div class="section-body">
+              <div class="row" style="display: flex; gap: 15px;">
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">ID Externo ERP</label>
+                  <input type="text" [(ngModel)]="currentProduct.idProductoTbs" placeholder="Ej. 2350" class="form-control" style="width: 100%;">
+                </div>
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Tipo Doc (BWART)</label>
+                  <input type="text" [(ngModel)]="currentProduct.idTbsTipoDoc" placeholder="Ej. 101" class="form-control" style="width: 100%;">
+                </div>
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Descripción ERP</label>
+                  <input type="text" [(ngModel)]="currentProduct.tbsDescripcion" placeholder="Automático (Nombre Producto)" class="form-control" style="width: 100%; background-color: #f1f5f9; cursor: not-allowed;" [disabled]="true">
+                </div>
+              </div>
+              <p class="help-text mt-2" style="font-size: 10px; color: #94a3b8; margin-top: 8px;">Configura la equivalencia de este producto para la exportación al sistema externo.</p>
+            </div>
+          </div>
+
           <div class="formula-box section-appear" style="margin-top: 20px;">
             <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
               <div>

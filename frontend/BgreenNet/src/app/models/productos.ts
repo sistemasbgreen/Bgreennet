@@ -15,4 +15,7 @@ export interface producto {
   mostrarCmi?: boolean;
   produccionBaseId?: string;
   metaDiariaManual?: boolean;
+  idProductoTbs?: string;
+  idTbsTipoDoc?: string;
+  tbsDescripcion?: string;
 }
