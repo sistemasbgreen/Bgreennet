@@ -21,6 +21,8 @@ public class LoginResponseDTO {
     private String area_descripcion;
     private String cargo_descripcion;
     private String correo;
+    private boolean contrasenaExpirada;
+
     
     
     public Integer getIdentificacion() {

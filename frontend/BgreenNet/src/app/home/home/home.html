@@ -1187,6 +1187,8 @@
 
 </body>
 
+
+
 <!-- Modal Cambiar Clave -->
 <div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen" (click)="cerrarModalCambiarClave()">
   <div class="modal-tarea-container clave-modal-container" (click)="$event.stopPropagation()">
@@ -1223,6 +1225,9 @@
             <i class="bi" [class.bi-eye]="!mostrarNuevaClave" [class.bi-eye-slash]="mostrarNuevaClave"></i>
           </button>
         </div>
+        <small class="match-hint" *ngIf="nuevaClave.length > 0 && claveActual.length > 0 && nuevaClave === claveActual">
+          La nueva clave debe ser diferente a la actual
+        </small>
 
         <!-- Indicadores de requisitos -->
         <div class="password-requirements" *ngIf="nuevaClave.length > 0">
@@ -1275,7 +1280,7 @@
     <div class="modal-tarea-footer">
       <button class="btn-cancelar" (click)="cerrarModalCambiarClave()">Cancelar</button>
       <button class="btn-guardar" (click)="guardarClave()"
-        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida">
+        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida || !esDiferenteDeActual">
         <i class="bi bi-shield-lock"></i>
         Guardar Clave
       </button>
@@ -1284,4 +1289,4 @@
   </div>
 </div>
 
-</html>
+</html>

@@ -69,7 +69,20 @@ export class Login {
       next: (response) => {
         console.log(' Login exitoso, redirigiendo...');
         this.isLoading = false;
-        this.router.navigate([this.returnUrl]);
+
+        if (response.contrasenaExpirada) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Contraseña Vencida',
+            text: 'Su contraseña ha vencido. Por favor, cámbiela lo antes posible.',
+            confirmButtonColor: '#006c2c',
+            confirmButtonText: 'Entendido'
+          }).then(() => {
+            this.router.navigate([this.returnUrl]);
+          });
+        } else {
+          this.router.navigate([this.returnUrl]);
+        }
       },
       error: (err) => {
         this.isLoading = false;
