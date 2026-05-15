@@ -148,6 +148,11 @@ public class MetaController {
         return service.getTiposMovimiento();
     }
 
+    @GetMapping("/catalogos/secciones-reporte")
+    public List<Map<String, Object>> getSeccionesReporte() {
+        return service.getSecciones();
+    }
+
     // =============================
     // VALIDACION SIESA
     // =============================

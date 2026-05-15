@@ -60,6 +60,33 @@ public class MetaRepository {
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('producto_componentes') AND name = 'activo') " +
                                  "ALTER TABLE producto_componentes ADD activo BIT DEFAULT 1");
             
+            // Garantizar tabla de mapeos ERP (productos_tbs)
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('productos_tbs') AND type in ('U')) " +
+                                 "CREATE TABLE productos_tbs (" +
+                                 "  id INT IDENTITY(1,1) PRIMARY KEY, " +
+                                 "  id_tbs_producto INT NOT NULL, " +
+                                 "  id_producto_tbs VARCHAR(50) NOT NULL, " +
+                                 "  descripcion VARCHAR(255), " +
+                                 "  id_tbs_tipodoc VARCHAR(20), " +
+                                 "  datecreate DATETIME DEFAULT GETDATE(), " +
+                                 "  datemodify DATETIME DEFAULT GETDATE(), " +
+                                 "  usuario_creacion VARCHAR(100), " +
+                                 "  estado BIT DEFAULT 1, " +
+                                 "  CONSTRAINT FK_productos_tbs_productos FOREIGN KEY (id_tbs_producto) REFERENCES productos(id))");
+
+            // Garantizar tabla de secciones y campos en productos
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('secciones_reporte') AND type in ('U')) " +
+                                 "BEGIN " +
+                                 "  CREATE TABLE secciones_reporte (id INT PRIMARY KEY, nombre VARCHAR(100)); " +
+                                 "  INSERT INTO secciones_reporte (id, nombre) VALUES (1, 'Biodiesel'), (2, 'Glicerina'); " +
+                                 "END");
+
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'seccion_id') " +
+                                 "ALTER TABLE productos ADD seccion_id INT NULL, CONSTRAINT FK_productos_seccion FOREIGN KEY (seccion_id) REFERENCES secciones_reporte(id)");
+
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'orden_reporte') " +
+                                 "ALTER TABLE productos ADD orden_reporte INT NULL");
+
             log.info(">>> Esquema verificado/actualizado correctamente.");
         } catch (Exception e) {
             log.warn(">>> Aviso al verificar esquema (puede ser normal si no hay permisos): {}", e.getMessage());
@@ -71,11 +98,14 @@ public class MetaRepository {
         ensureSchema();
         log.info(">>> Iniciando carga robusta de productos...");
         
-        // 1. Cargar lista base de productos directamente de la tabla en lugar del SP
-        // El SP 'sp_producto_configuracion' filtra productos sin id_producto_siesa,
-        // lo cual excluye a los productos compuestos.
-        String sql = "SELECT id, nombre, id_producto_siesa, sentido_meta, usa_suma, mostrar_cmi, produccion_base_id, meta_diaria_manual " +
-                     "FROM productos WHERE activo = 1 ORDER BY nombre";
+        // 1. Cargar lista base de productos con sus mapeos ERP
+        String sql = "SELECT p.id, p.nombre, p.id_producto_siesa, p.sentido_meta, p.usa_suma, p.mostrar_cmi, p.produccion_base_id, p.meta_diaria_manual, " +
+                     "p.seccion_id, p.orden_reporte, sr.nombre as seccion_nombre, " +
+                     "tbs.id_producto_tbs, tbs.id_tbs_tipodoc, tbs.descripcion as tbs_desc " +
+                     "FROM productos p " +
+                     "LEFT JOIN secciones_reporte sr ON p.seccion_id = sr.id " +
+                     "LEFT JOIN productos_tbs tbs ON TRY_CAST(p.id AS INT) = tbs.id_tbs_producto AND tbs.estado = 1 " +
+                     "WHERE p.activo = 1 ORDER BY p.nombre";
         List<Map<String, Object>> productRows = jdbcTemplate.queryForList(sql);
 
         Map<String, ProductoDTO> productosMap = new HashMap<>();
@@ -131,13 +161,17 @@ public class MetaRepository {
                 
                 // Cargar meta_diaria_manual
                 Object mdmObj = row.get("meta_diaria_manual");
-                if (mdmObj instanceof Boolean) {
-                    p.setMetaDiariaManual((Boolean) mdmObj);
-                } else if (mdmObj instanceof Number) {
-                    p.setMetaDiariaManual(((Number) mdmObj).intValue() == 1);
-                } else {
-                    p.setMetaDiariaManual(false);
-                }
+                p.setMetaDiariaManual(mdmObj instanceof Boolean ? (Boolean) mdmObj : (mdmObj instanceof Number ? ((Number) mdmObj).intValue() == 1 : false));
+                
+                // Mapeos ERP
+                p.setIdProductoTbs(row.get("id_producto_tbs") != null ? String.valueOf(row.get("id_producto_tbs")) : null);
+                p.setIdTbsTipoDoc(row.get("id_tbs_tipodoc") != null ? String.valueOf(row.get("id_tbs_tipodoc")) : null);
+                p.setTbsDescripcion(row.get("tbs_desc") != null ? String.valueOf(row.get("tbs_desc")) : null);
+                
+                // Seccion y Orden
+                p.setSeccionId(row.get("seccion_id") != null ? ((Number) row.get("seccion_id")).intValue() : null);
+                p.setSeccionNombre(row.get("seccion_nombre") != null ? String.valueOf(row.get("seccion_nombre")) : null);
+                p.setOrdenReporte(row.get("orden_reporte") != null ? ((Number) row.get("orden_reporte")).intValue() : null);
                 
                 productosMap.put(id, p);
             }
@@ -307,8 +341,8 @@ public class MetaRepository {
             ? producto.getIdProductoSiesa().toString()
             : null;
 
-        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, sentido_meta, mostrar_cmi, produccion_base_id, meta_diaria_manual, date_create, date_Modify) " +
-                     "VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, sentido_meta, mostrar_cmi, produccion_base_id, meta_diaria_manual, seccion_id, orden_reporte, date_create, date_Modify) " +
+                     "VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
 
         jdbcTemplate.update(
             sql,
@@ -319,8 +353,23 @@ public class MetaRepository {
             producto.getSentidoMeta() != null && producto.getSentidoMeta() ? 1 : 0,
             producto.getMostrarCmi() != null && producto.getMostrarCmi() ? 1 : 0,
             producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
-            producto.getMetaDiariaManual() != null && producto.getMetaDiariaManual() ? 1 : 0
+            producto.getMetaDiariaManual() != null && producto.getMetaDiariaManual() ? 1 : 0,
+            producto.getSeccionId(),
+            producto.getOrdenReporte()
         );
+
+        // Insertar mapeo ERP si existe
+        if (producto.getIdProductoTbs() != null && !producto.getIdProductoTbs().isEmpty()) {
+            String desc = (producto.getTbsDescripcion() != null && !producto.getTbsDescripcion().isEmpty()) 
+                ? producto.getTbsDescripcion() 
+                : producto.getNombre();
+
+            jdbcTemplate.update(
+                "INSERT INTO productos_tbs (id_tbs_producto, id_producto_tbs, id_tbs_tipodoc, descripcion, datecreate, datemodify, estado) " +
+                "VALUES (?, ?, ?, ?, GETDATE(), GETDATE(), 1)",
+                nextId, producto.getIdProductoTbs(), producto.getIdTbsTipoDoc(), desc
+            );
+        }
 
         return nextId;
     }
@@ -328,7 +377,7 @@ public class MetaRepository {
     public void actualizarProducto(ProductoDTO producto) {
         ensureSchema();
         try {
-            String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, sentido_meta = ?, mostrar_cmi = ?, produccion_base_id = ?, meta_diaria_manual = ?, date_Modify = GETDATE() " +
+            String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, sentido_meta = ?, mostrar_cmi = ?, produccion_base_id = ?, meta_diaria_manual = ?, seccion_id = ?, orden_reporte = ?, date_Modify = GETDATE() " +
                          "WHERE id = ?";
 
             String idSiesa = producto.getIdProductoSiesa() != null
@@ -346,8 +395,29 @@ public class MetaRepository {
                 producto.getMostrarCmi() != null ? producto.getMostrarCmi() : true,
                 producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
                 producto.getMetaDiariaManual() != null ? producto.getMetaDiariaManual() : false,
+                producto.getSeccionId(),
+                producto.getOrdenReporte(),
                 producto.getId()
             );
+
+            // Actualizar mapeo ERP
+            if (producto.getIdProductoTbs() != null) {
+                // Primero desactivar mapeos anteriores
+                jdbcTemplate.update("UPDATE productos_tbs SET estado = 0 WHERE id_tbs_producto = ?", producto.getId());
+                
+                // Insertar nuevo si no está vacío
+                if (!producto.getIdProductoTbs().isEmpty()) {
+                    String desc = (producto.getTbsDescripcion() != null && !producto.getTbsDescripcion().isEmpty()) 
+                        ? producto.getTbsDescripcion() 
+                        : producto.getNombre();
+
+                    jdbcTemplate.update(
+                        "INSERT INTO productos_tbs (id_tbs_producto, id_producto_tbs, id_tbs_tipodoc, descripcion, datecreate, datemodify, estado) " +
+                        "VALUES (?, ?, ?, ?, GETDATE(), GETDATE(), 1)",
+                        producto.getId(), producto.getIdProductoTbs(), producto.getIdTbsTipoDoc(), desc
+                    );
+                }
+            }
         } catch (Exception e) {
             log.error("[actualizarProducto] ERROR CRITICO AL ACTUALIZAR: {}", e.getMessage(), e);
             throw e; // Relanzar para que el Controller devuelva 500
@@ -409,5 +479,9 @@ public class MetaRepository {
     public void insertarComponente(String padreId, String hijoSiesaId, boolean usaSuma) {
         String sql = "INSERT INTO producto_componentes (producto_padre_id, producto_hijo_siesa_id, usa_suma, activo) VALUES (?, ?, ?, 1)";
         jdbcTemplate.update(sql, padreId, hijoSiesaId, usaSuma ? 1 : 0);
+    }
+
+    public List<Map<String, Object>> obtenerSecciones() {
+        return jdbcTemplate.queryForList("SELECT id, nombre FROM secciones_reporte ORDER BY id");
     }
 }
