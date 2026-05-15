@@ -128,6 +128,12 @@
               <span>Ver Acceso Rápido</span>
             </button>
 
+            <button class="dropdown-item" (click)="toggleWidget('calendar'); $event.stopPropagation()">
+              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.calendar"
+                [class.bi-circle]="!dashboardWidgets.calendar"
+                [style.color]="dashboardWidgets.calendar ? '#0078d4' : ''"></i>
+              <span>Ver Calendario Outlook</span>
+            </button>
             <div class="dropdown-divider"></div>
 
             <button class="dropdown-item" (click)="toggleAllWidgets(); $event.stopPropagation()">
@@ -640,6 +646,42 @@
             <i class="bi bi-plus-circle"></i>
             Crear nueva tarea
           </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 📅 Sección de Calendario de Outlook -->
+    <section id="calendar-section" class="activity-section calendar-section-v2" *ngIf="dashboardWidgets.calendar && !focusTasksMode">
+      <div class="section-header">
+        <div class="section-title-with-badge">
+          <h3>📅 Calendario de Eventos</h3>
+          <div class="calendar-selector-wrapper">
+            <i class="bi bi-door-open room-icon"></i>
+            <select class="calendar-selector" [ngModel]="selectedCalendarId" (ngModelChange)="cambiarCalendario($event)">
+              <option *ngFor="let cal of availableCalendars" [value]="cal.id">{{ cal.nombre }}</option>
+            </select>
+            <i class="bi bi-chevron-down chevron-icon"></i>
+          </div>
+        </div>
+        <div class="section-actions">
+          <button class="btn-refresh-calendar" (click)="refrescarCalendario()" title="Sincronizar">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+          <button class="btn-nueva-tarea-compacto" (click)="abrirModalEventoOutlook()" style="background: var(--green-secondary); border-color: var(--green-secondary);">
+            <i class="bi bi-plus-lg"></i>
+            Nuevo Registro
+          </button>
+        </div>
+      </div>
+
+      <div class="calendar-container-placeholder">
+        <div class="calendar-loading" *ngIf="loadingCalendar">
+          <div class="spinner"></div>
+          <p>Sincronizando eventos...</p>
+        </div>
+
+        <div class="calendar-main-view" *ngIf="!loadingCalendar" style="padding: 0; overflow: hidden; height: 600px;">
+          <iframe [src]="outlookCalendarUrl" width="100%" height="100%" frameborder="0" style="border: none;"></iframe>
         </div>
       </div>
     </section>
@@ -1187,8 +1229,6 @@
 
 </body>
 
-
-
 <!-- Modal Cambiar Clave -->
 <div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen" (click)="cerrarModalCambiarClave()">
   <div class="modal-tarea-container clave-modal-container" (click)="$event.stopPropagation()">
@@ -1225,9 +1265,6 @@
             <i class="bi" [class.bi-eye]="!mostrarNuevaClave" [class.bi-eye-slash]="mostrarNuevaClave"></i>
           </button>
         </div>
-        <small class="match-hint" *ngIf="nuevaClave.length > 0 && claveActual.length > 0 && nuevaClave === claveActual">
-          La nueva clave debe ser diferente a la actual
-        </small>
 
         <!-- Indicadores de requisitos -->
         <div class="password-requirements" *ngIf="nuevaClave.length > 0">
@@ -1280,7 +1317,7 @@
     <div class="modal-tarea-footer">
       <button class="btn-cancelar" (click)="cerrarModalCambiarClave()">Cancelar</button>
       <button class="btn-guardar" (click)="guardarClave()"
-        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida || !esDiferenteDeActual">
+        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida">
         <i class="bi bi-shield-lock"></i>
         Guardar Clave
       </button>
@@ -1289,4 +1326,4 @@
   </div>
 </div>
 
-</html>
+</html>
