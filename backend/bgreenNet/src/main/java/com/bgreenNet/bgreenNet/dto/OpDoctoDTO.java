@@ -15,6 +15,15 @@ public class OpDoctoDTO {
     private Double totalManoObra;
     private Double totalOtrosCostos;
     private String statusEnvio; // "Enviado" o "Pendiente"
+    private String idOrden;
+
+    public String getIdOrden() {
+        return idOrden;
+    }
+
+    public void setIdOrden(String idOrden) {
+        this.idOrden = idOrden;
+    }
 
     public String getOp() {
         return op;

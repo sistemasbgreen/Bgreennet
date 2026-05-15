@@ -13,7 +13,7 @@
   </div>
 
 
-  <!-- Products Detail Card (Moved to top) -->
+  <!-- Products Detail Card -->
   <div class="table-card products-detail-card" *ngIf="productosOriginales.length > 0">
     <div class="table-card-header">
       <div class="table-title">
@@ -29,7 +29,7 @@
         <div class="badge-total-items">
           {{ productos.length }} productos
         </div>
-        <button class="btn-add-product" (click)="openProductModal()" title="Registrar nuevo producto">
+        <button class="btn-add-product" (click)="openProductModal(undefined, 'general')" title="Registrar nuevo producto">
           <i class="bi bi-plus-lg"></i>
           Agregar Producto
         </button>
@@ -43,18 +43,16 @@
             <th class="col-nombre">Nombre</th>
             <th class="col-siesa">ID Siesa</th>
             <th class="col-meta-stat">Meta (Mes Actual)</th>
-
             <th class="col-actions">Acciones</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of productos">
-               <td class="td-id" style="padding-left: 24px; max-width: 60px;">
-                  <span class="product-name-txt" [style.color]="p.esCompuesto ? '#fd7e14' : 'inherit'" [style.font-weight]="p.esCompuesto ? 'bold' : 'normal'" [title]="p.id">
-                    {{ p.id === 'CostoDirecto' ? 'CD' : p.id }}
-                  </span>
+            <td class="td-id" style="padding-left: 24px; max-width: 60px;">
+              <span class="product-name-txt" [style.color]="p.esCompuesto ? '#fd7e14' : 'inherit'" [style.font-weight]="p.esCompuesto ? 'bold' : 'normal'" [title]="p.id">
+                {{ p.id === 'CostoDirecto' ? 'CD' : p.id }}
+              </span>
             </td>
-
             <td class="td-nombre">
               <span class="product-name-txt">{{ p.nombre }}</span>
             </td>
@@ -68,8 +66,6 @@
               </span>
               <span class="no-data" *ngIf="!p.idProductoSiesa && !p.esCompuesto">N/A</span>
             </td>
-
-           
             <td class="td-meta-stat">
               <span class="meta-value-badge" *ngIf="p.metaActual && p.metaActual > 0">
                 {{ p.sentidoMeta !== false ? '>' : '<' }}{{ p.metaActual | number:'1.0-0' }}
@@ -78,14 +74,12 @@
                 <i class="bi bi-exclamation-circle"></i> Sin Asignar
               </span>
             </td>
-           
             <td class="td-actions">
               <div class="actions-row">
                 <button class="btn-action-pill metas" (click)="openMetasModal(p)" title="Configurar metas mensuales">
                   <i class="bi bi-calendar-check"></i> Metas
                 </button>
-
-                <button class="btn-action-pill edit" (click)="openProductModal(p)" title="Editar producto" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
+                <button class="btn-action-pill edit" (click)="openProductModal(p, 'general')" title="Editar producto" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
                   <i class="bi bi-pencil-square"></i> Editar
                 </button>
                 <button class="btn-action-pill dashboard" [class.active]="p.mostrarCmi !== false"
@@ -93,6 +87,61 @@
                   <i class="bi bi-bar-chart-line"></i>
                 </button>
               </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ERP Mapping Card -->
+  <div class="table-card products-detail-card" *ngIf="productosOriginales.length > 0" style="margin-top: 24px;">
+    <div class="table-card-header">
+      <div class="table-title">
+        <i class="bi bi-diagram-2"></i>
+        <span>Mapeo ERP y Reportes de Producción</span>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="metas-table products-table erp-mapping-table">
+        <thead>
+          <tr>
+            <th class="col-id" style="width: 5%; padding-left: 24px;">ID Bgreen</th>
+            <th class="col-nombre" style="width: 15%;">Producto Bgreen</th>
+            <th class="col-erp">ID TBS</th>
+            <th class="col-erp">Doc TBS</th>
+            <th class="col-erp">Nombre TBS</th>
+            <th class="col-erp">Sección</th>
+            <th class="col-erp" style="width: 50px;">Orden</th>
+            <th class="col-actions" style="text-align: center;">Editar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of productos">
+            <td class="td-id" style="padding-left: 24px; max-width: 60px;">
+              <span class="product-name-txt" [style.color]="p.esCompuesto ? '#fd7e14' : 'inherit'" [style.font-weight]="p.esCompuesto ? 'bold' : 'normal'" [title]="p.id">
+                {{ p.id === 'CostoDirecto' ? 'CD' : p.id }}
+              </span>
+            </td>
+            <td class="td-nombre">
+              <span class="product-name-txt" style="font-weight: 600;">{{ p.nombre }}</span>
+            </td>
+            <td class="td-erp-green">{{ p.idProductoTbs || '-' }}</td>
+            <td class="td-erp-green">{{ p.idTbsTipoDoc || '-' }}</td>
+            <td class="td-erp-green desc">{{ p.tbsDescripcion || '-' }}</td>
+            <td class="td-erp-green">
+              <span *ngIf="p.seccionNombre" class="siesa-badge" style="background-color: #006c2c; color: white;">
+                {{ p.seccionNombre }}
+              </span>
+              <span *ngIf="!p.seccionNombre" class="no-data">-</span>
+            </td>
+            <td class="td-erp-green">
+              <strong>{{ p.ordenReporte !== 999 && p.ordenReporte !== null ? p.ordenReporte : '-' }}</strong>
+            </td>
+            <td class="td-actions" style="text-align: center;">
+              <button class="btn-action-pill edit" (click)="openProductModal(p, 'erp')" title="Editar Mapeo" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
+                <i class="bi bi-pencil-square"></i>
+              </button>
             </td>
           </tr>
         </tbody>
@@ -308,7 +357,7 @@
       </div>
 
       <div class="modal-body">
-        <div class="modal-section main-info">
+        <div class="modal-section main-info" *ngIf="editModeType === 'general'">
           <div class="section-badge"><i class="bi bi-info-circle"></i> General</div>
           <h4 class="section-title">Información del Producto</h4>
 
@@ -380,7 +429,47 @@
         </div>
 
         <div class="dynamic-sections-wrapper" *ngIf="isEditingProduct || productWasSaved || currentProduct.idProductoSiesa || tempComponentes.length > 0">
-          <div class="formula-box section-appear" style="margin-top: 20px;">
+          
+          <!-- Mapeo ERP -->
+          <div class="product-config-section" *ngIf="editModeType === 'erp'" style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #ffffff;">
+            <div class="section-hdr" style="font-weight: 800; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+              <i class="bi bi-link-45deg"></i>
+              <span>EQUIVALENCIA ERP (TBS)</span>
+            </div>
+            <div class="section-body">
+              <div class="row" style="display: flex; gap: 15px;">
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">ID Externo ERP</label>
+                  <input type="text" [(ngModel)]="currentProduct.idProductoTbs" placeholder="Ej. 2350" class="form-control" style="width: 100%;">
+                </div>
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Tipo Doc (BWART)</label>
+                  <input type="text" [(ngModel)]="currentProduct.idTbsTipoDoc" placeholder="Ej. 101" class="form-control" style="width: 100%;">
+                </div>
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Descripción ERP</label>
+                  <input type="text" [(ngModel)]="currentProduct.tbsDescripcion" placeholder="Nombre para Reportes" class="form-control" style="width: 100%;">
+                </div>
+              </div>
+              <div class="row" style="display: flex; gap: 15px; margin-top: 15px;">
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Sección Reporte</label>
+                  <select [(ngModel)]="currentProduct.seccionId" class="form-control" style="width: 100%;">
+                    <option [ngValue]="null">Sin sección</option>
+                    <option *ngFor="let s of seccionesReporte" [value]="s.id">{{ s.nombre }}</option>
+                  </select>
+                </div>
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Orden en Reporte</label>
+                  <input type="number" [(ngModel)]="currentProduct.ordenReporte" placeholder="Ej. 1" class="form-control" style="width: 100%;">
+                </div>
+                <div style="flex: 1;"></div>
+              </div>
+              <p class="help-text mt-2" style="font-size: 10px; color: #94a3b8; margin-top: 8px;">Configura la equivalencia de este producto para la exportación y agrupamiento dinámico en reportes.</p>
+            </div>
+          </div>
+
+          <div class="formula-box section-appear" style="margin-top: 20px;" *ngIf="editModeType === 'general'">
             <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div class="section-badge consumption" style="margin-bottom: 8px;"><i class="bi bi-calculator"></i> Constructor de Fórmula</div>
@@ -491,6 +580,163 @@
         <div style="flex: 1;"></div>
         <button class="btn-save-modal" (click)="guardarProducto()" [disabled]="isSearchingSiesa">
           <i class="bi bi-cloud-check"></i> {{ isEditingProduct ? 'Actualizar Producto' : 'Guardar Producto' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Duplicate Siesa ID Modal -->
+  <div class="modal-overlay" *ngIf="showConfirmDuplicateModal" (click)="showConfirmDuplicateModal = false" style="z-index: 12000;">
+    <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 550px; border-top: 4px solid #f59e0b;">
+      <div class="modal-header" style="background: #fffbeb;">
+        <h3 class="modal-title" style="color: #b45309;">
+          <i class="bi bi-exclamation-triangle-fill" style="color: #d97706; background: none; -webkit-text-fill-color: initial;"></i>
+          Confirmar ID Siesa Duplicado
+        </h3>
+        <button class="btn-close-modal" (click)="showConfirmDuplicateModal = false">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body" style="padding: 24px; gap: 16px;">
+        <p style="font-size: 14px; line-height: 1.5; color: #475569; margin: 0;">
+          ¿Está seguro de que desea guardar este producto? El <strong>ID Siesa estará duplicado</strong> en el sistema.
+        </p>
+
+        <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+          
+          <div>
+            <span style="font-size: 11px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px;">Producto Nuevo/Editado</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+              <span style="font-weight: 600; color: #1e293b; font-size: 13px;">{{ currentProduct.nombre }}</span>
+              <span class="siesa-badge" style="background: #fef3c7; color: #b45309; border-color: #fde68a;">
+                ID Siesa: {{ currentProduct.idProductoSiesa }}
+              </span>
+            </div>
+          </div>
+
+          <div style="border-top: 1px dashed #fde68a; padding-top: 12px;" *ngIf="duplicateProductInfo">
+            <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Producto Existente con el mismo ID</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+              <span style="font-weight: 600; color: #475569; font-size: 13px;">{{ duplicateProductInfo.nombre }}</span>
+              <span class="siesa-badge">
+                ID Siesa: {{ duplicateProductInfo.idProductoSiesa }}
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <p style="font-size: 12px; color: #ef4444; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 6px;">
+          <i class="bi bi-info-circle-fill"></i> Nota: Esto asociará el mismo ID Siesa de forma doble.
+        </p>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc; padding: 16px 24px;">
+        <button class="btn-cancel" (click)="showConfirmDuplicateModal = false" style="padding: 10px 20px;">
+          Cancelar
+        </button>
+        <button class="btn-save-modal" (click)="confirmarGuardarDuplicado()" style="padding: 10px 24px; background: linear-gradient(135deg, #d97706, #f59e0b); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);">
+          <i class="bi bi-check-lg"></i> Sí, guardar de todas formas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tipos de Documento Card -->
+  <div class="table-card products-detail-card" style="margin-top: 24px;">
+    <div class="table-card-header">
+      <div class="table-title">
+        <i class="bi bi-file-earmark-text"></i>
+        <span>Tipos de Documento Siesa</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-add-product" (click)="openDocTypeModal()" title="Registrar nuevo tipo de documento">
+          <i class="bi bi-plus-lg"></i>
+          Agregar Tipo
+        </button>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="metas-table products-table erp-mapping-table">
+        <thead>
+          <tr>
+            <th class="col-id" style="width: 10%; padding-left: 24px;">ID</th>
+            <th class="col-codigo" style="width: 20%;">Código</th>
+            <th class="col-descripcion">Descripción</th>
+            <th class="col-estado" style="width: 15%; text-align: center;">Estado</th>
+            <th class="col-actions" style="text-align: center; width: 10%;">Editar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let doc of tiposDocumento">
+            <td class="td-id" style="padding-left: 24px;">
+              <span class="product-name-txt" style="font-weight: bold; color: #475569;">{{ doc.id }}</span>
+            </td>
+            <td class="td-codigo">
+              <span class="siesa-badge" style="background-color: #e2e8f0; color: #1e293b; border-color: #cbd5e1;">
+                {{ doc.codigo }}
+              </span>
+            </td>
+            <td class="td-descripcion desc">{{ doc.descripcion }}</td>
+            <td class="td-estado" style="text-align: center;">
+              <span class="siesa-badge" [ngStyle]="{'background-color': doc.estado === 'Activo' || !doc.estado ? '#10b981' : '#ef4444', 'color': 'white', 'border': 'none'}">
+                {{ doc.estado || 'Activo' }}
+              </span>
+            </td>
+            <td class="td-actions" style="text-align: center;">
+              <button class="btn-action-pill edit" (click)="openDocTypeModal(doc)" title="Editar Tipo">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="tiposDocumento.length === 0">
+            <td colspan="4" style="text-align: center; padding: 24px; color: #94a3b8; font-style: italic;">
+              No hay tipos de documento registrados
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Tipos de Documento -->
+  <div class="modal-overlay" *ngIf="showDocTypeModal" (click)="closeDocTypeModal()" style="z-index: 12000;">
+    <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <i class="bi" [class.bi-plus-circle]="!isEditingDocType" [class.bi-pencil-square]="isEditingDocType"></i>
+          {{ isEditingDocType ? 'Editar Tipo de Documento' : 'Nuevo Tipo de Documento' }}
+        </h3>
+        <button class="btn-close-modal" (click)="closeDocTypeModal()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body" style="padding: 24px; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Código del Documento</label>
+          <input type="text" [(ngModel)]="currentDocType.codigo" placeholder="Ej: TEP, EI, EDP..." class="form-control" style="text-transform: uppercase;">
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Descripción</label>
+          <input type="text" [(ngModel)]="currentDocType.descripcion" placeholder="Descripción del documento" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Estado</label>
+          <select [(ngModel)]="currentDocType.estado" class="form-control">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc; padding: 16px 24px;">
+        <button class="btn-cancel" (click)="closeDocTypeModal()" style="padding: 10px 20px;">
+          Cancelar
+        </button>
+        <button class="btn-save-modal" (click)="guardarTipoDoc()">
+          <i class="bi bi-check-lg"></i> Guardar
         </button>
       </div>
     </div>

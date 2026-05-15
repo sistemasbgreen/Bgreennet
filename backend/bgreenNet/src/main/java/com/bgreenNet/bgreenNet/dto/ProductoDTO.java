@@ -18,6 +18,59 @@ public class ProductoDTO {
     private Boolean sentidoMeta;
     private Boolean mostrarCmi;
     private String produccionBaseId;
+    private String idProductoTbs;
+    private String idTbsTipoDoc;
+    private String tbsDescripcion;
+    private Integer seccionId;
+    private String seccionNombre;
+    private Integer ordenReporte;
+
+    public Integer getSeccionId() {
+        return seccionId;
+    }
+
+    public void setSeccionId(Integer seccionId) {
+        this.seccionId = seccionId;
+    }
+
+    public String getSeccionNombre() {
+        return seccionNombre;
+    }
+
+    public void setSeccionNombre(String seccionNombre) {
+        this.seccionNombre = seccionNombre;
+    }
+
+    public Integer getOrdenReporte() {
+        return ordenReporte;
+    }
+
+    public void setOrdenReporte(Integer ordenReporte) {
+        this.ordenReporte = ordenReporte;
+    }
+    public String getIdProductoTbs() {
+        return idProductoTbs;
+    }
+
+    public void setIdProductoTbs(String idProductoTbs) {
+        this.idProductoTbs = idProductoTbs;
+    }
+
+    public String getIdTbsTipoDoc() {
+        return idTbsTipoDoc;
+    }
+
+    public void setIdTbsTipoDoc(String idTbsTipoDoc) {
+        this.idTbsTipoDoc = idTbsTipoDoc;
+    }
+
+    public String getTbsDescripcion() {
+        return tbsDescripcion;
+    }
+
+    public void setTbsDescripcion(String tbsDescripcion) {
+        this.tbsDescripcion = tbsDescripcion;
+    }
 
     public String getId() {
         return id;

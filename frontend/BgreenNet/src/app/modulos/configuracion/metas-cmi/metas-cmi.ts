@@ -42,12 +42,20 @@ export class MetasCMI implements OnInit {
   showProductModal: boolean = false;
   showMetasModal: boolean = false;
   isEditingProduct: boolean = false;
+  editModeType: 'general' | 'erp' = 'general';
   currentProduct: producto = { id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, metaDiariaManual: false };
   selectedProductObj: producto | null = null;
+  showConfirmDuplicateModal: boolean = false;
+  duplicateProductInfo: producto | null = null;
+  
+  showDocTypeModal: boolean = false;
+  isEditingDocType: boolean = false;
+  currentDocType: any = { id: null, codigo: '', descripcion: '', estado: 'Activo' };
   
   // Catalogos
   tiposDocumento: any[] = [];
   tiposMovimiento: any[] = [];
+  seccionesReporte: any[] = [];
   
   selectedConsumoDoc: string = '';
   selectedProduccionDoc: string = '';
@@ -145,6 +153,9 @@ export class MetasCMI implements OnInit {
     });
     this.service.getTiposDocumento().subscribe(res => {
       this.tiposDocumento = res;
+    });
+    this.service.getSeccionesReporte().subscribe(res => {
+      this.seccionesReporte = res;
     });
   }
 
@@ -411,7 +422,13 @@ export class MetasCMI implements OnInit {
         esCompuesto: this.selectedProductObj.esCompuesto,
         componenteSiesaIds: this.selectedProductObj.componenteSiesaIds,
         mostrarCmi: this.selectedProductObj.mostrarCmi ?? true,
-        metaDiariaManual: this.selectedProductObj.metaDiariaManual ?? false
+        metaDiariaManual: this.selectedProductObj.metaDiariaManual ?? false,
+        idProductoTbs: this.selectedProductObj.idProductoTbs,
+        idTbsTipoDoc: this.selectedProductObj.idTbsTipoDoc,
+        tbsDescripcion: this.selectedProductObj.tbsDescripcion,
+        seccionId: this.selectedProductObj.seccionId,
+        seccionNombre: this.selectedProductObj.seccionNombre,
+        ordenReporte: this.selectedProductObj.ordenReporte
       };
 
       this.service.actualizarProducto(updatePayload).subscribe({
@@ -453,7 +470,8 @@ export class MetasCMI implements OnInit {
     return upperCode.startsWith('E') || upperCode.startsWith('A');
   }
 
-  openProductModal(p?: producto) {
+  openProductModal(p?: producto, mode: 'general' | 'erp' = 'general') {
+    this.editModeType = mode;
     this.isEditingProduct = !!p;
     this.currentProduct = p ? { ...p } : { 
       id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, produccionBaseId: '26'
@@ -684,7 +702,11 @@ export class MetasCMI implements OnInit {
     });
   }
 
-  closeProductModal() { this.showProductModal = false; }
+  closeProductModal() { 
+    this.showProductModal = false; 
+    this.showConfirmDuplicateModal = false;
+    this.duplicateProductInfo = null;
+  }
 
   guardarProducto() {
     if (!this.currentProduct.nombre) return this.showToast('El nombre es obligatorio', 'error');
@@ -694,7 +716,11 @@ export class MetasCMI implements OnInit {
       const duplicate = this.productosOriginales.find(p =>
         String(p.idProductoSiesa) === String(this.currentProduct.idProductoSiesa) && p.id !== this.currentProduct.id
       );
-      if (duplicate && !this.isCompuestoToggle) return this.showToast(`ID Siesa ya asignado a ${duplicate.nombre}`, 'error');
+      if (duplicate && !this.isCompuestoToggle) {
+        this.duplicateProductInfo = duplicate;
+        this.showConfirmDuplicateModal = true;
+        return;
+      }
     }
 
     if (this.isCompuestoToggle && this.tempComponentes.length < 2) {
@@ -705,6 +731,11 @@ export class MetasCMI implements OnInit {
       return this.showToast('La selección debe tener al menos un documento', 'error');
     }
 
+    this.ejecutarGuardadoProducto();
+  }
+
+  confirmarGuardarDuplicado() {
+    this.showConfirmDuplicateModal = false;
     this.ejecutarGuardadoProducto();
   }
 
@@ -779,6 +810,34 @@ export class MetasCMI implements OnInit {
         this.cargarProductos();
         if (this.isEditingProduct) this.closeProductModal();
       }
+    });
+  }
+
+  openDocTypeModal(doc?: any) {
+    this.isEditingDocType = !!doc;
+    this.currentDocType = doc ? { ...doc } : { id: null, codigo: '', descripcion: '', estado: 'Activo' };
+    this.showDocTypeModal = true;
+  }
+
+  closeDocTypeModal() {
+    this.showDocTypeModal = false;
+  }
+
+  guardarTipoDoc() {
+    if (!this.currentDocType.codigo || !this.currentDocType.descripcion) {
+      return this.showToast('El código y la descripción son obligatorios', 'error');
+    }
+
+    this.service.guardarTipoDocumento(this.currentDocType).subscribe({
+      next: () => {
+        this.showToast(this.isEditingDocType ? 'Tipo de documento actualizado' : 'Tipo de documento agregado', 'success');
+        this.closeDocTypeModal();
+        this.service.getTiposDocumento().subscribe(res => {
+          this.tiposDocumento = res;
+          this.cdr.detectChanges();
+        });
+      },
+      error: () => this.showToast('Error al guardar el tipo de documento', 'error')
     });
   }
 

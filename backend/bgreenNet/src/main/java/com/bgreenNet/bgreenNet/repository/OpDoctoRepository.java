@@ -36,6 +36,7 @@ public class OpDoctoRepository {
         d.setTotalPurificacionGlicerina(rs.getDouble("total_purificacion_glicerina"));
         d.setTotalManoObra(rs.getDouble("total_mano_obra"));
         d.setTotalOtrosCostos(rs.getDouble("total_otros_costos"));
+        d.setIdOrden(rs.getString("id_orden"));
         
         return d;
     };
@@ -47,12 +48,77 @@ public class OpDoctoRepository {
 		);
 	}
 
+    public List<String> obtenerSiesaIdsActivos() {
+        try {
+            List<String> simpleIds = appJdbcTemplate.queryForList(
+                "SELECT DISTINCT id_producto_siesa FROM productos WHERE activo = 1 AND id_producto_siesa IS NOT NULL AND id_producto_siesa <> ''",
+                String.class
+            );
+            List<String> componentIds = appJdbcTemplate.queryForList(
+                "SELECT DISTINCT producto_hijo_siesa_id FROM producto_componentes WHERE activo = 1 AND producto_hijo_siesa_id IS NOT NULL AND producto_hijo_siesa_id <> ''",
+                String.class
+            );
+            java.util.Set<String> allIds = new java.util.HashSet<>();
+            if (simpleIds != null) {
+                for (String id : simpleIds) allIds.add(id.trim());
+            }
+            if (componentIds != null) {
+                for (String id : componentIds) allIds.add(id.trim());
+            }
+            
+            // Add default backup IDs
+            allIds.addAll(java.util.Arrays.asList("8", "7309", "10", "13", "12", "26", "34", "15", "2549", "32"));
+            return new java.util.ArrayList<>(allIds);
+        } catch (Exception e) {
+            System.err.println("Error en obtenerSiesaIdsActivos, usando respaldo: " + e.getMessage());
+            return java.util.Arrays.asList("8", "7309", "10", "13", "12", "26", "34", "15", "2549", "32");
+        }
+    }
+
 	public List<OpDoctoDTO> findByRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
+        List<String> siesaIds = obtenerSiesaIdsActivos();
+        
+        List<String> docTypes = new java.util.ArrayList<>();
+        try {
+            docTypes = appJdbcTemplate.queryForList("SELECT codigo FROM tipos_documento WHERE estado = 'Activo' OR estado IS NULL", String.class);
+        } catch (Exception e) {
+            System.err.println("Error obteniendo tipos de documento: " + e.getMessage());
+        }
+        if (docTypes == null || docTypes.isEmpty()) {
+            // Si no hay tipos de documento activos configurados, retornamos lista vacía para no hacer consultas inválidas ni usar datos quemados.
+            return new java.util.ArrayList<>();
+        }
+        
+        StringBuilder inClause = new StringBuilder();
+        for (int i = 0; i < siesaIds.size(); i++) {
+            if (i > 0) inClause.append(",");
+            inClause.append("?");
+        }
+        
+        StringBuilder docTypesInClause = new StringBuilder();
+        for (int i = 0; i < docTypes.size(); i++) {
+            if (i > 0) docTypesInClause.append(",");
+            docTypesInClause.append("?");
+        }
+
 		String sql = """
+				WITH FechasRank AS (
+				    SELECT 
+				        CAST(mov_sub.f470_id_fecha AS DATE) AS fecha_dia,
+				        DENSE_RANK() OVER (PARTITION BY FORMAT(CAST(mov_sub.f470_id_fecha AS DATE), 'yyyyMM') ORDER BY CAST(mov_sub.f470_id_fecha AS DATE)) AS rank_dia
+				    FROM t470_cm_movto_invent mov_sub
+				    INNER JOIN t350_co_docto_contable doc_sub ON doc_sub.f350_rowid = mov_sub.f470_rowid_docto
+				    WHERE doc_sub.f350_ind_estado = 1 
+				      AND doc_sub.f350_id_tipo_docto IN (%s)
+				      AND mov_sub.f470_id_fecha >= ?
+				      AND mov_sub.f470_id_fecha <= ?
+				    GROUP BY CAST(mov_sub.f470_id_fecha AS DATE)
+				)
 				SELECT
 				    'OP - ' + CONVERT(VARCHAR(10), CAST(mov.f470_id_fecha AS DATE), 23) AS OP,
-				    f120_id AS item,
-				    f120_descripcion,
+                    FORMAT(mov.f470_id_fecha, 'yyyyMM') + RIGHT('000' + CAST(fr.rank_dia AS VARCHAR(10)), 3) AS id_orden,
+				    itm.f120_id AS item,
+				    itm.f120_descripcion,
 				    CAST(mov.f470_id_fecha AS DATE) AS fecha,
 
 				    ABS(SUM(
@@ -65,16 +131,17 @@ public class OpDoctoRepository {
 				    ISNULL(costos.total_otros_costos, 0) as total_otros_costos
 
 				FROM  [t124_mc_items_referencias]
-				LEFT JOIN  [t120_mc_items] item
-				    ON f120_rowid = f124_rowid_item
+				LEFT JOIN  [t120_mc_items] itm
+				    ON itm.f120_rowid = f124_rowid_item
 				INNER JOIN  [t121_mc_items_extensiones]
-				    ON f121_rowid_item = f120_rowid
+				    ON f121_rowid_item = itm.f120_rowid
 				INNER JOIN  [t470_cm_movto_invent] mov
 				    ON mov.f470_rowid_item_ext = f121_rowid
 				INNER JOIN  [t350_co_docto_contable] doc
 				    ON doc.f350_rowid = mov.f470_rowid_docto
 				INNER JOIN  [t150_mc_bodegas] bod
 				    ON bod.f150_rowid = mov.f470_rowid_bodega
+				LEFT JOIN FechasRank fr ON fr.fecha_dia = CAST(mov.f470_id_fecha AS DATE)
 
 				LEFT JOIN (
 				    SELECT
@@ -109,56 +176,82 @@ public class OpDoctoRepository {
 				) costos ON costos.f_costo = CAST(mov.f470_id_fecha AS DATE)
 
 				WHERE
-				    CAST(mov.f470_id_fecha AS DATE) >= ?
-				    AND CAST(mov.f470_id_fecha AS DATE) <= ?
-				    AND f120_id_cia = 2
-				    AND f350_ind_estado = 1
-				    AND f120_id IN ('8','7309','10','13','12','26','34','15','2549','32')
-				    AND f350_id_tipo_docto IN ('TEP','EI','SDI','EDP')
-				    AND NOT (f120_id = '34' AND f350_id_tipo_docto = 'EDP')
+				    mov.f470_id_fecha >= ?
+				    AND mov.f470_id_fecha <= ?
+				    AND itm.f120_id_cia = 2
+				    AND doc.f350_ind_estado = 1
+				    AND itm.f120_id IN (%s)
+				    AND doc.f350_id_tipo_docto IN (%s)
+				    AND NOT (itm.f120_id = '34' AND doc.f350_id_tipo_docto = 'EDP')
 
 				GROUP BY
-				    f120_id,
-				    f120_descripcion,
+				    itm.f120_id,
+				    itm.f120_descripcion,
 				    CAST(mov.f470_id_fecha AS DATE),
+				    FORMAT(mov.f470_id_fecha, 'yyyyMM'),
+				    fr.rank_dia,
 				    costos.total_purificacion_glicerina,
 				    costos.total_mano_obra,
 				    costos.total_otros_costos
 
 				ORDER BY
 				    fecha DESC,
-				    f120_id,
-				    f120_descripcion;
+				    itm.f120_id,
+				    itm.f120_descripcion;
 				""";
 
-		List<OpDoctoDTO> docs = jdbcTemplate.query(sql, rowMapper,
-			java.sql.Date.valueOf(fechaInicio),
-			java.sql.Date.valueOf(fechaFin));
+        String formattedSql = String.format(sql, docTypesInClause.toString(), inClause.toString(), docTypesInClause.toString());
 
-		// Cruzar con log de envíos
-		try {
-			List<java.util.Map<String, Object>> logs = appJdbcTemplate.queryForList(
-				"SELECT fecha_inicio, fecha_fin FROM log_envio_reportes");
+        LocalDate primerDia = fechaInicio.withDayOfMonth(1);
+        LocalDate ultimoDia = fechaFin.withDayOfMonth(fechaFin.lengthOfMonth());
 
-			for (OpDoctoDTO d : docs) {
-				boolean enviado = false;
-				if (d.getFecha() != null) {
-					for (java.util.Map<String, Object> log : logs) {
-						LocalDate inicio = ((java.sql.Date) log.get("fecha_inicio")).toLocalDate();
-						LocalDate fin    = ((java.sql.Date) log.get("fecha_fin")).toLocalDate();
-						if (!d.getFecha().isBefore(inicio) && d.getFecha().isBefore(fin)) {
-							enviado = true;
-							break;
-						}
-					}
-				}
-				d.setStatusEnvio(enviado ? "Enviado" : "Pendiente");
-			}
-		} catch (Exception e) {
-			docs.forEach(d -> d.setStatusEnvio("Pendiente"));
-		}
+        Object[] params = new Object[4 + siesaIds.size() + (docTypes.size() * 2)];
+        int pIdx = 0;
+        
+        for (String dt : docTypes) {
+            params[pIdx++] = dt;
+        }
+        
+        params[pIdx++] = java.sql.Timestamp.valueOf(primerDia.atStartOfDay());
+        params[pIdx++] = java.sql.Timestamp.valueOf(ultimoDia.atTime(23, 59, 59));
+        params[pIdx++] = java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay());
+        params[pIdx++] = java.sql.Timestamp.valueOf(fechaFin.atTime(23, 59, 59));
+        
+        for (String id : siesaIds) {
+            params[pIdx++] = id;
+        }
+        
+        for (String dt : docTypes) {
+            params[pIdx++] = dt;
+        }
 
-		return docs;
+        try {
+            List<OpDoctoDTO> docs = jdbcTemplate.query(formattedSql, rowMapper, params);
+
+            // Cruzar con log de envíos
+            List<java.util.Map<String, Object>> logs = appJdbcTemplate.queryForList(
+                "SELECT fecha_inicio, fecha_fin FROM log_envio_reportes");
+
+            for (OpDoctoDTO d : docs) {
+                boolean enviado = false;
+                if (d.getFecha() != null) {
+                    for (java.util.Map<String, Object> log : logs) {
+                        LocalDate inicio = ((java.sql.Date) log.get("fecha_inicio")).toLocalDate();
+                        LocalDate fin    = ((java.sql.Date) log.get("fecha_fin")).toLocalDate();
+                        if (!d.getFecha().isBefore(inicio) && d.getFecha().isBefore(fin)) {
+                            enviado = true;
+                            break;
+                        }
+                    }
+                }
+                d.setStatusEnvio(enviado ? "Enviado" : "Pendiente");
+            }
+            return docs;
+        } catch (Exception e) {
+            System.err.println("Error en findByRangoFechas: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        }
 	}
 
 
