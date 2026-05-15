@@ -8,8 +8,17 @@ public class ReporteProduccionDTO {
     private List<DetalleInsumoDTO> itemsBiodiesel;
     private List<DetalleInsumoDTO> itemsGlicerina;
     private ResumenCostosDTO costos;
+    private String idOrden;
 
     // Getters and Setters explicitos para asegurar compatibilidad sin depender de Lombok
+    public String getIdOrden() {
+        return idOrden;
+    }
+
+    public void setIdOrden(String idOrden) {
+        this.idOrden = idOrden;
+    }
+
     public LocalDate getFecha() {
         return fecha;
     }
