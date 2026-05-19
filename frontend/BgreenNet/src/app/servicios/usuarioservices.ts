@@ -57,4 +57,9 @@ export class UsuarioService {
   toggleBloqueo(idUsuario: number, bloqueado: boolean): Observable<any> {
     return this.http.patch<any>(`${this.baseUrl}/${idUsuario}/bloqueo`, { bloqueado });
   }
-}
+
+  // Forzar vencimiento de contraseña para todos los usuarios
+  forzarVencimientoTodos(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/forzar-vencimiento`, {});
+  }
+}

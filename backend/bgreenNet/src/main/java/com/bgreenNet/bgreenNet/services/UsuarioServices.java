@@ -174,6 +174,12 @@ public class UsuarioServices {
         jdbcTemplate.update(sql, bloqueado, intentos, idUsuario);
     }
 
+    @Transactional
+    public void forzarVencimientoTodos() {
+        String sql = "UPDATE Usuario SET fecha_actualizacion_contrasena = '2000-01-01' WHERE activo = 1";
+        jdbcTemplate.update(sql);
+    }
+
     // RowMapper_Actualizado
 
     private static class UsuarioRowMapper implements RowMapper {

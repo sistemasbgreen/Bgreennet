@@ -18,6 +18,7 @@ import { filter, takeUntil } from 'rxjs/operators';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PulsoService } from '../../servicios/pulsoservices';
 import { UsuarioService } from '../../servicios/usuarioservices';
+import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../servicios/configuracionSeguridadService';
 
 
 // Registrar componentes de Chart.js
@@ -62,6 +63,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   mostrarClaveActual = false;
   mostrarNuevaClave = false;
   mostrarConfirmarClave = false;
+  configSeguridad: ConfiguracionSeguridad | null = null;
   tareaSeleccionada: Tarea | null = null;
   mensajeSeguimiento = '';
   seguimientos: any[] = [];
@@ -227,7 +229,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     private pulsoService: PulsoService,
     private usuarioService: UsuarioService,
     private authService: AuthService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private configuracionSeguridadService: ConfiguracionSeguridadService
   ) { }
 
   ngOnInit(): void {
@@ -239,6 +242,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.loadPreferences();
     this.cargarPulsos();
     this.updateCalendarUrl();
+    this.loadConfiguracionSeguridad();
 
     if (isPlatformBrowser(this.platformId)) {
       this.loadUserDataAndPermisos();
@@ -246,9 +250,18 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       this.startBackgroundSync();
       // Inicializar contexto de audio
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      // Solicitar permiso para notificaciones nativas del navegador
       this.solicitarPermisoNotificaciones();
     }
+  }
+
+  loadConfiguracionSeguridad(): void {
+    this.configuracionSeguridadService.getConfiguracion().subscribe({
+      next: (config) => {
+        this.configSeguridad = config;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error al cargar config seguridad:', err)
+    });
   }
 
 
@@ -1508,10 +1521,23 @@ cargarPulsos(): void {
   get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
   get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
   get tieneCaracterEspecial(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClave); }
-  get tieneLongitud(): boolean  { return this.nuevaClave.length >= 8; }
+  get tieneLongitud(): boolean  { 
+    const min = this.configSeguridad?.minCaracteres || 8;
+    return this.nuevaClave.length >= min; 
+  }
+  
+  get tieneLetras(): boolean { return /[a-zA-Z]/.test(this.nuevaClave); }
 
   get passwordValido(): boolean {
-    return this.tieneMayuscula && this.tieneMinuscula && this.tieneNumero && this.tieneLongitud && this.tieneCaracterEspecial;
+    if (!this.configSeguridad) return false;
+    
+    let valido = true;
+    if (this.configSeguridad.minCaracteres > 0 && !this.tieneLongitud) valido = false;
+    if (this.configSeguridad.requiereLetras && !this.tieneLetras) valido = false;
+    if (this.configSeguridad.requiereNumeros && !this.tieneNumero) valido = false;
+    if (this.configSeguridad.requiereEspeciales && !this.tieneCaracterEspecial) valido = false;
+    
+    return valido;
   }
 
   get claveConfirmadaValida(): boolean {
