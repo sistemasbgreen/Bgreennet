@@ -39,14 +39,11 @@
                   <label class="field-label">Expiración de Contraseña</label>
                   <div class="input-group input-group-lg">
                     <span class="input-group-text field-prefix"><i class="bi bi-clock-history"></i></span>
-                    <select class="form-select field-select" formControlName="expiracionDias">
-                      <option [value]="90">90 días — Recomendado</option>
-                      <option [value]="60">60 días</option>
-                      <option [value]="30">30 días — Alta seguridad</option>
-                      <option [value]="0">Nunca — Sin expiración</option>
-                    </select>
+                    <input type="number" class="form-control field-input"
+                      formControlName="expiracionDias" min="0" max="365">
+                    <span class="input-group-text field-prefix">días</span>
                   </div>
-                  <div class="field-hint">Días antes de exigir cambio de clave.</div>
+                  <div class="field-hint">Días antes de exigir cambio de clave. (0 = sin expiración)</div>
                 </div>
 
                 <!-- Intentos -->
@@ -54,15 +51,13 @@
                   <label class="field-label">Intentos Fallidos</label>
                   <div class="input-group input-group-lg">
                     <span class="input-group-text field-prefix"><i class="bi bi-shield-exclamation"></i></span>
-                    <select class="form-select field-select" formControlName="intentosInvalidos">
-                      <option [value]="3">3 intentos — Máxima seguridad</option>
-                      <option [value]="5">5 intentos — Equilibrado</option>
-                      <option [value]="10">10 intentos</option>
-                      <option [value]="0">Sin límite — No recomendado</option>
-                    </select>
+                    <input type="number" class="form-control field-input"
+                      formControlName="intentosInvalidos" min="0" max="20">
+                    <span class="input-group-text field-prefix">intentos</span>
                   </div>
-                  <div class="field-hint">Bloqueo automático al superar el límite.</div>
+                  <div class="field-hint">Bloqueo automático al superar el límite. (0 = sin límite)</div>
                 </div>
+
 
                 <!-- Longitud -->
                 <div class="col-md-4">
@@ -250,7 +245,11 @@
             </div>
 
             <!-- ===== ACCIONES ===== -->
-            <div class="mt-5 pt-4 d-flex justify-content-end gap-3 border-top">
+            <div class="mt-5 pt-4 d-flex justify-content-between border-top">
+              <button type="button" class="btn-force-expire btn-lg px-4"
+                (click)="forzarVencimiento()" [disabled]="loading">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>Forzar Vencimiento de Claves
+              </button>
               <button type="submit" class="btn-bgreen btn-lg px-5"
                 [disabled]="configForm.invalid || loading || !atLeastOneRequirement">
                 <span *ngIf="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>

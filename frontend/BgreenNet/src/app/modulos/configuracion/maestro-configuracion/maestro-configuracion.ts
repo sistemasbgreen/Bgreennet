@@ -5,6 +5,7 @@ import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../../
 import { ListasService } from '../../../servicios/listasServices';
 import { ImagenLogin } from '../../../models/imagen-login';
 import { AuthService } from '../../../auth/authservices';
+import { UsuarioService } from '../../../servicios/usuarioservices';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -27,7 +28,8 @@ export class MaestroConfiguracion implements OnInit {
     private fb: FormBuilder,
     private configService: ConfiguracionSeguridadService,
     private listasService: ListasService,
-    private authService: AuthService
+    private authService: AuthService,
+    private usuarioService: UsuarioService
   ) {
     this.configForm = this.fb.group({
       expiracionDias: [90, [Validators.required]],
