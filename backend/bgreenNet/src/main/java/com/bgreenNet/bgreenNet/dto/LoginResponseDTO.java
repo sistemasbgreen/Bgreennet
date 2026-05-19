@@ -135,8 +135,11 @@ public class LoginResponseDTO {
     public void setToken(String token)
     { this.token = token; }  
     
+    public boolean isContrasenaExpirada() {
+        return contrasenaExpirada;
+    }
     
- 
-    
-
+    public void setContrasenaExpirada(boolean contrasenaExpirada) {
+        this.contrasenaExpirada = contrasenaExpirada;
+    }
 }
