@@ -10,8 +10,15 @@ export const layoutRoutes: Routes = [
     pathMatch: 'full'
   },
   {
+    path: 'home/orden-produccion',
+    loadComponent: () =>
+      import('../modulos/orden-produccion/orden-produccion')
+        .then(o => o.OrdenProduccion)
+  },
+  {
     path: 'home',
-    component: Home
+    component: Home,
+    pathMatch: 'full'
   },
   {
     path: 'cmiplanta',

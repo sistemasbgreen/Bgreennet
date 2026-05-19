@@ -10,15 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 @Service
@@ -33,58 +30,7 @@ public class EmailReporteService {
 
     private static final DateTimeFormatter FMT_DISPLAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    /**
-     * 0 = libre
-     * 1 = disparado (pendiente de ejecutar)
-     * 2 = en ejecución
-     */
-    private final AtomicInteger enviar = new AtomicInteger(0);
-    
-    
-    public void dispararEnvioInmediato() {
-        if (enviar.compareAndSet(0, 1)) {
-            System.out.println("[EmailReporte] 🟡 Disparo inmediato → enviar=1");
-            verificarYEnviar(); // ejecuta ahora mismo
-        } else {
-            System.out.println("[EmailReporte] ⚠️ Ya hay un envío en curso (estado=" + enviar.get() + ")");
-        }
-    }
-
-    // ── Disparo manual ────────────────────────────────────────────────────
-    public void dispararEnvioManual() {
-        if (enviar.compareAndSet(0, 1)) {
-            System.out.println("[EmailReporte] 🟡 Disparo manual → enviar=1");
-        } else {
-            System.out.println("[EmailReporte] ⚠️  Ya hay un envío pendiente o en curso (estado=" + enviar.get() + ")");
-        }
-    }
-
-    // ── Scheduler: cada minuto verifica el flag; a las 11:00 AM dispara solo ──
-    @Scheduled(cron = "0 * * * * *")
-    public void verificarYEnviar() {
-
-        // Disparo automático a las 11:00 AM
-        LocalTime ahora = LocalTime.now();
-        if (ahora.getHour() == 11 && ahora.getMinute() == 0) {
-            enviar.compareAndSet(0, 1);
-        }
-
-        // Solo procede si estaba en 1; lo pasa a 2 atómicamente
-        if (!enviar.compareAndSet(1, 2)) {
-            return;
-        }
-
-        System.out.println("[EmailReporte] 🚀 enviar=2 → Procesando reporte...");
-
-    try {
-        ejecutarEnvio();
-    } finally {
-        enviar.set(0);
-        System.out.println("[EmailReporte] 🔵 enviar=0 → Listo.");
-    }
-}
-
-// ── Envío para una fecha específica (invocado desde API) ─────────────
+    // ── Envío para una fecha específica (invocado desde API) ─────────────
 public void enviarReporteParaFecha(String fechaStr) {
     // fechaStr viene como "YYYY-MM-DD"
     LocalDate ref = LocalDate.parse(fechaStr.substring(0, 10));
@@ -93,14 +39,6 @@ public void enviarReporteParaFecha(String fechaStr) {
     
     System.out.println("[EmailReporte] Envío manual solicitado para fecha: " + fechaStr + " (Día único: " + ref + ")");
     ejecutarEnvioParaRango(fechaInicio, fechaFin, true);
-}
-
-// ── Lógica de envío estándar (hoy) ────────────────────────────────────
-private void ejecutarEnvio() {
-    LocalDate hoy = LocalDate.now();
-    LocalDate fechaInicio = hoy.minusDays(15);
-    LocalDate fechaFin    = hoy;
-    ejecutarEnvioParaRango(fechaInicio, fechaFin, false);
 }
 
 // ── Núcleo del proceso de envío ───────────────────────────────────────
@@ -124,7 +62,7 @@ private void ejecutarEnvioParaRango(LocalDate fechaInicio, LocalDate fechaFin, b
             : "Reporte BGREEN SAS · ÚLTIMOS 15 DÍAS";
         
         helper.setSubject(subject);
-        helper.setText(construirHtml(datos.getCostos(), datos.getItemsBiodiesel(), datos.getItemsGlicerina(), fechaInicio, fechaFin, esDiaUnico), true);
+        helper.setText(construirHtml(datos.getCostos(), datos.getItemsBiodiesel(), datos.getItemsGlicerina(), fechaInicio, fechaFin, esDiaUnico, datos.getIdOrden()), true);
 
         mailSender.send(message);
         registrarLogEnvio(fechaInicio, fechaFin);
@@ -159,6 +97,11 @@ public ReporteProduccionDTO obtenerDatosReporte(LocalDate inicio, LocalDate fin)
     dto.setItemsBiodiesel(grupoB);
     dto.setItemsGlicerina(grupoG);
     dto.setCostos(resumen);
+
+    // Obtener idOrden del primer item que lo tenga
+    if (!grupoB.isEmpty()) dto.setIdOrden(grupoB.get(0).getOrdenProduccion());
+    else if (!grupoG.isEmpty()) dto.setIdOrden(grupoG.get(0).getOrdenProduccion());
+
     return dto;
 }
 
@@ -225,7 +168,7 @@ public ReporteProduccionDTO obtenerDatosReporte(LocalDate inicio, LocalDate fin)
             List<DetalleInsumoDTO> grupoB,
             List<DetalleInsumoDTO> grupoG,
             LocalDate fechaInicio, LocalDate fechaFin,
-            boolean esDiaUnico) {
+            boolean esDiaUnico, String idOrden) {
 
 BigDecimal totalGlicerina = nvl(resumen.getTotalPurificacionGlicerina());
 BigDecimal totalMod       = nvl(resumen.getTotalManoObra());
@@ -261,8 +204,13 @@ sb.append("<!DOCTYPE html>")
 // ── HEADER ────────────────────────────────────────────────────
         .append("<div class='hdr'>")
         .append("<img src='https://bgreen.com.co/Img/bgreen_Logo.png' width='50' height='50' style='object-fit:contain' alt='Bgreen'>")
-        .append("<p class='sub'>Reporte de Producción").append(esDiaUnico ? "" : " (Últimos 15 días)").append("</p>")
-        .append("<p class='fecha'>&#128197;&nbsp; ");
+        .append("<p class='sub'>Reporte de Producción").append(esDiaUnico ? "" : " (Últimos 15 días)").append("</p>");
+        
+        if (esDiaUnico && idOrden != null) {
+            sb.append("<p class='fecha'>🆔&nbsp; <b>ID Orden: ").append(idOrden).append("</b></p>");
+        }
+
+        sb.append("<p class='fecha'>&#128197;&nbsp; ");
         
         if (esDiaUnico) {
             sb.append(fechaInicio.format(FMT_DISPLAY));

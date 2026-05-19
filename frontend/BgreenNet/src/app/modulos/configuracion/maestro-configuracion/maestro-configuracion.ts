@@ -266,37 +266,4 @@ export class MaestroConfiguracion implements OnInit {
            this.configForm.get('requiereNumeros')?.value || 
            this.configForm.get('requiereEspeciales')?.value;
   }
-
-  forzarVencimiento(): void {
-    Swal.fire({
-      title: '¿Forzar vencimiento de claves?',
-      html: '<p>Esta acción hará que <b>todos los usuarios activos</b> deban cambiar su contraseña en el próximo inicio de sesión.</p><p class="text-muted">Esta acción no se puede deshacer.</p>',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Sí, forzar vencimiento',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        this.loading = true;
-        this.usuarioService.forzarVencimientoTodos().subscribe({
-          next: () => {
-            this.loading = false;
-            Swal.fire({
-              title: '¡Hecho!',
-              text: 'Todas las contraseñas han sido marcadas como vencidas. Los usuarios deberán cambiarla al iniciar sesión.',
-              icon: 'success',
-              confirmButtonColor: '#006c2c'
-            });
-          },
-          error: (err) => {
-            this.loading = false;
-            console.error('Error al forzar vencimiento:', err);
-            Swal.fire('Error', 'No se pudo forzar el vencimiento de claves.', 'error');
-          }
-        });
-      }
-    });
-  }
 }

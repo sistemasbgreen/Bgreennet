@@ -11,4 +11,6 @@ export interface OpDocto {
   totalPurificacionGlicerina: number;
   totalManoObra:             number;
   totalOtrosCostos:          number;
+  statusEnvio:               string;
+  idOrden:                   string;
 }
