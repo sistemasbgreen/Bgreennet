@@ -136,10 +136,19 @@ export class Login {
       }
     });
 
-    // Cargar configuración de seguridad (disponible si se necesita en el futuro)
+    // Cargar configuración de seguridad para aplicar validación dinámica
     this.configSeguridadService.getConfiguracion().subscribe({
-      next: () => {},
-      error: () => {}
+      next: (config) => {
+        const minLen = config.minCaracteres || 4;
+        this.loginForm.get('contrasena')?.setValidators([
+          Validators.required,
+          Validators.minLength(minLen)
+        ]);
+        this.loginForm.get('contrasena')?.updateValueAndValidity();
+      },
+      error: () => {
+        // Fallback: sin restricción de longitud mínima en login
+      }
     });
   }
 
