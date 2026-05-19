@@ -18,6 +18,7 @@ import { filter, takeUntil } from 'rxjs/operators';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PulsoService } from '../../servicios/pulsoservices';
 import { UsuarioService } from '../../servicios/usuarioservices';
+import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../servicios/configuracionSeguridadService';
 
 
 // Registrar componentes de Chart.js
@@ -52,6 +53,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   showModal = false;
   darkMode = false;
   isModalHistorialOpen = false; //  Modal de historial
+  isModalDetalleOpen = false;
   isModalCambiarClaveOpen = false;
   claveActual = '';
   nuevaClave = '';
@@ -61,7 +63,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   mostrarClaveActual = false;
   mostrarNuevaClave = false;
   mostrarConfirmarClave = false;
-  isModalDetalleOpen = false;
+  configSeguridad: ConfiguracionSeguridad | null = null;
   tareaSeleccionada: Tarea | null = null;
   mensajeSeguimiento = '';
   seguimientos: any[] = [];
@@ -246,10 +248,20 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       this.startBackgroundSync();
       // Inicializar contexto de audio
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      // Solicitar permiso para notificaciones nativas del navegador
       this.solicitarPermisoNotificaciones();
     }
   }
+
+  loadConfiguracionSeguridad(): void {
+    this.configuracionSeguridadService.getConfiguracion().subscribe({
+      next: (config) => {
+        this.configSeguridad = config;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error al cargar config seguridad:', err)
+    });
+  }
+
 
 
 
@@ -667,6 +679,16 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
         // Datos para filtrado de asignación
         this.idAreaUsuario = user.id_area_fk || user.idArea || 0;
         this.idCargoUsuario = user.id_cargo_fk || user.id_cargo || user.idCargo || 0;
+
+        console.log('🏠 [Home] Verificando estado de clave:', {
+          usuario: user.usuario,
+          contrasenaExpirada: user.contrasenaExpirada
+        });
+
+        // Verificar si la contraseña está vencida
+        if (user.contrasenaExpirada === true || user.contrasenaExpirada === 'true') {
+          setTimeout(() => this.abrirModalCambiarClave(), 1000);
+        }
         this.idDireccionUsuario = user.id_direccion_fk || user.idDireccion || 0;
 
         this.obtenerTareas();
@@ -905,17 +927,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
           this.tareas = sortedData;
 
           // DEBUG: Mostrar datos de tareas en consola
-          console.log('📋 Tareas cargadas:', sortedData.length);
-          sortedData.forEach(t => {
-            console.log(`  Tarea #${t.id} "${t.titulo}"`, {
-              idUsuario: t.idUsuario,
-              idUsuarioCreador: t.idUsuarioCreador,
-              'DisplayName(asignado)': this.getUserDisplayName(t.idUsuario),
-              'Initials(asignado)': this.getUserInitials(t.idUsuario),
-              'DisplayName(creador)': this.getUserDisplayName(t.idUsuarioCreador),
-              'Initials(creador)': this.getUserInitials(t.idUsuarioCreador),
-            });
-          });
+        
           
           this.tareasActivas = sortedData.filter(t => {
             const estado = t.estado?.nombre?.toUpperCase() || '';
@@ -1494,8 +1506,57 @@ cargarPulsos(): void {
 
 
 
+
+
+  get filteredContactos(): any[] {
+    let contactos = [...this.sistemacontactosData];
+    const q = this.contactoSearchQuery?.toLowerCase().trim();
+
+    if (q) {
+      contactos = contactos.filter(c =>
+        c.nombre?.toLowerCase().includes(q) ||
+        c.cargo?.toLowerCase().includes(q) ||
+        c.correo?.toLowerCase().includes(q)
+      );
+    }
+
+    // Ordenar por extensión de menor a mayor
+    return contactos.sort((a, b) => {
+      const extA = parseInt(a.ext) || 0;
+      const extB = parseInt(b.ext) || 0;
+      return extA - extB;
+    });
+  }
+
+  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
+  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
+  get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
+  get tieneCaracterEspecial(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClave); }
+  get tieneLongitud(): boolean  { 
+    const min = this.configSeguridad?.minCaracteres || 8;
+    return this.nuevaClave.length >= min; 
+  }
+  
+  get tieneLetras(): boolean { return /[a-zA-Z]/.test(this.nuevaClave); }
+
+  get passwordValido(): boolean {
+    if (!this.configSeguridad) return false;
+    
+    let valido = true;
+    if (this.configSeguridad.minCaracteres > 0 && !this.tieneLongitud) valido = false;
+    if (this.configSeguridad.requiereLetras && !this.tieneLetras) valido = false;
+    if (this.configSeguridad.requiereNumeros && !this.tieneNumero) valido = false;
+    if (this.configSeguridad.requiereEspeciales && !this.tieneCaracterEspecial) valido = false;
+    
+    return valido;
+  }
+
   get claveConfirmadaValida(): boolean {
     return this.nuevaClave === this.confirmarClave && this.nuevaClave.length > 0;
+  }
+
+  get esDiferenteDeActual(): boolean {
+    return this.nuevaClave !== this.claveActual && this.nuevaClave.length > 0;
   }
 
   abrirModalCambiarClave(): void {
@@ -1509,7 +1570,25 @@ cargarPulsos(): void {
   }
 
   cerrarModalCambiarClave(): void {
+    // Si la clave está vencida, no dejar cerrar
+    const userString = localStorage.getItem('usuario');
+    if (userString) {
+      const user = JSON.parse(userString);
+      if (user.contrasenaExpirada === true || user.contrasenaExpirada === 'true') {
+        Swal.fire({
+          title: 'Acción requerida',
+          text: 'Debe cambiar su clave antes de continuar.',
+          icon: 'warning',
+          confirmButtonColor: '#0a5c2e'
+        });
+        return;
+      }
+    }
     this.isModalCambiarClaveOpen = false;
+    this.resetModal();
+  }
+
+  resetModal(): void {
     this.claveActual = '';
     this.nuevaClave = '';
     this.confirmarClave = '';
@@ -1531,6 +1610,11 @@ cargarPulsos(): void {
       return;
     }
 
+    if (!this.esDiferenteDeActual) {
+      this.errorClave = 'La nueva clave debe ser diferente a la actual.';
+      return;
+    }
+
     const dto = {
       idUsuario: this.id_usuario,
       claveActual: this.claveActual,
@@ -1540,8 +1624,18 @@ cargarPulsos(): void {
     this.usuarioService.cambiarClave(dto).subscribe({
       next: () => {
         this.successClave = 'Clave actualizada exitosamente.';
+        
+        // Actualizar localStorage para permitir navegación
+        const userString = localStorage.getItem('usuario');
+        if (userString) {
+          const user = JSON.parse(userString);
+          user.contrasenaExpirada = false;
+          localStorage.setItem('usuario', JSON.stringify(user));
+        }
+
         setTimeout(() => {
-          this.cerrarModalCambiarClave();
+          this.isModalCambiarClaveOpen = false;
+          this.resetModal();
         }, 2000);
       },
       error: (err) => {
@@ -1549,39 +1643,6 @@ cargarPulsos(): void {
         this.errorClave = err.error?.error || 'Error al intentar cambiar la clave. Verifica tu clave actual.';
       }
     });
-  }
-
-  
-  get filteredContactos(): any[] {
-    let contactos = [...this.sistemacontactosData];
-    const q = this.contactoSearchQuery?.toLowerCase().trim();
-
-    if (q) {
-      contactos = contactos.filter(c =>
-        c.nombre?.toLowerCase().includes(q) ||
-        c.cargo?.toLowerCase().includes(q) ||
-        c.correo?.toLowerCase().includes(q)
-      );
-    }
-
-    // Ordenar por extensión de menor a mayor
-    return contactos.sort((a, b) => {
-      const extA = parseInt(a.ext) || 0;
-      const extB = parseInt(b.ext) || 0;
-      return extA - extB;
-    });
-  }
-
- 
-  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
-  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
-  get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
-  get tieneCaracterEspecial(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClave); }
-  get tieneLongitud(): boolean  { return this.nuevaClave.length >= 8; }
-
-
-  get passwordValido(): boolean {
-    return this.tieneMayuscula && this.tieneMinuscula && this.tieneNumero && this.tieneLongitud && this.tieneCaracterEspecial;
   }
 
   // ========================================
@@ -1629,7 +1690,7 @@ cargarPulsos(): void {
     this.homeservice.getNotificacionesPendientes(this.id_usuario).subscribe({
       next: (tareasNotificar: any[]) => {
         if (tareasNotificar && tareasNotificar.length > 0) {
-          console.log('✨ Recordatorio: Tareas pendientes encontradas:', tareasNotificar);
+    
           this.playNotificationSound();
 
           // Notificación nativa del navegador (funciona aunque la consola no esté abierta)

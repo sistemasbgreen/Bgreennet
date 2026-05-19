@@ -30,6 +30,7 @@ export interface LoginResponse {
   cargo_descripcion: string;
   correo: string;
   token: string;  //  JWT Token
+  contrasenaExpirada: boolean;
 }
 
 @Injectable({

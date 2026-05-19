@@ -1,5 +1,6 @@
 package com.bgreenNet.bgreenNet.services;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -75,6 +76,21 @@ public class MetaService {
 
     public void insertarComponente(String padreId, String hijoSiesaId, boolean usaSuma) {
         repository.insertarComponente(padreId, hijoSiesaId, usaSuma);
+    }
+
+    public Map<String, Map<String, String>> getMapeosERP() {
+        List<ProductoDTO> productos = repository.obtenerProductos();
+        Map<String, Map<String, String>> map = new HashMap<>();
+        for (ProductoDTO p : productos) {
+            if (p.getIdProductoTbs() != null) {
+                Map<String, String> data = new HashMap<>();
+                data.put("erp", p.getIdProductoTbs());
+                data.put("bwart", p.getIdTbsTipoDoc());
+                data.put("desc", p.getTbsDescripcion());
+                map.put(p.getId(), data);
+            }
+        }
+        return map;
     }
 
 }

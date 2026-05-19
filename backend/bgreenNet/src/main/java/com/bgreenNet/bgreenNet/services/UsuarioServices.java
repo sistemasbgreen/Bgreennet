@@ -153,13 +153,13 @@ public class UsuarioServices {
             throw new RuntimeException("La clave actual es incorrectA");
         }
 
-        String sqlUpdate = "UPDATE Usuario SET contrasena = ? WHERE id_usuario = ?";
+        String sqlUpdate = "UPDATE Usuario SET contrasena = ?, fecha_actualizacion_contrasena = GETDATE() WHERE id_usuario = ?";
         jdbcTemplate.update(sqlUpdate, passwordEncoder.encode(dto.getNuevaClave()), dto.getIdUsuario());
     }
 
     @Transactional
     public void cambiarClaveAdmin(CambiarClaveDTO dto) {
-        String sqlUpdate = "UPDATE Usuario SET contrasena = ? WHERE id_usuario = ?";
+        String sqlUpdate = "UPDATE Usuario SET contrasena = ?, fecha_actualizacion_contrasena = GETDATE() WHERE id_usuario = ?";
         int updated = jdbcTemplate.update(sqlUpdate, passwordEncoder.encode(dto.getNuevaClave()), dto.getIdUsuario());
         
         if (updated == 0) {
@@ -172,6 +172,12 @@ public class UsuarioServices {
         String sql = "UPDATE Usuario SET bloqueado = ?, intentos_fallidos = ? WHERE id_usuario = ?";
         int intentos = bloqueado ? 0 : 0; // Resetear intentos al desbloquear
         jdbcTemplate.update(sql, bloqueado, intentos, idUsuario);
+    }
+
+    @Transactional
+    public void forzarVencimientoTodos() {
+        String sql = "UPDATE Usuario SET fecha_actualizacion_contrasena = '2000-01-01' WHERE activo = 1";
+        jdbcTemplate.update(sql);
     }
 
     // RowMapper_Actualizado

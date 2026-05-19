@@ -58,16 +58,10 @@
       </button>
 
       <!-- Notificaciones -->
-      <button class="notification-btn" (click)="toggleNotifications($event)" title="Notificaciones">
+      <button class="notification-btn" (click)="toggleNotifications($event)">
         <i class="bi bi-bell"></i>
         <span class="notification-badge" *ngIf="notificaciones.length > 0">{{notificaciones.length}}</span>
       </button>
-
-      <!-- Calendario -->
-      <button class="notification-btn" (click)="abrirModalCalendarioHeader()" title="Calendario" style="margin-left: 8px;">
-        <i class="bi bi-calendar3"></i>
-      </button>
-
 
       <!-- Dropdown de Notificaciones -->
       <div class="notifications-dropdown" *ngIf="isNotificationMenuOpen" (click)="$event.stopPropagation()">
@@ -134,7 +128,12 @@
               <span>Ver Acceso Rápido</span>
             </button>
 
-
+            <button class="dropdown-item" (click)="toggleWidget('calendar'); $event.stopPropagation()">
+              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.calendar"
+                [class.bi-circle]="!dashboardWidgets.calendar"
+                [style.color]="dashboardWidgets.calendar ? '#0078d4' : ''"></i>
+              <span>Ver Calendario Outlook</span>
+            </button>
             <div class="dropdown-divider"></div>
 
             <button class="dropdown-item" (click)="toggleAllWidgets(); $event.stopPropagation()">
@@ -651,7 +650,41 @@
       </div>
     </section>
 
+    <!-- 📅 Sección de Calendario de Outlook -->
+    <section id="calendar-section" class="activity-section calendar-section-v2" *ngIf="dashboardWidgets.calendar && !focusTasksMode">
+      <div class="section-header">
+        <div class="section-title-with-badge">
+          <h3>📅 Calendario de Eventos</h3>
+          <div class="calendar-selector-wrapper">
+            <i class="bi bi-door-open room-icon"></i>
+            <select class="calendar-selector" [ngModel]="selectedCalendarId" (ngModelChange)="cambiarCalendario($event)">
+              <option *ngFor="let cal of availableCalendars" [value]="cal.id">{{ cal.nombre }}</option>
+            </select>
+            <i class="bi bi-chevron-down chevron-icon"></i>
+          </div>
+        </div>
+        <div class="section-actions">
+          <button class="btn-refresh-calendar" (click)="refrescarCalendario()" title="Sincronizar">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+          <button class="btn-nueva-tarea-compacto" (click)="abrirModalEventoOutlook()" style="background: var(--green-secondary); border-color: var(--green-secondary);">
+            <i class="bi bi-plus-lg"></i>
+            Nuevo Registro
+          </button>
+        </div>
+      </div>
 
+      <div class="calendar-container-placeholder">
+        <div class="calendar-loading" *ngIf="loadingCalendar">
+          <div class="spinner"></div>
+          <p>Sincronizando eventos...</p>
+        </div>
+
+        <div class="calendar-main-view" *ngIf="!loadingCalendar" style="padding: 0; overflow: hidden; height: 600px;">
+          <iframe [src]="outlookCalendarUrl" width="100%" height="100%" frameborder="0" style="border: none;"></iframe>
+        </div>
+      </div>
+    </section>
 
     <section class="activity-sectio-notice tareas-section-" *ngIf="!focusTasksMode">
       <div class="section-header">
@@ -801,7 +834,7 @@
     </div>
 
     <!-- Modal de nueva tarea -->
-    <div class="modal-tarea-overlay" *ngIf="isModalTareaOpen" (click)="cerrarModalTarea()">
+    <div class="modal-tarea-overlay" *ngIf="isModalTareaOpen">
       <div class="modal-tarea-container" (click)="$event.stopPropagation()">
         <div class="modal-tarea-header">
           <h3>
@@ -884,7 +917,7 @@
 
     <!-- Modal de Detalle y Chat -->
     <!-- MODAL EDITAR TAREA -->
-    <div class="modal-tarea-overlay" *ngIf="isModalEditarOpen" (click)="cerrarModalEditar()">
+    <div class="modal-tarea-overlay" *ngIf="isModalEditarOpen">
       <div class="modal-tarea-container" (click)="$event.stopPropagation()">
         <div class="modal-tarea-header">
           <h3>
@@ -1346,4 +1379,4 @@
   </div>
 </div>
 
-</html>
+</html>
