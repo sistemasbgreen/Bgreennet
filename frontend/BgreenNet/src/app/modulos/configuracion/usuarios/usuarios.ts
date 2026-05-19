@@ -14,6 +14,7 @@ import { ModuloDTO } from '../../../models/modulos/ModuloDTO';
 import { ModuleConfigService } from '../../../servicios/moduleConfigService';
 import { SubModuloDTO } from '../../../models/modulos/SubModuloDTO';
 import { NgForOf, NgIf } from '@angular/common';
+import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../../servicios/configuracionSeguridadService';
 
 @Component({
   selector: 'app-usuarios',
@@ -74,6 +75,7 @@ export class Usuarios implements OnInit {
 
   // ── Acordeón (reemplaza pestañas) ────────────────────────
   acordeonActivo: 'sistemas' | 'modulos' | null = 'sistemas';
+  configSeguridad: ConfiguracionSeguridad | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -81,11 +83,12 @@ export class Usuarios implements OnInit {
     private listasServices: ListasService,
     private perfilservices: Perfilservices,
     private cdr: ChangeDetectorRef,
-    private moduleConfigService: ModuleConfigService
+    private moduleConfigService: ModuleConfigService,
+    private configSeguridadService: ConfiguracionSeguridadService
   ) {
     this.usuarioForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(4)]],
-      contrasena: ['', [Validators.required, Validators.minLength(6)]],
+      contrasena: ['', [Validators.required]],
       id_area_fk: ['', Validators.required],
       id_perfil_fk: ['', Validators.required],
       identificacion: ['', [Validators.required, Validators.pattern('^[0-9]+$')]],
@@ -115,6 +118,21 @@ export class Usuarios implements OnInit {
     this.cargarArea();
     this.cargarTipoIdentificacion();
     this.cargarModulos();
+    this.loadConfigSeguridad();
+  }
+
+  loadConfigSeguridad(): void {
+    this.configSeguridadService.getConfiguracion().subscribe({
+      next: (config) => {
+        this.configSeguridad = config;
+        // Actualizar validator de contraseña en el form
+        const minLen = config.minCaracteres || 4;
+        this.usuarioForm.get('contrasena')?.setValidators([Validators.required, Validators.minLength(minLen)]);
+        this.usuarioForm.get('contrasena')?.updateValueAndValidity();
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error al cargar config seguridad:', err)
+    });
   }
 
   // ── Helpers de validación ────────────────────────────────
@@ -125,9 +143,19 @@ export class Usuarios implements OnInit {
   get tieneMayusculaAdmin(): boolean { return /[A-Z]/.test(this.nuevaClaveAdmin); }
   get tieneNumeroAdmin(): boolean    { return /[0-9]/.test(this.nuevaClaveAdmin); }
   get tieneCaracterEspecialAdmin(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClaveAdmin); }
-  get tieneLongitudAdmin(): boolean  { return this.nuevaClaveAdmin.length >= 8; }
+  get tieneLongitudAdmin(): boolean  { 
+    const min = this.configSeguridad?.minCaracteres || 8;
+    return this.nuevaClaveAdmin.length >= min; 
+  }
+  get tieneLetrasAdmin(): boolean { return /[a-zA-Z]/.test(this.nuevaClaveAdmin); }
   get passwordAdminValido(): boolean {
-    return this.tieneMayusculaAdmin && this.tieneNumeroAdmin && this.tieneLongitudAdmin && this.tieneCaracterEspecialAdmin;
+    if (!this.configSeguridad) return false;
+    let valido = true;
+    if (this.configSeguridad.minCaracteres > 0 && !this.tieneLongitudAdmin) valido = false;
+    if (this.configSeguridad.requiereLetras && !this.tieneLetrasAdmin) valido = false;
+    if (this.configSeguridad.requiereNumeros && !this.tieneNumeroAdmin) valido = false;
+    if (this.configSeguridad.requiereEspeciales && !this.tieneCaracterEspecialAdmin) valido = false;
+    return valido;
   }
 
   // ======================================================
@@ -339,7 +367,7 @@ export class Usuarios implements OnInit {
   private _setPasswordRequired(required: boolean): void {
     const ctrl = this.usuarioForm.get('contrasena')!;
     if (required) {
-      ctrl.setValidators([Validators.required, Validators.minLength(6)]);
+      ctrl.setValidators([Validators.required, Validators.minLength(this.configSeguridad?.minCaracteres || 4)]);
     } else {
       ctrl.clearValidators();
     }
