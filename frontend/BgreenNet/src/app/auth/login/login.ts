@@ -6,6 +6,7 @@ import { NgFor, NgIf, NgForOf } from '@angular/common';
 import { timeout } from 'rxjs';
 import Swal from 'sweetalert2';
 import { ListasService } from '../../servicios/listasServices';
+import { ConfiguracionSeguridadService } from '../../servicios/configuracionSeguridadService';
 
 @Component({
   standalone: true,
@@ -33,11 +34,12 @@ export class Login {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
-    private listasService: ListasService
+    private listasService: ListasService,
+    private configSeguridadService: ConfiguracionSeguridadService
   ) {
     this.loginForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(3)]],
-      contrasena: ['', [Validators.required, Validators.minLength(6)]]
+      contrasena: ['', [Validators.required]]
     });
 
     const rawReturnUrl = this.route.snapshot.queryParams['returnUrl'];
@@ -132,6 +134,12 @@ export class Login {
         console.error('Error FATAL al llamar a la API de imágenes:', err);
         this.imagenAleatoria = 'https://bgreennet.bgreen.com.co/imagenes/Fondo_Pantalla.jpg';
       }
+    });
+
+    // Cargar configuración de seguridad (disponible si se necesita en el futuro)
+    this.configSeguridadService.getConfiguracion().subscribe({
+      next: () => {},
+      error: () => {}
     });
   }
 

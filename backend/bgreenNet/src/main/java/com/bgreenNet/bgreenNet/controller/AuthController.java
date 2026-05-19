@@ -1,7 +1,10 @@
 package com.bgreenNet.bgreenNet.controller;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,25 +13,22 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.bgreenNet.bgreenNet.dto.LoginRequestDTO;
 import com.bgreenNet.bgreenNet.dto.LoginResponseDTO;
 import com.bgreenNet.bgreenNet.jwt.JwtUtil;
-import com.bgreenNet.bgreenNet.services.AuthService;
-import com.bgreenNet.bgreenNet.services.CustomUserDetailsService;
-import com.bgreenNet.bgreenNet.services.ConfiguracionSeguridadService;
-import com.bgreenNet.bgreenNet.repository.UsuarioRepository;
-import com.bgreenNet.bgreenNet.models.Usuario;
 import com.bgreenNet.bgreenNet.models.ConfiguracionSeguridad;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.Optional;
+import com.bgreenNet.bgreenNet.models.Usuario;
+import com.bgreenNet.bgreenNet.repository.UsuarioRepository;
+import com.bgreenNet.bgreenNet.services.AuthService;
+import com.bgreenNet.bgreenNet.services.ConfiguracionSeguridadService;
+import com.bgreenNet.bgreenNet.services.CustomUserDetailsService;
 
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
@@ -85,15 +85,40 @@ public class AuthController {
 				user.setUltimaConexion(LocalDateTime.now());
 				usuarioRepository.save(user);
 
-
+				// Verificar expiración por tiempo
 				if (config.getExpiracionDias() > 0 && user.getFechaActualizacionContrasena() != null) {
 					long diasPasados = ChronoUnit.DAYS.between(user.getFechaActualizacionContrasena(), LocalDateTime.now());
 					if (diasPasados >= config.getExpiracionDias()) {
 						contrasenaExpirada = true;
-						System.out.println("Contraseña expirada para el usuario: " + request.getUsuario());
+						System.out.println("Contraseña expirada por tiempo para: " + request.getUsuario());
+					}
+				}
+
+				// Verificar si la contraseña cumple con la política de seguridad actual
+				if (!contrasenaExpirada) {
+					String clave = request.getContrasena();
+					boolean cumplePolicy = true;
+
+					if (config.getMinCaracteres() > 0 && clave.length() < config.getMinCaracteres()) {
+						cumplePolicy = false;
+					}
+					if (config.getRequiereLetras() && !clave.matches(".*[a-zA-Z].*")) {
+						cumplePolicy = false;
+					}
+					if (config.getRequiereNumeros() && !clave.matches(".*[0-9].*")) {
+						cumplePolicy = false;
+					}
+					if (config.getRequiereEspeciales() && !clave.matches(".*[!@#$%^&*(),.?\":{}|<>].*")) {
+						cumplePolicy = false;
+					}
+
+					if (!cumplePolicy) {
+						contrasenaExpirada = true;
+						System.out.println("Contraseña no cumple política de seguridad actual para: " + request.getUsuario());
 					}
 				}
 			}
+
 
 		} catch (BadCredentialsException e) {
 			System.err.println("Credenciales inválidas para: " + request.getUsuario());
