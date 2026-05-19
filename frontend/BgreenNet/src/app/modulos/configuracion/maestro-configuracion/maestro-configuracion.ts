@@ -61,6 +61,11 @@ export class MaestroConfiguracion implements OnInit {
 
   saveConfig(): void {
     if (this.configForm.invalid) return;
+    
+    if (!this.atLeastOneRequirement) {
+      Swal.fire('Atención', 'Debes seleccionar al menos un requisito para la contraseña (Letras, Números o Especiales).', 'warning');
+      return;
+    }
 
     this.loading = true;
     const config: ConfiguracionSeguridad = this.configForm.value;
@@ -137,7 +142,17 @@ export class MaestroConfiguracion implements OnInit {
     });
   }
 
-  toggleImagen(imagen: ImagenLogin): void {
+  onToggleImagen(event: Event, imagen: ImagenLogin): void {
+    event.preventDefault(); // Evitar que el navegador cambie el checkbox visualmente
+
+    const imagenesActivas = this.imagenes.filter(img => img.activo === 1);
+    
+    // Si la imagen está activa y es la única activa, no permitir desactivarla
+    if (imagen.activo === 1 && imagenesActivas.length <= 1) {
+      Swal.fire('Atención', 'Debe haber al menos una imagen activa para el fondo del login.', 'warning');
+      return;
+    }
+
     imagen.activo = imagen.activo === 1 ? 0 : 1;
     this.listasService.saveImagenLogin(imagen).subscribe({
       next: () => {
@@ -146,10 +161,12 @@ export class MaestroConfiguracion implements OnInit {
       error: (err) => {
         console.error('Error al actualizar imagen', err);
         imagen.activo = imagen.activo === 1 ? 0 : 1; // Revertir
+        this.loadImagenes();
         Swal.fire('Error', 'No se pudo actualizar el estado de la imagen.', 'error');
       }
     });
   }
+
 
   eliminarImagen(id: number): void {
     Swal.fire({
@@ -163,6 +180,14 @@ export class MaestroConfiguracion implements OnInit {
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
+        const imagenAEliminar = this.imagenes.find(img => img.id === id);
+        const imagenesActivas = this.imagenes.filter(img => img.activo === 1);
+
+        if (imagenAEliminar && imagenAEliminar.activo === 1 && imagenesActivas.length <= 1) {
+          Swal.fire('Atención', 'No puedes eliminar la única imagen activa. Activa otra imagen primero.', 'warning');
+          return;
+        }
+
         this.loadingImagenes = true;
         this.listasService.deleteImagenLogin(id).subscribe({
           next: () => {
@@ -232,5 +257,11 @@ export class MaestroConfiguracion implements OnInit {
       (img.nombre && img.nombre.toLowerCase().includes(search)) || 
       (img.url && img.url.toLowerCase().includes(search))
     );
+  }
+
+  get atLeastOneRequirement(): boolean {
+    return this.configForm.get('requiereLetras')?.value || 
+           this.configForm.get('requiereNumeros')?.value || 
+           this.configForm.get('requiereEspeciales')?.value;
   }
 }
