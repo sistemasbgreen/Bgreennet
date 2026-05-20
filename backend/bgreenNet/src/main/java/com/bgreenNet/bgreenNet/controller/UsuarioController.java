@@ -78,4 +78,10 @@ public class UsuarioController {
 	        usuarioService.toggleBloqueo(id, bloqueado != null && bloqueado);
 	        return ResponseEntity.ok().build();
 	    }
+
+	    @PostMapping("/forzar-vencimiento")
+	    public ResponseEntity<Void> forzarVencimiento() {
+	        usuarioService.forzarVencimientoTodos();
+	        return ResponseEntity.ok().build();
+	    }
 }

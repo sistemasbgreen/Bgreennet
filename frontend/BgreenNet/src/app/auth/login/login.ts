@@ -6,6 +6,7 @@ import { NgFor, NgIf, NgForOf } from '@angular/common';
 import { timeout } from 'rxjs';
 import Swal from 'sweetalert2';
 import { ListasService } from '../../servicios/listasServices';
+import { ConfiguracionSeguridadService } from '../../servicios/configuracionSeguridadService';
 
 @Component({
   standalone: true,
@@ -33,11 +34,12 @@ export class Login {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
-    private listasService: ListasService
+    private listasService: ListasService,
+    private configSeguridadService: ConfiguracionSeguridadService
   ) {
     this.loginForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(3)]],
-      contrasena: ['', [Validators.required, Validators.minLength(6)]]
+      contrasena: ['', [Validators.required]]
     });
 
     const rawReturnUrl = this.route.snapshot.queryParams['returnUrl'];
@@ -69,7 +71,20 @@ export class Login {
       next: (response) => {
         console.log(' Login exitoso, redirigiendo...');
         this.isLoading = false;
-        this.router.navigate([this.returnUrl]);
+
+        if (response.contrasenaExpirada) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Contraseña Vencida',
+            text: 'Su contraseña ha vencido. Por favor, cámbiela lo antes posible.',
+            confirmButtonColor: '#006c2c',
+            confirmButtonText: 'Entendido'
+          }).then(() => {
+            this.router.navigate([this.returnUrl]);
+          });
+        } else {
+          this.router.navigate([this.returnUrl]);
+        }
       },
       error: (err) => {
         this.isLoading = false;
@@ -118,6 +133,21 @@ export class Login {
       error: (err) => {
         console.error('Error FATAL al llamar a la API de imágenes:', err);
         this.imagenAleatoria = 'https://bgreennet.bgreen.com.co/imagenes/Fondo_Pantalla.jpg';
+      }
+    });
+
+    // Cargar configuración de seguridad para aplicar validación dinámica
+    this.configSeguridadService.getConfiguracion().subscribe({
+      next: (config) => {
+        const minLen = config.minCaracteres || 4;
+        this.loginForm.get('contrasena')?.setValidators([
+          Validators.required,
+          Validators.minLength(minLen)
+        ]);
+        this.loginForm.get('contrasena')?.updateValueAndValidity();
+      },
+      error: () => {
+        // Fallback: sin restricción de longitud mínima en login
       }
     });
   }

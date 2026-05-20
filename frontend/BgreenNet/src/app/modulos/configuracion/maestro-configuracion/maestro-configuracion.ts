@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../../servicios/configuracionSeguridadService';
 import { ListasService } from '../../../servicios/listasServices';
 import { ImagenLogin } from '../../../models/imagen-login';
 import { AuthService } from '../../../auth/authservices';
+import { UsuarioService } from '../../../servicios/usuarioservices';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -27,7 +28,8 @@ export class MaestroConfiguracion implements OnInit {
     private fb: FormBuilder,
     private configService: ConfiguracionSeguridadService,
     private listasService: ListasService,
-    private authService: AuthService
+    private authService: AuthService,
+    private usuarioService: UsuarioService
   ) {
     this.configForm = this.fb.group({
       expiracionDias: [90, [Validators.required]],
@@ -50,6 +52,7 @@ export class MaestroConfiguracion implements OnInit {
       next: (config) => {
         this.configForm.patchValue(config);
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error al cargar configuración', err);
@@ -61,6 +64,11 @@ export class MaestroConfiguracion implements OnInit {
 
   saveConfig(): void {
     if (this.configForm.invalid) return;
+    
+    if (!this.atLeastOneRequirement) {
+      Swal.fire('Atención', 'Debes seleccionar al menos un requisito para la contraseña (Letras, Números o Especiales).', 'warning');
+      return;
+    }
 
     this.loading = true;
     const config: ConfiguracionSeguridad = this.configForm.value;
@@ -100,6 +108,7 @@ export class MaestroConfiguracion implements OnInit {
       next: (imgs) => {
         this.imagenes = imgs;
         this.loadingImagenes = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error al cargar imágenes', err);
@@ -137,7 +146,17 @@ export class MaestroConfiguracion implements OnInit {
     });
   }
 
-  toggleImagen(imagen: ImagenLogin): void {
+  onToggleImagen(event: Event, imagen: ImagenLogin): void {
+    event.preventDefault(); // Evitar que el navegador cambie el checkbox visualmente
+
+    const imagenesActivas = this.imagenes.filter(img => img.activo === 1);
+    
+    // Si la imagen está activa y es la única activa, no permitir desactivarla
+    if (imagen.activo === 1 && imagenesActivas.length <= 1) {
+      Swal.fire('Atención', 'Debe haber al menos una imagen activa para el fondo del login.', 'warning');
+      return;
+    }
+
     imagen.activo = imagen.activo === 1 ? 0 : 1;
     this.listasService.saveImagenLogin(imagen).subscribe({
       next: () => {
@@ -146,10 +165,12 @@ export class MaestroConfiguracion implements OnInit {
       error: (err) => {
         console.error('Error al actualizar imagen', err);
         imagen.activo = imagen.activo === 1 ? 0 : 1; // Revertir
+        this.loadImagenes();
         Swal.fire('Error', 'No se pudo actualizar el estado de la imagen.', 'error');
       }
     });
   }
+
 
   eliminarImagen(id: number): void {
     Swal.fire({
@@ -163,6 +184,14 @@ export class MaestroConfiguracion implements OnInit {
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
+        const imagenAEliminar = this.imagenes.find(img => img.id === id);
+        const imagenesActivas = this.imagenes.filter(img => img.activo === 1);
+
+        if (imagenAEliminar && imagenAEliminar.activo === 1 && imagenesActivas.length <= 1) {
+          Swal.fire('Atención', 'No puedes eliminar la única imagen activa. Activa otra imagen primero.', 'warning');
+          return;
+        }
+
         this.loadingImagenes = true;
         this.listasService.deleteImagenLogin(id).subscribe({
           next: () => {
@@ -232,5 +261,44 @@ export class MaestroConfiguracion implements OnInit {
       (img.nombre && img.nombre.toLowerCase().includes(search)) || 
       (img.url && img.url.toLowerCase().includes(search))
     );
+  }
+
+  get atLeastOneRequirement(): boolean {
+    return this.configForm.get('requiereLetras')?.value || 
+           this.configForm.get('requiereNumeros')?.value || 
+           this.configForm.get('requiereEspeciales')?.value;
+  }
+
+  forzarVencimiento(): void {
+    Swal.fire({
+      title: '¿Forzar vencimiento de claves?',
+      html: '<p>Esta acción hará que <b>todos los usuarios activos</b> deban cambiar su contraseña en el próximo inicio de sesión.</p><p class="text-muted">Esta acción no se puede deshacer.</p>',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, forzar vencimiento',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.loading = true;
+        this.usuarioService.forzarVencimientoTodos().subscribe({
+          next: () => {
+            this.loading = false;
+            Swal.fire({
+              title: '¡Hecho!',
+              text: 'Todas las contraseñas han sido marcadas como vencidas. Los usuarios deberán cambiarla al iniciar sesión.',
+              icon: 'success',
+              confirmButtonColor: '#006c2c'
+            });
+          },
+          error: (err) => {
+            this.loading = false;
+            console.error('Error al forzar vencimiento:', err);
+            Swal.fire('Error', 'No se pudo forzar el vencimiento de claves.', 'error');
+          }
+        });
+      }
+    });
   }
 }

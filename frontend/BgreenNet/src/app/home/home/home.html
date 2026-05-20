@@ -58,16 +58,10 @@
       </button>
 
       <!-- Notificaciones -->
-      <button class="notification-btn" (click)="toggleNotifications($event)" title="Notificaciones">
+      <button class="notification-btn" (click)="toggleNotifications($event)">
         <i class="bi bi-bell"></i>
         <span class="notification-badge" *ngIf="notificaciones.length > 0">{{notificaciones.length}}</span>
       </button>
-
-      <!-- Calendario -->
-      <button class="notification-btn" (click)="abrirModalCalendarioHeader()" title="Calendario" style="margin-left: 8px;">
-        <i class="bi bi-calendar3"></i>
-      </button>
-
 
       <!-- Dropdown de Notificaciones -->
       <div class="notifications-dropdown" *ngIf="isNotificationMenuOpen" (click)="$event.stopPropagation()">
@@ -134,7 +128,12 @@
               <span>Ver Acceso Rápido</span>
             </button>
 
-
+            <button class="dropdown-item" (click)="toggleWidget('calendar'); $event.stopPropagation()">
+              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.calendar"
+                [class.bi-circle]="!dashboardWidgets.calendar"
+                [style.color]="dashboardWidgets.calendar ? '#0078d4' : ''"></i>
+              <span>Ver Calendario Outlook</span>
+            </button>
             <div class="dropdown-divider"></div>
 
             <button class="dropdown-item" (click)="toggleAllWidgets(); $event.stopPropagation()">
@@ -651,7 +650,41 @@
       </div>
     </section>
 
+    <!-- 📅 Sección de Calendario de Outlook -->
+    <section id="calendar-section" class="activity-section calendar-section-v2" *ngIf="dashboardWidgets.calendar && !focusTasksMode">
+      <div class="section-header">
+        <div class="section-title-with-badge">
+          <h3>📅 Calendario de Eventos</h3>
+          <div class="calendar-selector-wrapper">
+            <i class="bi bi-door-open room-icon"></i>
+            <select class="calendar-selector" [ngModel]="selectedCalendarId" (ngModelChange)="cambiarCalendario($event)">
+              <option *ngFor="let cal of availableCalendars" [value]="cal.id">{{ cal.nombre }}</option>
+            </select>
+            <i class="bi bi-chevron-down chevron-icon"></i>
+          </div>
+        </div>
+        <div class="section-actions">
+          <button class="btn-refresh-calendar" (click)="refrescarCalendario()" title="Sincronizar">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+          <button class="btn-nueva-tarea-compacto" (click)="abrirModalEventoOutlook()" style="background: var(--green-secondary); border-color: var(--green-secondary);">
+            <i class="bi bi-plus-lg"></i>
+            Nuevo Registro
+          </button>
+        </div>
+      </div>
 
+      <div class="calendar-container-placeholder">
+        <div class="calendar-loading" *ngIf="loadingCalendar">
+          <div class="spinner"></div>
+          <p>Sincronizando eventos...</p>
+        </div>
+
+        <div class="calendar-main-view" *ngIf="!loadingCalendar" style="padding: 0; overflow: hidden; height: 600px;">
+          <iframe [src]="outlookCalendarUrl" width="100%" height="100%" frameborder="0" style="border: none;"></iframe>
+        </div>
+      </div>
+    </section>
 
     <section class="activity-sectio-notice tareas-section-" *ngIf="!focusTasksMode">
       <div class="section-header">
@@ -801,7 +834,7 @@
     </div>
 
     <!-- Modal de nueva tarea -->
-    <div class="modal-tarea-overlay" *ngIf="isModalTareaOpen" (click)="cerrarModalTarea()">
+    <div class="modal-tarea-overlay" *ngIf="isModalTareaOpen">
       <div class="modal-tarea-container" (click)="$event.stopPropagation()">
         <div class="modal-tarea-header">
           <h3>
@@ -884,7 +917,7 @@
 
     <!-- Modal de Detalle y Chat -->
     <!-- MODAL EDITAR TAREA -->
-    <div class="modal-tarea-overlay" *ngIf="isModalEditarOpen" (click)="cerrarModalEditar()">
+    <div class="modal-tarea-overlay" *ngIf="isModalEditarOpen">
       <div class="modal-tarea-container" (click)="$event.stopPropagation()">
         <div class="modal-tarea-header">
           <h3>
@@ -1197,7 +1230,7 @@
 </body>
 
 <!-- Modal Cambiar Clave -->
-<div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen" (click)="cerrarModalCambiarClave()">
+<div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen">
   <div class="modal-tarea-container clave-modal-container" (click)="$event.stopPropagation()">
 
     <div class="modal-tarea-header">
@@ -1234,24 +1267,20 @@
         </div>
 
         <!-- Indicadores de requisitos -->
-        <div class="password-requirements" *ngIf="nuevaClave.length > 0">
-          <span [class.req-ok]="tieneMayuscula" [class.req-fail]="!tieneMayuscula">
-            <i class="bi" [class.bi-check-circle-fill]="tieneMayuscula" [class.bi-x-circle-fill]="!tieneMayuscula"></i>
-            Mayúscula
+        <div class="password-requirements" *ngIf="nuevaClave.length > 0 && configSeguridad">
+          <span [class.req-ok]="tieneLetras" [class.req-fail]="!tieneLetras" *ngIf="configSeguridad.requiereLetras">
+            <i class="bi" [class.bi-check-circle-fill]="tieneLetras" [class.bi-x-circle-fill]="!tieneLetras"></i>
+            Debe contener letras
           </span>
-          <span [class.req-ok]="tieneMinuscula" [class.req-fail]="!tieneMinuscula">
-            <i class="bi" [class.bi-check-circle-fill]="tieneMinuscula" [class.bi-x-circle-fill]="!tieneMinuscula"></i>
-            Minúscula
-          </span>
-          <span [class.req-ok]="tieneNumero" [class.req-fail]="!tieneNumero">
+          <span [class.req-ok]="tieneNumero" [class.req-fail]="!tieneNumero" *ngIf="configSeguridad.requiereNumeros">
             <i class="bi" [class.bi-check-circle-fill]="tieneNumero" [class.bi-x-circle-fill]="!tieneNumero"></i>
-            Número
+            Debe contener números
           </span>
-          <span [class.req-ok]="tieneLongitud" [class.req-fail]="!tieneLongitud">
+          <span [class.req-ok]="tieneLongitud" [class.req-fail]="!tieneLongitud" *ngIf="configSeguridad.minCaracteres > 0">
             <i class="bi" [class.bi-check-circle-fill]="tieneLongitud" [class.bi-x-circle-fill]="!tieneLongitud"></i>
-            Mínimo 8 caracteres
+            Mínimo {{ configSeguridad.minCaracteres }} caracteres
           </span>
-          <span [class.req-ok]="tieneCaracterEspecial" [class.req-fail]="!tieneCaracterEspecial">
+          <span [class.req-ok]="tieneCaracterEspecial" [class.req-fail]="!tieneCaracterEspecial" *ngIf="configSeguridad.requiereEspeciales">
             <i class="bi" [class.bi-check-circle-fill]="tieneCaracterEspecial"
               [class.bi-x-circle-fill]="!tieneCaracterEspecial"></i>
             Carácter especial (!@#$...)
@@ -1284,7 +1313,7 @@
     <div class="modal-tarea-footer">
       <button class="btn-cancelar" (click)="cerrarModalCambiarClave()">Cancelar</button>
       <button class="btn-guardar" (click)="guardarClave()"
-        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida">
+        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida || !esDiferenteDeActual">
         <i class="bi bi-shield-lock"></i>
         Guardar Clave
       </button>
@@ -1293,57 +1322,4 @@
   </div>
 </div>
 
-<!-- Modal Calendario Header -->
-<div class="modal-tarea-overlay" *ngIf="isModalCalendarioHeaderOpen">
-  <div class="modal-tarea-container" style="max-width: 1250px; width: 95%;">
-
-    <div class="modal-tarea-header">
-      <h3>
-        <i class="bi bi-calendar3"></i>
-        Calendario de Eventos
-      </h3>
-      <button class="btn-close" (click)="cerrarModalCalendarioHeader()">×</button>
-    </div>
-
-    <div class="modal-tarea-body" style="padding: 20px; display: flex; flex-direction: column; gap: 15px; height: 82vh; min-height: 650px;">
-      <!-- Controles del Calendario en el Modal -->
-      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <div class="calendar-selector-wrapper" style="margin-left: 0;">
-          <i class="bi bi-door-open room-icon"></i>
-          <select class="calendar-selector" [ngModel]="selectedCalendarId" (ngModelChange)="cambiarCalendario($event)" style="background: transparent !important; color: white !important; border: none !important; box-shadow: none !important; outline: none !important; appearance: none !important;">
-            <option *ngFor="let cal of availableCalendars" [value]="cal.id" style="background-color: var(--bg-primary) !important; color: var(--text-primary) !important;">{{ cal.nombre }}</option>
-          </select>
-          <i class="bi bi-chevron-down chevron-icon"></i>
-        </div>
-        
-        <button class="btn-refresh-calendar" (click)="refrescarCalendario()" title="Sincronizar">
-          <i class="bi bi-arrow-repeat" [class.spin]="loadingCalendar"></i>
-        </button>
-
-        <button class="btn-nueva-tarea-compacto" (click)="abrirModalEventoOutlook()" style="background: var(--green-secondary); border-color: var(--green-secondary); color: white; display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; border: none; cursor: pointer; margin-left: auto; transition: all 0.2s;">
-          <i class="bi bi-plus-lg"></i>
-          Nuevo Registro
-        </button>
-      </div>
-
-
-      <div class="calendar-container-placeholder" style="border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; flex: 1; position: relative; background: #ffffff; min-height: 580px; display: flex; flex-direction: column;">
-        <div class="calendar-loading" *ngIf="loadingCalendar" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); z-index: 10; gap: 15px;">
-          <div class="spinner"></div>
-          <p style="font-weight: 500; color: var(--text-secondary);">Sincronizando eventos...</p>
-        </div>
-
-        <div class="calendar-main-view" style="padding: 0; overflow: hidden; flex: 1; width: 100%; display: flex; flex-direction: column;">
-          <iframe [src]="outlookCalendarUrl" width="100%" height="100%" frameborder="0" style="border: none; flex: 1; min-height: 580px;"></iframe>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-tarea-footer" style="padding: 16px 28px; background: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
-      <button class="btn-cancelar" (click)="cerrarModalCalendarioHeader()" style="padding: 8px 20px; border-radius: 8px; border: 1px solid var(--border-color); background: white; color: var(--text-secondary); font-weight: 500; cursor: pointer; transition: all 0.2s;">Cerrar</button>
-    </div>
-
-  </div>
-</div>
-
-</html>
+</html>

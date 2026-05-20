@@ -68,7 +68,7 @@
           <div class="error-message" *ngIf="contrasena?.invalid && contrasena?.touched">
             <span *ngIf="contrasena?.errors?.['required']">La contraseña es requerida</span>
             <span *ngIf="contrasena?.errors?.['minlength']">
-              Mínimo 6 caracteres
+              Mínimo {{ contrasena?.errors?.['minlength']?.requiredLength }} caracteres
             </span>
           </div>
         </div>

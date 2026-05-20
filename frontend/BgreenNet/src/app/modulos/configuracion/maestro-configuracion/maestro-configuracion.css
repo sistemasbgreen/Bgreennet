@@ -241,3 +241,31 @@
   box-shadow: 0 0 0 2px rgba(26, 143, 78, 0.1);
   border-bottom: 1px solid #1a8f4e !important;
 }
+
+/* ===== BOTÓN FORZAR VENCIMIENTO ===== */
+.btn-force-expire {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 2px solid #dc2626;
+  background: transparent;
+  color: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-force-expire:hover:not(:disabled) {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-force-expire:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
