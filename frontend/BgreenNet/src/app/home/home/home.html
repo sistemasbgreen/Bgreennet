@@ -63,6 +63,11 @@
         <span class="notification-badge" *ngIf="notificaciones.length > 0">{{notificaciones.length}}</span>
       </button>
 
+      <!-- Botón Calendario -->
+      <button class="calendar-btn" (click)="abrirModalCalendarioHeader()" title="Ver Calendario Outlook">
+        <i class="bi bi-calendar3"></i>
+      </button>
+
       <!-- Dropdown de Notificaciones -->
       <div class="notifications-dropdown" *ngIf="isNotificationMenuOpen" (click)="$event.stopPropagation()">
         <div class="notifications-header">
@@ -128,12 +133,7 @@
               <span>Ver Acceso Rápido</span>
             </button>
 
-            <button class="dropdown-item" (click)="toggleWidget('calendar'); $event.stopPropagation()">
-              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.calendar"
-                [class.bi-circle]="!dashboardWidgets.calendar"
-                [style.color]="dashboardWidgets.calendar ? '#0078d4' : ''"></i>
-              <span>Ver Calendario Outlook</span>
-            </button>
+
             <div class="dropdown-divider"></div>
 
             <button class="dropdown-item" (click)="toggleAllWidgets(); $event.stopPropagation()">
@@ -650,41 +650,7 @@
       </div>
     </section>
 
-    <!-- 📅 Sección de Calendario de Outlook -->
-    <section id="calendar-section" class="activity-section calendar-section-v2" *ngIf="dashboardWidgets.calendar && !focusTasksMode">
-      <div class="section-header">
-        <div class="section-title-with-badge">
-          <h3>📅 Calendario de Eventos</h3>
-          <div class="calendar-selector-wrapper">
-            <i class="bi bi-door-open room-icon"></i>
-            <select class="calendar-selector" [ngModel]="selectedCalendarId" (ngModelChange)="cambiarCalendario($event)">
-              <option *ngFor="let cal of availableCalendars" [value]="cal.id">{{ cal.nombre }}</option>
-            </select>
-            <i class="bi bi-chevron-down chevron-icon"></i>
-          </div>
-        </div>
-        <div class="section-actions">
-          <button class="btn-refresh-calendar" (click)="refrescarCalendario()" title="Sincronizar">
-            <i class="bi bi-arrow-repeat"></i>
-          </button>
-          <button class="btn-nueva-tarea-compacto" (click)="abrirModalEventoOutlook()" style="background: var(--green-secondary); border-color: var(--green-secondary);">
-            <i class="bi bi-plus-lg"></i>
-            Nuevo Registro
-          </button>
-        </div>
-      </div>
 
-      <div class="calendar-container-placeholder">
-        <div class="calendar-loading" *ngIf="loadingCalendar">
-          <div class="spinner"></div>
-          <p>Sincronizando eventos...</p>
-        </div>
-
-        <div class="calendar-main-view" *ngIf="!loadingCalendar" style="padding: 0; overflow: hidden; height: 600px;">
-          <iframe [src]="outlookCalendarUrl" width="100%" height="100%" frameborder="0" style="border: none;"></iframe>
-        </div>
-      </div>
-    </section>
 
     <section class="activity-sectio-notice tareas-section-" *ngIf="!focusTasksMode">
       <div class="section-header">
@@ -1343,8 +1309,8 @@
       <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
         <div class="calendar-selector-wrapper" style="margin-left: 0;">
           <i class="bi bi-door-open room-icon"></i>
-          <select class="calendar-selector" [ngModel]="selectedCalendarId" (ngModelChange)="cambiarCalendario($event)" style="background: transparent !important; color: white !important; border: none !important; box-shadow: none !important; outline: none !important; appearance: none !important;">
-            <option *ngFor="let cal of availableCalendars" [value]="cal.id" style="background-color: var(--bg-primary) !important; color: var(--text-primary) !important;">{{ cal.nombre }}</option>
+          <select class="calendar-selector" [ngModel]="selectedCalendarId" (ngModelChange)="cambiarCalendario($event)">
+            <option *ngFor="let cal of availableCalendars" [value]="cal.id">{{ cal.nombre }}</option>
           </select>
           <i class="bi bi-chevron-down chevron-icon"></i>
         </div>
