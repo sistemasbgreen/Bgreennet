@@ -29,7 +29,8 @@ export class MaestroConfiguracion implements OnInit {
     private configService: ConfiguracionSeguridadService,
     private listasService: ListasService,
     private authService: AuthService,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private cdr: ChangeDetectorRef
   ) {
     this.configForm = this.fb.group({
       expiracionDias: [90, [Validators.required]],
