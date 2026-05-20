@@ -1,6 +1,7 @@
 import { PrioridadTarea } from './../../models/Tareas/PrioridadTarea';
 import { isPlatformBrowser } from '@angular/common';
 import { Subject, timer } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, Inject, OnInit, OnDestroy, PLATFORM_ID, ViewChild } from '@angular/core';
 import { Router } from "@angular/router";
 import { SistemaInformacion } from '../../models/sistemasinformacion';
@@ -12,21 +13,18 @@ import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { Tarea } from '../../models/Tareas/Tarea';
 import { CreateTareaRequest } from '../../models/Tareas/CreateTareaRequest';
 import { Pulso } from '../../models/Pulsos/pulso';
-import { AuthService } from '../../auth/authservices';
-import Swal from 'sweetalert2';
-import { filter, takeUntil } from 'rxjs/operators';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PulsoService } from '../../servicios/pulsoservices';
 import { UsuarioService } from '../../servicios/usuarioservices';
 import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../servicios/configuracionSeguridadService';
-
+import Swal from 'sweetalert2';
+import { AuthService } from '../../auth/authservices';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 // Registrar componentes de Chart.js
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-home',
-  standalone: true,
   imports: [NgForOf, NgIf, FormsModule, ReactiveFormsModule, CommonModule],
   templateUrl: './home.html',
   styleUrl: './home.css',
@@ -102,8 +100,15 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   trmHistoricalData: any[] = [];
 
   // Dashboard personalizable
-  dashboardWidgets = {
-     stats: true,
+  dashboardWidgets: {
+    stats: boolean;
+    trmChart: boolean;
+    activity: boolean;
+    quickAccess: boolean;
+    tasks: boolean;
+    calendar?: boolean;
+  } = {
+    stats: true,
     trmChart: true,
     activity: true,
     quickAccess: true,
@@ -116,15 +121,6 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   greeting: string = '';
   tareaResaltadaId: number | null = null;
 
-  // El desbloqueo de audio se maneja en onDocumentClick más abajo
-
-  //  Tareas mejoradas
-  tareas: Tarea[] = [];
-  tareasActivas: Tarea[] = []; // Solo CREADA y EN PROCESO
-  tareasFinalizadas: Tarea[] = []; // Solo FINALIZADAS
-  focusTasksMode: boolean = false; // Modo enfoque de tareas
-  tasksViewMode: 'cards' | 'list' = 'cards'; // Modo de visualización de tareas
-  
   // Microsoft Outlook Integration (Iframe Mode)
   loadingCalendar: boolean = false;
   outlookCalendarUrl: SafeResourceUrl | null = null;
@@ -141,7 +137,17 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       url: 'https://outlook.office365.com/owa/calendar/b26a32137554453b9a4945570b20965d@biocosta.com/4c7c5342a3f849b3bed3f023d8c091153965550068646068814/calendar.html'
     }
   ];
+  isModalCalendarioHeaderOpen: boolean = false;
 
+  // El desbloqueo de audio se maneja en onDocumentClick más abajo
+
+  //  Tareas mejoradas
+  tareas: Tarea[] = [];
+  tareasActivas: Tarea[] = []; // Solo CREADA y EN PROCESO
+  tareasFinalizadas: Tarea[] = []; // Solo FINALIZADAS
+  focusTasksMode: boolean = false; // Modo enfoque de tareas
+  tasksViewMode: 'cards' | 'list' = 'cards'; // Modo de visualización de tareas
+  
   usuarioAsignadoId: number | null = null; // Para asignar a otros
 
   setTasksViewMode(mode: 'cards' | 'list'): void {
@@ -256,11 +262,11 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
 
   loadConfiguracionSeguridad(): void {
     this.configuracionSeguridadService.getConfiguracion().subscribe({
-      next: (config) => {
+      next: (config: any) => {
         this.configSeguridad = config;
         this.cdr.detectChanges();
       },
-      error: (err) => console.error('Error al cargar config seguridad:', err)
+      error: (err: any) => console.error('Error al cargar config seguridad:', err)
     });
   }
 
@@ -390,6 +396,15 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     if (calendar) {
       this.outlookCalendarUrl = this.sanitizer.bypassSecurityTrustResourceUrl(calendar.url);
     }
+  }
+
+  abrirModalCalendarioHeader(): void {
+    this.isModalCalendarioHeaderOpen = true;
+    this.updateCalendarUrl();
+  }
+
+  cerrarModalCalendarioHeader(): void {
+    this.isModalCalendarioHeaderOpen = false;
   }
 
   // ========================================
@@ -1086,7 +1101,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
           this.homeservice.getTareaPorId(this.tareaEdit.id).subscribe(t => this.tareaSeleccionada = t);
         }
       },
-      error: (err: any) => {
+      error: err => {
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -1157,7 +1172,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
             this.homeservice.getTareaPorId(idTarea).subscribe(t => this.tareaSeleccionada = t);
           }
         },
-        error: (err: any) => {
+        error: err => {
           console.error(err);
           const msg = err.error?.message || 'Hubo un error al actualizar la tarea.';
           Swal.fire({
@@ -1205,7 +1220,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
               <i class="bi bi-calendar-x"></i> Quitar fecha límite
             </button>
           </div>
-        `,
+        </div>`,
       showCancelButton: true,
       confirmButtonText: '💾 Actualizar',
       cancelButtonText: 'Cerrar',
@@ -1224,7 +1239,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
         const val = (document.getElementById('swal-fecha-limite') as HTMLInputElement)?.value;
         return val || null; // null = quitar fecha
       }
-    }).then((result: any) => {
+    }).then(result => {
       if (result.isConfirmed) {
         const val = result.value; // string 'YYYY-MM-DDTHH:mm' o vacío
         // Enviar sin zona horaria para que Spring LocalDateTime lo acepte
@@ -1248,7 +1263,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
               this.homeservice.getTareaPorId(tarea.id).subscribe(t => this.tareaSeleccionada = t);
             }
           },
-          error: (err: any) => {
+          error: err => {
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -1826,7 +1841,7 @@ cargarPulsos(): void {
               showConfirmButton: false,
               timer: 8000,
               timerProgressBar: true,
-              didOpen: (toast: any) => {
+              didOpen: (toast) => {
                 toast.style.cursor = 'pointer';
                 toast.onclick = () => {
                   this.irANotificacion(newNotif);
@@ -1839,7 +1854,7 @@ cargarPulsos(): void {
         
         this.notificaciones = data;
       },
-      error: (err: any) => console.error('Error al obtener notificaciones', err)
+      error: (err) => console.error('Error al obtener notificaciones', err)
     });
   }
 
