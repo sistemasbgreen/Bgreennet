@@ -266,6 +266,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
 
 
 
+
   ngAfterViewInit(): void {
     // Esperar a que los datos estén cargados antes de crear el gráfico
     setTimeout(() => {
@@ -985,6 +986,18 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   toggleTasksFocus(): void {
     this.focusTasksMode = !this.focusTasksMode;
   }
+
+  isModalCalendarioHeaderOpen: boolean = false;
+
+  abrirModalCalendarioHeader(): void {
+    this.isModalCalendarioHeaderOpen = true;
+    this.updateCalendarUrl();
+  }
+
+  cerrarModalCalendarioHeader(): void {
+    this.isModalCalendarioHeaderOpen = false;
+  }
+
 
   crearTarea(): void {
     if (!this.nuevaTarea.titulo.trim()) return;
