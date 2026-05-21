@@ -4667,9 +4667,11 @@ body.dark-mode .calendar-selector-wrapper:hover {
 }
 
 /* Ensure options are readable on all themes */
-.calendar-selector option {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+.calendar-selector option, .calendar-option {
+  background-color: #ffffff;
+  color: #333333;
+  background-color: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #333333);
   padding: 10px;
 }
 
