@@ -62,6 +62,13 @@ public class PerfilServices {
         }
         repository.spCrearPerfil(descripcionPerfil, activo);
     }
+
+    public void actualizarPerfil(Integer id, String descripcionPerfil, Boolean activo) {
+        if (activo == null) {
+            activo = true;
+        }
+        repository.spActualizarPerfil(id, descripcionPerfil, activo);
+    }
     
      
     public void asignarPermiso(Integer idPerfilFk, Integer idSistemaFk) {

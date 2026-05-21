@@ -5,6 +5,7 @@ public class UsuarioCompletoDTO {
 	    private String usuario;
 	    private String contrasena; // Solo para crear (¡no devolver en GET!)
 	    private Boolean estado; 
+    private Boolean bloqueado;
 	    private String ultima_conexion;
 	    private String descripcionArea;
 	    private String descripcionPerfil;
@@ -156,5 +157,10 @@ public class UsuarioCompletoDTO {
 			Id_cargo_fk = id_cargo_fk;
 		}
 	    
-	    
+		public Boolean getBloqueado() {
+			return bloqueado;
+		}
+		public void setBloqueado(Boolean bloqueado) {
+			this.bloqueado = bloqueado;
+		}
 }

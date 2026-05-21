@@ -57,6 +57,7 @@ export class DynamicLoader implements OnInit {
         'configuracion/sistemasinformacion': () => import('../modulos/configuracion/sistemasinformacion/sistemasinformacion').then(m => m.Sistemasinformacion),
         'configuracion/pulsos': () => import('../modulos/configuracion/pulsos/pulsos').then(m => m.Pulsos),
         'configuracion/metas-cmi': () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(m => m.MetasCMI),
+        'configuracion/maestro-configuracion': () => import('../modulos/configuracion/maestro-configuracion/maestro-configuracion').then(m => m.MaestroConfiguracion),
         // Agrega más rutas según necesites
       };
 

@@ -22,4 +22,6 @@ export interface Usuario {
   id_tipoidentificacion_fk: number;
   id_detalle_usuario: number;
   cargo: string;
+  bloqueado?: boolean;
+  intentosFallidos?: number;
 }
