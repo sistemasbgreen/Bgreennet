@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,6 +52,17 @@ public class PerfilControllers {
 		}
 
 		perfilservice.crearPerfil(dto.getDescripcionPerfil(), dto.getActivo());
+		return ResponseEntity.noContent().build();
+	}
+
+	// Actualizar perfil
+	@PutMapping("/actualizar/{id}")
+	public ResponseEntity<Void> actualizarPerfil(@PathVariable Integer id, @RequestBody CrearPerfilDTO dto) {
+		if (dto.getDescripcionPerfil() == null || dto.getDescripcionPerfil().trim().isEmpty()) {
+			return ResponseEntity.badRequest().build();
+		}
+
+		perfilservice.actualizarPerfil(id, dto.getDescripcionPerfil(), dto.getActivo());
 		return ResponseEntity.noContent().build();
 	}
 

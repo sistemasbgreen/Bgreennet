@@ -36,6 +36,7 @@ public class OpDoctoRepository {
         d.setTotalPurificacionGlicerina(rs.getDouble("total_purificacion_glicerina"));
         d.setTotalManoObra(rs.getDouble("total_mano_obra"));
         d.setTotalOtrosCostos(rs.getDouble("total_otros_costos"));
+        d.setIdOrden(rs.getString("id_orden"));
         
         return d;
     };
@@ -51,6 +52,7 @@ public class OpDoctoRepository {
 		String sql = """
 				SELECT
 				    'OP - ' + CONVERT(VARCHAR(10), CAST(mov.f470_id_fecha AS DATE), 23) AS OP,
+                    FORMAT(mov.f470_id_fecha, 'yyyyMM') + RIGHT('000' + CAST(DENSE_RANK() OVER (PARTITION BY FORMAT(mov.f470_id_fecha, 'yyyyMM') ORDER BY CAST(mov.f470_id_fecha AS DATE)) AS VARCHAR(10)), 3) AS id_orden,
 				    f120_id AS item,
 				    f120_descripcion,
 				    CAST(mov.f470_id_fecha AS DATE) AS fecha,
@@ -109,8 +111,8 @@ public class OpDoctoRepository {
 				) costos ON costos.f_costo = CAST(mov.f470_id_fecha AS DATE)
 
 				WHERE
-				    CAST(mov.f470_id_fecha AS DATE) >= ?
-				    AND CAST(mov.f470_id_fecha AS DATE) <= ?
+				    mov.f470_id_fecha >= ?
+				    AND mov.f470_id_fecha <= ?
 				    AND f120_id_cia = 2
 				    AND f350_ind_estado = 1
 				    AND f120_id IN ('8','7309','10','13','12','26','34','15','2549','32')
@@ -121,6 +123,7 @@ public class OpDoctoRepository {
 				    f120_id,
 				    f120_descripcion,
 				    CAST(mov.f470_id_fecha AS DATE),
+				    FORMAT(mov.f470_id_fecha, 'yyyyMM'),
 				    costos.total_purificacion_glicerina,
 				    costos.total_mano_obra,
 				    costos.total_otros_costos
@@ -132,8 +135,8 @@ public class OpDoctoRepository {
 				""";
 
 		List<OpDoctoDTO> docs = jdbcTemplate.query(sql, rowMapper,
-			java.sql.Date.valueOf(fechaInicio),
-			java.sql.Date.valueOf(fechaFin));
+			java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay()),
+			java.sql.Timestamp.valueOf(fechaFin.atTime(23, 59, 59)));
 
 		// Cruzar con log de envíos
 		try {

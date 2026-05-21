@@ -1,0 +1,271 @@
+/* =========================================================
+   CONFIGURACIÓN DE SEGURIDAD — Estilo 2:26 con Bgreen
+   ========================================================= */
+
+/* ===== HEADER VERDE BGREEN ===== */
+.card-header-custom {
+  background: linear-gradient(135deg, #1a8f4e 0%, #0a5c2e 100%);
+  padding: 22px 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-header-custom::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 85% 20%, rgba(244,208,63,0.12) 0%, transparent 50%);
+}
+
+.header-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  color: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* ===== SEPARADOR DE SECCIÓN ===== */
+.section-divider {
+  border: none;
+  border-top: 1.5px dashed #d1fae5;
+  margin: 0;
+}
+
+/* ===== TÍTULO DE SECCIÓN ===== */
+.section-block {
+  /* spacing handled inline */
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1a8f4e;
+  margin-bottom: 4px;
+}
+
+.section-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #d1fae5;
+  color: #0a5c2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+/* ===== LABELS Y HINTS ===== */
+.field-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.field-hint {
+  font-size: 0.77rem;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+/* ===== INPUT GROUP PREFIJO ===== */
+.field-prefix {
+  background: #f0faf5;
+  border-color: #c3e6d3;
+  color: #1a8f4e;
+  font-size: 1rem;
+}
+
+.field-select,
+.field-input {
+  border-color: #c3e6d3;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.field-select:focus,
+.field-input:focus {
+  border-color: #1a8f4e;
+  box-shadow: 0 0 0 3px rgba(26, 143, 78, 0.15);
+}
+
+/* ===== PANEL DE TOGGLES ===== */
+.toggle-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.toggle-item:hover {
+  border-color: #c3e6d3;
+  background: #f0faf5;
+  box-shadow: 0 2px 8px rgba(26, 143, 78, 0.08);
+}
+
+.toggle-item-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.icon-purple  { background: #ede9fe; color: #7c3aed; }
+.icon-amber   { background: #fef3c7; color: #d97706; }
+.icon-red     { background: #fee2e2; color: #dc2626; }
+
+.toggle-item-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggle-item-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.toggle-item-sub {
+  font-size: 0.73rem;
+  color: #6b7280;
+}
+
+/* ===== TOGGLE SWITCH ===== */
+.bgreen-toggle {
+  width: 2.8em !important;
+  height: 1.5em !important;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.bgreen-toggle:checked {
+  background-color: #1a8f4e !important;
+  border-color: #1a8f4e !important;
+}
+
+/* ===== BOTÓN GUARDAR ===== */
+.btn-bgreen {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: none;
+  background: linear-gradient(135deg, #1a8f4e 0%, #0a5c2e 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(26, 143, 78, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-bgreen:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(26, 143, 78, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-bgreen:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-outline-secondary {
+  border-radius: 10px !important;
+}
+
+/* ===== TABLA DE IMÁGENES ===== */
+.image-preview {
+  width: 60px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f0faf5;
+}
+
+.table thead th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.form-control-sm:focus {
+  background: #fff !important;
+  box-shadow: 0 0 0 2px rgba(26, 143, 78, 0.1);
+  border-bottom: 1px solid #1a8f4e !important;
+}
+
+/* ===== BOTÓN FORZAR VENCIMIENTO ===== */
+.btn-force-expire {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 2px solid #dc2626;
+  background: transparent;
+  color: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-force-expire:hover:not(:disabled) {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-force-expire:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}

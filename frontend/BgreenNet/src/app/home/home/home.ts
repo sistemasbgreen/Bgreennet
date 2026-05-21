@@ -1,7 +1,6 @@
 import { PrioridadTarea } from './../../models/Tareas/PrioridadTarea';
 import { isPlatformBrowser } from '@angular/common';
 import { Subject, timer } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, Inject, OnInit, OnDestroy, PLATFORM_ID, ViewChild } from '@angular/core';
 import { Router } from "@angular/router";
 import { SistemaInformacion } from '../../models/sistemasinformacion';
@@ -13,10 +12,13 @@ import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { Tarea } from '../../models/Tareas/Tarea';
 import { CreateTareaRequest } from '../../models/Tareas/CreateTareaRequest';
 import { Pulso } from '../../models/Pulsos/pulso';
-import { PulsoService } from '../../servicios/pulsoservices';
-import { UsuarioService } from '../../servicios/usuarioservices';
 import { AuthService } from '../../auth/authservices';
 import Swal from 'sweetalert2';
+import { filter, takeUntil } from 'rxjs/operators';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { PulsoService } from '../../servicios/pulsoservices';
+import { UsuarioService } from '../../servicios/usuarioservices';
+import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../servicios/configuracionSeguridadService';
 
 
 // Registrar componentes de Chart.js
@@ -24,6 +26,7 @@ Chart.register(...registerables);
 
 @Component({
   selector: 'app-home',
+  standalone: true,
   imports: [NgForOf, NgIf, FormsModule, ReactiveFormsModule, CommonModule],
   templateUrl: './home.html',
   styleUrl: './home.css',
@@ -50,6 +53,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   showModal = false;
   darkMode = false;
   isModalHistorialOpen = false; //  Modal de historial
+  isModalDetalleOpen = false;
   isModalCambiarClaveOpen = false;
   claveActual = '';
   nuevaClave = '';
@@ -59,7 +63,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   mostrarClaveActual = false;
   mostrarNuevaClave = false;
   mostrarConfirmarClave = false;
-  isModalDetalleOpen = false;
+  configSeguridad: ConfiguracionSeguridad | null = null;
   tareaSeleccionada: Tarea | null = null;
   mensajeSeguimiento = '';
   seguimientos: any[] = [];
@@ -103,7 +107,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     trmChart: true,
     activity: true,
     quickAccess: true,
-    tasks: true
+    tasks: true,
+    calendar: true
   };
 
   // Reloj
@@ -120,6 +125,23 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   focusTasksMode: boolean = false; // Modo enfoque de tareas
   tasksViewMode: 'cards' | 'list' = 'cards'; // Modo de visualización de tareas
   
+  // Microsoft Outlook Integration (Iframe Mode)
+  loadingCalendar: boolean = false;
+  outlookCalendarUrl: SafeResourceUrl | null = null;
+  selectedCalendarId: string = 'sala-juntas';
+  availableCalendars = [
+    {
+      id: 'sala-juntas',
+      nombre: 'Sala de Juntas',
+      url: 'https://outlook.office365.com/owa/calendar/5728cd5fe07b44d19726a28df3162a80@biocosta.com/d65ef21564ce471bb8e26cce46a043e05795047427341488568/calendar.html'
+    },
+    {
+      id: 'auditorio',
+      nombre: 'Auditorio',
+      url: 'https://outlook.office365.com/owa/calendar/b26a32137554453b9a4945570b20965d@biocosta.com/4c7c5342a3f849b3bed3f023d8c091153965550068646068814/calendar.html'
+    }
+  ];
+
   usuarioAsignadoId: number | null = null; // Para asignar a otros
 
   setTasksViewMode(mode: 'cards' | 'list'): void {
@@ -206,7 +228,9 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private pulsoService: PulsoService,
     private usuarioService: UsuarioService,
-    private authService: AuthService
+    private authService: AuthService,
+    private sanitizer: DomSanitizer,
+    private configuracionSeguridadService: ConfiguracionSeguridadService
   ) { }
 
   ngOnInit(): void {
@@ -217,6 +241,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.startClock();
     this.loadPreferences();
     this.cargarPulsos();
+    this.updateCalendarUrl();
+    this.loadConfiguracionSeguridad();
 
     if (isPlatformBrowser(this.platformId)) {
       this.loadUserDataAndPermisos();
@@ -224,10 +250,21 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       this.startBackgroundSync();
       // Inicializar contexto de audio
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      // Solicitar permiso para notificaciones nativas del navegador
       this.solicitarPermisoNotificaciones();
     }
   }
+
+  loadConfiguracionSeguridad(): void {
+    this.configuracionSeguridadService.getConfiguracion().subscribe({
+      next: (config) => {
+        this.configSeguridad = config;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error al cargar config seguridad:', err)
+    });
+  }
+
+
 
 
   ngAfterViewInit(): void {
@@ -318,14 +355,40 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     const allOn = Object.values(this.dashboardWidgets).every(v => v);
     const newState = !allOn;
     this.dashboardWidgets = {
- stats: newState,
+      stats: newState,
       trmChart: newState,
       activity: newState,
       quickAccess: newState,
-      tasks: newState
+      tasks: newState,
+      calendar: newState
     };
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('dashboardWidgets', JSON.stringify(this.dashboardWidgets));
+    }
+  }
+
+  refrescarCalendario(): void {
+    this.loadingCalendar = true;
+    setTimeout(() => {
+      this.loadingCalendar = false;
+      this.cdr.detectChanges();
+    }, 1000);
+  }
+
+  abrirModalEventoOutlook(): void {
+    window.open('https://outlook.office.com/calendar/0/deeplink/compose', '_blank');
+  }
+
+  cambiarCalendario(id: string): void {
+    this.selectedCalendarId = id;
+    this.updateCalendarUrl();
+    this.refrescarCalendario();
+  }
+
+  private updateCalendarUrl(): void {
+    const calendar = this.availableCalendars.find(c => c.id === this.selectedCalendarId);
+    if (calendar) {
+      this.outlookCalendarUrl = this.sanitizer.bypassSecurityTrustResourceUrl(calendar.url);
     }
   }
 
@@ -618,6 +681,16 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
         // Datos para filtrado de asignación
         this.idAreaUsuario = user.id_area_fk || user.idArea || 0;
         this.idCargoUsuario = user.id_cargo_fk || user.id_cargo || user.idCargo || 0;
+
+        console.log('🏠 [Home] Verificando estado de clave:', {
+          usuario: user.usuario,
+          contrasenaExpirada: user.contrasenaExpirada
+        });
+
+        // Verificar si la contraseña está vencida
+        if (user.contrasenaExpirada === true || user.contrasenaExpirada === 'true') {
+          setTimeout(() => this.abrirModalCambiarClave(), 1000);
+        }
         this.idDireccionUsuario = user.id_direccion_fk || user.idDireccion || 0;
 
         this.obtenerTareas();
@@ -856,17 +929,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
           this.tareas = sortedData;
 
           // DEBUG: Mostrar datos de tareas en consola
-          console.log('📋 Tareas cargadas:', sortedData.length);
-          sortedData.forEach(t => {
-            console.log(`  Tarea #${t.id} "${t.titulo}"`, {
-              idUsuario: t.idUsuario,
-              idUsuarioCreador: t.idUsuarioCreador,
-              'DisplayName(asignado)': this.getUserDisplayName(t.idUsuario),
-              'Initials(asignado)': this.getUserInitials(t.idUsuario),
-              'DisplayName(creador)': this.getUserDisplayName(t.idUsuarioCreador),
-              'Initials(creador)': this.getUserInitials(t.idUsuarioCreador),
-            });
-          });
+        
           
           this.tareasActivas = sortedData.filter(t => {
             const estado = t.estado?.nombre?.toUpperCase() || '';
@@ -923,6 +986,18 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   toggleTasksFocus(): void {
     this.focusTasksMode = !this.focusTasksMode;
   }
+
+  isModalCalendarioHeaderOpen: boolean = false;
+
+  abrirModalCalendarioHeader(): void {
+    this.isModalCalendarioHeaderOpen = true;
+    this.updateCalendarUrl();
+  }
+
+  cerrarModalCalendarioHeader(): void {
+    this.isModalCalendarioHeaderOpen = false;
+  }
+
 
   crearTarea(): void {
     if (!this.nuevaTarea.titulo.trim()) return;
@@ -1011,7 +1086,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
           this.homeservice.getTareaPorId(this.tareaEdit.id).subscribe(t => this.tareaSeleccionada = t);
         }
       },
-      error: err => {
+      error: (err: any) => {
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -1082,7 +1157,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
             this.homeservice.getTareaPorId(idTarea).subscribe(t => this.tareaSeleccionada = t);
           }
         },
-        error: err => {
+        error: (err: any) => {
           console.error(err);
           const msg = err.error?.message || 'Hubo un error al actualizar la tarea.';
           Swal.fire({
@@ -1130,7 +1205,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
               <i class="bi bi-calendar-x"></i> Quitar fecha límite
             </button>
           </div>
-        </div>`,
+        `,
       showCancelButton: true,
       confirmButtonText: '💾 Actualizar',
       cancelButtonText: 'Cerrar',
@@ -1149,7 +1224,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
         const val = (document.getElementById('swal-fecha-limite') as HTMLInputElement)?.value;
         return val || null; // null = quitar fecha
       }
-    }).then(result => {
+    }).then((result: any) => {
       if (result.isConfirmed) {
         const val = result.value; // string 'YYYY-MM-DDTHH:mm' o vacío
         // Enviar sin zona horaria para que Spring LocalDateTime lo acepte
@@ -1173,7 +1248,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
               this.homeservice.getTareaPorId(tarea.id).subscribe(t => this.tareaSeleccionada = t);
             }
           },
-          error: err => {
+          error: (err: any) => {
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -1433,8 +1508,57 @@ cargarPulsos(): void {
 
 
 
+
+
+  get filteredContactos(): any[] {
+    let contactos = [...this.sistemacontactosData];
+    const q = this.contactoSearchQuery?.toLowerCase().trim();
+
+    if (q) {
+      contactos = contactos.filter(c =>
+        c.nombre?.toLowerCase().includes(q) ||
+        c.cargo?.toLowerCase().includes(q) ||
+        c.correo?.toLowerCase().includes(q)
+      );
+    }
+
+    // Ordenar por extensión de menor a mayor
+    return contactos.sort((a, b) => {
+      const extA = parseInt(a.ext) || 0;
+      const extB = parseInt(b.ext) || 0;
+      return extA - extB;
+    });
+  }
+
+  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
+  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
+  get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
+  get tieneCaracterEspecial(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClave); }
+  get tieneLongitud(): boolean  { 
+    const min = this.configSeguridad?.minCaracteres || 8;
+    return this.nuevaClave.length >= min; 
+  }
+  
+  get tieneLetras(): boolean { return /[a-zA-Z]/.test(this.nuevaClave); }
+
+  get passwordValido(): boolean {
+    if (!this.configSeguridad) return false;
+    
+    let valido = true;
+    if (this.configSeguridad.minCaracteres > 0 && !this.tieneLongitud) valido = false;
+    if (this.configSeguridad.requiereLetras && !this.tieneLetras) valido = false;
+    if (this.configSeguridad.requiereNumeros && !this.tieneNumero) valido = false;
+    if (this.configSeguridad.requiereEspeciales && !this.tieneCaracterEspecial) valido = false;
+    
+    return valido;
+  }
+
   get claveConfirmadaValida(): boolean {
     return this.nuevaClave === this.confirmarClave && this.nuevaClave.length > 0;
+  }
+
+  get esDiferenteDeActual(): boolean {
+    return this.nuevaClave !== this.claveActual && this.nuevaClave.length > 0;
   }
 
   abrirModalCambiarClave(): void {
@@ -1448,7 +1572,25 @@ cargarPulsos(): void {
   }
 
   cerrarModalCambiarClave(): void {
+    // Si la clave está vencida, no dejar cerrar
+    const userString = localStorage.getItem('usuario');
+    if (userString) {
+      const user = JSON.parse(userString);
+      if (user.contrasenaExpirada === true || user.contrasenaExpirada === 'true') {
+        Swal.fire({
+          title: 'Acción requerida',
+          text: 'Debe cambiar su clave antes de continuar.',
+          icon: 'warning',
+          confirmButtonColor: '#0a5c2e'
+        });
+        return;
+      }
+    }
     this.isModalCambiarClaveOpen = false;
+    this.resetModal();
+  }
+
+  resetModal(): void {
     this.claveActual = '';
     this.nuevaClave = '';
     this.confirmarClave = '';
@@ -1470,6 +1612,11 @@ cargarPulsos(): void {
       return;
     }
 
+    if (!this.esDiferenteDeActual) {
+      this.errorClave = 'La nueva clave debe ser diferente a la actual.';
+      return;
+    }
+
     const dto = {
       idUsuario: this.id_usuario,
       claveActual: this.claveActual,
@@ -1479,8 +1626,18 @@ cargarPulsos(): void {
     this.usuarioService.cambiarClave(dto).subscribe({
       next: () => {
         this.successClave = 'Clave actualizada exitosamente.';
+        
+        // Actualizar localStorage para permitir navegación
+        const userString = localStorage.getItem('usuario');
+        if (userString) {
+          const user = JSON.parse(userString);
+          user.contrasenaExpirada = false;
+          localStorage.setItem('usuario', JSON.stringify(user));
+        }
+
         setTimeout(() => {
-          this.cerrarModalCambiarClave();
+          this.isModalCambiarClaveOpen = false;
+          this.resetModal();
         }, 2000);
       },
       error: (err) => {
@@ -1488,39 +1645,6 @@ cargarPulsos(): void {
         this.errorClave = err.error?.error || 'Error al intentar cambiar la clave. Verifica tu clave actual.';
       }
     });
-  }
-
-  
-  get filteredContactos(): any[] {
-    let contactos = [...this.sistemacontactosData];
-    const q = this.contactoSearchQuery?.toLowerCase().trim();
-
-    if (q) {
-      contactos = contactos.filter(c =>
-        c.nombre?.toLowerCase().includes(q) ||
-        c.cargo?.toLowerCase().includes(q) ||
-        c.correo?.toLowerCase().includes(q)
-      );
-    }
-
-    // Ordenar por extensión de menor a mayor
-    return contactos.sort((a, b) => {
-      const extA = parseInt(a.ext) || 0;
-      const extB = parseInt(b.ext) || 0;
-      return extA - extB;
-    });
-  }
-
- 
-  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
-  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
-  get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
-  get tieneCaracterEspecial(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClave); }
-  get tieneLongitud(): boolean  { return this.nuevaClave.length >= 8; }
-
-
-  get passwordValido(): boolean {
-    return this.tieneMayuscula && this.tieneMinuscula && this.tieneNumero && this.tieneLongitud && this.tieneCaracterEspecial;
   }
 
   // ========================================
@@ -1568,7 +1692,7 @@ cargarPulsos(): void {
     this.homeservice.getNotificacionesPendientes(this.id_usuario).subscribe({
       next: (tareasNotificar: any[]) => {
         if (tareasNotificar && tareasNotificar.length > 0) {
-          console.log('✨ Recordatorio: Tareas pendientes encontradas:', tareasNotificar);
+    
           this.playNotificationSound();
 
           // Notificación nativa del navegador (funciona aunque la consola no esté abierta)
@@ -1702,7 +1826,7 @@ cargarPulsos(): void {
               showConfirmButton: false,
               timer: 8000,
               timerProgressBar: true,
-              didOpen: (toast) => {
+              didOpen: (toast: any) => {
                 toast.style.cursor = 'pointer';
                 toast.onclick = () => {
                   this.irANotificacion(newNotif);
@@ -1715,7 +1839,7 @@ cargarPulsos(): void {
         
         this.notificaciones = data;
       },
-      error: (err) => console.error('Error al obtener notificaciones', err)
+      error: (err: any) => console.error('Error al obtener notificaciones', err)
     });
   }
 

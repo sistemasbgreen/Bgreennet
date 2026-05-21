@@ -7,6 +7,7 @@ import { Empresa } from '../models/empresa';
 import { TiposIdentificacion } from '../models/tiposIdentificacion';
 import { Cargo } from '../models/cargo';
 import { Area } from '../models/area';
+import { ImagenLogin } from '../models/imagen-login';
 
 
 
@@ -44,6 +45,23 @@ export class ListasService {
 
   getTrmData(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrl);
+  }
+
+  // CRUD Imágenes Login
+  getImagenesLogin(): Observable<ImagenLogin[]> {
+    return this.http.get<ImagenLogin[]>(`${this.baseUrl}/login-images?t=${new Date().getTime()}`);
+  }
+
+  getAllImagenesLogin(): Observable<ImagenLogin[]> {
+    return this.http.get<ImagenLogin[]>(`${this.baseUrl}/login-images/todas`);
+  }
+
+  saveImagenLogin(imagen: ImagenLogin): Observable<ImagenLogin> {
+    return this.http.post<ImagenLogin>(`${this.baseUrl}/login-images`, imagen);
+  }
+
+  deleteImagenLogin(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/login-images/${id}`);
   }
 
 

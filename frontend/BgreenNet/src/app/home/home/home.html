@@ -128,6 +128,12 @@
               <span>Ver Acceso Rápido</span>
             </button>
 
+            <button class="dropdown-item" (click)="toggleWidget('calendar'); $event.stopPropagation()">
+              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.calendar"
+                [class.bi-circle]="!dashboardWidgets.calendar"
+                [style.color]="dashboardWidgets.calendar ? '#0078d4' : ''"></i>
+              <span>Ver Calendario Outlook</span>
+            </button>
             <div class="dropdown-divider"></div>
 
             <button class="dropdown-item" (click)="toggleAllWidgets(); $event.stopPropagation()">
@@ -644,6 +650,42 @@
       </div>
     </section>
 
+    <!-- 📅 Sección de Calendario de Outlook -->
+    <section id="calendar-section" class="activity-section calendar-section-v2" *ngIf="dashboardWidgets.calendar && !focusTasksMode">
+      <div class="section-header">
+        <div class="section-title-with-badge">
+          <h3>📅 Calendario de Eventos</h3>
+          <div class="calendar-selector-wrapper">
+            <i class="bi bi-door-open room-icon"></i>
+            <select class="calendar-selector" [ngModel]="selectedCalendarId" (ngModelChange)="cambiarCalendario($event)">
+              <option *ngFor="let cal of availableCalendars" [value]="cal.id">{{ cal.nombre }}</option>
+            </select>
+            <i class="bi bi-chevron-down chevron-icon"></i>
+          </div>
+        </div>
+        <div class="section-actions">
+          <button class="btn-refresh-calendar" (click)="refrescarCalendario()" title="Sincronizar">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+          <button class="btn-nueva-tarea-compacto" (click)="abrirModalEventoOutlook()" style="background: var(--green-secondary); border-color: var(--green-secondary);">
+            <i class="bi bi-plus-lg"></i>
+            Nuevo Registro
+          </button>
+        </div>
+      </div>
+
+      <div class="calendar-container-placeholder">
+        <div class="calendar-loading" *ngIf="loadingCalendar">
+          <div class="spinner"></div>
+          <p>Sincronizando eventos...</p>
+        </div>
+
+        <div class="calendar-main-view" *ngIf="!loadingCalendar" style="padding: 0; overflow: hidden; height: 600px;">
+          <iframe [src]="outlookCalendarUrl" width="100%" height="100%" frameborder="0" style="border: none;"></iframe>
+        </div>
+      </div>
+    </section>
+
     <section class="activity-sectio-notice tareas-section-" *ngIf="!focusTasksMode">
       <div class="section-header">
         <div class="section-title-with-badge">
@@ -792,7 +834,7 @@
     </div>
 
     <!-- Modal de nueva tarea -->
-    <div class="modal-tarea-overlay" *ngIf="isModalTareaOpen" (click)="cerrarModalTarea()">
+    <div class="modal-tarea-overlay" *ngIf="isModalTareaOpen">
       <div class="modal-tarea-container" (click)="$event.stopPropagation()">
         <div class="modal-tarea-header">
           <h3>
@@ -875,7 +917,7 @@
 
     <!-- Modal de Detalle y Chat -->
     <!-- MODAL EDITAR TAREA -->
-    <div class="modal-tarea-overlay" *ngIf="isModalEditarOpen" (click)="cerrarModalEditar()">
+    <div class="modal-tarea-overlay" *ngIf="isModalEditarOpen">
       <div class="modal-tarea-container" (click)="$event.stopPropagation()">
         <div class="modal-tarea-header">
           <h3>
@@ -1188,7 +1230,7 @@
 </body>
 
 <!-- Modal Cambiar Clave -->
-<div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen" (click)="cerrarModalCambiarClave()">
+<div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen">
   <div class="modal-tarea-container clave-modal-container" (click)="$event.stopPropagation()">
 
     <div class="modal-tarea-header">
@@ -1225,24 +1267,20 @@
         </div>
 
         <!-- Indicadores de requisitos -->
-        <div class="password-requirements" *ngIf="nuevaClave.length > 0">
-          <span [class.req-ok]="tieneMayuscula" [class.req-fail]="!tieneMayuscula">
-            <i class="bi" [class.bi-check-circle-fill]="tieneMayuscula" [class.bi-x-circle-fill]="!tieneMayuscula"></i>
-            Mayúscula
+        <div class="password-requirements" *ngIf="nuevaClave.length > 0 && configSeguridad">
+          <span [class.req-ok]="tieneLetras" [class.req-fail]="!tieneLetras" *ngIf="configSeguridad.requiereLetras">
+            <i class="bi" [class.bi-check-circle-fill]="tieneLetras" [class.bi-x-circle-fill]="!tieneLetras"></i>
+            Debe contener letras
           </span>
-          <span [class.req-ok]="tieneMinuscula" [class.req-fail]="!tieneMinuscula">
-            <i class="bi" [class.bi-check-circle-fill]="tieneMinuscula" [class.bi-x-circle-fill]="!tieneMinuscula"></i>
-            Minúscula
-          </span>
-          <span [class.req-ok]="tieneNumero" [class.req-fail]="!tieneNumero">
+          <span [class.req-ok]="tieneNumero" [class.req-fail]="!tieneNumero" *ngIf="configSeguridad.requiereNumeros">
             <i class="bi" [class.bi-check-circle-fill]="tieneNumero" [class.bi-x-circle-fill]="!tieneNumero"></i>
-            Número
+            Debe contener números
           </span>
-          <span [class.req-ok]="tieneLongitud" [class.req-fail]="!tieneLongitud">
+          <span [class.req-ok]="tieneLongitud" [class.req-fail]="!tieneLongitud" *ngIf="configSeguridad.minCaracteres > 0">
             <i class="bi" [class.bi-check-circle-fill]="tieneLongitud" [class.bi-x-circle-fill]="!tieneLongitud"></i>
-            Mínimo 8 caracteres
+            Mínimo {{ configSeguridad.minCaracteres }} caracteres
           </span>
-          <span [class.req-ok]="tieneCaracterEspecial" [class.req-fail]="!tieneCaracterEspecial">
+          <span [class.req-ok]="tieneCaracterEspecial" [class.req-fail]="!tieneCaracterEspecial" *ngIf="configSeguridad.requiereEspeciales">
             <i class="bi" [class.bi-check-circle-fill]="tieneCaracterEspecial"
               [class.bi-x-circle-fill]="!tieneCaracterEspecial"></i>
             Carácter especial (!@#$...)
@@ -1275,7 +1313,7 @@
     <div class="modal-tarea-footer">
       <button class="btn-cancelar" (click)="cerrarModalCambiarClave()">Cancelar</button>
       <button class="btn-guardar" (click)="guardarClave()"
-        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida">
+        [disabled]="!claveActual || !passwordValido || !claveConfirmadaValida || !esDiferenteDeActual">
         <i class="bi bi-shield-lock"></i>
         Guardar Clave
       </button>
