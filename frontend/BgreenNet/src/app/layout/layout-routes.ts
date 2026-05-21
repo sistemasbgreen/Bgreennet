@@ -53,7 +53,11 @@ export const layoutRoutes: Routes = [
           {
             path: 'metas-cmi',
             loadComponent: () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(c => c.MetasCMI)
-          }
+          },
+          {
+            path: 'maestro-configuracion',
+            loadComponent: () => import('../modulos/configuracion/maestro-configuracion/maestro-configuracion').then(c => c.MaestroConfiguracion)
+          },
         ]
       },
       {

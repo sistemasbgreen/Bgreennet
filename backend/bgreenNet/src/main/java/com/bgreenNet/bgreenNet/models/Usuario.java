@@ -50,6 +50,15 @@ public class Usuario {
     @Column(name = "ultima_conexion")
     private LocalDateTime ultimaConexion;
 
+    @Column(name = "fecha_actualizacion_contrasena")
+    private LocalDateTime fechaActualizacionContrasena;
+
+    @Column(name = "intentos_fallidos")
+    private Integer intentosFallidos = 0;
+
+    @Column(name = "bloqueado")
+    private Boolean bloqueado = false;
+
     // Relaciones
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY) // Carga perezosa
@@ -141,6 +150,30 @@ public class Usuario {
 
 	public void setCargo(Cargo cargo) {
 		this.cargo = cargo;
+	}
+
+	public LocalDateTime getFechaActualizacionContrasena() {
+		return fechaActualizacionContrasena;
+	}
+
+	public void setFechaActualizacionContrasena(LocalDateTime fechaActualizacionContrasena) {
+		this.fechaActualizacionContrasena = fechaActualizacionContrasena;
+	}
+
+	public Integer getIntentosFallidos() {
+		return intentosFallidos;
+	}
+
+	public void setIntentosFallidos(Integer intentosFallidos) {
+		this.intentosFallidos = intentosFallidos;
+	}
+
+	public Boolean getBloqueado() {
+		return bloqueado;
+	}
+
+	public void setBloqueado(Boolean bloqueado) {
+		this.bloqueado = bloqueado;
 	}
     
     

@@ -54,7 +54,7 @@
 }
 
 .header-section h2 i {
-  color: #3b82f6;
+  color: #1a8f4e;
 }
 
 .nombre_perfil {
@@ -63,7 +63,7 @@
 
 /* ===== BOTÓN CREAR ===== */
 .btn-crear {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, #1a8f4e, #0a5c2e);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -74,13 +74,13 @@
   align-items: center;
   gap: 8px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 6px rgba(26, 143, 78, 0.3);
 }
 
 .btn-crear:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #0a5c2e, #073d1e);
   transform: translateY(-2px);
-  box-shadow: 0 6px 8px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 6px 8px rgba(26, 143, 78, 0.4);
 }
 
 /* ===== BÚSQUEDA ===== */
@@ -101,8 +101,8 @@
 }
 
 .search-box:focus-within {
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  border-color: #1a8f4e;
+  box-shadow: 0 0 0 3px rgba(26, 143, 78, 0.12);
 }
 
 .search-box i.bi-search {
@@ -148,8 +148,8 @@
 }
 
 .search-info span {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: #d1fae5;
+  color: #065f46;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-weight: 500;
@@ -216,14 +216,14 @@
 
 .usuario-column {
   font-weight: 600;
-  color: #3b82f6;
+  color: #1a8f4e;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .table-perfil .usuario-column {
-  color: #1d4ed8;
+  color: #0a5c2e;
 }
 
 /* ===== ACCIONES ===== */
@@ -243,6 +243,45 @@
 .estado-activo  { color: #16a34a; }
 .estado-inactivo { color: #dc2626; }
 
+/* ===== BOTONES DE ESTADO (cuadrado) ===== */
+.btn-action.btn-estado-activo {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1.5px solid #86efac;
+  font-size: 14px;
+}
+
+.btn-action.btn-estado-inactivo {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1.5px solid #fecaca;
+  font-size: 14px;
+}
+
+/* ===== BADGE DE BLOQUEO ===== */
+.bloqueo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.bloqueo-badge.bloqueado {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.bloqueo-badge.libre {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
 .btn-action {
   display: inline-flex;
   align-items: center;
@@ -258,23 +297,23 @@
 
 /* Editar */
 .btn-action.btn-editar {
-  background-color: #dbeafe;
-  color: #1d4ed8;
+  background-color: #d1fae5;
+  color: #065f46;
 }
 .btn-action.btn-editar:hover {
-  background-color: #bfdbfe;
+  background-color: #a7f3d0;
   transform: scale(1.1);
 }
 
 /* Ver (ojo) */
 .btn-action.btn-ver {
-  background-color: #f0f9ff;
-  color: #0284c7;
-  border: 1.5px solid #bae6fd;
+  background-color: #ecfdf5;
+  color: #1a8f4e;
+  border: 1.5px solid #6ee7b7;
 }
 .btn-action.btn-ver:hover {
-  background-color: #e0f2fe;
-  border-color: #38bdf8;
+  background-color: #d1fae5;
+  border-color: #34d399;
   transform: scale(1.1);
 }
 
@@ -305,6 +344,30 @@
 .btn-action.btn-clavereset:hover {
   background-color: #ffedd5;
   border-color: #fdba74;
+  transform: scale(1.1);
+}
+
+/* Bloquear cuenta */
+.btn-action.btn-bloquear {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1.5px solid #bbf7d0;
+}
+.btn-action.btn-bloquear:hover {
+  background-color: #dcfce7;
+  border-color: #4ade80;
+  transform: scale(1.1);
+}
+
+/* Desbloquear cuenta (cuenta bloqueada → rojo) */
+.btn-action.btn-desbloquear {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1.5px solid #fecaca;
+}
+.btn-action.btn-desbloquear:hover {
+  background-color: #fee2e2;
+  border-color: #f87171;
   transform: scale(1.1);
 }
 
@@ -345,8 +408,8 @@
 }
 
 .accordion-panel.accordion-open {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #1a8f4e;
+  box-shadow: 0 0 0 3px rgba(26, 143, 78, 0.12);
 }
 
 .accordion-header {
@@ -366,8 +429,8 @@
 }
 
 .accordion-panel.accordion-open .accordion-header {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  color: #1d4ed8;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  color: #065f46;
 }
 
 .accordion-header:hover {
@@ -375,7 +438,7 @@
 }
 
 .accordion-panel.accordion-open .accordion-header:hover {
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
 }
 
 .accordion-title {
@@ -456,8 +519,8 @@
 }
 
 .submodulo-item:hover {
-  background: #f0f8ff;
-  border-color: #007bff;
+  background: #f0faf5;
+  border-color: #1a8f4e;
   transform: translateX(4px);
 }
 
@@ -502,11 +565,11 @@
   transition: all 0.2s;
 }
 
-.checkbox-container:hover input ~ .checkmark { border-color: #007bff; }
+.checkbox-container:hover input ~ .checkmark { border-color: #1a8f4e; }
 
 .checkbox-container input:checked ~ .checkmark {
-  background-color: #007bff;
-  border-color: #007bff;
+  background-color: #1a8f4e;
+  border-color: #1a8f4e;
 }
 
 .checkmark:after {
@@ -573,7 +636,7 @@
   margin: 0;
 }
 
-.modal-header h3 i { color: #3b82f6; }
+.modal-header h3 i { color: #1a8f4e; }
 
 .btn-close {
   background: none;
@@ -653,8 +716,8 @@
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  border-color: #1a8f4e;
+  box-shadow: 0 0 0 3px rgba(26, 143, 78, 0.15);
 }
 
 /* Modo solo lectura */
@@ -861,3 +924,50 @@
 .password-requirements span i {
   font-size: 12px;
 }
+
+/* ===== CHECKBOX VERDE BGREEN (Sistemas Externos) ===== */
+.accordion-body .form-check-input:checked {
+  background-color: #1a8f4e !important;
+  border-color: #1a8f4e !important;
+}
+
+.accordion-body .form-check-input:focus {
+  border-color: #1a8f4e !important;
+  box-shadow: 0 0 0 0.2rem rgba(26, 143, 78, 0.25) !important;
+}
+
+.accordion-body .form-check-input {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+/* ===== ICONOS VERDES (Acordeón + Módulos) ===== */
+
+/* Ícono en el título del acordeón */
+.accordion-title i {
+  color: #1a8f4e;
+}
+
+/* Ícono del chevron */
+.accordion-chevron {
+  color: #1a8f4e;
+}
+
+/* Ícono de módulo */
+.modulo-header i {
+  color: #1a8f4e;
+  font-size: 18px;
+}
+
+/* Ícono de submodulo */
+.submodulo-info i {
+  color: #1a8f4e;
+  font-size: 15px;
+}
+
+/* Ícono search */
+.search-box i.bi-search {
+  color: #1a8f4e;
+}
+
