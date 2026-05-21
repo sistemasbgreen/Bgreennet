@@ -21,6 +21,8 @@ public class LoginResponseDTO {
     private String area_descripcion;
     private String cargo_descripcion;
     private String correo;
+    private boolean contrasenaExpirada;
+
     
     
     public Integer getIdentificacion() {
@@ -133,8 +135,11 @@ public class LoginResponseDTO {
     public void setToken(String token)
     { this.token = token; }  
     
+    public boolean isContrasenaExpirada() {
+        return contrasenaExpirada;
+    }
     
- 
-    
-
+    public void setContrasenaExpirada(boolean contrasenaExpirada) {
+        this.contrasenaExpirada = contrasenaExpirada;
+    }
 }

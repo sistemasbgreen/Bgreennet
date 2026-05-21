@@ -15,7 +15,9 @@ import { CreateTareaRequest } from '../../models/Tareas/CreateTareaRequest';
 import { Pulso } from '../../models/Pulsos/pulso';
 import { PulsoService } from '../../servicios/pulsoservices';
 import { UsuarioService } from '../../servicios/usuarioservices';
+import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../servicios/configuracionSeguridadService';
 import { AuthService } from '../../auth/authservices';
+import { DomSanitizer } from '@angular/platform-browser';
 import Swal from 'sweetalert2';
 
 
@@ -50,6 +52,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   showModal = false;
   darkMode = false;
   isModalHistorialOpen = false; //  Modal de historial
+  isModalDetalleOpen = false;
   isModalCambiarClaveOpen = false;
   claveActual = '';
   nuevaClave = '';
@@ -59,11 +62,11 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   mostrarClaveActual = false;
   mostrarNuevaClave = false;
   mostrarConfirmarClave = false;
-  isModalDetalleOpen = false;
+  configSeguridad: ConfiguracionSeguridad | null = null;
   tareaSeleccionada: Tarea | null = null;
   mensajeSeguimiento = '';
   seguimientos: any[] = [];
-  
+
   // Notificaciones
   isNotificationMenuOpen = false;
   notificaciones: any[] = [];
@@ -74,8 +77,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   sistemacontactosData: any[] = [];
   formatosData: any = [];
 
-    // PULSOS
-      pulsos: Pulso[] = [];
+  // PULSOS
+  pulsos: Pulso[] = [];
   pulsoSeleccionado: Pulso | null = null;
 
   // Favoritos y búsqueda
@@ -99,7 +102,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
 
   // Dashboard personalizable
   dashboardWidgets = {
-     stats: true,
+    stats: true,
     trmChart: true,
     activity: true,
     quickAccess: true,
@@ -119,7 +122,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   tareasFinalizadas: Tarea[] = []; // Solo FINALIZADAS
   focusTasksMode: boolean = false; // Modo enfoque de tareas
   tasksViewMode: 'cards' | 'list' = 'cards'; // Modo de visualización de tareas
-  
+
   usuarioAsignadoId: number | null = null; // Para asignar a otros
 
   setTasksViewMode(mode: 'cards' | 'list'): void {
@@ -188,12 +191,12 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   contactosFiltrados: any;
   usuariosList: any[] = []; // Lista oficial de usuarios para asignación
   areasList: any[] = []; // Lista de áreas para determinar direcciones
-  
+
   // Datos del usuario actual para filtrado
   idAreaUsuario: number = 0;
   idCargoUsuario: number = 0;
   idDireccionUsuario: number = 0;
-  
+
   notificationInterval: any;
 
 
@@ -206,7 +209,9 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private pulsoService: PulsoService,
     private usuarioService: UsuarioService,
-    private authService: AuthService
+    private authService: AuthService,
+    private sanitizer: DomSanitizer,
+    private configuracionSeguridadService: ConfiguracionSeguridadService
   ) { }
 
   ngOnInit(): void {
@@ -218,16 +223,28 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.loadPreferences();
     this.cargarPulsos();
 
+    this.loadConfiguracionSeguridad();
+
     if (isPlatformBrowser(this.platformId)) {
       this.loadUserDataAndPermisos();
       this.iniciarTemporizadorNotificaciones();
       this.startBackgroundSync();
       // Inicializar contexto de audio
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      // Solicitar permiso para notificaciones nativas del navegador
       this.solicitarPermisoNotificaciones();
     }
   }
+
+  loadConfiguracionSeguridad(): void {
+    this.configuracionSeguridadService.getConfiguracion().subscribe({
+      next: (config) => {
+        this.configSeguridad = config;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error al cargar config seguridad:', err)
+    });
+  }
+
 
 
   ngAfterViewInit(): void {
@@ -318,7 +335,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     const allOn = Object.values(this.dashboardWidgets).every(v => v);
     const newState = !allOn;
     this.dashboardWidgets = {
- stats: newState,
+      stats: newState,
       trmChart: newState,
       activity: newState,
       quickAccess: newState,
@@ -363,13 +380,13 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   // ========================================
   get filteredSistemas(): SistemaInformacion[] {
     let sistemas = this.sistemaInformacionData;
-    
+
     if (this.searchQuery) {
       sistemas = sistemas.filter(s =>
         s.nombre.toLowerCase().includes(this.searchQuery.toLowerCase())
       );
     }
-    
+
     return sistemas;
   }
 
@@ -614,10 +631,20 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
         this.userEmail = user.email || user.correo || 'No disponible';
         this.userRole = user.rol || user.perfil || user.descripcionPerfil || 'Usuario';
         this.perfil_Fk = user.idPerfilFk || user.Id_perfil_fk || user.id_perfil_fk;
-        
+
         // Datos para filtrado de asignación
         this.idAreaUsuario = user.id_area_fk || user.idArea || 0;
         this.idCargoUsuario = user.id_cargo_fk || user.id_cargo || user.idCargo || 0;
+
+        console.log('🏠 [Home] Verificando estado de clave:', {
+          usuario: user.usuario,
+          contrasenaExpirada: user.contrasenaExpirada
+        });
+
+        // Verificar si la contraseña está vencida
+        if (user.contrasenaExpirada === true || user.contrasenaExpirada === 'true') {
+          setTimeout(() => this.abrirModalCambiarClave(), 1000);
+        }
         this.idDireccionUsuario = user.id_direccion_fk || user.idDireccion || 0;
 
         this.obtenerTareas();
@@ -696,10 +723,10 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     return this.usuariosList.filter(u => {
       // Normalizar IDs para comparación (soportando variaciones de nombres de campos del backend)
       const uArea = Number(u.id_area_fk || u.Id_area_fk || u.idArea || 0);
-      
+
       // Intentar obtener dirección directamente o por búsqueda en la lista de áreas
       let uDireccion = Number(u.id_direccion_fk || u.Id_direccion_fk || u.idDireccion || 0);
-      
+
       if (!uDireccion && uArea && this.areasList.length > 0) {
         const areaInfo = this.areasList.find(a => Number(a.idArea || a.id_area) === uArea);
         if (areaInfo) {
@@ -848,31 +875,21 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
             const pA = prioridadOrden[a.prioridad?.nombre?.toUpperCase()] ?? 1;
             const pB = prioridadOrden[b.prioridad?.nombre?.toUpperCase()] ?? 1;
             if (pA !== pB) return pA - pB;
-            
+
             // 3. Fecha de creación
             return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
           });
-          
+
           this.tareas = sortedData;
 
           // DEBUG: Mostrar datos de tareas en consola
-          console.log('📋 Tareas cargadas:', sortedData.length);
-          sortedData.forEach(t => {
-            console.log(`  Tarea #${t.id} "${t.titulo}"`, {
-              idUsuario: t.idUsuario,
-              idUsuarioCreador: t.idUsuarioCreador,
-              'DisplayName(asignado)': this.getUserDisplayName(t.idUsuario),
-              'Initials(asignado)': this.getUserInitials(t.idUsuario),
-              'DisplayName(creador)': this.getUserDisplayName(t.idUsuarioCreador),
-              'Initials(creador)': this.getUserInitials(t.idUsuarioCreador),
-            });
-          });
-          
+
+
           this.tareasActivas = sortedData.filter(t => {
             const estado = t.estado?.nombre?.toUpperCase() || '';
             return ['CREADA', 'INICIADA', 'EN PROCESO', 'PENDIENTE'].includes(estado);
           });
-          
+
           this.tareasFinalizadas = data.filter(t => {
             const estado = t.estado?.nombre?.toUpperCase() || '';
             return ['FINALIZADA', 'COMPLETADA', 'CANCELADA'].includes(estado);
@@ -899,7 +916,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   get tareasHoy(): number {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    
+
     return this.tareasActivas.filter(t => {
       const fechaTarea = new Date(t.fechaCreacion);
       fechaTarea.setHours(0, 0, 0, 0);
@@ -934,8 +951,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
 
     const payload: CreateTareaRequest = {
       ...this.nuevaTarea,
-      fechaLimite: this.nuevaTarea.fechaLimite ? 
-        (this.nuevaTarea.fechaLimite.length === 16 ? this.nuevaTarea.fechaLimite + ':00' : this.nuevaTarea.fechaLimite) 
+      fechaLimite: this.nuevaTarea.fechaLimite ?
+        (this.nuevaTarea.fechaLimite.length === 16 ? this.nuevaTarea.fechaLimite + ':00' : this.nuevaTarea.fechaLimite)
         : undefined
     };
 
@@ -964,18 +981,18 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
 
   abrirModalEditar(tarea: Tarea): void {
     if (tarea.idUsuarioCreador !== this.id_usuario) return;
-    
+
     // Clonar para no editar directamente en la lista
     this.tareaEdit = { ...tarea };
     this.tareaEdit.idPrioridad = tarea.prioridad?.id || 2;
-    
+
     // Formatear fecha para input datetime-local
     if (tarea.fechaLimite) {
       this.tareaEdit.fechaLimite = new Date(tarea.fechaLimite).toISOString().slice(0, 16);
     } else {
       this.tareaEdit.fechaLimite = '';
     }
-    
+
     this.isModalEditarOpen = true;
   }
 
@@ -1201,7 +1218,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   // Verificar si la tarea está vencida (fecha limite pasada y no terminada)
   esTareaVencida(tarea: Tarea): boolean {
     if (!tarea.fechaLimite) return false;
-    
+
     const idEstado = tarea.estado?.id;
     // No marcar como vencida si ya está FINALIZADA (3) o CANCELADA (4)
     if (idEstado === 3 || idEstado === 4) return false;
@@ -1225,7 +1242,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     const ahora = new Date();
     const fechaTarea = new Date(fecha);
     const diff = ahora.getTime() - fechaTarea.getTime();
-    
+
     const minutos = Math.floor(diff / 60000);
     const horas = Math.floor(diff / 3600000);
     const dias = Math.floor(diff / 86400000);
@@ -1256,7 +1273,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.tareaSeleccionada = tarea;
     this.isModalDetalleOpen = true;
     this.cargarSeguimientos(tarea.id, true);
-    
+
     if (resaltar) {
       // Scroll a la tarjeta en la lista antes de abrir el detalle
       setTimeout(() => {
@@ -1306,12 +1323,12 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     if (id === undefined || id === null) return 'U';
     const user = this.getUserById(id);
     if (!user) return 'U';
-    
+
     // Si tiene nombre y apellido
     if (user.nombre && user.apellido) {
       return (user.nombre.charAt(0) + user.apellido.charAt(0)).toUpperCase();
     }
-    
+
     // Si solo tiene nombre o usuario
     const name = user.nombre || user.usuario || 'U';
     const parts = name.trim().split(/\s+/);
@@ -1346,7 +1363,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
         const hadNewMessages = this.seguimientos.length < data.length;
         this.seguimientos = data;
         this.cdr.detectChanges();
-        
+
         if (forceScroll || hadNewMessages) {
           this.scrollToBottom();
         }
@@ -1361,7 +1378,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         this.fetchNotificaciones();
-        
+
         // Solo refrescar tareas si no estamos enfocados en crear una o algo similar
         // Pero para simplificar, refrescamos siempre ya que Angular es eficiente
         if (this.id_usuario) {
@@ -1410,7 +1427,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['app/perfil']);
   }
 
-cargarPulsos(): void {
+  cargarPulsos(): void {
     this.pulsoService.getActivePulsos().subscribe({
       next: (pulsos) => {
         this.pulsos = pulsos;
@@ -1433,8 +1450,57 @@ cargarPulsos(): void {
 
 
 
+
+
+  get filteredContactos(): any[] {
+    let contactos = [...this.sistemacontactosData];
+    const q = this.contactoSearchQuery?.toLowerCase().trim();
+
+    if (q) {
+      contactos = contactos.filter(c =>
+        c.nombre?.toLowerCase().includes(q) ||
+        c.cargo?.toLowerCase().includes(q) ||
+        c.correo?.toLowerCase().includes(q)
+      );
+    }
+
+    // Ordenar por extensión de menor a mayor
+    return contactos.sort((a, b) => {
+      const extA = parseInt(a.ext) || 0;
+      const extB = parseInt(b.ext) || 0;
+      return extA - extB;
+    });
+  }
+
+  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
+  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
+  get tieneNumero(): boolean { return /[0-9]/.test(this.nuevaClave); }
+  get tieneCaracterEspecial(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClave); }
+  get tieneLongitud(): boolean {
+    const min = this.configSeguridad?.minCaracteres || 8;
+    return this.nuevaClave.length >= min;
+  }
+
+  get tieneLetras(): boolean { return /[a-zA-Z]/.test(this.nuevaClave); }
+
+  get passwordValido(): boolean {
+    if (!this.configSeguridad) return false;
+
+    let valido = true;
+    if (this.configSeguridad.minCaracteres > 0 && !this.tieneLongitud) valido = false;
+    if (this.configSeguridad.requiereLetras && !this.tieneLetras) valido = false;
+    if (this.configSeguridad.requiereNumeros && !this.tieneNumero) valido = false;
+    if (this.configSeguridad.requiereEspeciales && !this.tieneCaracterEspecial) valido = false;
+
+    return valido;
+  }
+
   get claveConfirmadaValida(): boolean {
     return this.nuevaClave === this.confirmarClave && this.nuevaClave.length > 0;
+  }
+
+  get esDiferenteDeActual(): boolean {
+    return this.nuevaClave !== this.claveActual && this.nuevaClave.length > 0;
   }
 
   abrirModalCambiarClave(): void {
@@ -1448,7 +1514,25 @@ cargarPulsos(): void {
   }
 
   cerrarModalCambiarClave(): void {
+    // Si la clave está vencida, no dejar cerrar
+    const userString = localStorage.getItem('usuario');
+    if (userString) {
+      const user = JSON.parse(userString);
+      if (user.contrasenaExpirada === true || user.contrasenaExpirada === 'true') {
+        Swal.fire({
+          title: 'Acción requerida',
+          text: 'Debe cambiar su clave antes de continuar.',
+          icon: 'warning',
+          confirmButtonColor: '#0a5c2e'
+        });
+        return;
+      }
+    }
     this.isModalCambiarClaveOpen = false;
+    this.resetModal();
+  }
+
+  resetModal(): void {
     this.claveActual = '';
     this.nuevaClave = '';
     this.confirmarClave = '';
@@ -1470,6 +1554,11 @@ cargarPulsos(): void {
       return;
     }
 
+    if (!this.esDiferenteDeActual) {
+      this.errorClave = 'La nueva clave debe ser diferente a la actual.';
+      return;
+    }
+
     const dto = {
       idUsuario: this.id_usuario,
       claveActual: this.claveActual,
@@ -1479,8 +1568,18 @@ cargarPulsos(): void {
     this.usuarioService.cambiarClave(dto).subscribe({
       next: () => {
         this.successClave = 'Clave actualizada exitosamente.';
+
+        // Actualizar localStorage para permitir navegación
+        const userString = localStorage.getItem('usuario');
+        if (userString) {
+          const user = JSON.parse(userString);
+          user.contrasenaExpirada = false;
+          localStorage.setItem('usuario', JSON.stringify(user));
+        }
+
         setTimeout(() => {
-          this.cerrarModalCambiarClave();
+          this.isModalCambiarClaveOpen = false;
+          this.resetModal();
         }, 2000);
       },
       error: (err) => {
@@ -1488,39 +1587,6 @@ cargarPulsos(): void {
         this.errorClave = err.error?.error || 'Error al intentar cambiar la clave. Verifica tu clave actual.';
       }
     });
-  }
-
-  
-  get filteredContactos(): any[] {
-    let contactos = [...this.sistemacontactosData];
-    const q = this.contactoSearchQuery?.toLowerCase().trim();
-
-    if (q) {
-      contactos = contactos.filter(c =>
-        c.nombre?.toLowerCase().includes(q) ||
-        c.cargo?.toLowerCase().includes(q) ||
-        c.correo?.toLowerCase().includes(q)
-      );
-    }
-
-    // Ordenar por extensión de menor a mayor
-    return contactos.sort((a, b) => {
-      const extA = parseInt(a.ext) || 0;
-      const extB = parseInt(b.ext) || 0;
-      return extA - extB;
-    });
-  }
-
- 
-  get tieneMayuscula(): boolean { return /[A-Z]/.test(this.nuevaClave); }
-  get tieneMinuscula(): boolean { return /[a-z]/.test(this.nuevaClave); }
-  get tieneNumero(): boolean    { return /[0-9]/.test(this.nuevaClave); }
-  get tieneCaracterEspecial(): boolean { return /[!@#$%^&*(),.?":{}|<>]/.test(this.nuevaClave); }
-  get tieneLongitud(): boolean  { return this.nuevaClave.length >= 8; }
-
-
-  get passwordValido(): boolean {
-    return this.tieneMayuscula && this.tieneMinuscula && this.tieneNumero && this.tieneLongitud && this.tieneCaracterEspecial;
   }
 
   // ========================================
@@ -1568,7 +1634,7 @@ cargarPulsos(): void {
     this.homeservice.getNotificacionesPendientes(this.id_usuario).subscribe({
       next: (tareasNotificar: any[]) => {
         if (tareasNotificar && tareasNotificar.length > 0) {
-          console.log('✨ Recordatorio: Tareas pendientes encontradas:', tareasNotificar);
+
           this.playNotificationSound();
 
           // Notificación nativa del navegador (funciona aunque la consola no esté abierta)
@@ -1648,11 +1714,11 @@ cargarPulsos(): void {
 
       if (this.audioCtx.state === 'suspended') {
         // Intentar resume; si falla (sin interacción), la notificación nativa ya fue enviada
-        this.audioCtx.resume().then(() => emitirSonido()).catch(() => {});
+        this.audioCtx.resume().then(() => emitirSonido()).catch(() => { });
       } else {
         emitirSonido();
       }
-    } catch(e) {
+    } catch (e) {
       console.warn('❌ Error al reproducir sonido:', e);
     }
   }
@@ -1675,12 +1741,12 @@ cargarPulsos(): void {
       next: (data: any) => {
         // Log para depuración
         // console.log('🔄 Sincronizando notificaciones. Total:', data.length);
-        
+
         // Detectar si hay notificaciones nuevas para emitir sonido y aviso
         if (this.notificaciones.length > 0) {
           const oldIds = new Set(this.notificaciones.map(n => n.id.toString()));
           const newNotif = data.find((n: any) => !oldIds.has(n.id.toString()));
-          
+
           if (newNotif) {
             console.log('🔍 ¡DETECTADA NUEVA NOTIFICACIÓN!', newNotif);
             this.playNotificationSound();
@@ -1691,7 +1757,7 @@ cargarPulsos(): void {
               newNotif.mensaje,
               () => this.irANotificacion(newNotif)
             );
-            
+
             // Mostrar aviso visual clickeable
             Swal.fire({
               title: newNotif.tipo === 'NUEVO_MENSAJE' ? 'Nuevo mensaje' : 'Notificación',
@@ -1712,7 +1778,7 @@ cargarPulsos(): void {
             });
           }
         }
-        
+
         this.notificaciones = data;
       },
       error: (err) => console.error('Error al obtener notificaciones', err)
@@ -1729,7 +1795,7 @@ cargarPulsos(): void {
   }
 
   marcarTodasComoLeidas(): void {
-    const promises = this.notificaciones.map(n => 
+    const promises = this.notificaciones.map(n =>
       this.homeservice.put(`api/tareas/notificaciones/${n.id}/leido`, {}).toPromise()
     );
     Promise.all(promises).then(() => {
@@ -1739,11 +1805,11 @@ cargarPulsos(): void {
 
   irANotificacion(notif: any): void {
 
-    
+
     // Marcar como leída
     this.leida(notif);
     this.isNotificationMenuOpen = false;
-    
+
     // Si la notificación tiene una referenciaId (que debería ser el ID de la tarea)
     if (notif.referenciaId) {
       this.homeservice.getTareaPorId(notif.referenciaId).subscribe({

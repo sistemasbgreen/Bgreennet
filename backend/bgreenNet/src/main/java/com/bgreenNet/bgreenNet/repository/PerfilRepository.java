@@ -17,6 +17,13 @@ public interface PerfilRepository  extends JpaRepository <Perfil , Integer> {
 	        String descripcionPerfil,
 	        Boolean activo
 	    );
+
+	  @Procedure(procedureName = "sp_ActualizarPerfil")
+	    void spActualizarPerfil(
+	        @Param("id_perfil") Integer idPerfil,
+	        @Param("descripcionPerfil") String descripcionPerfil,
+	        @Param("activo") Boolean activo
+	    );
 	  
 
 	  @Modifying
