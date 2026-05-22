@@ -86,7 +86,11 @@ public class UsuarioServices {
             dto.setId_cargo_fk(rs.getInt("Id_cargo_fk"));                       
             dto.setId_tipoidentificacion_fk(rs.getInt("Id_tipoidentificacion_fk"));
             dto.setId_detalle_usuario(rs.getInt("Id_detalle_usuario"));
-           
+            try {
+                dto.setBloqueado(rs.getBoolean("bloqueado"));
+            } catch (Exception e) {
+                dto.setBloqueado(false); // campo puede no existir en queries antiguas
+            }
 
             return dto;
         });
@@ -149,18 +153,31 @@ public class UsuarioServices {
             throw new RuntimeException("La clave actual es incorrectA");
         }
 
-        String sqlUpdate = "UPDATE Usuario SET contrasena = ? WHERE id_usuario = ?";
+        String sqlUpdate = "UPDATE Usuario SET contrasena = ?, fecha_actualizacion_contrasena = GETDATE() WHERE id_usuario = ?";
         jdbcTemplate.update(sqlUpdate, passwordEncoder.encode(dto.getNuevaClave()), dto.getIdUsuario());
     }
 
     @Transactional
     public void cambiarClaveAdmin(CambiarClaveDTO dto) {
-        String sqlUpdate = "UPDATE Usuario SET contrasena = ? WHERE id_usuario = ?";
+        String sqlUpdate = "UPDATE Usuario SET contrasena = ?, fecha_actualizacion_contrasena = GETDATE() WHERE id_usuario = ?";
         int updated = jdbcTemplate.update(sqlUpdate, passwordEncoder.encode(dto.getNuevaClave()), dto.getIdUsuario());
         
         if (updated == 0) {
             throw new RuntimeException("No se encontró el usuario para actualizar la clave");
         }
+    }
+
+    @Transactional
+    public void toggleBloqueo(Integer idUsuario, boolean bloqueado) {
+        String sql = "UPDATE Usuario SET bloqueado = ?, intentos_fallidos = ? WHERE id_usuario = ?";
+        int intentos = bloqueado ? 0 : 0; // Resetear intentos al desbloquear
+        jdbcTemplate.update(sql, bloqueado, intentos, idUsuario);
+    }
+
+    @Transactional
+    public void forzarVencimientoTodos() {
+        String sql = "UPDATE Usuario SET fecha_actualizacion_contrasena = '2000-01-01' WHERE activo = 1";
+        jdbcTemplate.update(sql);
     }
 
     // RowMapper_Actualizado

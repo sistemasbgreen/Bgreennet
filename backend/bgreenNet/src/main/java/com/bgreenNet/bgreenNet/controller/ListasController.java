@@ -12,9 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.bgreenNet.bgreenNet.models.Area;
 import com.bgreenNet.bgreenNet.models.Cargo;
 import com.bgreenNet.bgreenNet.models.Empresa;
+import com.bgreenNet.bgreenNet.models.ImagenLogin;
 import com.bgreenNet.bgreenNet.models.Perfil;
 import com.bgreenNet.bgreenNet.models.TipoIdentificacion;
 import com.bgreenNet.bgreenNet.services.ListasServices;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping({"/api/listas", "/listas"})
@@ -47,6 +52,28 @@ public class ListasController {
 	    @GetMapping("/identificacion")
 	    public ResponseEntity<List<TipoIdentificacion>> obtenerIdentificacion() {
 	        return ResponseEntity.ok(listasServices.obtenerIdentificacion());
+	    }
+
+	    // Endpoints Imágenes Login
+	    @GetMapping("/login-images")
+	    public ResponseEntity<List<ImagenLogin>> obtenerImagenesLogin() {
+	        return ResponseEntity.ok(listasServices.obtenerImagenesLogin());
+	    }
+
+	    @GetMapping("/login-images/todas")
+	    public ResponseEntity<List<ImagenLogin>> obtenerTodasLasImagenesLogin() {
+	        return ResponseEntity.ok(listasServices.obtenerTodasLasImagenesLogin());
+	    }
+
+	    @PostMapping("/login-images")
+	    public ResponseEntity<ImagenLogin> guardarImagenLogin(@RequestBody ImagenLogin imagen) {
+	        return ResponseEntity.ok(listasServices.guardarImagenLogin(imagen));
+	    }
+
+	    @DeleteMapping("/login-images/{id}")
+	    public ResponseEntity<Void> eliminarImagenLogin(@PathVariable Long id) {
+	        listasServices.eliminarImagenLogin(id);
+	        return ResponseEntity.noContent().build();
 	    }
 	    
 }

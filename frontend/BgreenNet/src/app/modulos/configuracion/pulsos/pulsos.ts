@@ -325,6 +325,15 @@ export class Pulsos implements OnInit {
   }
 
   async onSubmit(): Promise<void> {
+    console.log('=== SUBMIT FORMULARIO PULSOS ===');
+    console.log('Valores del formulario:', this.pulsoForm.value);
+    console.log('¿Formulario Válido?:', this.pulsoForm.valid);
+    console.log('Archivo de imagen seleccionado:', this.selectedFile ? {
+      nombre: this.selectedFile.name,
+      tipo: this.selectedFile.type,
+      tamano: this.selectedFile.size
+    } : 'Ninguno');
+
     if (this.pulsoForm.invalid) {
       this.pulsoForm.markAllAsTouched();
       Swal.fire('Error', 'Por favor completa todos los campos requeridos', 'error');
