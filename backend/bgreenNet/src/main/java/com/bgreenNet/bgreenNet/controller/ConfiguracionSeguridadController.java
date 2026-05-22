@@ -7,7 +7,7 @@ import com.bgreenNet.bgreenNet.models.ConfiguracionSeguridad;
 import com.bgreenNet.bgreenNet.services.ConfiguracionSeguridadService;
 
 @RestController
-@RequestMapping("/api/configuracion-seguridad")
+@RequestMapping({"/api/configuracion-seguridad", "/configuracion-seguridad"})
 public class ConfiguracionSeguridadController {
 
     @Autowired
