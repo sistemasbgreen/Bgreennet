@@ -375,7 +375,11 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
 
   refrescarCalendario(): void {
     this.loadingCalendar = true;
+    // Clear the URL to force the iframe to unload
+    this.outlookCalendarUrl = null;
+    
     setTimeout(() => {
+      this.updateCalendarUrl(); // Restore the URL to trigger a reload
       this.loadingCalendar = false;
       this.cdr.detectChanges();
     }, 1000);
@@ -993,8 +997,6 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   toggleTasksFocus(): void {
     this.focusTasksMode = !this.focusTasksMode;
   }
-
-  isModalCalendarioHeaderOpen: boolean = false;
 
   abrirModalCalendarioHeader(): void {
     this.isModalCalendarioHeaderOpen = true;
