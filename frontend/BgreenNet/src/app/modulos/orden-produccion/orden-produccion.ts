@@ -15,7 +15,9 @@ interface OpGrupo {
   status: string;
   items: OpDocto[];
   itemsBiodiesel: OpDocto[];
+  productoBiodiesel: OpDocto | null;
   itemsGlicerina: OpDocto[];
+  productoGlicerina: OpDocto | null;
 }
 
 @Component({
@@ -178,8 +180,38 @@ export class OrdenProduccion implements OnInit, OnDestroy {
     });
 
     this.opGrupos = Array.from(map.entries()).map(([op, items]) => {
-      const itemsBiodiesel = items.filter(i => this.IDS_BIODIESEL.has(i.item.trim()));
-      const itemsGlicerina = items.filter(i => this.IDS_GLICERINA.has(i.item.trim()));
+      let itemsBiodiesel = items.filter(i => this.IDS_BIODIESEL.has(i.item.trim()));
+      let itemsGlicerina = items.filter(i => this.IDS_GLICERINA.has(i.item.trim()));
+      
+      const isProductoBio = (d: string) => d.toLowerCase().includes('biodi') || d.toLowerCase().includes('destilado');
+      const productoBiodiesel = itemsBiodiesel.find(i => isProductoBio(i.descripcion)) || null;
+      itemsBiodiesel = itemsBiodiesel.filter(i => !isProductoBio(i.descripcion));
+
+      const isProductoGli = (d: string) => d.toLowerCase().includes('cruda');
+      const productoGlicerina = itemsGlicerina.find(i => isProductoGli(i.descripcion)) || null;
+      itemsGlicerina = itemsGlicerina.filter(i => !isProductoGli(i.descripcion));
+
+      const biodieselOrder = ['aceite', 'estearina', 'metanol', 'metilato', 'fosforico'];
+      itemsBiodiesel.sort((a, b) => {
+        const aDesc = a.descripcion.toLowerCase();
+        const bDesc = b.descripcion.toLowerCase();
+        let aIdx = biodieselOrder.findIndex(k => aDesc.includes(k));
+        let bIdx = biodieselOrder.findIndex(k => bDesc.includes(k));
+        if (aIdx === -1) aIdx = 999;
+        if (bIdx === -1) bIdx = 999;
+        return aIdx - bIdx;
+      });
+
+      const glicerinaOrder = ['impura', 'clorhidrico', 'soda'];
+      itemsGlicerina.sort((a, b) => {
+        const aDesc = a.descripcion.toLowerCase();
+        const bDesc = b.descripcion.toLowerCase();
+        let aIdx = glicerinaOrder.findIndex(k => aDesc.includes(k));
+        let bIdx = glicerinaOrder.findIndex(k => bDesc.includes(k));
+        if (aIdx === -1) aIdx = 999;
+        if (bIdx === -1) bIdx = 999;
+        return aIdx - bIdx;
+      });
       
       return {
         op,
@@ -188,7 +220,9 @@ export class OrdenProduccion implements OnInit, OnDestroy {
         status: items[0]?.statusEnvio || 'Pendiente',
         items,
         itemsBiodiesel,
-        itemsGlicerina
+        productoBiodiesel,
+        itemsGlicerina,
+        productoGlicerina
       };
     }).sort((a, b) => b.op.localeCompare(a.op));
   }
@@ -248,6 +282,10 @@ export class OrdenProduccion implements OnInit, OnDestroy {
 
   enviarCorreo(g: OpGrupo) {
     if (this.enviandoId) return;
+    if (g.status === 'Enviado') {
+      alert('Este reporte ya fue enviado.');
+      return;
+    }
     
     this.enviandoId = g.op;
     this.svc.enviarReporte(g.fecha || '').subscribe({

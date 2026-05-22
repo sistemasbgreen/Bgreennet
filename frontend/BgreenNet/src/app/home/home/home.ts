@@ -398,14 +398,6 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  abrirModalCalendarioHeader(): void {
-    this.isModalCalendarioHeaderOpen = true;
-    this.updateCalendarUrl();
-  }
-
-  cerrarModalCalendarioHeader(): void {
-    this.isModalCalendarioHeaderOpen = false;
-  }
 
   // ========================================
   //  FAVORITOS MEJORADOS - Ordenados primero
@@ -1012,8 +1004,6 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   cerrarModalCalendarioHeader(): void {
     this.isModalCalendarioHeaderOpen = false;
   }
-
-
   crearTarea(): void {
     if (!this.nuevaTarea.titulo.trim()) return;
 

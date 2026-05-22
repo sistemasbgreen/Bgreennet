@@ -152,7 +152,7 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                     PDF
                   </button>
-                  <button class="btn-action primary" (click)="enviarCorreo(g)" [disabled]="enviandoId === g.op" title="Enviar correo">
+                  <button class="btn-action primary" (click)="enviarCorreo(g)" [disabled]="enviandoId === g.op || g.status === 'Enviado'" title="Enviar correo">
                     <span class="mini-loader" *ngIf="enviandoId === g.op"></span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" *ngIf="enviandoId !== g.op"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                     {{ enviandoId === g.op ? 'Enviando...' : 'Enviar' }}
@@ -202,7 +202,7 @@
       <div id="reporte-contenido" *ngIf="grupoSeleccionado">
 
         <!-- Biodiesel -->
-        <div class="report-section" *ngIf="grupoSeleccionado.itemsBiodiesel.length > 0">
+        <div class="report-section" *ngIf="grupoSeleccionado.itemsBiodiesel.length > 0 || grupoSeleccionado.productoBiodiesel">
           <div class="report-section-hdr biodiesel">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path></svg>
             Biodiesel Destilado
@@ -216,18 +216,22 @@
               </tr>
               <tr class="cost-row">
                 <td>Otros costos y gastos</td>
-                <td class="col-right report-cost">$ {{ (grupoSeleccionado.items[0]?.totalOtrosCostos || 0) | number:'1.0-2' }}</td>
+                <td class="col-right report-cost">$ {{ (grupoSeleccionado.items[0]?.totalOtrosCostos || 0) | number:'1.0-0' }}</td>
               </tr>
               <tr class="cost-row">
                 <td>Mano de obra</td>
-                <td class="col-right report-cost">$ {{ (grupoSeleccionado.items[0]?.totalManoObra || 0) | number:'1.0-2' }}</td>
+                <td class="col-right report-cost">$ {{ (grupoSeleccionado.items[0]?.totalManoObra || 0) | number:'1.0-0' }}</td>
+              </tr>
+              <tr class="product-row" *ngIf="grupoSeleccionado.productoBiodiesel">
+                <td><strong>{{ grupoSeleccionado.productoBiodiesel.descripcion }}</strong></td>
+                <td class="col-right report-num"><strong>{{ grupoSeleccionado.productoBiodiesel.cantidadConsumida | number:'1.0-3' }} <span class="unit">kg</span></strong></td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <!-- Glicerina -->
-        <div class="report-section" *ngIf="grupoSeleccionado.itemsGlicerina.length > 0">
+        <div class="report-section" *ngIf="grupoSeleccionado.itemsGlicerina.length > 0 || grupoSeleccionado.productoGlicerina">
           <div class="report-section-hdr glicerina">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>
             Glicerina Cruda
@@ -240,8 +244,12 @@
                 <td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} <span class="unit">kg</span></td>
               </tr>
               <tr class="cost-row" *ngIf="grupoSeleccionado.items[0]?.totalPurificacionGlicerina">
-                <td>Purificación Glicerina</td>
-                <td class="col-right report-cost">$ {{ grupoSeleccionado.items[0].totalPurificacionGlicerina | number:'1.0-2' }}</td>
+                <td>Otros costos y gastos</td>
+                <td class="col-right report-cost">$ {{ grupoSeleccionado.items[0].totalPurificacionGlicerina | number:'1.0-0' }}</td>
+              </tr>
+              <tr class="product-row" *ngIf="grupoSeleccionado.productoGlicerina">
+                <td><strong>{{ grupoSeleccionado.productoGlicerina.descripcion }}</strong></td>
+                <td class="col-right report-num"><strong>{{ grupoSeleccionado.productoGlicerina.cantidadConsumida | number:'1.0-3' }} <span class="unit">kg</span></strong></td>
               </tr>
             </tbody>
           </table>
@@ -291,24 +299,26 @@
         <div style="font-size:12px;color:#6c757d;">🆔 <b>{{ grupoPDF.idOrden }}</b> · 📅 {{ grupoPDF.fecha | date:'dd/MM/yyyy' }}</div>
       </div>
     </div>
-    <div class="report-section" *ngIf="grupoPDF.itemsBiodiesel.length > 0">
+    <div class="report-section" *ngIf="grupoPDF.itemsBiodiesel.length > 0 || grupoPDF.productoBiodiesel">
       <div class="report-section-hdr biodiesel">Biodiesel Destilado</div>
       <table class="report-table">
         <thead><tr><th>Materia Prima / Insumo</th><th class="col-right">Cantidad</th></tr></thead>
         <tbody>
           <tr *ngFor="let item of grupoPDF.itemsBiodiesel"><td>{{ item.descripcion }}</td><td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} kg</td></tr>
-          <tr class="cost-row"><td>Otros costos y gastos</td><td class="col-right report-cost">$ {{ (grupoPDF.items[0]?.totalOtrosCostos || 0) | number:'1.0-2' }}</td></tr>
-          <tr class="cost-row"><td>Mano de obra</td><td class="col-right report-cost">$ {{ (grupoPDF.items[0]?.totalManoObra || 0) | number:'1.0-2' }}</td></tr>
+          <tr class="cost-row"><td>Otros costos y gastos</td><td class="col-right report-cost">$ {{ (grupoPDF.items[0]?.totalOtrosCostos || 0) | number:'1.0-0' }}</td></tr>
+          <tr class="cost-row"><td>Mano de obra</td><td class="col-right report-cost">$ {{ (grupoPDF.items[0]?.totalManoObra || 0) | number:'1.0-0' }}</td></tr>
+          <tr class="product-row" *ngIf="grupoPDF.productoBiodiesel"><td><strong>{{ grupoPDF.productoBiodiesel.descripcion }}</strong></td><td class="col-right report-num"><strong>{{ grupoPDF.productoBiodiesel.cantidadConsumida | number:'1.0-3' }} kg</strong></td></tr>
         </tbody>
       </table>
     </div>
-    <div class="report-section" *ngIf="grupoPDF.itemsGlicerina.length > 0">
+    <div class="report-section" *ngIf="grupoPDF.itemsGlicerina.length > 0 || grupoPDF.productoGlicerina">
       <div class="report-section-hdr glicerina">Glicerina Cruda</div>
       <table class="report-table">
         <thead><tr><th>Materia Prima / Insumo</th><th class="col-right">Cantidad</th></tr></thead>
         <tbody>
           <tr *ngFor="let item of grupoPDF.itemsGlicerina"><td>{{ item.descripcion }}</td><td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} kg</td></tr>
-          <tr class="cost-row" *ngIf="grupoPDF.items[0]?.totalPurificacionGlicerina"><td>Purificación Glicerina</td><td class="col-right report-cost">$ {{ grupoPDF.items[0].totalPurificacionGlicerina | number:'1.0-2' }}</td></tr>
+          <tr class="cost-row" *ngIf="grupoPDF.items[0]?.totalPurificacionGlicerina"><td>Otros costos y gastos</td><td class="col-right report-cost">$ {{ grupoPDF.items[0].totalPurificacionGlicerina | number:'1.0-0' }}</td></tr>
+          <tr class="product-row" *ngIf="grupoPDF.productoGlicerina"><td><strong>{{ grupoPDF.productoGlicerina.descripcion }}</strong></td><td class="col-right report-num"><strong>{{ grupoPDF.productoGlicerina.cantidadConsumida | number:'1.0-3' }} kg</strong></td></tr>
         </tbody>
       </table>
     </div>

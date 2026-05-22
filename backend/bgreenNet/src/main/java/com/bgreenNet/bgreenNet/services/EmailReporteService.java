@@ -220,13 +220,54 @@ sb.append("<!DOCTYPE html>")
         
         sb.append("</p></div>");
 
+// ── SORTING Y SEPARACION DE PRODUCTOS ────────────────────────
+        DetalleInsumoDTO prodB = null;
+        List<DetalleInsumoDTO> insumosB = new java.util.ArrayList<>();
+        for (DetalleInsumoDTO d : grupoB) {
+            String desc = d.getDescripcion() != null ? d.getDescripcion().toLowerCase() : "";
+            if (desc.contains("biodi") || desc.contains("destilado")) prodB = d;
+            else insumosB.add(d);
+        }
+        
+        List<String> orderB = java.util.Arrays.asList("aceite", "estearina", "metanol", "metilato", "fosforico");
+        insumosB.sort((a, b) -> {
+            String aDesc = a.getDescripcion() != null ? a.getDescripcion().toLowerCase() : "";
+            String bDesc = b.getDescripcion() != null ? b.getDescripcion().toLowerCase() : "";
+            int idxA = 999, idxB = 999;
+            for (int i=0; i<orderB.size(); i++) if (aDesc.contains(orderB.get(i))) { idxA = i; break; }
+            for (int i=0; i<orderB.size(); i++) if (bDesc.contains(orderB.get(i))) { idxB = i; break; }
+            return Integer.compare(idxA, idxB);
+        });
+
+        DetalleInsumoDTO prodG = null;
+        List<DetalleInsumoDTO> insumosG = new java.util.ArrayList<>();
+        for (DetalleInsumoDTO d : grupoG) {
+            String desc = d.getDescripcion() != null ? d.getDescripcion().toLowerCase() : "";
+            if (desc.contains("cruda")) prodG = d;
+            else insumosG.add(d);
+        }
+
+        List<String> orderG = java.util.Arrays.asList("impura", "clorhidrico", "soda");
+        insumosG.sort((a, b) -> {
+            String aDesc = a.getDescripcion() != null ? a.getDescripcion().toLowerCase() : "";
+            String bDesc = b.getDescripcion() != null ? b.getDescripcion().toLowerCase() : "";
+            int idxA = 999, idxB = 999;
+            for (int i=0; i<orderG.size(); i++) if (aDesc.contains(orderG.get(i))) { idxA = i; break; }
+            for (int i=0; i<orderG.size(); i++) if (bDesc.contains(orderG.get(i))) { idxB = i; break; }
+            return Integer.compare(idxA, idxB);
+        });
+
 //── BLOQUE BIODIESEL ──────────────────────────────────────────
-sb.append("<div class='sec-hdr'>Biodiesel Destilado</div>");
-sb.append(construirTablaGrupo(grupoB, resumen.getTotalOtrosCostos(), resumen.getTotalManoObra(), true));
+if (!insumosB.isEmpty() || prodB != null) {
+    sb.append("<div class='sec-hdr'>Biodiesel Destilado</div>");
+    sb.append(construirTablaGrupo(insumosB, prodB, resumen.getTotalOtrosCostos(), resumen.getTotalManoObra(), true));
+}
 
 //── BLOQUE GLICERINA ──────────────────────────────────────────
-sb.append("<div class='sec-hdr'>Glicerina Cruda</div>");
-sb.append(construirTablaGrupo(grupoG, resumen.getTotalPurificacionGlicerina(), null, false));
+if (!insumosG.isEmpty() || prodG != null) {
+    sb.append("<div class='sec-hdr'>Glicerina Cruda</div>");
+    sb.append(construirTablaGrupo(insumosG, prodG, resumen.getTotalPurificacionGlicerina(), null, false));
+}
 
 
 
@@ -236,7 +277,7 @@ return sb.toString();
 }
 
 //── Tabla de insumos por grupo ────────────────────────────────────────────
-private String construirTablaGrupo(List<DetalleInsumoDTO> items, BigDecimal otrosCostos, BigDecimal manoObra,
+private String construirTablaGrupo(List<DetalleInsumoDTO> items, DetalleInsumoDTO producto, BigDecimal otrosCostos, BigDecimal manoObra,
 		boolean mostrarManoObra) {
 	StringBuilder sb = new StringBuilder();
 	sb.append("<table><thead><tr>").append("<th>Materia Prima / Insumo</th><th class='r'>Cantidad</th>")
@@ -256,7 +297,7 @@ private String construirTablaGrupo(List<DetalleInsumoDTO> items, BigDecimal otro
 	}
 
 // Fila otros costos
-	String valorOtros = otrosCostos != null ? "$ " + String.format("%,.2f", otrosCostos) : "$ 0";
+	String valorOtros = otrosCostos != null ? "$ " + String.format("%,.0f", otrosCostos) : "$ 0";
 	sb.append("<tr>")
 	  .append("<td style='font-weight:700;color:#555'>Otros costos y gastos</td>")
 	  .append("<td class='r' style='font-weight:700;color:#2e7d32'>").append(valorOtros).append("</td>")
@@ -264,12 +305,27 @@ private String construirTablaGrupo(List<DetalleInsumoDTO> items, BigDecimal otro
 
 // Fila mano de obra (solo Biodiesel)
 	if (mostrarManoObra) {
-		String valorMod = manoObra != null ? "$ " + String.format("%,.2f", manoObra) : "$ 0";
+		String valorMod = manoObra != null ? "$ " + String.format("%,.0f", manoObra) : "$ 0";
 		sb.append("<tr>")
 		  .append("<td style='font-weight:700;color:#555'>Mano de obra</td>")
 		  .append("<td class='r' style='font-weight:700;color:#2e7d32'>").append(valorMod).append("</td>")
 		  .append("</tr>");
 	}
+
+    if (producto != null) {
+        String cant;
+        if (producto.getCantidadConsumida() != null) {
+            BigDecimal val = producto.getCantidadConsumida().stripTrailingZeros();
+            int decimales = Math.max(0, val.scale());
+            cant = String.format("%,." + decimales + "f kg", producto.getCantidadConsumida());
+        } else {
+            cant = "—";
+        }
+        sb.append("<tr style='background-color: #f1f8e9;'>")
+          .append("<td style='font-weight:700;color:#1b5e20'>").append(esc(producto.getDescripcion())).append("</td>")
+          .append("<td class='r' style='font-weight:700;color:#1b5e20'>").append(cant).append("</td>")
+          .append("</tr>");
+    }
 
 	sb.append("</tbody></table>");
 	return sb.toString();
@@ -288,7 +344,7 @@ private String construirTablaGrupo(List<DetalleInsumoDTO> items, BigDecimal otro
     }
 
     private String construirFilaCosto(String etiqueta, BigDecimal valor, boolean esTotal) {
-        String valorFmt = valor != null ? "$ " + String.format("%,.2f", valor) : "$ 0,00";
+        String valorFmt = valor != null ? "$ " + String.format("%,.0f", valor) : "$ 0";
         return "<tr class='" + (esTotal ? "total-row" : "") + "'>"
              + "<td>" + esc(etiqueta) + "</td>"
              + "<td class='num'>" + valorFmt + "</td>"
