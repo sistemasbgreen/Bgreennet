@@ -225,7 +225,7 @@
           <!-- Fecha Final -->
           <div class="form-group">
             <label for="fechaFinal">Fecha de finalización *</label>
-            <input type="date" id="fechaFinal" class="form-control" formControlName="fechaFinal" [min]="minDate"
+            <input type="date" id="fechaFinal" class="form-control" formControlName="fechaFinal" [min]="isEditMode ? '' : minDate"
               [class.is-invalid]="isFieldInvalid('fechaFinal')">
             <small class="form-text text-muted">
               El pulso se ocultará automáticamente después de esta fecha
@@ -238,24 +238,12 @@
           <!-- Fecha de Activación -->
           <div class="form-group">
             <label for="fechaActivacion">Fecha de activación (opcional)</label>
-            <input type="date" id="fechaActivacion" class="form-control" formControlName="fechaActivacion" [min]="minDate">
+            <input type="date" id="fechaActivacion" class="form-control" formControlName="fechaActivacion" [min]="isEditMode ? '' : minDate">
             <small class="form-text text-muted">
               El pulso se activará automáticamente en esta fecha. Si se deja vacío, se activará de inmediato.
             </small>
           </div>
 
-          <!-- Estado -->
-          <div class="form-group" *ngIf="isEditMode">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="activo" formControlName="activo">
-              <label class="form-check-label" for="activo">
-                Pulso activo
-              </label>
-            </div>
-            <small class="form-text text-muted">
-              Los pulsos inactivos no se mostrarán a los usuarios
-            </small>
-          </div>
         </div>
       </div>
 
@@ -279,5 +267,4 @@
     </form>
 
   </div>
-
 </div>
