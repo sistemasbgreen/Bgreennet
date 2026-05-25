@@ -159,7 +159,7 @@ public class PulsoService {
             dto.setActivo(asBoolean(row[i++])); // 10
             
             // Lógica robusta para encontrar email y fechaActivacion
-            // Buscamos entre las columnas restantes (usualmente 11, 12, 13...)
+            // Buscamos entre las columnas restantes
             for (int k = i; k < row.length; k++) {
                 Object val = row[k];
                 if (val == null) continue;
@@ -173,16 +173,15 @@ public class PulsoService {
                 // Si es un tipo de fecha o una cadena que parece fecha, intentar como fechaActivacion
                 else if (dto.getFechaActivacion() == null && 
                     (val instanceof java.util.Date || val instanceof java.time.temporal.Temporal || 
-                     valStr.matches("\\d{2}-\\d{2}-\\d{4}.*") || valStr.matches("\\d{4}-\\d{2}-\\d{2}.*"))) {
+                     valStr.matches("\\d{2}[-/]\\d{2}[-/]\\d{4}.*") || valStr.matches("\\d{4}[-/]\\d{2}[-/]\\d{2}.*"))) {
                     try {
+                        System.out.println("DEBUG - Encontrado posible fechaActivacion en col " + k + ": " + valStr);
                         dto.setFechaActivacion(asLocalDateTime(val));
-                    } catch (Exception ignored) {}
+                        System.out.println("DEBUG - fechaActivacion parseada con éxito: " + dto.getFechaActivacion());
+                    } catch (Exception e) {
+                        System.err.println("DEBUG - Error parseando fechaActivacion en col " + k + ": " + e.getMessage());
+                    }
                 }
-            }
-            
-            // Fallback si no se encontró el email en el loop inteligente (probablemente en la pos 11 o 12)
-            if (dto.getCreadoPor() == null && row.length > i) {
-                // Buscamos la última cadena larga que no sea fecha? No, mejor solo usar el loop de arriba.
             }
 
             return dto;
@@ -229,6 +228,12 @@ public class PulsoService {
 
         if (value instanceof String) {
             String dateStr = value.toString().trim();
+            
+            // Intento robusto para formatos nativos de JDBC tipo "2026-05-25 12:00:00.0"
+            try {
+                return Timestamp.valueOf(dateStr).toLocalDateTime();
+            } catch (Exception ignored) {}
+
             for (DateTimeFormatter f : DATE_FORMATTERS) {
                 try {
                     return LocalDateTime.parse(dateStr, f);

@@ -74,12 +74,18 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
-            try {
-                username = jwtUtil.extractUsername(jwt);
-            } catch (ExpiredJwtException e) {
-                System.out.println("⚠️ El token JWT ha expirado: " + e.getMessage());
-            } catch (Exception e) {
-                System.out.println("❌ Error al procesar el token JWT: " + e.getMessage());
+            
+            // Basic validation to avoid format exceptions and log malformed tokens
+            if (jwt.equals("null") || jwt.equals("undefined") || jwt.trim().isEmpty() || jwt.split("\\.").length != 3) {
+                System.out.println("⚠️ Formato de token inválido recibido en la ruta: " + request.getRequestURI() + " | Token recibido: [" + jwt + "]");
+            } else {
+                try {
+                    username = jwtUtil.extractUsername(jwt);
+                } catch (ExpiredJwtException e) {
+                    System.out.println("⚠️ El token JWT ha expirado: " + e.getMessage());
+                } catch (Exception e) {
+                    System.out.println("❌ Error al procesar el token JWT: " + e.getMessage());
+                }
             }
         }
 
