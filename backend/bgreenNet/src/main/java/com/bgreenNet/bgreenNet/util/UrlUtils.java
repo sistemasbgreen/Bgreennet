@@ -2,7 +2,7 @@ package com.bgreenNet.bgreenNet.util;
 
 public class UrlUtils {
 
-    private static final String DOMAIN = "https://bgreennet.bgreen.com.co";
+    private static final String DOMAIN = "http://172.30.72.200";
     private static final String[] OLD_HOSTS = {
         "http://45.183.247.77",
         "http://172.30.72.200",

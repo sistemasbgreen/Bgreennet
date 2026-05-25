@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../authservices';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -35,7 +35,8 @@ export class Login {
     private router: Router,
     private route: ActivatedRoute,
     private listasService: ListasService,
-    private configSeguridadService: ConfiguracionSeguridadService
+    private configSeguridadService: ConfiguracionSeguridadService,
+    private cdr: ChangeDetectorRef
   ) {
     this.loginForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(3)]],
@@ -129,10 +130,12 @@ export class Login {
           console.warn('La API no devolvió ninguna imagen ACTIVA. Usando imagen por defecto.');
           this.imagenAleatoria = 'https://bgreennet.bgreen.com.co/imagenes/Fondo_Pantalla.jpg';
         }
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error FATAL al llamar a la API de imágenes:', err);
         this.imagenAleatoria = 'https://bgreennet.bgreen.com.co/imagenes/Fondo_Pantalla.jpg';
+        this.cdr.detectChanges();
       }
     });
 
