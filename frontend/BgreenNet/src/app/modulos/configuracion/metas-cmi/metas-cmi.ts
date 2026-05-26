@@ -48,6 +48,7 @@ export class MetasCMI implements OnInit {
   // Catalogos
   tiposDocumento: any[] = [];
   tiposMovimiento: any[] = [];
+  seccionesReporte: any[] = [];
   
   selectedConsumoDoc: string = '';
   selectedProduccionDoc: string = '';
@@ -145,6 +146,9 @@ export class MetasCMI implements OnInit {
     });
     this.service.getTiposDocumento().subscribe(res => {
       this.tiposDocumento = res;
+    });
+    this.service.getSeccionesReporte().subscribe(res => {
+      this.seccionesReporte = res;
     });
   }
 
@@ -411,7 +415,13 @@ export class MetasCMI implements OnInit {
         esCompuesto: this.selectedProductObj.esCompuesto,
         componenteSiesaIds: this.selectedProductObj.componenteSiesaIds,
         mostrarCmi: this.selectedProductObj.mostrarCmi ?? true,
-        metaDiariaManual: this.selectedProductObj.metaDiariaManual ?? false
+        metaDiariaManual: this.selectedProductObj.metaDiariaManual ?? false,
+        idProductoTbs: this.selectedProductObj.idProductoTbs,
+        idTbsTipoDoc: this.selectedProductObj.idTbsTipoDoc,
+        tbsDescripcion: this.selectedProductObj.tbsDescripcion,
+        seccionId: this.selectedProductObj.seccionId,
+        seccionNombre: this.selectedProductObj.seccionNombre,
+        ordenReporte: this.selectedProductObj.ordenReporte
       };
 
       this.service.actualizarProducto(updatePayload).subscribe({

@@ -13,6 +13,42 @@ import { MetanolRequest } from '../../../models/Modelos_CMI/MetanolRequest';
 import { MetanolResponse } from '../../../models/Modelos_CMI/ProductoResponse';
 Chart.register(...registerables, ChartDataLabels);
 
+const extendLinePlugin = {
+  id: 'extendLine',
+  afterDraw: (chart: any) => {
+    const activeDataset = chart.data.datasets.find((ds: any) => ds.label && ds.label.includes('Meta'));
+    if (!activeDataset) return;
+
+    const datasetMeta = chart.getDatasetMeta(chart.data.datasets.indexOf(activeDataset));
+    if (!datasetMeta || !datasetMeta.data || datasetMeta.data.length === 0) return;
+
+    const firstPoint = datasetMeta.data[0];
+    const lastPoint = datasetMeta.data[datasetMeta.data.length - 1];
+    if (!firstPoint || !lastPoint || firstPoint.x === undefined || firstPoint.y === undefined || lastPoint.x === undefined || lastPoint.y === undefined) return;
+
+    const ctx = chart.ctx;
+    const chartArea = chart.chartArea;
+    if (!chartArea) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.setLineDash(activeDataset.borderDash || [5, 5]);
+    ctx.strokeStyle = activeDataset.borderColor || '#2c3e50';
+    ctx.lineWidth = activeDataset.borderWidth || 2;
+
+    // Draw from left edge to first point
+    ctx.moveTo(chartArea.left, firstPoint.y);
+    ctx.lineTo(firstPoint.x, firstPoint.y);
+
+    // Draw from last point to right edge
+    ctx.moveTo(lastPoint.x, lastPoint.y);
+    ctx.lineTo(chartArea.right, lastPoint.y);
+
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
 @Component({
   selector: 'productos',
   standalone: true,
@@ -88,7 +124,7 @@ productos: any[] = [];
   costoDirectoOptions!: ChartOptions<'line'>;
 
   // Plugins permitidos para la vista
-  barChartPlugins: any[] = [ChartDataLabels];
+  barChartPlugins: any[] = [ChartDataLabels, extendLinePlugin];
 
   constructor(
     private plantaService: cmiplantaservices,

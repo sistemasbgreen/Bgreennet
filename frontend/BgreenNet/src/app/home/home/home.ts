@@ -1001,8 +1001,6 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   cerrarModalCalendarioHeader(): void {
     this.isModalCalendarioHeaderOpen = false;
   }
-
-
   crearTarea(): void {
     if (!this.nuevaTarea.titulo.trim()) return;
 
