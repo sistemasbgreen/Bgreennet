@@ -4394,3 +4394,284 @@ button:disabled {
   filter: brightness(1.1);
 }
 
+
+/* ============================================
+   CALENDARIO OUTLOOK SECTION
+============================================ */
+.calendar-section-v2 {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, var(--green-primary) 0%, var(--green-secondary) 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  margin-left: 10px;
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);
+}
+
+.calendar-container-placeholder {
+  min-height: 400px;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.auth-required-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  background: linear-gradient(to bottom, transparent, rgba(0, 120, 212, 0.03));
+}
+
+.auth-viz {
+  width: 100px;
+  height: 100px;
+  background: white;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 50px;
+  color: #0078d4;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.auth-required-state h4 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.auth-required-state p {
+  color: var(--text-secondary);
+  max-width: 400px;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.btn-outlook-login {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #0078d4;
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(0, 120, 212, 0.3);
+}
+
+.btn-outlook-login:hover {
+  background: #005a9e;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 120, 212, 0.4);
+}
+
+.btn-refresh-calendar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-refresh-calendar:hover {
+  background: var(--green-primary);
+  color: white;
+}
+
+.calendar-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 120, 212, 0.1);
+  border-top-color: #0078d4;
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-events-state {
+  padding: 80px 40px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-events-state i {
+  font-size: 50px;
+  margin-bottom: 15px;
+  opacity: 0.3;
+}
+
+/* Simple Events List Styling */
+.events-list-simple {
+  padding: 20px;
+  display: grid;
+  gap: 15px;
+}
+
+.event-item-simple {
+  display: flex;
+  gap: 20px;
+  padding: 15px;
+  background: var(--bg-primary);
+  border-radius: 14px;
+  border-left: 5px solid #0078d4;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s;
+}
+
+.event-item-simple:hover {
+  transform: translateX(5px);
+}
+
+.event-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  padding-right: 20px;
+  border-right: 1px solid var(--border-color);
+}
+
+.event-hour {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.event-date {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.event-subject {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+  color: var(--text-primary);
+}
+
+.event-location {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Calendar Selector matched to Nuevo Registro button */
+.calendar-selector-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--green-secondary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 15px;
+  gap: 0; /* Gap managed by select padding */
+}
+
+.calendar-selector-wrapper:hover {
+  background: var(--green-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(10, 92, 46, 0.3);
+}
+
+.calendar-selector {
+  background: transparent;
+  border: none;
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  padding: 0 25px 0 24px; /* Left for room-icon, Right for chevron */
+  margin: 0;
+  outline: none;
+  font-family: inherit;
+  width: 100%;
+  z-index: 2;
+  position: relative;
+}
+
+.calendar-selector-wrapper .room-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  color: white;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.calendar-selector-wrapper .chevron-icon {
+  position: absolute;
+  right: 12px;
+  font-size: 10px;
+  color: white;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Dark mode overrides - matching button behavior */
+body.dark-mode .calendar-selector-wrapper {
+  background: var(--green-secondary);
+}
+
+body.dark-mode .calendar-selector-wrapper:hover {
+  background: var(--green-primary);
+}
+
+/* Ensure options are readable on all themes */
+.calendar-selector option, .calendar-option {
+  background-color: #ffffff;
+  color: #333333;
+  background-color: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #333333);
+  padding: 10px;
+}
+
