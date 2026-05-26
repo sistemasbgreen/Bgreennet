@@ -46,24 +46,26 @@ public class ImageController {
             // Guardar imagen usando el servicio
             String imageUrl = imageService.saveImage(file);
 
-            // Construir URL completa
-            String fullUrl = UrlUtils.sanitizeUrl("https://bgreennet.bgreen.com.co" + imageUrl);
+     // Construir URL completa
+     // String fullUrl = UrlUtils.sanitizeUrl("http://172.30.72.200/" + imageUrl);
 
+      String fullUrl = UrlUtils.sanitizeUrl("https://bgreennet.bgreen.com.co" + imageUrl);
+            
             return ResponseEntity.ok(new ImageUploadResponse(fullUrl, "Imagen subida exitosamente"));
 
         } catch (IllegalArgumentException e) {
-            // Error de validación (tipo o tamaño incorrecto)
+
             return ResponseEntity.badRequest()
                 .body(new ImageUploadResponse(null, e.getMessage()));
 
         } catch (IOException e) {
-            // Error al guardar el archivo
+ 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ImageUploadResponse(null, "Error al guardar la imagen"));
         }
     }
 
-    // ==================== CLASE DE RESPUESTA ====================
+ 
 
     public static class ImageUploadResponse {
         private String url;

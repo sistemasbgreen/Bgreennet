@@ -41,7 +41,10 @@ export class Pulsos implements OnInit {
     private cdr: ChangeDetectorRef
   ) {
     const hoy = new Date();
-    this.minDate = hoy.toISOString().split('T')[0];
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    this.minDate = `${year}-${month}-${day}`;
   }
 
   ngOnInit(): void {
@@ -50,6 +53,23 @@ export class Pulsos implements OnInit {
 
     this.loadUserDataAndPermisos();
 
+    // Lógica dinámica para habilitar/inhabilitar según fechaActivacion
+    this.pulsoForm.get('fechaActivacion')?.valueChanges.subscribe(fecha => {
+      if (fecha) {
+        const fechaAct = new Date(fecha + 'T01:00:00');
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        fechaAct.setHours(0, 0, 0, 0);
+
+        if (fechaAct.getTime() > hoy.getTime()) {
+          this.pulsoForm.patchValue({ activo: false }, { emitEvent: false });
+        } else {
+          this.pulsoForm.patchValue({ activo: true }, { emitEvent: false });
+        }
+      } else {
+        this.pulsoForm.patchValue({ activo: true }, { emitEvent: false });
+      }
+    });
   }
 
   // ============ INICIALIZACIÓN ============
@@ -296,6 +316,7 @@ export class Pulsos implements OnInit {
     const reader = new FileReader();
     reader.onload = () => {
       this.imagePreview = reader.result as string;
+      this.cdr.detectChanges();
     };
     reader.readAsDataURL(file);
   }
@@ -393,9 +414,16 @@ export class Pulsos implements OnInit {
     return new Promise((resolve, reject) => {
       const formValues = this.pulsoForm.value;
 
-      //  Formatear fecha a ISO string completo
-      const fechaDate = new Date(formValues.fechaFinal + 'T23:59:59');
+      let isActivo = true;
+      if (formValues.fechaActivacion) {
+        const fechaAct = new Date(formValues.fechaActivacion + 'T01:00:00');
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        fechaAct.setHours(0, 0, 0, 0);
+        isActivo = fechaAct.getTime() <= hoy.getTime();
+      }
 
+      // Formatear fecha sin conversión de zona horaria (evita que cambie de día)
       const pulsoData: PulsoCreateDTO = {
         titulo: formValues.titulo.trim(),
         descripcion: formValues.descripcion?.trim() || null,
@@ -403,10 +431,11 @@ export class Pulsos implements OnInit {
         imagenNombreOriginal: formValues.imagenNombreOriginal || null,
         imagenTipoMime: formValues.imagenTipoMime || null,
         imagenTamanoBytes: formValues.imagenTamanoBytes || null,
-        fechaFinal: fechaDate.toISOString(),
-        fechaActivacion: formValues.fechaActivacion ? new Date(formValues.fechaActivacion + 'T00:00:00').toISOString() : undefined,
-        creadoPor: this.userEmail
-      };
+        fechaFinal: formValues.fechaFinal + 'T01:00:00',
+        fechaActivacion: formValues.fechaActivacion ? formValues.fechaActivacion + 'T01:00:00' : undefined,
+        creadoPor: this.userEmail,
+        activo: isActivo // Aseguramos enviar el estado activo correcto desde el DTO si el backend lo soporta
+      } as any;
 
       console.log('Creando pulso:', pulsoData); //  Debug
 
@@ -439,9 +468,18 @@ export class Pulsos implements OnInit {
     return new Promise((resolve, reject) => {
       const formValues = this.pulsoForm.value;
 
-      //  Formatear fecha a ISO string completo
-      const fechaDate = new Date(formValues.fechaFinal + 'T23:59:59');
+      let isActivo = formValues.activo;
+      if (formValues.fechaActivacion) {
+        const fechaAct = new Date(formValues.fechaActivacion + 'T01:00:00');
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        fechaAct.setHours(0, 0, 0, 0);
+        isActivo = fechaAct.getTime() <= hoy.getTime();
+      } else {
+        isActivo = true;
+      }
 
+      // Formatear fecha sin conversión de zona horaria (evita que cambie de día)
       const pulsoData: PulsoUpdateDTO = {
         titulo: formValues.titulo.trim(),
         descripcion: formValues.descripcion?.trim() || null,
@@ -449,9 +487,9 @@ export class Pulsos implements OnInit {
         imagenNombreOriginal: formValues.imagenNombreOriginal || null,
         imagenTipoMime: formValues.imagenTipoMime || null,
         imagenTamanoBytes: formValues.imagenTamanoBytes || null,
-        fechaFinal: fechaDate.toISOString(),
-        fechaActivacion: formValues.fechaActivacion ? new Date(formValues.fechaActivacion + 'T00:00:00').toISOString() : undefined,
-        activo: formValues.activo
+        fechaFinal: formValues.fechaFinal + 'T01:00:00',
+        fechaActivacion: formValues.fechaActivacion ? formValues.fechaActivacion + 'T01:00:00' : undefined,
+        activo: isActivo
       };
 
       console.log('Actualizando pulso:', this.pulsoEditando!.idPulso, pulsoData); //  Debugpr
