@@ -21,7 +21,33 @@ public class ProductoDTO {
     private String idProductoTbs;
     private String idTbsTipoDoc;
     private String tbsDescripcion;
+    private Integer seccionId;
+    private String seccionNombre;
+    private Integer ordenReporte;
 
+    public Integer getSeccionId() {
+        return seccionId;
+    }
+
+    public void setSeccionId(Integer seccionId) {
+        this.seccionId = seccionId;
+    }
+
+    public String getSeccionNombre() {
+        return seccionNombre;
+    }
+
+    public void setSeccionNombre(String seccionNombre) {
+        this.seccionNombre = seccionNombre;
+    }
+
+    public Integer getOrdenReporte() {
+        return ordenReporte;
+    }
+
+    public void setOrdenReporte(Integer ordenReporte) {
+        this.ordenReporte = ordenReporte;
+    }
     public String getIdProductoTbs() {
         return idProductoTbs;
     }

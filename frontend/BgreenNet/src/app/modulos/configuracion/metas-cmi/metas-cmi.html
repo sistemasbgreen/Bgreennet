@@ -13,7 +13,7 @@
   </div>
 
 
-  <!-- Products Detail Card (Moved to top) -->
+  <!-- Products Detail Card -->
   <div class="table-card products-detail-card" *ngIf="productosOriginales.length > 0">
     <div class="table-card-header">
       <div class="table-title">
@@ -44,19 +44,15 @@
             <th class="col-siesa">ID Siesa</th>
             <th class="col-meta-stat">Meta (Mes Actual)</th>
             <th class="col-actions">Acciones</th>
-            <th class="col-erp blue-hdr">ID TBS</th>
-            <th class="col-erp blue-hdr">Doc TBS</th>
-            <th class="col-erp blue-hdr">Nombre TBS</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of productos">
-               <td class="td-id" style="padding-left: 24px; max-width: 60px;">
-                  <span class="product-name-txt" [style.color]="p.esCompuesto ? '#fd7e14' : 'inherit'" [style.font-weight]="p.esCompuesto ? 'bold' : 'normal'" [title]="p.id">
-                    {{ p.id === 'CostoDirecto' ? 'CD' : p.id }}
-                  </span>
+            <td class="td-id" style="padding-left: 24px; max-width: 60px;">
+              <span class="product-name-txt" [style.color]="p.esCompuesto ? '#fd7e14' : 'inherit'" [style.font-weight]="p.esCompuesto ? 'bold' : 'normal'" [title]="p.id">
+                {{ p.id === 'CostoDirecto' ? 'CD' : p.id }}
+              </span>
             </td>
-
             <td class="td-nombre">
               <span class="product-name-txt">{{ p.nombre }}</span>
             </td>
@@ -70,7 +66,6 @@
               </span>
               <span class="no-data" *ngIf="!p.idProductoSiesa && !p.esCompuesto">N/A</span>
             </td>
-
             <td class="td-meta-stat">
               <span class="meta-value-badge" *ngIf="p.metaActual && p.metaActual > 0">
                 {{ p.sentidoMeta !== false ? '>' : '<' }}{{ p.metaActual | number:'1.0-0' }}
@@ -79,13 +74,11 @@
                 <i class="bi bi-exclamation-circle"></i> Sin Asignar
               </span>
             </td>
-           
             <td class="td-actions">
               <div class="actions-row">
                 <button class="btn-action-pill metas" (click)="openMetasModal(p)" title="Configurar metas mensuales">
                   <i class="bi bi-calendar-check"></i> Metas
                 </button>
-
                 <button class="btn-action-pill edit" (click)="openProductModal(p)" title="Editar producto" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
                   <i class="bi bi-pencil-square"></i> Editar
                 </button>
@@ -95,11 +88,61 @@
                 </button>
               </div>
             </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-            <!-- ERP Columns in Blue Section -->
+  <!-- ERP Mapping Card -->
+  <div class="table-card products-detail-card" *ngIf="productosOriginales.length > 0" style="margin-top: 24px;">
+    <div class="table-card-header" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border-bottom: 1px solid rgba(37, 99, 235, 0.15);">
+      <div class="table-title" style="color: #1e40af;">
+        <i class="bi bi-diagram-2"></i>
+        <span>Mapeo ERP y Reportes de Producción</span>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="metas-table products-table erp-mapping-table">
+        <thead>
+          <tr>
+            <th class="col-id" style="width: 5%; padding-left: 24px;">ID Bgreen</th>
+            <th class="col-nombre" style="width: 15%;">Producto Bgreen</th>
+            <th class="col-erp blue-hdr">ID TBS</th>
+            <th class="col-erp blue-hdr">Doc TBS</th>
+            <th class="col-erp blue-hdr">Nombre TBS</th>
+            <th class="col-erp blue-hdr">Sección</th>
+            <th class="col-erp blue-hdr" style="width: 50px;">Orden</th>
+            <th class="col-actions" style="text-align: center;">Editar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of productos">
+            <td class="td-id" style="padding-left: 24px; max-width: 60px;">
+              <span class="product-name-txt" [style.color]="p.esCompuesto ? '#fd7e14' : 'inherit'" [style.font-weight]="p.esCompuesto ? 'bold' : 'normal'" [title]="p.id">
+                {{ p.id === 'CostoDirecto' ? 'CD' : p.id }}
+              </span>
+            </td>
+            <td class="td-nombre">
+              <span class="product-name-txt" style="font-weight: 600;">{{ p.nombre }}</span>
+            </td>
             <td class="td-erp-blue">{{ p.idProductoTbs || '-' }}</td>
             <td class="td-erp-blue">{{ p.idTbsTipoDoc || '-' }}</td>
             <td class="td-erp-blue desc">{{ p.tbsDescripcion || '-' }}</td>
+            <td class="td-erp-blue">
+              <span *ngIf="p.seccionNombre" class="siesa-badge" style="background-color: #2563eb; color: white;">
+                {{ p.seccionNombre }}
+              </span>
+              <span *ngIf="!p.seccionNombre" class="no-data">-</span>
+            </td>
+            <td class="td-erp-blue">
+              <strong>{{ p.ordenReporte !== 999 && p.ordenReporte !== null ? p.ordenReporte : '-' }}</strong>
+            </td>
+            <td class="td-actions" style="text-align: center;">
+              <button class="btn-action-pill edit" (click)="openProductModal(p)" title="Editar Mapeo" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -391,7 +434,7 @@
           <div class="product-config-section" style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #ffffff;">
             <div class="section-hdr" style="font-weight: 800; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
               <i class="bi bi-link-45deg"></i>
-              <span>Mapeo ERP (TBS)</span>
+              <span>EQUIVALENCIA ERP (TBS)</span>
             </div>
             <div class="section-body">
               <div class="row" style="display: flex; gap: 15px;">
@@ -405,10 +448,24 @@
                 </div>
                 <div style="flex: 1;">
                   <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Descripción ERP</label>
-                  <input type="text" [(ngModel)]="currentProduct.tbsDescripcion" placeholder="Automático (Nombre Producto)" class="form-control" style="width: 100%; background-color: #f1f5f9; cursor: not-allowed;" [disabled]="true">
+                  <input type="text" [(ngModel)]="currentProduct.tbsDescripcion" placeholder="Nombre para Reportes" class="form-control" style="width: 100%;">
                 </div>
               </div>
-              <p class="help-text mt-2" style="font-size: 10px; color: #94a3b8; margin-top: 8px;">Configura la equivalencia de este producto para la exportación al sistema externo.</p>
+              <div class="row" style="display: flex; gap: 15px; margin-top: 15px;">
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Sección Reporte</label>
+                  <select [(ngModel)]="currentProduct.seccionId" class="form-control" style="width: 100%;">
+                    <option [ngValue]="null">Sin sección</option>
+                    <option *ngFor="let s of seccionesReporte" [value]="s.id">{{ s.nombre }}</option>
+                  </select>
+                </div>
+                <div style="flex: 1;">
+                  <label class="form-label mini" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Orden en Reporte</label>
+                  <input type="number" [(ngModel)]="currentProduct.ordenReporte" placeholder="Ej. 1" class="form-control" style="width: 100%;">
+                </div>
+                <div style="flex: 1;"></div>
+              </div>
+              <p class="help-text mt-2" style="font-size: 10px; color: #94a3b8; margin-top: 8px;">Configura la equivalencia de este producto para la exportación y agrupamiento dinámico en reportes.</p>
             </div>
           </div>
 

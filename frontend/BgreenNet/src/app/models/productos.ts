@@ -18,4 +18,7 @@ export interface producto {
   idProductoTbs?: string;
   idTbsTipoDoc?: string;
   tbsDescripcion?: string;
+  seccionId?: number;
+  seccionNombre?: string;
+  ordenReporte?: number;
 }

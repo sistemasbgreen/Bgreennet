@@ -49,7 +49,45 @@ public class EmailReportesRepository {
         }
     }
 
+    @Autowired
+    private JdbcTemplate appJdbcTemplate;
+
+    public List<String> obtenerSiesaIdsActivos() {
+        try {
+            List<String> simpleIds = appJdbcTemplate.queryForList(
+                "SELECT DISTINCT id_producto_siesa FROM productos WHERE activo = 1 AND id_producto_siesa IS NOT NULL AND id_producto_siesa <> ''",
+                String.class
+            );
+            List<String> componentIds = appJdbcTemplate.queryForList(
+                "SELECT DISTINCT producto_hijo_siesa_id FROM producto_componentes WHERE activo = 1 AND producto_hijo_siesa_id IS NOT NULL AND producto_hijo_siesa_id <> ''",
+                String.class
+            );
+            java.util.Set<String> allIds = new java.util.HashSet<>();
+            if (simpleIds != null) {
+                for (String id : simpleIds) allIds.add(id.trim());
+            }
+            if (componentIds != null) {
+                for (String id : componentIds) allIds.add(id.trim());
+            }
+            
+            // Add default backup IDs
+            allIds.addAll(java.util.Arrays.asList("8", "7309", "10", "13", "12", "26", "34", "15", "2549", "32"));
+            return new java.util.ArrayList<>(allIds);
+        } catch (Exception e) {
+            System.err.println("Error en obtenerSiesaIdsActivos, usando respaldo: " + e.getMessage());
+            return java.util.Arrays.asList("8", "7309", "10", "13", "12", "26", "34", "15", "2549", "32");
+        }
+    }
+
     public List<DetalleInsumoDTO> obtenerDetalleInsumos(LocalDate fechaInicio, LocalDate fechaFin) {
+        List<String> siesaIds = obtenerSiesaIdsActivos();
+        
+        StringBuilder inClause = new StringBuilder();
+        for (int i = 0; i < siesaIds.size(); i++) {
+            if (i > 0) inClause.append(",");
+            inClause.append("?");
+        }
+
         String sql = "SELECT " +
             "    'OP - ' + CONVERT(VARCHAR(10), CAST(mov.f470_id_fecha AS DATE), 23) AS OP, " +
             "    FORMAT(mov.f470_id_fecha, 'yyyyMM') + RIGHT('000' + CAST(DENSE_RANK() OVER (PARTITION BY FORMAT(mov.f470_id_fecha, 'yyyyMM') ORDER BY CAST(mov.f470_id_fecha AS DATE)) AS VARCHAR(10)), 3) AS id_orden, " +
@@ -77,7 +115,7 @@ public class EmailReportesRepository {
             "    AND mov.f470_id_fecha < ? " +
             "    AND itm.f120_id_cia = 2 " +
             "    AND doc.f350_ind_estado = 1 " +
-            "    AND itm.f120_id IN ('8','7309','10','13','12','26','34','15','2549','32') " +
+            "    AND itm.f120_id IN (" + inClause.toString() + ") " +
             "    AND doc.f350_id_tipo_docto IN ('TEP','EI','SDI','EDP') " +
             "    AND NOT (itm.f120_id = '34' AND doc.f350_id_tipo_docto = 'EDP') " +
             "    AND doc.f350_rowid NOT IN ('695891','696066','692530') " +
@@ -91,22 +129,30 @@ public class EmailReportesRepository {
             "    itm.f120_descripcion, " +
             "    fecha";
 
-        Object[] params = {
-            java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay()),
-            java.sql.Timestamp.valueOf(fechaFin.atStartOfDay())
-        };
+        Object[] params = new Object[2 + siesaIds.size()];
+        params[0] = java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay());
+        params[1] = java.sql.Timestamp.valueOf(fechaFin.atStartOfDay());
+        for (int i = 0; i < siesaIds.size(); i++) {
+            params[2 + i] = siesaIds.get(i);
+        }
 
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            DetalleInsumoDTO dto = new DetalleInsumoDTO();
-            dto.setItem(rs.getString("item"));
-            dto.setDescripcion(rs.getString("f120_descripcion"));
-            dto.setOrdenProduccion(rs.getString("id_orden")); // Asignar el nuevo ID
-            Date sqlDate = rs.getDate("fecha");
-            if (sqlDate != null) {
-                dto.setFecha(sqlDate.toLocalDate());
-            }
-            dto.setCantidadConsumida(rs.getBigDecimal("cantidad_consumida"));
-            return dto;
-        }, params);
+        try {
+            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                DetalleInsumoDTO dto = new DetalleInsumoDTO();
+                dto.setItem(rs.getString("item"));
+                dto.setDescripcion(rs.getString("f120_descripcion"));
+                dto.setOrdenProduccion(rs.getString("id_orden"));
+                Date sqlDate = rs.getDate("fecha");
+                if (sqlDate != null) {
+                    dto.setFecha(sqlDate.toLocalDate());
+                }
+                dto.setCantidadConsumida(rs.getBigDecimal("cantidad_consumida"));
+                return dto;
+            }, params);
+        } catch (Exception e) {
+            System.err.println("Error en obtenerDetalleInsumos: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        }
     }
 }

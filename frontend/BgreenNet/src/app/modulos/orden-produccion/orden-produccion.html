@@ -199,57 +199,44 @@
         </button>
       </div>
 
-      <div id="reporte-contenido" *ngIf="grupoSeleccionado">
+      <div id="reporte-contenido" *ngIf="grupoSeleccionado" style="padding: 24px;">
 
-        <!-- Biodiesel -->
-        <div class="report-section" *ngIf="grupoSeleccionado.itemsBiodiesel.length > 0 || grupoSeleccionado.productoBiodiesel">
-          <div class="report-section-hdr biodiesel">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path></svg>
-            Biodiesel Destilado
+        <!-- Dynamic Sections -->
+        <div class="report-section" *ngFor="let seccion of grupoSeleccionado.secciones">
+          <div class="report-section-hdr" [ngClass]="{'biodiesel': seccion.nombre.toLowerCase().includes('biodiesel'), 'glicerina': seccion.nombre.toLowerCase().includes('glicerina')}">
+            <svg *ngIf="seccion.nombre.toLowerCase().includes('biodiesel')" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path></svg>
+            <svg *ngIf="!seccion.nombre.toLowerCase().includes('biodiesel')" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>
+            {{ seccion.nombre }}
           </div>
           <table class="report-table">
             <thead><tr><th>Materia Prima / Insumo</th><th class="col-right">Cantidad</th></tr></thead>
             <tbody>
-              <tr *ngFor="let item of grupoSeleccionado.itemsBiodiesel">
+              <tr *ngFor="let item of seccion.items">
                 <td>{{ item.descripcion }}</td>
                 <td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} <span class="unit">kg</span></td>
               </tr>
-              <tr class="cost-row">
-                <td>Otros costos y gastos</td>
-                <td class="col-right report-cost">$ {{ (grupoSeleccionado.items[0]?.totalOtrosCostos || 0) | number:'1.0-0' }}</td>
-              </tr>
-              <tr class="cost-row">
-                <td>Mano de obra</td>
-                <td class="col-right report-cost">$ {{ (grupoSeleccionado.items[0]?.totalManoObra || 0) | number:'1.0-0' }}</td>
-              </tr>
-              <tr class="product-row" *ngIf="grupoSeleccionado.productoBiodiesel">
-                <td><strong>{{ grupoSeleccionado.productoBiodiesel.descripcion }}</strong></td>
-                <td class="col-right report-num"><strong>{{ grupoSeleccionado.productoBiodiesel.cantidadConsumida | number:'1.0-3' }} <span class="unit">kg</span></strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+              
+              <!-- Costos -->
+              <ng-container *ngIf="seccion.nombre.toLowerCase().includes('biodiesel')">
+                <tr class="cost-row">
+                  <td>Otros costos y gastos</td>
+                  <td class="col-right report-cost">$ {{ grupoSeleccionado.totalOtrosCostos | number:'1.0-0' }}</td>
+                </tr>
+                <tr class="cost-row">
+                  <td>Mano de obra</td>
+                  <td class="col-right report-cost">$ {{ grupoSeleccionado.totalManoObra | number:'1.0-0' }}</td>
+                </tr>
+              </ng-container>
+              <ng-container *ngIf="seccion.nombre.toLowerCase().includes('glicerina') && grupoSeleccionado.totalPurificacion">
+                <tr class="cost-row">
+                  <td>Otros costos y gastos</td>
+                  <td class="col-right report-cost">$ {{ grupoSeleccionado.totalPurificacion | number:'1.0-0' }}</td>
+                </tr>
+              </ng-container>
 
-        <!-- Glicerina -->
-        <div class="report-section" *ngIf="grupoSeleccionado.itemsGlicerina.length > 0 || grupoSeleccionado.productoGlicerina">
-          <div class="report-section-hdr glicerina">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>
-            Glicerina Cruda
-          </div>
-          <table class="report-table">
-            <thead><tr><th>Materia Prima / Insumo</th><th class="col-right">Cantidad</th></tr></thead>
-            <tbody>
-              <tr *ngFor="let item of grupoSeleccionado.itemsGlicerina">
-                <td>{{ item.descripcion }}</td>
-                <td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} <span class="unit">kg</span></td>
-              </tr>
-              <tr class="cost-row" *ngIf="grupoSeleccionado.items[0]?.totalPurificacionGlicerina">
-                <td>Otros costos y gastos</td>
-                <td class="col-right report-cost">$ {{ grupoSeleccionado.items[0].totalPurificacionGlicerina | number:'1.0-0' }}</td>
-              </tr>
-              <tr class="product-row" *ngIf="grupoSeleccionado.productoGlicerina">
-                <td><strong>{{ grupoSeleccionado.productoGlicerina.descripcion }}</strong></td>
-                <td class="col-right report-num"><strong>{{ grupoSeleccionado.productoGlicerina.cantidadConsumida | number:'1.0-3' }} <span class="unit">kg</span></strong></td>
+              <tr class="product-row" *ngIf="seccion.productoPrincipal">
+                <td><strong>{{ seccion.productoPrincipal.descripcion }}</strong></td>
+                <td class="col-right report-num"><strong>{{ seccion.productoPrincipal.cantidadConsumida | number:'1.0-3' }} <span class="unit">kg</span></strong></td>
               </tr>
             </tbody>
           </table>
@@ -299,26 +286,24 @@
         <div style="font-size:12px;color:#6c757d;">🆔 <b>{{ grupoPDF.idOrden }}</b> · 📅 {{ grupoPDF.fecha | date:'dd/MM/yyyy' }}</div>
       </div>
     </div>
-    <div class="report-section" *ngIf="grupoPDF.itemsBiodiesel.length > 0 || grupoPDF.productoBiodiesel">
-      <div class="report-section-hdr biodiesel">Biodiesel Destilado</div>
+    <div class="report-section" *ngFor="let seccion of grupoPDF.secciones">
+      <div class="report-section-hdr" [ngClass]="{'biodiesel': seccion.nombre.toLowerCase().includes('biodiesel'), 'glicerina': seccion.nombre.toLowerCase().includes('glicerina')}">
+        {{ seccion.nombre }}
+      </div>
       <table class="report-table">
         <thead><tr><th>Materia Prima / Insumo</th><th class="col-right">Cantidad</th></tr></thead>
         <tbody>
-          <tr *ngFor="let item of grupoPDF.itemsBiodiesel"><td>{{ item.descripcion }}</td><td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} kg</td></tr>
-          <tr class="cost-row"><td>Otros costos y gastos</td><td class="col-right report-cost">$ {{ (grupoPDF.items[0]?.totalOtrosCostos || 0) | number:'1.0-0' }}</td></tr>
-          <tr class="cost-row"><td>Mano de obra</td><td class="col-right report-cost">$ {{ (grupoPDF.items[0]?.totalManoObra || 0) | number:'1.0-0' }}</td></tr>
-          <tr class="product-row" *ngIf="grupoPDF.productoBiodiesel"><td><strong>{{ grupoPDF.productoBiodiesel.descripcion }}</strong></td><td class="col-right report-num"><strong>{{ grupoPDF.productoBiodiesel.cantidadConsumida | number:'1.0-3' }} kg</strong></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="report-section" *ngIf="grupoPDF.itemsGlicerina.length > 0 || grupoPDF.productoGlicerina">
-      <div class="report-section-hdr glicerina">Glicerina Cruda</div>
-      <table class="report-table">
-        <thead><tr><th>Materia Prima / Insumo</th><th class="col-right">Cantidad</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let item of grupoPDF.itemsGlicerina"><td>{{ item.descripcion }}</td><td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} kg</td></tr>
-          <tr class="cost-row" *ngIf="grupoPDF.items[0]?.totalPurificacionGlicerina"><td>Otros costos y gastos</td><td class="col-right report-cost">$ {{ grupoPDF.items[0].totalPurificacionGlicerina | number:'1.0-0' }}</td></tr>
-          <tr class="product-row" *ngIf="grupoPDF.productoGlicerina"><td><strong>{{ grupoPDF.productoGlicerina.descripcion }}</strong></td><td class="col-right report-num"><strong>{{ grupoPDF.productoGlicerina.cantidadConsumida | number:'1.0-3' }} kg</strong></td></tr>
+          <tr *ngFor="let item of seccion.items"><td>{{ item.descripcion }}</td><td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} kg</td></tr>
+          
+          <ng-container *ngIf="seccion.nombre.toLowerCase().includes('biodiesel')">
+            <tr class="cost-row"><td>Otros costos y gastos</td><td class="col-right report-cost">$ {{ grupoPDF.totalOtrosCostos | number:'1.0-0' }}</td></tr>
+            <tr class="cost-row"><td>Mano de obra</td><td class="col-right report-cost">$ {{ grupoPDF.totalManoObra | number:'1.0-0' }}</td></tr>
+          </ng-container>
+          <ng-container *ngIf="seccion.nombre.toLowerCase().includes('glicerina') && grupoPDF.totalPurificacion">
+            <tr class="cost-row"><td>Otros costos y gastos</td><td class="col-right report-cost">$ {{ grupoPDF.totalPurificacion | number:'1.0-0' }}</td></tr>
+          </ng-container>
+
+          <tr class="product-row" *ngIf="seccion.productoPrincipal"><td><strong>{{ seccion.productoPrincipal.descripcion }}</strong></td><td class="col-right report-num"><strong>{{ seccion.productoPrincipal.cantidadConsumida | number:'1.0-3' }} kg</strong></td></tr>
         </tbody>
       </table>
     </div>
@@ -346,18 +331,29 @@
           <thead>
             <tr>
               <th>Interno</th>
+              <th>Siesa ID</th>
               <th>ERP (API)</th>
               <th>Tipo Doc</th>
               <th>Descripción</th>
+              <th>Sección</th>
+              <th>Orden</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let m of mapeosERP">
-              <td><span class="id-badge">{{ m.interno }}</span></td>
-              <td><span class="id-badge erp">{{ m.erp }}</span></td>
-              <td><span class="id-badge erp">{{ m.bwart }}</span></td>
-              <td class="id-desc">{{ m.desc }}</td>
-            </tr>
+            <ng-container *ngFor="let m of mapeosERP">
+              <tr *ngIf="m.erp">
+                <td><span class="id-badge">{{ m.interno }}</span></td>
+                <td><span class="id-badge">{{ m.siesa || '-' }}</span></td>
+                <td><span class="id-badge erp">{{ m.erp }}</span></td>
+                <td><span class="id-badge erp">{{ m.bwart }}</span></td>
+                <td class="id-desc">{{ m.desc }}</td>
+                <td>
+                  <span *ngIf="m.seccionNombre !== 'Sin Sección'" class="id-badge" style="background-color: #2563eb; color: white;">{{ m.seccionNombre }}</span>
+                  <span *ngIf="m.seccionNombre === 'Sin Sección'" style="color: #94a3b8; font-size: 11px;">N/A</span>
+                </td>
+                <td><b>{{ m.ordenReporte !== 999 ? m.ordenReporte : '-' }}</b></td>
+              </tr>
+            </ng-container>
           </tbody>
         </table>
       </div>
