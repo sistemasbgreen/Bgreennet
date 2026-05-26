@@ -991,6 +991,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   toggleTasksFocus(): void {
     this.focusTasksMode = !this.focusTasksMode;
   }
+  isModalCalendarioHeaderOpen = false;
 
   abrirModalCalendarioHeader(): void {
     this.isModalCalendarioHeaderOpen = true;

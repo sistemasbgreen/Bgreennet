@@ -23,7 +23,10 @@ BEGIN
             WHEN [activo] = 1 AND [Fecha_Final] >= GETDATE() THEN 'Vigente'
             WHEN [activo] = 1 AND [Fecha_Final] < GETDATE() THEN 'Expirado'
             ELSE 'Inactivo'
-        END AS estado_descripcion
+        END AS estado_descripcion,        
+        [creado_por],
+		 [fecha_Activacion]
+        
     FROM [dbo].[Pulsos]
     ORDER BY [date_create] DESC
 END
