@@ -61,6 +61,10 @@ public class MetaService {
         return repository.obtenerTiposMovimiento();
     }
 
+    public List<Map<String, Object>> getSecciones() {
+        return repository.obtenerSecciones();
+    }
+
     public Map<String, Object> validarProductoEnSiesa(String id) {
         return repository.validarProductoEnSiesa(id);
     }

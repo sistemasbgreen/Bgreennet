@@ -8,16 +8,22 @@ import { productoservices } from '../../servicios/productoservices';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+export interface SeccionReporte {
+  nombre: string;
+  items: OpDocto[];
+  productoPrincipal: OpDocto | null;
+}
+
 interface OpGrupo {
   op: string;
   idOrden: string;
   fecha: string | null;
   status: string;
   items: OpDocto[];
-  itemsBiodiesel: OpDocto[];
-  productoBiodiesel: OpDocto | null;
-  itemsGlicerina: OpDocto[];
-  productoGlicerina: OpDocto | null;
+  secciones: SeccionReporte[];
+  totalOtrosCostos: number;
+  totalManoObra: number;
+  totalPurificacion: number;
 }
 
 @Component({
@@ -71,10 +77,6 @@ export class OrdenProduccion implements OnInit, OnDestroy {
   receptoresEdit = '';
   grupoSeleccionado: OpGrupo | null = null;
 
-  // ID Sets from EmailReporteService
-  private readonly IDS_BIODIESEL = new Set(['8', '7309', '10', '13', '12', '26']);
-  private readonly IDS_GLICERINA = new Set(['34', '15', '2549', '32']);
-
   private sub!: Subscription;
 
   constructor(
@@ -100,13 +102,18 @@ export class OrdenProduccion implements OnInit, OnDestroy {
     this.prodSvc.getProductos().subscribe({
       next: (prods) => {
         this.mapeosERP = prods
-          .filter(p => p.idProductoTbs)
           .map(p => ({
             interno: p.id,
+            siesa: p.idProductoSiesa,
             erp: p.idProductoTbs,
             desc: p.tbsDescripcion || p.nombre,
-            bwart: p.idTbsTipoDoc || '101'
+            bwart: p.idTbsTipoDoc || '101',
+            seccionId: p.seccionId || 999,
+            seccionNombre: p.seccionNombre || 'Sin Sección',
+            ordenReporte: p.ordenReporte || 999,
+            esProduccion: p.idTbsTipoDoc === '101' || p.idTbsTipoDoc?.startsWith('1')
           }));
+        this.agruparDatos(); // Re-agrupar cuando lleguen los mapeos
         this.cdr.detectChanges();
       }
     });
@@ -171,58 +178,87 @@ export class OrdenProduccion implements OnInit, OnDestroy {
   }
 
   agruparDatos(): void {
+    if (this.documentos.length === 0) return;
+
     const map = new Map<string, OpDocto[]>();
     this.documentos.forEach(d => {
       if (!map.has(d.op)) {
         map.set(d.op, []);
       }
+      
+      // Update description using mapping
+      const dItem = String(d.item).trim();
+      const mapeo = this.mapeosERP.find(m => 
+        m.siesa && String(m.siesa).trim() === dItem
+      );
+      if (mapeo) {
+        d.descripcion = mapeo.desc;
+        (d as any)._seccionId = mapeo.seccionId;
+        (d as any)._seccionNombre = mapeo.seccionNombre;
+        (d as any)._ordenReporte = mapeo.ordenReporte;
+        (d as any)._esProduccion = mapeo.esProduccion;
+      } else {
+        (d as any)._seccionId = 999;
+        (d as any)._seccionNombre = 'Sin Sección';
+        (d as any)._ordenReporte = 999;
+        (d as any)._esProduccion = false;
+      }
+      
       map.get(d.op)!.push(d);
     });
 
     this.opGrupos = Array.from(map.entries()).map(([op, items]) => {
-      let itemsBiodiesel = items.filter(i => this.IDS_BIODIESEL.has(i.item.trim()));
-      let itemsGlicerina = items.filter(i => this.IDS_GLICERINA.has(i.item.trim()));
+      // Agrupar por sección
+      const seccionesMap = new Map<string, SeccionReporte>();
       
-      const isProductoBio = (d: string) => d.toLowerCase().includes('biodi') || d.toLowerCase().includes('destilado');
-      const productoBiodiesel = itemsBiodiesel.find(i => isProductoBio(i.descripcion)) || null;
-      itemsBiodiesel = itemsBiodiesel.filter(i => !isProductoBio(i.descripcion));
-
-      const isProductoGli = (d: string) => d.toLowerCase().includes('cruda');
-      const productoGlicerina = itemsGlicerina.find(i => isProductoGli(i.descripcion)) || null;
-      itemsGlicerina = itemsGlicerina.filter(i => !isProductoGli(i.descripcion));
-
-      const biodieselOrder = ['aceite', 'estearina', 'metanol', 'metilato', 'fosforico'];
-      itemsBiodiesel.sort((a, b) => {
-        const aDesc = a.descripcion.toLowerCase();
-        const bDesc = b.descripcion.toLowerCase();
-        let aIdx = biodieselOrder.findIndex(k => aDesc.includes(k));
-        let bIdx = biodieselOrder.findIndex(k => bDesc.includes(k));
-        if (aIdx === -1) aIdx = 999;
-        if (bIdx === -1) bIdx = 999;
-        return aIdx - bIdx;
-      });
-
-      const glicerinaOrder = ['impura', 'clorhidrico', 'soda'];
-      itemsGlicerina.sort((a, b) => {
-        const aDesc = a.descripcion.toLowerCase();
-        const bDesc = b.descripcion.toLowerCase();
-        let aIdx = glicerinaOrder.findIndex(k => aDesc.includes(k));
-        let bIdx = glicerinaOrder.findIndex(k => bDesc.includes(k));
-        if (aIdx === -1) aIdx = 999;
-        if (bIdx === -1) bIdx = 999;
-        return aIdx - bIdx;
+      items.forEach(item => {
+        const sNombre = (item as any)._seccionNombre;
+        if (!sNombre || sNombre === 'Sin Sección') {
+          return;
+        }
+        if (!seccionesMap.has(sNombre)) {
+          seccionesMap.set(sNombre, { nombre: sNombre, items: [], productoPrincipal: null });
+        }
+        
+        const sec = seccionesMap.get(sNombre)!;
+        
+        if ((item as any)._esProduccion) {
+          if (sec.productoPrincipal) {
+            sec.productoPrincipal.cantidadConsumida += item.cantidadConsumida;
+          } else {
+            sec.productoPrincipal = { ...item };
+          }
+        } else {
+          const existing = sec.items.find(i => i.descripcion === item.descripcion);
+          if (existing) {
+            existing.cantidadConsumida += item.cantidadConsumida;
+          } else {
+            sec.items.push({ ...item });
+          }
+        }
       });
       
+      const secciones: SeccionReporte[] = Array.from(seccionesMap.values()).map(s => {
+        // Ordenar items de la sección
+        s.items.sort((a, b) => ((a as any)._ordenReporte || 999) - ((b as any)._ordenReporte || 999));
+        return s;
+      }).sort((a, b) => {
+        // Ordenar las secciones (usamos el ID de seccion)
+        const sIdA = a.items.length > 0 ? (a.items[0] as any)._seccionId : (a.productoPrincipal as any)?._seccionId || 999;
+        const sIdB = b.items.length > 0 ? (b.items[0] as any)._seccionId : (b.productoPrincipal as any)?._seccionId || 999;
+        return sIdA - sIdB;
+      });
+
       return {
         op,
         idOrden: items[0]?.idOrden || '',
         fecha: items[0]?.fecha || null,
         status: items[0]?.statusEnvio || 'Pendiente',
         items,
-        itemsBiodiesel,
-        productoBiodiesel,
-        itemsGlicerina,
-        productoGlicerina
+        secciones,
+        totalOtrosCostos: items[0]?.totalOtrosCostos || 0,
+        totalManoObra: items[0]?.totalManoObra || 0,
+        totalPurificacion: items[0]?.totalPurificacionGlicerina || 0
       };
     }).sort((a, b) => b.op.localeCompare(a.op));
   }

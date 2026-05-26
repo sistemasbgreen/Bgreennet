@@ -592,16 +592,16 @@
 }
 
 .blue-hdr {
-  background: linear-gradient(135deg, #0d6efd, #0056b3) !important;
+  background: linear-gradient(135deg, #2563eb, #1e40af) !important;
   border-left: 1px solid rgba(255,255,255,0.1) !important;
   text-align: center !important;
 }
 
 .td-erp-blue {
-  background: rgba(13, 110, 253, 0.04);
-  color: #0d6efd;
+  background: rgba(37, 99, 235, 0.03);
+  color: #2563eb;
   font-weight: 700;
-  border-left: 1px solid rgba(13, 110, 253, 0.1);
+  border-left: 1px solid rgba(37, 99, 235, 0.08);
   padding: 12px 16px;
   text-align: center;
   font-size: 13px;
@@ -615,7 +615,35 @@
 }
 
 .td-erp-blue:hover {
-  background: rgba(13, 110, 253, 0.08);
+  background: rgba(37, 99, 235, 0.07);
+}
+
+/* ERP Mapping Table Header - Split Green/Blue Theme */
+.erp-mapping-table thead tr {
+  background: none !important;
+}
+
+.erp-mapping-table thead th {
+  background: linear-gradient(135deg, #2563eb, #1e40af) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+  text-align: center !important;
+  color: #ffffff !important;
+}
+
+/* Green headers for the columns coming from Table 1 */
+.erp-mapping-table thead th.col-id,
+.erp-mapping-table thead th.col-nombre {
+  background: linear-gradient(135deg, #006c2c, #00853a) !important;
+}
+
+.erp-mapping-table thead th:first-child {
+  border-left: none !important;
+  text-align: left !important;
+  padding-left: 24px !important;
+}
+
+.erp-mapping-table thead th.col-nombre {
+  text-align: left !important;
 }
 
 .user-info {

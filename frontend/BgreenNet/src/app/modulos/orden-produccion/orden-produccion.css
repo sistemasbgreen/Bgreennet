@@ -679,7 +679,16 @@
 .btn-modal-secondary:hover { border-color: #adb5bd; color: #374151; }
 
 /* ── REPORT SECTIONS ─────────────────────────────────────── */
-.report-section { border-top: 1px solid #f0f4f0; }
+.report-section { 
+  border: 1px solid #e8ede8; 
+  border-radius: 12px; 
+  margin-bottom: 20px; 
+  overflow: hidden; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
+}
+.report-section:last-child {
+  margin-bottom: 0;
+}
 
 .report-section-hdr {
   padding: 11px 24px;
