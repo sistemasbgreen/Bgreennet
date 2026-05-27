@@ -713,6 +713,12 @@
   border-top: 2px solid rgba(21,101,192,0.15);
 }
 
+.report-section-hdr.fondos {
+  background: #fffbeb;
+  color: #b45309;
+  border-top: 2px solid rgba(180,83,9,0.15);
+}
+
 .report-table {
   width: 100%;
   border-collapse: collapse;

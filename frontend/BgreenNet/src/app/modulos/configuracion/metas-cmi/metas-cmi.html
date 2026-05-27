@@ -96,8 +96,8 @@
 
   <!-- ERP Mapping Card -->
   <div class="table-card products-detail-card" *ngIf="productosOriginales.length > 0" style="margin-top: 24px;">
-    <div class="table-card-header" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border-bottom: 1px solid rgba(37, 99, 235, 0.15);">
-      <div class="table-title" style="color: #1e40af;">
+    <div class="table-card-header">
+      <div class="table-title">
         <i class="bi bi-diagram-2"></i>
         <span>Mapeo ERP y Reportes de Producción</span>
       </div>
@@ -108,11 +108,11 @@
           <tr>
             <th class="col-id" style="width: 5%; padding-left: 24px;">ID Bgreen</th>
             <th class="col-nombre" style="width: 15%;">Producto Bgreen</th>
-            <th class="col-erp blue-hdr">ID TBS</th>
-            <th class="col-erp blue-hdr">Doc TBS</th>
-            <th class="col-erp blue-hdr">Nombre TBS</th>
-            <th class="col-erp blue-hdr">Sección</th>
-            <th class="col-erp blue-hdr" style="width: 50px;">Orden</th>
+            <th class="col-erp">ID TBS</th>
+            <th class="col-erp">Doc TBS</th>
+            <th class="col-erp">Nombre TBS</th>
+            <th class="col-erp">Sección</th>
+            <th class="col-erp" style="width: 50px;">Orden</th>
             <th class="col-actions" style="text-align: center;">Editar</th>
           </tr>
         </thead>
@@ -126,16 +126,16 @@
             <td class="td-nombre">
               <span class="product-name-txt" style="font-weight: 600;">{{ p.nombre }}</span>
             </td>
-            <td class="td-erp-blue">{{ p.idProductoTbs || '-' }}</td>
-            <td class="td-erp-blue">{{ p.idTbsTipoDoc || '-' }}</td>
-            <td class="td-erp-blue desc">{{ p.tbsDescripcion || '-' }}</td>
-            <td class="td-erp-blue">
-              <span *ngIf="p.seccionNombre" class="siesa-badge" style="background-color: #2563eb; color: white;">
+            <td class="td-erp-green">{{ p.idProductoTbs || '-' }}</td>
+            <td class="td-erp-green">{{ p.idTbsTipoDoc || '-' }}</td>
+            <td class="td-erp-green desc">{{ p.tbsDescripcion || '-' }}</td>
+            <td class="td-erp-green">
+              <span *ngIf="p.seccionNombre" class="siesa-badge" style="background-color: #006c2c; color: white;">
                 {{ p.seccionNombre }}
               </span>
               <span *ngIf="!p.seccionNombre" class="no-data">-</span>
             </td>
-            <td class="td-erp-blue">
+            <td class="td-erp-green">
               <strong>{{ p.ordenReporte !== 999 && p.ordenReporte !== null ? p.ordenReporte : '-' }}</strong>
             </td>
             <td class="td-actions" style="text-align: center;">
@@ -580,6 +580,64 @@
         <div style="flex: 1;"></div>
         <button class="btn-save-modal" (click)="guardarProducto()" [disabled]="isSearchingSiesa">
           <i class="bi bi-cloud-check"></i> {{ isEditingProduct ? 'Actualizar Producto' : 'Guardar Producto' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Duplicate Siesa ID Modal -->
+  <div class="modal-overlay" *ngIf="showConfirmDuplicateModal" (click)="showConfirmDuplicateModal = false" style="z-index: 12000;">
+    <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 550px; border-top: 4px solid #f59e0b;">
+      <div class="modal-header" style="background: #fffbeb;">
+        <h3 class="modal-title" style="color: #b45309;">
+          <i class="bi bi-exclamation-triangle-fill" style="color: #d97706; background: none; -webkit-text-fill-color: initial;"></i>
+          Confirmar ID Siesa Duplicado
+        </h3>
+        <button class="btn-close-modal" (click)="showConfirmDuplicateModal = false">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body" style="padding: 24px; gap: 16px;">
+        <p style="font-size: 14px; line-height: 1.5; color: #475569; margin: 0;">
+          ¿Está seguro de que desea guardar este producto? El <strong>ID Siesa estará duplicado</strong> en el sistema.
+        </p>
+
+        <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+          
+          <div>
+            <span style="font-size: 11px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px;">Producto Nuevo/Editado</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+              <span style="font-weight: 600; color: #1e293b; font-size: 13px;">{{ currentProduct.nombre }}</span>
+              <span class="siesa-badge" style="background: #fef3c7; color: #b45309; border-color: #fde68a;">
+                ID Siesa: {{ currentProduct.idProductoSiesa }}
+              </span>
+            </div>
+          </div>
+
+          <div style="border-top: 1px dashed #fde68a; padding-top: 12px;" *ngIf="duplicateProductInfo">
+            <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Producto Existente con el mismo ID</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+              <span style="font-weight: 600; color: #475569; font-size: 13px;">{{ duplicateProductInfo.nombre }}</span>
+              <span class="siesa-badge">
+                ID Siesa: {{ duplicateProductInfo.idProductoSiesa }}
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <p style="font-size: 12px; color: #ef4444; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 6px;">
+          <i class="bi bi-info-circle-fill"></i> Nota: Esto asociará el mismo ID Siesa de forma doble.
+        </p>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc; padding: 16px 24px;">
+        <button class="btn-cancel" (click)="showConfirmDuplicateModal = false" style="padding: 10px 20px;">
+          Cancelar
+        </button>
+        <button class="btn-save-modal" (click)="confirmarGuardarDuplicado()" style="padding: 10px 24px; background: linear-gradient(135deg, #d97706, #f59e0b); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);">
+          <i class="bi bi-check-lg"></i> Sí, guardar de todas formas
         </button>
       </div>
     </div>
