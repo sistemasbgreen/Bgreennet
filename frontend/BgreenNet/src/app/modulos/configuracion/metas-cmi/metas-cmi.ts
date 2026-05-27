@@ -44,6 +44,8 @@ export class MetasCMI implements OnInit {
   isEditingProduct: boolean = false;
   currentProduct: producto = { id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, metaDiariaManual: false };
   selectedProductObj: producto | null = null;
+  showConfirmDuplicateModal: boolean = false;
+  duplicateProductInfo: producto | null = null;
   
   // Catalogos
   tiposDocumento: any[] = [];
@@ -694,7 +696,11 @@ export class MetasCMI implements OnInit {
     });
   }
 
-  closeProductModal() { this.showProductModal = false; }
+  closeProductModal() { 
+    this.showProductModal = false; 
+    this.showConfirmDuplicateModal = false;
+    this.duplicateProductInfo = null;
+  }
 
   guardarProducto() {
     if (!this.currentProduct.nombre) return this.showToast('El nombre es obligatorio', 'error');
@@ -704,7 +710,11 @@ export class MetasCMI implements OnInit {
       const duplicate = this.productosOriginales.find(p =>
         String(p.idProductoSiesa) === String(this.currentProduct.idProductoSiesa) && p.id !== this.currentProduct.id
       );
-      if (duplicate && !this.isCompuestoToggle) return this.showToast(`ID Siesa ya asignado a ${duplicate.nombre}`, 'error');
+      if (duplicate && !this.isCompuestoToggle) {
+        this.duplicateProductInfo = duplicate;
+        this.showConfirmDuplicateModal = true;
+        return;
+      }
     }
 
     if (this.isCompuestoToggle && this.tempComponentes.length < 2) {
@@ -715,6 +725,11 @@ export class MetasCMI implements OnInit {
       return this.showToast('La selección debe tener al menos un documento', 'error');
     }
 
+    this.ejecutarGuardadoProducto();
+  }
+
+  confirmarGuardarDuplicado() {
+    this.showConfirmDuplicateModal = false;
     this.ejecutarGuardadoProducto();
   }
 
