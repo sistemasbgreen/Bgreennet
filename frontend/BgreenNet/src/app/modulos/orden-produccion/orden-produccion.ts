@@ -188,23 +188,31 @@ export class OrdenProduccion implements OnInit, OnDestroy {
       
       // Update description using mapping
       const dItem = String(d.item).trim();
-      const mapeo = this.mapeosERP.find(m => 
+      const mapeos = this.mapeosERP.filter(m => 
         m.siesa && String(m.siesa).trim() === dItem
       );
-      if (mapeo) {
-        d.descripcion = mapeo.desc;
-        (d as any)._seccionId = mapeo.seccionId;
-        (d as any)._seccionNombre = mapeo.seccionNombre;
-        (d as any)._ordenReporte = mapeo.ordenReporte;
-        (d as any)._esProduccion = mapeo.esProduccion;
+      if (mapeos.length > 0) {
+        mapeos.forEach(mapeo => {
+          const dCopy = {
+            ...d,
+            descripcion: mapeo.desc,
+            _seccionId: mapeo.seccionId,
+            _seccionNombre: mapeo.seccionNombre,
+            _ordenReporte: mapeo.ordenReporte,
+            _esProduccion: mapeo.esProduccion
+          };
+          map.get(d.op)!.push(dCopy);
+        });
       } else {
-        (d as any)._seccionId = 999;
-        (d as any)._seccionNombre = 'Sin Sección';
-        (d as any)._ordenReporte = 999;
-        (d as any)._esProduccion = false;
+        const dCopy = {
+          ...d,
+          _seccionId: 999,
+          _seccionNombre: 'Sin Sección',
+          _ordenReporte: 999,
+          _esProduccion: false
+        };
+        map.get(d.op)!.push(dCopy);
       }
-      
-      map.get(d.op)!.push(d);
     });
 
     this.opGrupos = Array.from(map.entries()).map(([op, items]) => {

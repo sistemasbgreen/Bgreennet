@@ -203,13 +203,13 @@
 
         <!-- Dynamic Sections -->
         <div class="report-section" *ngFor="let seccion of grupoSeleccionado.secciones">
-          <div class="report-section-hdr" [ngClass]="{'biodiesel': seccion.nombre.toLowerCase().includes('biodiesel'), 'glicerina': seccion.nombre.toLowerCase().includes('glicerina')}">
+          <div class="report-section-hdr" [ngClass]="{'biodiesel': seccion.nombre.toLowerCase().includes('biodiesel'), 'glicerina': seccion.nombre.toLowerCase().includes('glicerina'), 'fondos': seccion.nombre.toLowerCase().includes('fondos')}">
             <svg *ngIf="seccion.nombre.toLowerCase().includes('biodiesel')" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path></svg>
             <svg *ngIf="!seccion.nombre.toLowerCase().includes('biodiesel')" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>
             {{ seccion.nombre }}
           </div>
           <table class="report-table">
-            <thead><tr><th>Materia Prima / Insumo</th><th class="col-right">Cantidad</th></tr></thead>
+            <thead><tr><th>Materia primas e insumos consumidos</th><th class="col-right">Cantidad</th></tr></thead>
             <tbody>
               <tr *ngFor="let item of seccion.items">
                 <td>{{ item.descripcion }}</td>
@@ -287,11 +287,11 @@
       </div>
     </div>
     <div class="report-section" *ngFor="let seccion of grupoPDF.secciones">
-      <div class="report-section-hdr" [ngClass]="{'biodiesel': seccion.nombre.toLowerCase().includes('biodiesel'), 'glicerina': seccion.nombre.toLowerCase().includes('glicerina')}">
+      <div class="report-section-hdr" [ngClass]="{'biodiesel': seccion.nombre.toLowerCase().includes('biodiesel'), 'glicerina': seccion.nombre.toLowerCase().includes('glicerina'), 'fondos': seccion.nombre.toLowerCase().includes('fondos')}">
         {{ seccion.nombre }}
       </div>
       <table class="report-table">
-        <thead><tr><th>Materia Prima / Insumo</th><th class="col-right">Cantidad</th></tr></thead>
+        <thead><tr><th>Materia primas e insumos consumidos</th><th class="col-right">Cantidad</th></tr></thead>
         <tbody>
           <tr *ngFor="let item of seccion.items"><td>{{ item.descripcion }}</td><td class="col-right report-num">{{ item.cantidadConsumida | number:'1.0-3' }} kg</td></tr>
           
