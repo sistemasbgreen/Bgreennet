@@ -3,7 +3,7 @@
   <header class="header">
     <div class="header-content">
       <div class="logo-container">
-        <a  href="">
+        <a href="/cmi/home">
           <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo Bgreen" class="logo" />
         </a>
       </div>
@@ -94,7 +94,8 @@
             </div>
           </div>
           <div class="chart-container">
-            <canvas baseChart [data]="monthlyCxPChartData" [options]="monthlyCxPOptions" [plugins]="barChartPlugins" type="bar"></canvas>
+            <canvas baseChart [data]="monthlyCxPChartData" [options]="monthlyCxPOptions" [plugins]="barChartPlugins"
+              type="bar"></canvas>
           </div>
         </div>
       </div>
@@ -152,7 +153,8 @@
             </div>
           </div>
           <div class="chart-container">
-            <canvas baseChart [data]="monthlyPxCChartData" [options]="monthlyPxCOptions" [plugins]="barChartPlugins" type="bar"></canvas>
+            <canvas baseChart [data]="monthlyPxCChartData" [options]="monthlyPxCOptions" [plugins]="barChartPlugins"
+              type="bar"></canvas>
           </div>
         </div>
       </div>
@@ -169,15 +171,18 @@
             <div class="stat-icon"><i class="fas fa-flask"></i></div>
           </div>
           <div class="stat-value" *ngIf="!isB100()">
-            <ng-container *ngIf="selectedProduct === '13'">{{ truncateDecimal(monthlyData.acumulado_mes, 1) }} Kg/Ton</ng-container>
-            <ng-container *ngIf="selectedProduct !== '13'">{{ monthlyData.acumulado_mes | number:'1.0-0':'es-ES' }} Kg/Ton</ng-container>
+            <ng-container *ngIf="selectedProduct === '13'">{{ truncateDecimal(monthlyData.acumulado_mes, 1) }}
+              Kg/Ton</ng-container>
+            <ng-container *ngIf="selectedProduct !== '13'">{{ monthlyData.acumulado_mes | number:'1.0-0':'es-ES' }}
+              Kg/Ton</ng-container>
           </div>
           <div class="stat-value" *ngIf="isB100()">
             {{ monthlyData.total_produccion | number:'1.0-0':'es-ES' }} Ton
           </div>
           <div class="stat-detail" *ngIf="!isB100()">
             <i class="fas fa-info-circle"></i>
-            <span>{{ isProduccionBase() ? 'Producción' : 'Consumo' }}: {{ monthlyData.total_consumo | number:'1.0-0':'es-ES' }} kg</span>
+            <span>{{ isProduccionBase() ? 'Producción' : 'Consumo' }}: {{ monthlyData.total_consumo |
+              number:'1.0-0':'es-ES' }} kg</span>
           </div>
           <div class="stat-detail" *ngIf="isB100()">
             <i class="fas fa-calendar-check"></i>
@@ -190,8 +195,10 @@
             <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
           </div>
           <div class="stat-value" *ngIf="!isB100()">
-            <ng-container *ngIf="selectedProduct === '13'">{{ truncateDecimal(ytdData.acumulado_mes, 1) }} Kg/Ton</ng-container>
-            <ng-container *ngIf="selectedProduct !== '13'">{{ ytdData.acumulado_mes | number:'1.0-0':'es-ES' }} Kg/Ton</ng-container>
+            <ng-container *ngIf="selectedProduct === '13'">{{ truncateDecimal(ytdData.acumulado_mes, 1) }}
+              Kg/Ton</ng-container>
+            <ng-container *ngIf="selectedProduct !== '13'">{{ ytdData.acumulado_mes | number:'1.0-0':'es-ES' }}
+              Kg/Ton</ng-container>
           </div>
           <div class="stat-detail" *ngIf="!isB100()">
             <i class="fas fa-chart-line"></i>
@@ -231,7 +238,8 @@
             </div>
           </div>
           <div class="chart-container">
-            <canvas baseChart [data]="monthlyChartData" [options]="monthlyChartOptions" [plugins]="barChartPlugins" type="bar"></canvas>
+            <canvas baseChart [data]="monthlyChartData" [options]="monthlyChartOptions" [plugins]="barChartPlugins"
+              type="bar"></canvas>
           </div>
         </div>
       </div>
@@ -240,7 +248,7 @@
 
 
 
-  
+
   <!-- Stats y gráficos para Costo Directo -->
   <div *ngIf="isCostoDirecto()">
     <!-- Stats Cards -->
@@ -306,7 +314,8 @@
             </div>
           </div>
           <div class="chart-container">
-            <canvas baseChart [data]="costoDirectoAcumuladoChartData" [options]="costoDirectoOptions" type="line"></canvas>
+            <canvas baseChart [data]="costoDirectoAcumuladoChartData" [options]="costoDirectoOptions"
+              type="line"></canvas>
           </div>
         </div>
       </div>
