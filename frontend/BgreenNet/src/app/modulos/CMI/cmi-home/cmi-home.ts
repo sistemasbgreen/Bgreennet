@@ -31,11 +31,7 @@ export class CmiHome implements OnInit {
   // Lista de todas las categorías
   categorias = [
     { id: 'estrategia', nombre: 'Estrategia' },
-    { id: 'financiero', nombre: 'Financiero' },
-    { id: 'operacional', nombre: 'Operacional' },
-    { id: 'comercial', nombre: 'Comercial' },
-    { id: 'organizacional', nombre: 'Organizacional' },
-    { id: 'sostenibilidad', nombre: 'Sostenibilidad' }
+    { id: 'operacional', nombre: 'Operacional' }
   ];
   ngOnInit(): void {
     console.log(this.industrializacionAceite_number)
@@ -49,6 +45,10 @@ export class CmiHome implements OnInit {
 
   irAProductos() {
   this.router.navigate(['/cmi/productos']);
+}
+
+  irIndustrial() {
+  this.router.navigate(['/cmi/servicios-industriales']);
 }
 
   irindustrializacion() {

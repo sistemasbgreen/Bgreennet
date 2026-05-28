@@ -18,14 +18,10 @@
         <h1>CUADRO DE MANDO INTEGRAL</h1>
       </div>
       <div class="filter-section">
-        <select id="category-select">
+        <select id="category-select" [(ngModel)]="categoriaSeleccionada" (change)="onCategoriaChange($event)">
           <option value="">Todas las categorías</option>
           <option value="estrategia">Estrategia</option>
-          <option value="financiero">Financiero</option>
           <option value="operacional">Operacional</option>
-          <option value="comercial">Comercial</option>
-          <option value="organizacional">Organizacional</option>
-          <option value="sostenibilidad">Sostenibilidad</option>
         </select>
       </div>
     </div>
@@ -84,7 +80,7 @@
     <!-- Categories Grid -->
     <div class="categories-grid">
       <!-- Estrategia -->
-      <div class="category slide-in" data-category="estrategia" id="estrategia">
+      <div class="category slide-in" *ngIf="mostrarCategoria('estrategia')" data-category="estrategia" id="estrategia">
         <div class="category-header">
           <div class="category-icon" style="background: linear-gradient(45deg, #667eea, #764ba2);">
             <i class="fas fa-chess-king"></i>
@@ -119,46 +115,15 @@
             <div class="indicator-meta">75% completado</div>
           </div>
           -->
-        
+
 
         </div>
       </div>
 
-      <!-- Financiero -->
-      <div class="category slide-in" data-category="financiero" id="financiero">
-        <div class="category-header">
-          <div class="category-icon" style="background: linear-gradient(45deg, #f093fb, #f5576c);">
-            <i class="fas fa-chart-pie"></i>
-          </div>
-          <div class="category-title">Financiero</div>
-        </div>
-        <div class="indicators-grid">
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="ebida.php">
-            <div class="indicator-title">Cumplimiento del EBITDA</div>
-            <div class="indicator-value">##</div>
-            <div class="indicator-meta"></div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="endeudamiento.html">
-            <div class="indicator-title">Nivel endeudamiento</div>
-            <div class="indicator-meta">Control trimestral</div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="rentabilidad.html">
-            <div class="indicator-title">Rentabilidad</div>
-            <div class="indicator-meta">ROI mensual</div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="capital_trabajo.html">
-            <div class="indicator-title">Capital de trabajo</div>
-            <div class="indicator-meta">Flujo semanal</div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="cumplimiento_ppto.php">
-            <div class="indicator-title">Cumplimiento de presupuestos</div>
-            <div class="indicator-meta">Seguimiento mensual</div>
-          </div>
-        </div>
-      </div>
+
 
       <!-- Operacional -->
-      <div class="category slide-in" data-category="operacional" id="operacional">
+      <div class="category slide-in" *ngIf="mostrarCategoria('operacional')" data-category="operacional" id="operacional">
         <div class="category-header">
           <div class="category-icon" style="background: linear-gradient(45deg, #4facfe, #00f2fe);">
             <i class="fas fa-cogs"></i>
@@ -191,6 +156,47 @@
             <div class="indicator-meta">Mensual</div>
           </div>
 
+          <div class="indicator" style="border-left: 4px solid #0d5905;" (click)="irIndustrial()">
+            <div class="indicator-title" style="margin-bottom: 10px; text-align: center;">Servicios Industriales</div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="indicator-icons" style="margin: 0;">
+                <div class="indicator-icon-item">
+                  <i class="fas fa-tint" style="color: #2176ae;" title="Agua"></i>
+                  <div class="data-group">
+                    <span class="item-data" style="font-weight: 700; color: #2c5f2d; font-size: 12px;">45</span>
+                    <span class="item-global" style="font-size: 10px; color: #6c757d;">/ 100</span>
+                  </div>
+                </div>
+                <div class="indicator-icon-item">
+                  <i class="fas fa-bolt" style="color: #e8a214;" title="Energía"></i>
+                  <div class="data-group">
+                    <span class="item-data" style="font-weight: 700; color: #2c5f2d; font-size: 12px;">80</span>
+                    <span class="item-global" style="font-size: 10px; color: #6c757d;">/ 100</span>
+                  </div>
+                </div>
+                <div class="indicator-icon-item">
+                  <i class="fas fa-fire" style="color: #d9520f;" title="Gas"></i>
+                  <div class="data-group">
+                    <span class="item-data" style="font-weight: 700; color: #2c5f2d; font-size: 12px;">30</span>
+                    <span class="item-global" style="font-size: 10px; color: #6c757d;">/ 100</span>
+                  </div>
+                </div>
+                <div class="indicator-icon-item">
+                  <i class="fas fa-wind" style="color: #7b5ea7;" title="Vapor"></i>
+                  <div class="data-group">
+                    <span class="item-data" style="font-weight: 700; color: #2c5f2d; font-size: 12px;">60</span>
+                    <span class="item-global" style="font-size: 10px; color: #6c757d;">/ 100</span>
+                  </div>
+                </div>
+              </div>
+              
+              <span class="indicator-value" style="font-size: 2rem; line-height: 1; color: #2c5f2d;">75</span>
+              
+            </div>
+
+          </div>
+
           <!--
           <div class="indicator" data-page="metanol_Js.php">
             <div class="indicator-title">OEE</div>
@@ -208,136 +214,15 @@
           
           -->
 
-          
+
         </div>
 
       </div>
 
-      <!-- Comercial -->
-      <div class="category slide-in" data-category="comercial" id="comercial">
-        <div class="category-header">
-          <div class="category-icon" style="background: linear-gradient(45deg, #43e97b, #38f9d7);">
-            <i class="fas fa-handshake"></i>
-          </div>
-          <div class="category-title">Comercial</div>
-        </div>
-        <div class="indicators-grid">
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="rentabilidad_ventas.html">
-            <div class="indicator-title">Rentabilidad de las ventas</div>
-            <div class="indicator-meta">Margen mensual</div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="Cumplimiento_ventas.php">
-            <div class="indicator-title">Cumplimiento de ventas</div>
-            <div class="indicator-value">##</div>
-            <div class="indicator-meta">Meta mensual</div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="participacion_mercado.php">
-            <div class="indicator-title">Participación en el mercado</div>
-            <div class="indicator-meta">Share trimestral</div>
-          </div>
-          <div class="indicator" data-page="satisfaccion_clientes.html">  
-            <div class="indicator-title">Satisfacción de los clientes</div>
-            <div class="indicator-meta">Encuestas NPS</div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Organizacional -->
-      <div class="category slide-in" data-category="organizacional" id="organizacional">
-        <div class="category-header">
-          <div class="category-icon" style="background: linear-gradient(45deg, #fa709a, #fee140);">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="category-title">Organizacional & Gestión Humana</div>
-        </div>
-        <div class="indicators-grid">
-          <div class="indicator" data-page="modelo_gestion.html">
-            <div class="indicator-title">Implementación del modelo de gestión</div>
-            <div class="indicator-meta">Progreso continuo</div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="transformacion_digital.html">
-            <div class="indicator-title">Proyecto de Transformación Digital</div>
-            <div class="indicator-meta">Fase 2 activa</div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="presentismo.html">
-            <div class="indicator-title">Nivel Presentismo</div>
-            <div class="indicator-meta">Control mensual</div>
-          </div>
-          <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="rotacion.html">
-            <div class="indicator-title">Rotación Anual</div>
-            <div class="indicator-meta">Meta < 15%</div>
-            </div>
-            <div class="indicator" style="border-left: 4px solid #f39c12;" data-page="clima.html">
-              <div class="indicator-title">Clima organizacional</div>
-              <div class="indicator-meta">Encuesta semestral</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sostenibilidad -->
-        <div class="category slide-in" data-category="sostenibilidad" id="sostenibilidad">
-          <div class="category-header">
-            <div class="category-icon" style="background: linear-gradient(45deg, #a8edea, #fed6e3);">
-              <i class="fas fa-leaf"></i>
-            </div>
-            <div class="category-title">Sostenibilidad</div>
-          </div>
-          <div class="indicators-grid">
-            <div class="indicator" data-page="gobierno_corporativo.html">
-              <div class="indicator-title">Implementación de Gobierno Corporativo</div>
-              <div class="indicator-meta">Estructura definida</div>
-            </div>
-            <div class="indicator" data-page="satisfaccion_proveedores.html">
-              <div class="indicator-title">Satisfacción de proveedores</div>
-              <div class="indicator-meta">Evaluación trimestral</div>
-            </div>
-            <div class="indicator" data-page="cumplimiento_legal.html">
-              <div class="indicator-title">Cumplimiento normativo y legal</div>
-              <div class="indicator-meta">Auditoría continua</div>
-            </div>
-            <div class="indicator" data-page="plan_social.html">
-              <div class="indicator-title">Implementación del plan social</div>
-              <div class="indicator-meta">Impacto comunitario</div>
-            </div>
-          </div>
-        </div>
       </div>
 
   </main>
 
-  <!-- Script mínimo para interactividad básica (opcional en Angular) -->
-  <script>
-    // Filtro por categoría
-    document.addEventListener('DOMContentLoaded', function () {
-      const select = document.getElementById('category-select');
-      const categories = document.querySelectorAll('.category');
-
-      select.addEventListener('change', function () {
-        const selectedValue = this.value;
-        categories.forEach((category, index) => {
-          if (selectedValue === '' || selectedValue === category.getAttribute('data-category')) {
-            category.style.display = 'block';
-            category.style.animationDelay = `${index * 0.1}s`;
-            setTimeout(() => category.classList.add('fade-in'), 50);
-          } else {
-            category.style.display = 'none';
-            category.classList.remove('fade-in');
-          }
-        });
-      });
-    });
-
-    // Redirección al hacer clic en indicador
-    document.querySelectorAll('.indicator').forEach((indicator) => {
-      indicator.addEventListener('click', function () {
-        const page = this.getAttribute('data-page');
-        if (!page) {
-          alert('Página no asignada');
-          return;
-        }
-        this.style.transform = 'scale(0.95)';
-        setTimeout(() => window.location.href = page, 150);
-      });
-    });
-  </script>
+  <!-- Script removido por Angular -->
 </body>
