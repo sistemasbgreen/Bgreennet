@@ -85,9 +85,21 @@ public class OpDoctoRepository {
         }
 
 		String sql = """
+				WITH FechasRank AS (
+				    SELECT 
+				        CAST(mov_sub.f470_id_fecha AS DATE) AS fecha_dia,
+				        DENSE_RANK() OVER (PARTITION BY FORMAT(CAST(mov_sub.f470_id_fecha AS DATE), 'yyyyMM') ORDER BY CAST(mov_sub.f470_id_fecha AS DATE)) AS rank_dia
+				    FROM t470_cm_movto_invent mov_sub
+				    INNER JOIN t350_co_docto_contable doc_sub ON doc_sub.f350_rowid = mov_sub.f470_rowid_docto
+				    WHERE doc_sub.f350_ind_estado = 1 
+				      AND doc_sub.f350_id_tipo_docto IN ('TEP','EI','SDI','EDP')
+				      AND mov_sub.f470_id_fecha >= ?
+				      AND mov_sub.f470_id_fecha <= ?
+				    GROUP BY CAST(mov_sub.f470_id_fecha AS DATE)
+				)
 				SELECT
 				    'OP - ' + CONVERT(VARCHAR(10), CAST(mov.f470_id_fecha AS DATE), 23) AS OP,
-                    FORMAT(mov.f470_id_fecha, 'yyyyMM') + RIGHT('000' + CAST(DENSE_RANK() OVER (PARTITION BY FORMAT(mov.f470_id_fecha, 'yyyyMM') ORDER BY CAST(mov.f470_id_fecha AS DATE)) AS VARCHAR(10)), 3) AS id_orden,
+                    FORMAT(mov.f470_id_fecha, 'yyyyMM') + RIGHT('000' + CAST(fr.rank_dia AS VARCHAR(10)), 3) AS id_orden,
 				    itm.f120_id AS item,
 				    itm.f120_descripcion,
 				    CAST(mov.f470_id_fecha AS DATE) AS fecha,
@@ -112,6 +124,7 @@ public class OpDoctoRepository {
 				    ON doc.f350_rowid = mov.f470_rowid_docto
 				INNER JOIN  [t150_mc_bodegas] bod
 				    ON bod.f150_rowid = mov.f470_rowid_bodega
+				LEFT JOIN FechasRank fr ON fr.fecha_dia = CAST(mov.f470_id_fecha AS DATE)
 
 				LEFT JOIN (
 				    SELECT
@@ -159,6 +172,7 @@ public class OpDoctoRepository {
 				    itm.f120_descripcion,
 				    CAST(mov.f470_id_fecha AS DATE),
 				    FORMAT(mov.f470_id_fecha, 'yyyyMM'),
+				    fr.rank_dia,
 				    costos.total_purificacion_glicerina,
 				    costos.total_mano_obra,
 				    costos.total_otros_costos
@@ -171,11 +185,16 @@ public class OpDoctoRepository {
 
         String formattedSql = String.format(sql, inClause.toString());
 
-        Object[] params = new Object[2 + siesaIds.size()];
-        params[0] = java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay());
-        params[1] = java.sql.Timestamp.valueOf(fechaFin.atTime(23, 59, 59));
+        LocalDate primerDia = fechaInicio.withDayOfMonth(1);
+        LocalDate ultimoDia = fechaFin.withDayOfMonth(fechaFin.lengthOfMonth());
+
+        Object[] params = new Object[4 + siesaIds.size()];
+        params[0] = java.sql.Timestamp.valueOf(primerDia.atStartOfDay());
+        params[1] = java.sql.Timestamp.valueOf(ultimoDia.atTime(23, 59, 59));
+        params[2] = java.sql.Timestamp.valueOf(fechaInicio.atStartOfDay());
+        params[3] = java.sql.Timestamp.valueOf(fechaFin.atTime(23, 59, 59));
         for (int i = 0; i < siesaIds.size(); i++) {
-            params[2 + i] = siesaIds.get(i);
+            params[4 + i] = siesaIds.get(i);
         }
 
         try {
