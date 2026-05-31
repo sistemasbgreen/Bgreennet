@@ -143,6 +143,26 @@ public class MetaController {
         return service.getTiposDocumento();
     }
 
+    @PostMapping("/catalogos/tipos-documento")
+    public ResponseEntity<?> guardarTipoDocumento(@RequestBody Map<String, Object> body) {
+        try {
+            Integer id = null;
+            if (body.get("id") != null && !body.get("id").toString().isEmpty()) {
+                id = Integer.parseInt(body.get("id").toString());
+            }
+            String codigo = (String) body.get("codigo");
+            String descripcion = (String) body.get("descripcion");
+            String estado = (String) body.get("estado");
+            
+            service.guardarTipoDocumento(id, codigo, descripcion, estado);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            log.error("[guardarTipoDocumento] ERROR: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/catalogos/tipos-movimiento")
     public List<Map<String, Object>> getTiposMovimiento() {
         return service.getTiposMovimiento();

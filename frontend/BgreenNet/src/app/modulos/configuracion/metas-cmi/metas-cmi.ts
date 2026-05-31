@@ -42,10 +42,15 @@ export class MetasCMI implements OnInit {
   showProductModal: boolean = false;
   showMetasModal: boolean = false;
   isEditingProduct: boolean = false;
+  editModeType: 'general' | 'erp' = 'general';
   currentProduct: producto = { id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, metaDiariaManual: false };
   selectedProductObj: producto | null = null;
   showConfirmDuplicateModal: boolean = false;
   duplicateProductInfo: producto | null = null;
+  
+  showDocTypeModal: boolean = false;
+  isEditingDocType: boolean = false;
+  currentDocType: any = { id: null, codigo: '', descripcion: '', estado: 'Activo' };
   
   // Catalogos
   tiposDocumento: any[] = [];
@@ -465,7 +470,8 @@ export class MetasCMI implements OnInit {
     return upperCode.startsWith('E') || upperCode.startsWith('A');
   }
 
-  openProductModal(p?: producto) {
+  openProductModal(p?: producto, mode: 'general' | 'erp' = 'general') {
+    this.editModeType = mode;
     this.isEditingProduct = !!p;
     this.currentProduct = p ? { ...p } : { 
       id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, produccionBaseId: '26'
@@ -804,6 +810,34 @@ export class MetasCMI implements OnInit {
         this.cargarProductos();
         if (this.isEditingProduct) this.closeProductModal();
       }
+    });
+  }
+
+  openDocTypeModal(doc?: any) {
+    this.isEditingDocType = !!doc;
+    this.currentDocType = doc ? { ...doc } : { id: null, codigo: '', descripcion: '', estado: 'Activo' };
+    this.showDocTypeModal = true;
+  }
+
+  closeDocTypeModal() {
+    this.showDocTypeModal = false;
+  }
+
+  guardarTipoDoc() {
+    if (!this.currentDocType.codigo || !this.currentDocType.descripcion) {
+      return this.showToast('El código y la descripción son obligatorios', 'error');
+    }
+
+    this.service.guardarTipoDocumento(this.currentDocType).subscribe({
+      next: () => {
+        this.showToast(this.isEditingDocType ? 'Tipo de documento actualizado' : 'Tipo de documento agregado', 'success');
+        this.closeDocTypeModal();
+        this.service.getTiposDocumento().subscribe(res => {
+          this.tiposDocumento = res;
+          this.cdr.detectChanges();
+        });
+      },
+      error: () => this.showToast('Error al guardar el tipo de documento', 'error')
     });
   }
 
