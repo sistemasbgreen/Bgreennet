@@ -57,6 +57,10 @@ public class MetaService {
         return repository.obtenerTiposDocumento();
     }
 
+    public void guardarTipoDocumento(Integer id, String codigo, String descripcion, String estado) {
+        repository.guardarTipoDocumento(id, codigo, descripcion, estado);
+    }
+
     public List<Map<String, Object>> getTiposMovimiento() {
         return repository.obtenerTiposMovimiento();
     }
