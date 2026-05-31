@@ -447,7 +447,18 @@ public class MetaRepository {
     // CATALOGOS
     // =============================
     public List<Map<String, Object>> obtenerTiposDocumento() {
-        return jdbcTemplate.queryForList("SELECT id, codigo, descripcion FROM tipos_documento ORDER BY codigo");
+        return jdbcTemplate.queryForList("SELECT id, codigo, descripcion, estado FROM tipos_documento ORDER BY codigo");
+    }
+
+    public void guardarTipoDocumento(Integer id, String codigo, String descripcion, String estado) {
+        if (estado == null || estado.isEmpty()) {
+            estado = "Activo"; // Default
+        }
+        if (id == null) {
+            jdbcTemplate.update("INSERT INTO tipos_documento (codigo, descripcion, estado) VALUES (?, ?, ?)", codigo, descripcion, estado);
+        } else {
+            jdbcTemplate.update("UPDATE tipos_documento SET codigo = ?, descripcion = ?, estado = ? WHERE id = ?", codigo, descripcion, estado, id);
+        }
     }
 
     public List<Map<String, Object>> obtenerTiposMovimiento() {
