@@ -29,7 +29,7 @@
         <div class="badge-total-items">
           {{ productos.length }} productos
         </div>
-        <button class="btn-add-product" (click)="openProductModal()" title="Registrar nuevo producto">
+        <button class="btn-add-product" (click)="openProductModal(undefined, 'general')" title="Registrar nuevo producto">
           <i class="bi bi-plus-lg"></i>
           Agregar Producto
         </button>
@@ -79,7 +79,7 @@
                 <button class="btn-action-pill metas" (click)="openMetasModal(p)" title="Configurar metas mensuales">
                   <i class="bi bi-calendar-check"></i> Metas
                 </button>
-                <button class="btn-action-pill edit" (click)="openProductModal(p)" title="Editar producto" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
+                <button class="btn-action-pill edit" (click)="openProductModal(p, 'general')" title="Editar producto" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
                   <i class="bi bi-pencil-square"></i> Editar
                 </button>
                 <button class="btn-action-pill dashboard" [class.active]="p.mostrarCmi !== false"
@@ -139,7 +139,7 @@
               <strong>{{ p.ordenReporte !== 999 && p.ordenReporte !== null ? p.ordenReporte : '-' }}</strong>
             </td>
             <td class="td-actions" style="text-align: center;">
-              <button class="btn-action-pill edit" (click)="openProductModal(p)" title="Editar Mapeo" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
+              <button class="btn-action-pill edit" (click)="openProductModal(p, 'erp')" title="Editar Mapeo" [disabled]="p.id === 'CostoDirecto'" [ngStyle]="{'opacity': p.id === 'CostoDirecto' ? '0.5' : '1', 'cursor': p.id === 'CostoDirecto' ? 'not-allowed' : 'pointer'}">
                 <i class="bi bi-pencil-square"></i>
               </button>
             </td>
@@ -357,7 +357,7 @@
       </div>
 
       <div class="modal-body">
-        <div class="modal-section main-info">
+        <div class="modal-section main-info" *ngIf="editModeType === 'general'">
           <div class="section-badge"><i class="bi bi-info-circle"></i> General</div>
           <h4 class="section-title">Información del Producto</h4>
 
@@ -431,7 +431,7 @@
         <div class="dynamic-sections-wrapper" *ngIf="isEditingProduct || productWasSaved || currentProduct.idProductoSiesa || tempComponentes.length > 0">
           
           <!-- Mapeo ERP -->
-          <div class="product-config-section" style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #ffffff;">
+          <div class="product-config-section" *ngIf="editModeType === 'erp'" style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #ffffff;">
             <div class="section-hdr" style="font-weight: 800; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
               <i class="bi bi-link-45deg"></i>
               <span>EQUIVALENCIA ERP (TBS)</span>
@@ -469,7 +469,7 @@
             </div>
           </div>
 
-          <div class="formula-box section-appear" style="margin-top: 20px;">
+          <div class="formula-box section-appear" style="margin-top: 20px;" *ngIf="editModeType === 'general'">
             <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div class="section-badge consumption" style="margin-bottom: 8px;"><i class="bi bi-calculator"></i> Constructor de Fórmula</div>
@@ -638,6 +638,105 @@
         </button>
         <button class="btn-save-modal" (click)="confirmarGuardarDuplicado()" style="padding: 10px 24px; background: linear-gradient(135deg, #d97706, #f59e0b); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);">
           <i class="bi bi-check-lg"></i> Sí, guardar de todas formas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tipos de Documento Card -->
+  <div class="table-card products-detail-card" style="margin-top: 24px;">
+    <div class="table-card-header">
+      <div class="table-title">
+        <i class="bi bi-file-earmark-text"></i>
+        <span>Tipos de Documento Siesa</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-add-product" (click)="openDocTypeModal()" title="Registrar nuevo tipo de documento">
+          <i class="bi bi-plus-lg"></i>
+          Agregar Tipo
+        </button>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="metas-table products-table erp-mapping-table">
+        <thead>
+          <tr>
+            <th class="col-id" style="width: 10%; padding-left: 24px;">ID</th>
+            <th class="col-codigo" style="width: 20%;">Código</th>
+            <th class="col-descripcion">Descripción</th>
+            <th class="col-estado" style="width: 15%; text-align: center;">Estado</th>
+            <th class="col-actions" style="text-align: center; width: 10%;">Editar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let doc of tiposDocumento">
+            <td class="td-id" style="padding-left: 24px;">
+              <span class="product-name-txt" style="font-weight: bold; color: #475569;">{{ doc.id }}</span>
+            </td>
+            <td class="td-codigo">
+              <span class="siesa-badge" style="background-color: #e2e8f0; color: #1e293b; border-color: #cbd5e1;">
+                {{ doc.codigo }}
+              </span>
+            </td>
+            <td class="td-descripcion desc">{{ doc.descripcion }}</td>
+            <td class="td-estado" style="text-align: center;">
+              <span class="siesa-badge" [ngStyle]="{'background-color': doc.estado === 'Activo' || !doc.estado ? '#10b981' : '#ef4444', 'color': 'white', 'border': 'none'}">
+                {{ doc.estado || 'Activo' }}
+              </span>
+            </td>
+            <td class="td-actions" style="text-align: center;">
+              <button class="btn-action-pill edit" (click)="openDocTypeModal(doc)" title="Editar Tipo">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="tiposDocumento.length === 0">
+            <td colspan="4" style="text-align: center; padding: 24px; color: #94a3b8; font-style: italic;">
+              No hay tipos de documento registrados
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Tipos de Documento -->
+  <div class="modal-overlay" *ngIf="showDocTypeModal" (click)="closeDocTypeModal()" style="z-index: 12000;">
+    <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <i class="bi" [class.bi-plus-circle]="!isEditingDocType" [class.bi-pencil-square]="isEditingDocType"></i>
+          {{ isEditingDocType ? 'Editar Tipo de Documento' : 'Nuevo Tipo de Documento' }}
+        </h3>
+        <button class="btn-close-modal" (click)="closeDocTypeModal()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body" style="padding: 24px; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Código del Documento</label>
+          <input type="text" [(ngModel)]="currentDocType.codigo" placeholder="Ej: TEP, EI, EDP..." class="form-control" style="text-transform: uppercase;">
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Descripción</label>
+          <input type="text" [(ngModel)]="currentDocType.descripcion" placeholder="Descripción del documento" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label">Estado</label>
+          <select [(ngModel)]="currentDocType.estado" class="form-control">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc; padding: 16px 24px;">
+        <button class="btn-cancel" (click)="closeDocTypeModal()" style="padding: 10px 20px;">
+          Cancelar
+        </button>
+        <button class="btn-save-modal" (click)="guardarTipoDoc()">
+          <i class="bi bi-check-lg"></i> Guardar
         </button>
       </div>
     </div>
