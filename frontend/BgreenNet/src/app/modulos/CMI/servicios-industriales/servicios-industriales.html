@@ -1,0 +1,165 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="logo-container">
+        <a href="/cmi/home">
+          <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo Bgreen" class="logo" />
+        </a>
+      </div>
+      <div class="title-section">
+        <h1 class="main-title">CMI - INDUSTRIAL</h1>
+        <p class="subtitle">Servicios Industriales - {{ getServicioNombre() }}</p>
+      </div>
+      <div class="filter-section">
+        <div class="filter-group">
+          <label class="filter-label">Servicio</label>
+          <select class="filter-select" [(ngModel)]="selectedServicio" (change)="onServicioChange()">
+            <option value="general">General</option>
+            <option value="energia">Energía</option>
+            <option value="gas">Gas</option>
+            <option value="vapor">Vapor</option>
+            <option value="agua">Agua</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Año</label>
+          <select class="filter-select">
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Mes</label>
+          <select class="filter-select">
+            <option value="">Mes actual</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="main-content" *ngIf="selectedServicio === 'general'">
+    <div class="overview-grid">
+      <!-- VAPOR -->
+      <div class="overview-card vapor">
+        <div class="oc-header">
+          <div class="oc-title-wrap">
+            <i class="fas fa-wind" style="font-size: 1.5rem;"></i> VAPOR
+          </div>
+          <div class="oc-status-dot"></div>
+        </div>
+        <div class="oc-main-data">
+          <span class="oc-value">520</span>
+          <span class="oc-unit">kg/ton</span>
+          <div class="oc-change-wrap">
+            <span class="oc-change up">▲ 8.3%</span>
+            <span class="oc-change-label">vs meta</span>
+          </div>
+        </div>
+        <div class="oc-meta">Meta: 480 kg/ton</div>
+        <div class="oc-divider"></div>
+        <div class="oc-footer">
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Eficiencia caldera</div>
+            <div class="oc-footer-val">81.2%</div>
+          </div>
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Retorno condensado</div>
+            <div class="oc-footer-val">88.5%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAS (TOTAL) -->
+      <div class="overview-card gas">
+        <div class="oc-header">
+          <div class="oc-title-wrap">
+            <i class="fas fa-fire" style="font-size: 1.5rem;"></i> GAS (TOTAL)
+          </div>
+          <div class="oc-status-dot"></div>
+        </div>
+        <div class="oc-main-data">
+          <span class="oc-value">35.2</span>
+          <span class="oc-unit">m³/ton</span>
+          <div class="oc-change-wrap">
+            <span class="oc-change up">▲ 9.1%</span>
+            <span class="oc-change-label">vs meta</span>
+          </div>
+        </div>
+        <div class="oc-meta">Meta: 32.3 m³/ton</div>
+        <div class="oc-divider"></div>
+        <div class="oc-footer">
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Participación en costo de vapor</div>
+            <div class="oc-footer-val">60%</div>
+          </div>
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Consumo total día</div>
+            <div class="oc-footer-val">44,000 m³</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENERGÍA ELÉCTRICA -->
+      <div class="overview-card energia">
+        <div class="oc-header">
+          <div class="oc-title-wrap">
+            <i class="fas fa-bolt" style="font-size: 1.5rem;"></i> ENERGÍA ELÉCTRICA
+          </div>
+          <div class="oc-status-dot"></div>
+        </div>
+        <div class="oc-main-data">
+          <span class="oc-value">312</span>
+          <span class="oc-unit">kWh/ton</span>
+          <div class="oc-change-wrap">
+            <span class="oc-change up">▲ 7.6%</span>
+            <span class="oc-change-label">vs meta</span>
+          </div>
+        </div>
+        <div class="oc-meta">Meta: 290 kWh/ton</div>
+        <div class="oc-divider"></div>
+        <div class="oc-footer">
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Demanda máx. hoy</div>
+            <div class="oc-footer-val">1,245 kW</div>
+          </div>
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Factor de potencia</div>
+            <div class="oc-footer-val">0.92</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGUA -->
+      <div class="overview-card agua">
+        <div class="oc-header">
+          <div class="oc-title-wrap">
+            <i class="fas fa-tint" style="font-size: 1.5rem;"></i> AGUA
+          </div>
+          <div class="oc-status-dot"></div>
+        </div>
+        <div class="oc-main-data">
+          <span class="oc-value">4.5</span>
+          <span class="oc-unit">m³/ton</span>
+          <div class="oc-change-wrap">
+            <span class="oc-change down">▼ 2.1%</span>
+            <span class="oc-change-label">vs meta</span>
+          </div>
+        </div>
+        <div class="oc-meta">Meta: 4.8 m³/ton</div>
+        <div class="oc-divider"></div>
+        <div class="oc-footer">
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Agua recuperada</div>
+            <div class="oc-footer-val">35%</div>
+          </div>
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Consumo pozo</div>
+            <div class="oc-footer-val">1,200 m³</div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+</div>
