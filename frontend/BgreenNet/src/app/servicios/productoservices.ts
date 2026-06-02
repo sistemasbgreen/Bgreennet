@@ -78,8 +78,16 @@ export class productoservices {
     return this.http.get<any[]>(`${this.baseUrl}/catalogos/tipos-documento`);
   }
 
+  guardarTipoDocumento(payload: any) {
+    return this.http.post(`${this.baseUrl}/catalogos/tipos-documento`, payload);
+  }
+
   getTiposMovimiento() {
     return this.http.get<any[]>(`${this.baseUrl}/catalogos/tipos-movimiento`);
+  }
+
+  getSeccionesReporte() {
+    return this.http.get<any[]>(`${this.baseUrl}/catalogos/secciones-reporte`);
   }
 
   validarProductoEnSiesa(id: string): Observable<any> {

@@ -10,15 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 @Service
@@ -33,58 +30,7 @@ public class EmailReporteService {
 
     private static final DateTimeFormatter FMT_DISPLAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    /**
-     * 0 = libre
-     * 1 = disparado (pendiente de ejecutar)
-     * 2 = en ejecución
-     */
-    private final AtomicInteger enviar = new AtomicInteger(0);
-    
-    
-    public void dispararEnvioInmediato() {
-        if (enviar.compareAndSet(0, 1)) {
-            System.out.println("[EmailReporte] 🟡 Disparo inmediato → enviar=1");
-            verificarYEnviar(); // ejecuta ahora mismo
-        } else {
-            System.out.println("[EmailReporte] ⚠️ Ya hay un envío en curso (estado=" + enviar.get() + ")");
-        }
-    }
-
-    // ── Disparo manual ────────────────────────────────────────────────────
-    public void dispararEnvioManual() {
-        if (enviar.compareAndSet(0, 1)) {
-            System.out.println("[EmailReporte] 🟡 Disparo manual → enviar=1");
-        } else {
-            System.out.println("[EmailReporte] ⚠️  Ya hay un envío pendiente o en curso (estado=" + enviar.get() + ")");
-        }
-    }
-
-    // ── Scheduler: cada minuto verifica el flag; a las 11:00 AM dispara solo ──
-    @Scheduled(cron = "0 * * * * *")
-    public void verificarYEnviar() {
-
-        // Disparo automático a las 11:00 AM
-        LocalTime ahora = LocalTime.now();
-        if (ahora.getHour() == 11 && ahora.getMinute() == 0) {
-            enviar.compareAndSet(0, 1);
-        }
-
-        // Solo procede si estaba en 1; lo pasa a 2 atómicamente
-        if (!enviar.compareAndSet(1, 2)) {
-            return;
-        }
-
-        System.out.println("[EmailReporte] 🚀 enviar=2 → Procesando reporte...");
-
-    try {
-        ejecutarEnvio();
-    } finally {
-        enviar.set(0);
-        System.out.println("[EmailReporte] 🔵 enviar=0 → Listo.");
-    }
-}
-
-// ── Envío para una fecha específica (invocado desde API) ─────────────
+    // ── Envío para una fecha específica (invocado desde API) ─────────────
 public void enviarReporteParaFecha(String fechaStr) {
     // fechaStr viene como "YYYY-MM-DD"
     LocalDate ref = LocalDate.parse(fechaStr.substring(0, 10));
@@ -93,14 +39,6 @@ public void enviarReporteParaFecha(String fechaStr) {
     
     System.out.println("[EmailReporte] Envío manual solicitado para fecha: " + fechaStr + " (Día único: " + ref + ")");
     ejecutarEnvioParaRango(fechaInicio, fechaFin, true);
-}
-
-// ── Lógica de envío estándar (hoy) ────────────────────────────────────
-private void ejecutarEnvio() {
-    LocalDate hoy = LocalDate.now();
-    LocalDate fechaInicio = hoy.minusDays(15);
-    LocalDate fechaFin    = hoy;
-    ejecutarEnvioParaRango(fechaInicio, fechaFin, false);
 }
 
 // ── Núcleo del proceso de envío ───────────────────────────────────────
@@ -124,7 +62,7 @@ private void ejecutarEnvioParaRango(LocalDate fechaInicio, LocalDate fechaFin, b
             : "Reporte BGREEN SAS · ÚLTIMOS 15 DÍAS";
         
         helper.setSubject(subject);
-        helper.setText(construirHtml(datos.getCostos(), datos.getItemsBiodiesel(), datos.getItemsGlicerina(), fechaInicio, fechaFin, esDiaUnico), true);
+        helper.setText(construirHtml(datos.getCostos(), datos.getItemsBiodiesel(), datos.getItemsGlicerina(), fechaInicio, fechaFin, esDiaUnico, datos.getIdOrden()), true);
 
         mailSender.send(message);
         registrarLogEnvio(fechaInicio, fechaFin);
@@ -136,31 +74,120 @@ private void ejecutarEnvioParaRango(LocalDate fechaInicio, LocalDate fechaFin, b
     }
 }
 
-public ReporteProduccionDTO obtenerDatosReporte(LocalDate inicio, LocalDate fin) {
-    ResumenCostosDTO resumen = repository.obtenerResumenCostos(inicio, fin);
-    List<DetalleInsumoDTO> detalles = repository.obtenerDetalleInsumos(inicio, fin);
-
-    java.util.Set<String> idsBio = new java.util.HashSet<>(java.util.Arrays.asList("8", "7309", "10", "13", "12", "26"));
-    java.util.Set<String> idsGli = new java.util.HashSet<>(java.util.Arrays.asList("34", "15", "2549", "32"));
-
-    List<DetalleInsumoDTO> grupoB = new java.util.ArrayList<>();
-    List<DetalleInsumoDTO> grupoG = new java.util.ArrayList<>();
-
-    if (detalles != null) {
-        for (DetalleInsumoDTO det : detalles) {
-            String it = det.getItem() != null ? det.getItem().trim() : "";
-            if (idsBio.contains(it))      grupoB.add(det);
-            else if (idsGli.contains(it)) grupoG.add(det);
-        }
+    public static class MapeoERP {
+        public String siesaId;
+        public String desc;
+        public Integer seccionId;
+        public String seccionNombre;
+        public Integer ordenReporte;
+        public boolean esProduccion;
     }
 
-    ReporteProduccionDTO dto = new ReporteProduccionDTO();
-    dto.setFecha(inicio);
-    dto.setItemsBiodiesel(grupoB);
-    dto.setItemsGlicerina(grupoG);
-    dto.setCostos(resumen);
-    return dto;
-}
+    public static class SeccionReporteEmail {
+        public String nombre;
+        public Integer id;
+        public List<DetalleInsumoDTO> items = new java.util.ArrayList<>();
+        public DetalleInsumoDTO productoPrincipal = null;
+    }
+
+    private java.util.Map<String, MapeoERP> obtenerMapeosERP() {
+        java.util.Map<String, MapeoERP> map = new java.util.HashMap<>();
+        try {
+            // 1. Simple products
+            String sqlSimple = "SELECT p.id_producto_siesa, p.nombre, p.seccion_id, p.orden_reporte, sr.nombre as seccion_nombre, " +
+                               "tbs.descripcion as tbs_desc, tbs.id_tbs_tipodoc " +
+                               "FROM productos p " +
+                               "LEFT JOIN secciones_reporte sr ON p.seccion_id = sr.id " +
+                               "LEFT JOIN productos_tbs tbs ON TRY_CAST(p.id AS INT) = tbs.id_tbs_producto AND tbs.estado = 1 " +
+                               "WHERE p.activo = 1 AND p.id_producto_siesa IS NOT NULL AND p.id_producto_siesa <> ''";
+            
+            List<java.util.Map<String, Object>> rowsSimple = appJdbcTemplate.queryForList(sqlSimple);
+            for (java.util.Map<String, Object> row : rowsSimple) {
+                String siesaId = String.valueOf(row.get("id_producto_siesa")).trim();
+                MapeoERP m = new MapeoERP();
+                m.siesaId = siesaId;
+                String tbsDesc = row.get("tbs_desc") != null ? String.valueOf(row.get("tbs_desc")) : null;
+                m.desc = (tbsDesc != null && !tbsDesc.isEmpty()) ? tbsDesc : String.valueOf(row.get("nombre"));
+                m.seccionId = row.get("seccion_id") != null ? ((Number) row.get("seccion_id")).intValue() : 999;
+                m.seccionNombre = row.get("seccion_nombre") != null ? String.valueOf(row.get("seccion_nombre")) : "Sin Sección";
+                m.ordenReporte = row.get("orden_reporte") != null ? ((Number) row.get("orden_reporte")).intValue() : 999;
+                String tipoDoc = row.get("id_tbs_tipodoc") != null ? String.valueOf(row.get("id_tbs_tipodoc")) : "101";
+                m.esProduccion = tipoDoc.equals("101") || tipoDoc.startsWith("1");
+                map.put(siesaId, m);
+            }
+            
+            // 2. Compound components mapping
+            String sqlComp = "SELECT pc.producto_hijo_siesa_id, p.nombre, p.seccion_id, p.orden_reporte, sr.nombre as seccion_nombre, " +
+                             "tbs.descripcion as tbs_desc, tbs.id_tbs_tipodoc " +
+                             "FROM producto_componentes pc " +
+                             "JOIN productos p ON pc.producto_padre_id = p.id " +
+                             "LEFT JOIN secciones_reporte sr ON p.seccion_id = sr.id " +
+                             "LEFT JOIN productos_tbs tbs ON TRY_CAST(p.id AS INT) = tbs.id_tbs_producto AND tbs.estado = 1 " +
+                             "WHERE pc.activo = 1 AND p.activo = 1 AND pc.producto_hijo_siesa_id IS NOT NULL AND pc.producto_hijo_siesa_id <> ''";
+                             
+            List<java.util.Map<String, Object>> rowsComp = appJdbcTemplate.queryForList(sqlComp);
+            for (java.util.Map<String, Object> row : rowsComp) {
+                String siesaId = String.valueOf(row.get("producto_hijo_siesa_id")).trim();
+                MapeoERP m = new MapeoERP();
+                m.siesaId = siesaId;
+                String tbsDesc = row.get("tbs_desc") != null ? String.valueOf(row.get("tbs_desc")) : null;
+                m.desc = (tbsDesc != null && !tbsDesc.isEmpty()) ? tbsDesc : String.valueOf(row.get("nombre"));
+                m.seccionId = row.get("seccion_id") != null ? ((Number) row.get("seccion_id")).intValue() : 999;
+                m.seccionNombre = row.get("seccion_nombre") != null ? String.valueOf(row.get("seccion_nombre")) : "Sin Sección";
+                m.ordenReporte = row.get("orden_reporte") != null ? ((Number) row.get("orden_reporte")).intValue() : 999;
+                String tipoDoc = row.get("id_tbs_tipodoc") != null ? String.valueOf(row.get("id_tbs_tipodoc")) : "101";
+                m.esProduccion = tipoDoc.equals("101") || tipoDoc.startsWith("1");
+                map.put(siesaId, m);
+            }
+        } catch (Exception e) {
+            System.err.println("Error cargando mapeos ERP en EmailReporteService: " + e.getMessage());
+        }
+        return map;
+    }
+
+    public ReporteProduccionDTO obtenerDatosReporte(LocalDate inicio, LocalDate fin) {
+        ResumenCostosDTO resumen = repository.obtenerResumenCostos(inicio, fin);
+        List<DetalleInsumoDTO> detalles = repository.obtenerDetalleInsumos(inicio, fin);
+
+        List<DetalleInsumoDTO> grupoB = new java.util.ArrayList<>();
+        List<DetalleInsumoDTO> grupoG = new java.util.ArrayList<>();
+
+        java.util.Map<String, MapeoERP> mapeos = obtenerMapeosERP();
+
+        if (detalles != null) {
+            for (DetalleInsumoDTO det : detalles) {
+                String it = det.getItem() != null ? det.getItem().trim() : "";
+                MapeoERP m = mapeos.get(it);
+                if (m != null) {
+                    det.setDescripcion(m.desc);
+                    det.setNombreSeccion(m.seccionNombre);
+                } else {
+                    det.setNombreSeccion("Sin Sección");
+                }
+                
+                // For back-compatibility with ERP and controller, split items.
+                // Items with "Glicerina" go to group G, everything else to group B.
+                String secNombre = det.getNombreSeccion() != null ? det.getNombreSeccion().toLowerCase() : "";
+                if (secNombre.contains("glicerina")) {
+                    grupoG.add(det);
+                } else {
+                    grupoB.add(det);
+                }
+            }
+        }
+
+        ReporteProduccionDTO dto = new ReporteProduccionDTO();
+        dto.setFecha(inicio);
+        dto.setItemsBiodiesel(grupoB);
+        dto.setItemsGlicerina(grupoG);
+        dto.setCostos(resumen);
+
+        // Obtener idOrden del primer item que lo tenga
+        if (!grupoB.isEmpty()) dto.setIdOrden(grupoB.get(0).getOrdenProduccion());
+        else if (!grupoG.isEmpty()) dto.setIdOrden(grupoG.get(0).getOrdenProduccion());
+
+        return dto;
+    }
 
     public String obtenerReceptoresConfigurados() {
         try {
@@ -225,44 +252,51 @@ public ReporteProduccionDTO obtenerDatosReporte(LocalDate inicio, LocalDate fin)
             List<DetalleInsumoDTO> grupoB,
             List<DetalleInsumoDTO> grupoG,
             LocalDate fechaInicio, LocalDate fechaFin,
-            boolean esDiaUnico) {
+            boolean esDiaUnico, String idOrden) {
 
-BigDecimal totalGlicerina = nvl(resumen.getTotalPurificacionGlicerina());
-BigDecimal totalMod       = nvl(resumen.getTotalManoObra());
-BigDecimal totalOtros     = nvl(resumen.getTotalOtrosCostos());
+        BigDecimal totalGlicerina = nvl(resumen.getTotalPurificacionGlicerina());
+        BigDecimal totalMod       = nvl(resumen.getTotalManoObra());
+        BigDecimal totalOtros     = nvl(resumen.getTotalOtrosCostos());
 
-StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
 
-// ── HEAD ──────────────────────────────────────────────────────────
-sb.append("<!DOCTYPE html>")
-.append("<html lang='es'><head><meta charset='UTF-8'>")
-.append("<meta name='viewport' content='width=device-width,initial-scale=1'>")
-.append("<title>Reporte BGREEN</title><style>")
-.append("body{font-family:Segoe UI,Arial,sans-serif;background:#f0f4f0;margin:0;padding:20px;color:#333}")
-.append(".wrap{max-width:680px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden}")
-.append(".hdr{text-align:center;padding:22px 20px 16px;background:#fff;border-bottom:1px solid #e0e0e0}")
-.append(".logo{width:52px;height:52px;background:#2e7d32;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;letter-spacing:1px}")
-.append(".brand{font-size:15px;font-weight:700;color:#2e7d32;letter-spacing:1px;margin:4px 0 0}")
-.append(".sub{font-size:11px;color:#888;margin:2px 0 0;text-transform:uppercase;letter-spacing:.5px}")
-.append(".fecha{font-size:13px;color:#555;margin:6px 0 0}")
-.append(".sec-hdr{background:#e8f5e9;padding:9px 18px;font-weight:700;font-size:12px;color:#1b5e20;text-transform:uppercase;letter-spacing:.5px;border-top:2px solid #a5d6a7}")
-.append("table{width:100%;border-collapse:collapse;font-size:13px}")
-.append("th{background:#f1f8e9;color:#33691e;font-size:11px;font-weight:600;text-transform:uppercase;padding:7px 18px;text-align:left;letter-spacing:.3px}")
-.append("th.r{text-align:right}")
-.append("td{padding:4px 18px;border-bottom:1px solid #f5f5f5;color:#444}")
-.append("td.r{text-align:right;font-variant-numeric:tabular-nums;color:#2e7d32;font-weight:500}")
-.append("tr:last-child td{border-bottom:none}")
-.append(".res-wrap{padding:18px 18px 10px;border-top:2px solid #c8e6c9}")
-.append(".res-title{font-size:13px;font-weight:700;color:#2e7d32;margin:0 0 10px}")
-.append(".total-row td{background:#2e7d32 !important;color:#fff !important;font-weight:700;font-size:14px}")
-.append(".ftr{text-align:center;padding:12px;font-size:11px;color:#aaa;background:#fafafa;border-top:1px solid #eee}")
-.append("</style></head><body><div class='wrap'>")
+        // ── HEAD ──────────────────────────────────────────────────────────
+        sb.append("<!DOCTYPE html>")
+        .append("<html lang='es'><head><meta charset='UTF-8'>")
+        .append("<meta name='viewport' content='width=device-width,initial-scale=1'>")
+        .append("<title>Reporte BGREEN</title><style>")
+        .append("body{font-family:Segoe UI,Arial,sans-serif;background:#f0f4f0;margin:0;padding:20px;color:#333}")
+        .append(".wrap{max-width:680px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden}")
+        .append(".hdr{text-align:center;padding:22px 20px 16px;background:#fff;border-bottom:1px solid #e0e0e0}")
+        .append(".logo{width:52px;height:52px;background:#2e7d32;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;letter-spacing:1px}")
+        .append(".brand{font-size:15px;font-weight:700;color:#2e7d32;letter-spacing:1px;margin:4px 0 0}")
+        .append(".sub{font-size:11px;color:#888;margin:2px 0 0;text-transform:uppercase;letter-spacing:.5px}")
+        .append(".fecha{font-size:13px;color:#555;margin:6px 0 0}")
+        .append(".sec-hdr{padding:9px 18px;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;background:#f1f5f9;color:#475569;border-top:2px solid #cbd5e1}")
+        .append(".sec-hdr.biodiesel{background:#e8f5e9;color:#1b5e20;border-top:2px solid #a5d6a7}")
+        .append(".sec-hdr.glicerina{background:#e3f2fd;color:#1565c0;border-top:2px solid #90caf9}")
+        .append("table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:15px}")
+        .append("th{background:#f1f8e9;color:#33691e;font-size:11px;font-weight:600;text-transform:uppercase;padding:7px 18px;text-align:left;letter-spacing:.3px}")
+        .append("th.r{text-align:right}")
+        .append("td{padding:4px 18px;border-bottom:1px solid #f5f5f5;color:#444}")
+        .append("td.r{text-align:right;font-variant-numeric:tabular-nums;color:#2e7d32;font-weight:500}")
+        .append("tr:last-child td{border-bottom:none}")
+        .append(".res-wrap{padding:18px 18px 10px;border-top:2px solid #c8e6c9}")
+        .append(".res-title{font-size:13px;font-weight:700;color:#2e7d32;margin:0 0 10px}")
+        .append(".total-row td{background:#2e7d32 !important;color:#fff !important;font-weight:700;font-size:14px}")
+        .append(".ftr{text-align:center;padding:12px;font-size:11px;color:#aaa;background:#fafafa;border-top:1px solid #eee}")
+        .append("</style></head><body><div class='wrap'>")
 
-// ── HEADER ────────────────────────────────────────────────────
+        // ── HEADER ────────────────────────────────────────────────────
         .append("<div class='hdr'>")
         .append("<img src='https://bgreen.com.co/Img/bgreen_Logo.png' width='50' height='50' style='object-fit:contain' alt='Bgreen'>")
-        .append("<p class='sub'>Reporte de Producción").append(esDiaUnico ? "" : " (Últimos 15 días)").append("</p>")
-        .append("<p class='fecha'>&#128197;&nbsp; ");
+        .append("<p class='sub'>Reporte de Producción").append(esDiaUnico ? "" : " (Últimos 15 días)").append("</p>");
+        
+        if (esDiaUnico && idOrden != null) {
+            sb.append("<p class='fecha'>🆔&nbsp; <b>ID Orden: ").append(idOrden).append("</b></p>");
+        }
+
+        sb.append("<p class='fecha'>&#128197;&nbsp; ");
         
         if (esDiaUnico) {
             sb.append(fechaInicio.format(FMT_DISPLAY));
@@ -272,60 +306,165 @@ sb.append("<!DOCTYPE html>")
         
         sb.append("</p></div>");
 
-//── BLOQUE BIODIESEL ──────────────────────────────────────────
-sb.append("<div class='sec-hdr'>Biodiesel Destilado</div>");
-sb.append(construirTablaGrupo(grupoB, resumen.getTotalOtrosCostos(), resumen.getTotalManoObra(), true));
+        // ── DINAMIC GROUPING ──────────────────────────────────────────
+        List<DetalleInsumoDTO> todos = new java.util.ArrayList<>();
+        if (grupoB != null) todos.addAll(grupoB);
+        if (grupoG != null) todos.addAll(grupoG);
 
-//── BLOQUE GLICERINA ──────────────────────────────────────────
-sb.append("<div class='sec-hdr'>Glicerina Cruda</div>");
-sb.append(construirTablaGrupo(grupoG, resumen.getTotalPurificacionGlicerina(), null, false));
+        java.util.Map<String, MapeoERP> mapeos = obtenerMapeosERP();
+        java.util.Map<String, SeccionReporteEmail> seccionesMap = new java.util.HashMap<>();
 
+        for (DetalleInsumoDTO det : todos) {
+            String it = det.getItem() != null ? det.getItem().trim() : "";
+            MapeoERP m = mapeos.get(it);
+            
+            String secNombre = (m != null) ? m.seccionNombre : "Sin Sección";
+            Integer secId = (m != null) ? m.seccionId : 999;
+            
+            if (secNombre == null || secNombre.equals("Sin Sección") || secId == null || secId == 999) {
+                continue;
+            }
+            
+            if (!seccionesMap.containsKey(secNombre)) {
+                SeccionReporteEmail sec = new SeccionReporteEmail();
+                sec.nombre = secNombre;
+                sec.id = secId;
+                seccionesMap.put(secNombre, sec);
+            }
+            
+            SeccionReporteEmail sec = seccionesMap.get(secNombre);
+            boolean esProduccion = (m != null) ? m.esProduccion : false;
+            
+            if (esProduccion) {
+                if (sec.productoPrincipal != null) {
+                    BigDecimal current = sec.productoPrincipal.getCantidadConsumida();
+                    BigDecimal added = det.getCantidadConsumida();
+                    sec.productoPrincipal.setCantidadConsumida((current != null ? current : BigDecimal.ZERO).add(added != null ? added : BigDecimal.ZERO));
+                } else {
+                    sec.productoPrincipal = det;
+                }
+            } else {
+                DetalleInsumoDTO existing = null;
+                for (DetalleInsumoDTO i : sec.items) {
+                    if (i.getDescripcion() != null && i.getDescripcion().equals(det.getDescripcion())) {
+                        existing = i;
+                        break;
+                    }
+                }
+                if (existing != null) {
+                    BigDecimal current = existing.getCantidadConsumida();
+                    BigDecimal added = det.getCantidadConsumida();
+                    existing.setCantidadConsumida((current != null ? current : BigDecimal.ZERO).add(added != null ? added : BigDecimal.ZERO));
+                } else {
+                    sec.items.add(det);
+                }
+            }
+        }
 
+        List<SeccionReporteEmail> secciones = new java.util.ArrayList<>(seccionesMap.values());
+        secciones.sort((a, b) -> Integer.compare(a.id, b.id));
 
+        for (SeccionReporteEmail sec : secciones) {
+            sec.items.sort((a, b) -> {
+                String aIt = a.getItem() != null ? a.getItem().trim() : "";
+                String bIt = b.getItem() != null ? b.getItem().trim() : "";
+                MapeoERP mA = mapeos.get(aIt);
+                MapeoERP mB = mapeos.get(bIt);
+                int ordA = (mA != null) ? mA.ordenReporte : 999;
+                int ordB = (mB != null) ? mB.ordenReporte : 999;
+                return Integer.compare(ordA, ordB);
+            });
+        }
 
+        // ── RENDER SECTIONS ───────────────────────────────────────────
+        for (SeccionReporteEmail sec : secciones) {
+            String nombreMin = sec.nombre.toLowerCase();
+            String headerClass = "sec-hdr";
+            if (nombreMin.contains("biodiesel")) {
+                headerClass = "sec-hdr biodiesel";
+            } else if (nombreMin.contains("glicerina")) {
+                headerClass = "sec-hdr glicerina";
+            }
+            
+            sb.append("<div class='").append(headerClass).append("'>").append(esc(sec.nombre)).append("</div>");
+            
+            BigDecimal otros = null;
+            BigDecimal mano = null;
+            boolean mostrarMod = false;
+            
+            if (nombreMin.contains("biodiesel")) {
+                otros = totalOtros;
+                mano = totalMod;
+                mostrarMod = true;
+            } else if (nombreMin.contains("glicerina")) {
+                otros = totalGlicerina;
+            }
+            
+            sb.append(construirTablaGrupo(sec.items, sec.productoPrincipal, otros, mano, mostrarMod));
+        }
 
-return sb.toString();
-}
+        sb.append("<div class='ftr'>BGREEN SAS · Reporte generado automáticamente</div>");
+        sb.append("</div></body></html>");
 
-//── Tabla de insumos por grupo ────────────────────────────────────────────
-private String construirTablaGrupo(List<DetalleInsumoDTO> items, BigDecimal otrosCostos, BigDecimal manoObra,
-		boolean mostrarManoObra) {
-	StringBuilder sb = new StringBuilder();
-	sb.append("<table><thead><tr>").append("<th>Materia Prima / Insumo</th><th class='r'>Cantidad</th>")
-			.append("</tr></thead><tbody>");
+        return sb.toString();
+    }
 
-	for (DetalleInsumoDTO det : items) {
-		String cant;
-		if (det.getCantidadConsumida() != null) {
-		    BigDecimal val = det.getCantidadConsumida().stripTrailingZeros();
-		    int decimales = Math.max(0, val.scale());
-		    cant = String.format("%,." + decimales + "f kg", det.getCantidadConsumida());
-		} else {
-		    cant = "—";
-		}
-		sb.append("<tr>").append("<td>").append(esc(det.getDescripcion())).append("</td>").append("<td class='r'>")
-				.append(cant).append("</td>").append("</tr>");
-	}
+    //── Tabla de insumos por grupo ────────────────────────────────────────────
+    private String construirTablaGrupo(List<DetalleInsumoDTO> items, DetalleInsumoDTO producto, BigDecimal otrosCostos, BigDecimal manoObra,
+            boolean mostrarManoObra) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table><thead><tr>").append("<th>Materia Prima / Insumo</th><th class='r'>Cantidad</th>")
+                .append("</tr></thead><tbody>");
 
-// Fila otros costos
-	String valorOtros = otrosCostos != null ? "$ " + String.format("%,.2f", otrosCostos) : "$ 0";
-	sb.append("<tr>")
-	  .append("<td style='font-weight:700;color:#555'>Otros costos y gastos</td>")
-	  .append("<td class='r' style='font-weight:700;color:#2e7d32'>").append(valorOtros).append("</td>")
-	  .append("</tr>");
+        for (DetalleInsumoDTO det : items) {
+            String cant;
+            if (det.getCantidadConsumida() != null) {
+                BigDecimal val = det.getCantidadConsumida().stripTrailingZeros();
+                int decimales = Math.max(0, val.scale());
+                cant = String.format("%,." + decimales + "f kg", det.getCantidadConsumida());
+            } else {
+                cant = "—";
+            }
+            sb.append("<tr>").append("<td>").append(esc(det.getDescripcion())).append("</td>").append("<td class='r'>")
+                    .append(cant).append("</td>").append("</tr>");
+        }
 
-// Fila mano de obra (solo Biodiesel)
-	if (mostrarManoObra) {
-		String valorMod = manoObra != null ? "$ " + String.format("%,.2f", manoObra) : "$ 0";
-		sb.append("<tr>")
-		  .append("<td style='font-weight:700;color:#555'>Mano de obra</td>")
-		  .append("<td class='r' style='font-weight:700;color:#2e7d32'>").append(valorMod).append("</td>")
-		  .append("</tr>");
-	}
+        // Fila otros costos
+        if (otrosCostos != null) {
+            String valorOtros = "$ " + String.format("%,.0f", otrosCostos);
+            sb.append("<tr>")
+              .append("<td style='font-weight:700;color:#555'>Otros costos y gastos</td>")
+              .append("<td class='r' style='font-weight:700;color:#2e7d32'>").append(valorOtros).append("</td>")
+              .append("</tr>");
+        }
 
-	sb.append("</tbody></table>");
-	return sb.toString();
-}
+        // Fila mano de obra (solo Biodiesel)
+        if (mostrarManoObra && manoObra != null) {
+            String valorMod = "$ " + String.format("%,.0f", manoObra);
+            sb.append("<tr>")
+              .append("<td style='font-weight:700;color:#555'>Mano de obra</td>")
+              .append("<td class='r' style='font-weight:700;color:#2e7d32'>").append(valorMod).append("</td>")
+              .append("</tr>");
+        }
+
+        if (producto != null) {
+            String cant;
+            if (producto.getCantidadConsumida() != null) {
+                BigDecimal val = producto.getCantidadConsumida().stripTrailingZeros();
+                int decimales = Math.max(0, val.scale());
+                cant = String.format("%,." + decimales + "f kg", producto.getCantidadConsumida());
+            } else {
+                cant = "—";
+            }
+            sb.append("<tr style='background-color: #f1f8e9;'>")
+              .append("<td style='font-weight:700;color:#1b5e20'>").append(esc(producto.getDescripcion())).append("</td>")
+              .append("<td class='r' style='font-weight:700;color:#1b5e20'>").append(cant).append("</td>")
+              .append("</tr>");
+        }
+
+        sb.append("</tbody></table>");
+        return sb.toString();
+    }
 
     private String construirFilaInsumo(DetalleInsumoDTO det) {
         String fecha = det.getFecha() != null ? det.getFecha().format(FMT_DISPLAY) : "—";
@@ -340,7 +479,7 @@ private String construirTablaGrupo(List<DetalleInsumoDTO> items, BigDecimal otro
     }
 
     private String construirFilaCosto(String etiqueta, BigDecimal valor, boolean esTotal) {
-        String valorFmt = valor != null ? "$ " + String.format("%,.2f", valor) : "$ 0,00";
+        String valorFmt = valor != null ? "$ " + String.format("%,.0f", valor) : "$ 0";
         return "<tr class='" + (esTotal ? "total-row" : "") + "'>"
              + "<td>" + esc(etiqueta) + "</td>"
              + "<td class='num'>" + valorFmt + "</td>"
