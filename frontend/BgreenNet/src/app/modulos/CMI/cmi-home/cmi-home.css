@@ -198,9 +198,7 @@ body {
   position: relative;
   overflow: hidden;
 }
- #financiero  , #comercial , #organizacional , #sostenibilidad {
-  display: none;
-}
+
 
 .category::before {
   content: '';
@@ -401,4 +399,40 @@ body {
 
 .indicator.no-hover::before {
   display: none;
+}
+
+.indicator-icons {
+  display: flex;
+  gap: 14px;
+  margin: 8px 0;
+}
+
+.indicator-icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.indicator-icon-item i {
+  font-size: 20px;
+}
+
+.indicator-icon-item span {
+  font-size: 10px;
+  color: #666;
+}
+
+.indicator-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.indicator-value {
+  font-size: 13px;
+  font-weight: 500;
 }
