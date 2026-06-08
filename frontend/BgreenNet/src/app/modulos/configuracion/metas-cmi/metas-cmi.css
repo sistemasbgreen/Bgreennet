@@ -3214,3 +3214,38 @@
   transform: translateY(-2px);
 }
 
+/* Tabs Container and Buttons styling */
+.tabs-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 0.5rem;
+  width: 100%;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #6c757d;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tab-btn:hover {
+  color: #006c2c !important;
+}
+
+.tab-btn.active {
+  color: #006c2c !important;
+  border-bottom-color: #006c2c !important;
+}
+
+
