@@ -15,6 +15,12 @@ export const layoutRoutes: Routes = [
       import('../modulos/orden-produccion/orden-produccion')
         .then(o => o.OrdenProduccion)
   },
+    {
+    path: 'home/seguimiento-variable',
+    loadComponent: () =>
+      import('../home/seguimiento-variable/seguimiento-variable')
+        .then(o => o.SeguimientoVariable)
+  },
   {
     path: 'home',
     component: Home,
@@ -54,8 +60,7 @@ export const layoutRoutes: Routes = [
           },
           {
             path: 'metas',
-            redirectTo: 'metas-cmi',
-            pathMatch: 'full'
+            loadComponent: () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(c => c.MetasCMI)
           },
           {
             path: 'metas-cmi',
@@ -64,6 +69,10 @@ export const layoutRoutes: Routes = [
           {
             path: 'maestro-configuracion',
             loadComponent: () => import('../modulos/configuracion/maestro-configuracion/maestro-configuracion').then(c => c.MaestroConfiguracion)
+          },
+          {
+            path: 'seguimiento-variable',
+            loadComponent: () => import('../modulos/configuracion/variables-plc/variables-plc').then(c => c.VariablesPlc)
           },
         ]
       },
