@@ -18,6 +18,11 @@ interface ToastState {
   styleUrl: './metas-cmi.css',
 })
 export class MetasCMI implements OnInit {
+  activeTab: 'productos' | 'mapeoErp' | 'documentos' = 'productos';
+
+  switchTab(tab: 'productos' | 'mapeoErp' | 'documentos') {
+    this.activeTab = tab;
+  }
 
   soloNumeros(event: KeyboardEvent) {
     const pattern = /[0-9]/;

@@ -1,20 +1,31 @@
 <div class="metas-page">
 
   <!-- Page Header -->
-  <div class="page-header">
+  <div class="page-header" style="margin-bottom: 1.5rem; display: flex; flex-direction: column; align-items: flex-start; gap: 1rem;">
     <div class="header-left">
       <h1 class="page-title">
-
         Configuración de CMI
       </h1>
       <p class="page-subtitle">Define los objetivos mensuales por producto y año</p>
     </div>
-   
+    
+    <!-- Pestañas -->
+    <div class="tabs-container">
+      <button class="tab-btn" [class.active]="activeTab === 'productos'" (click)="switchTab('productos')">
+        <i class="bi bi-box-seam"></i> Productos Configurables
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'mapeoErp'" (click)="switchTab('mapeoErp')">
+        <i class="bi bi-diagram-2"></i> Mapeo ERP y Reportes
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'documentos'" (click)="switchTab('documentos')">
+        <i class="bi bi-file-earmark-text"></i> Tipos de Documento
+      </button>
+    </div>
   </div>
 
 
   <!-- Products Detail Card -->
-  <div class="table-card products-detail-card" *ngIf="productosOriginales.length > 0">
+  <div class="table-card products-detail-card" *ngIf="activeTab === 'productos' && productosOriginales.length > 0">
     <div class="table-card-header">
       <div class="table-title">
         <i class="bi bi-box-seam"></i>
@@ -95,7 +106,7 @@
   </div>
 
   <!-- ERP Mapping Card -->
-  <div class="table-card products-detail-card" *ngIf="productosOriginales.length > 0" style="margin-top: 24px;">
+  <div class="table-card products-detail-card" *ngIf="activeTab === 'mapeoErp' && productosOriginales.length > 0" style="margin-top: 24px;">
     <div class="table-card-header">
       <div class="table-title">
         <i class="bi bi-diagram-2"></i>
@@ -644,7 +655,7 @@
   </div>
 
   <!-- Tipos de Documento Card -->
-  <div class="table-card products-detail-card" style="margin-top: 24px;">
+  <div class="table-card products-detail-card" *ngIf="activeTab === 'documentos'" style="margin-top: 24px;">
     <div class="table-card-header">
       <div class="table-title">
         <i class="bi bi-file-earmark-text"></i>
