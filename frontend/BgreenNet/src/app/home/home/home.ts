@@ -33,7 +33,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('trmChart') trmChartRef!: ElementRef<HTMLCanvasElement>;
   private destroy$ = new Subject<void>();
   private audioCtx: AudioContext | null = null;
-  private trmChart: Chart | null = null;
+  private trmChart: any = null;
 
   // Datos de usuario
   fullName: string = '';

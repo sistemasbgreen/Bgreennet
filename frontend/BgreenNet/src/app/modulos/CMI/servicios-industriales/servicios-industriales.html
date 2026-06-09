@@ -24,15 +24,15 @@
         </div>
         <div class="filter-group">
           <label class="filter-label">Año</label>
-          <select class="filter-select">
+          <select class="filter-select" [(ngModel)]="selectedYear" (change)="onFiltroChange()">
             <option value="2025">2025</option>
             <option value="2026">2026</option>
           </select>
         </div>
         <div class="filter-group">
           <label class="filter-label">Mes</label>
-          <select class="filter-select">
-            <option value="">Mes actual</option>
+          <select class="filter-select" [(ngModel)]="selectedMonth" (change)="onFiltroChange()">
+            <option *ngFor="let m of getMesesDisponibles()" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
       </div>
@@ -162,4 +162,165 @@
       
     </div>
   </main>
-</div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- DASHBOARD VAPOR                                          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="selectedServicio === 'vapor'">
+
+    <!-- Cargando -->
+    <div *ngIf="cargando" style="text-align:center; padding: 3rem; color: #64748b;">
+      <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+      <p style="margin-top:1rem;">Cargando datos de vapor y producción B100...</p>
+    </div>
+
+    <div *ngIf="!cargando">
+
+      <!-- ── KPI Cards ────────────────────────────────── -->
+      <section class="stats-container" style="max-width: 100%; padding: 1rem 2rem;">
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+
+          <!-- Meta FOCO -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Meta FOCO</span>
+              <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
+            </div>
+            <div class="stat-value" style="color: #27ae60;">{{ kpis.meta }} <small style="font-size:1rem;">kg/Ton</small></div>
+            <div class="stat-detail"><i class="fas fa-info-circle"></i> <span>kg vapor / Ton B100 producida</span></div>
+          </div>
+
+          <!-- FOCO Último día -->
+          <div class="stat-card" [class.success]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia <= kpis.meta"
+                                 [class.danger]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia > kpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">FOCO Último Día</span>
+              <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+            </div>
+            <div class="stat-value">{{ kpis.focoUltimoDia !== null ? kpis.focoUltimoDia : 'N/D' }} <small style="font-size:1rem;">kg/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas" [class.fa-check-circle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia <= kpis.meta"
+                             [class.fa-exclamation-triangle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia > kpis.meta"></i>
+              <span>{{ kpis.focoUltimoDia !== null ? (kpis.focoUltimoDia <= kpis.meta ? 'Dentro de meta' : 'Desviación vs meta') : 'Sin dato' }}</span>
+            </div>
+          </div>
+
+          <!-- FOCO Mensual -->
+          <div class="stat-card" [class.success]="kpis.focoMensual !== null && kpis.focoMensual <= kpis.meta"
+                                 [class.danger]="kpis.focoMensual !== null && kpis.focoMensual > kpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">FOCO Mensual</span>
+              <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            </div>
+            <div class="stat-value">{{ kpis.focoMensual !== null ? kpis.focoMensual : 'N/D' }} <small style="font-size:1rem;">kg/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas fa-calculator"></i>
+              <span>{{ kpis.totalVaporMes | number:'1.0-0' }} vapor / {{ kpis.totalB100Mes | number:'1.0-0' }} Ton B100</span>
+            </div>
+          </div>
+
+          <!-- FOCO Anual -->
+          <div class="stat-card" [class.success]="kpis.focoAnual !== null && kpis.focoAnual <= kpis.meta"
+                                 [class.danger]="kpis.focoAnual !== null && kpis.focoAnual > kpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">FOCO Anual {{ selectedYear }}</span>
+              <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
+            </div>
+            <div class="stat-value">{{ kpis.focoAnual !== null ? kpis.focoAnual : 'N/D' }} <small style="font-size:1rem;">kg/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas fa-calculator"></i>
+              <span>{{ kpis.totalVaporAnio | number:'1.0-0' }} vapor / {{ kpis.totalB100Anio | number:'1.0-0' }} Ton B100</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Alerta días con desviación ──────────────────── -->
+      <section *ngIf="diasConDesviacion.length > 0" style="padding: 0 2rem 1rem;">
+        <div style="background: #fff5f5; border-left: 4px solid #e74c3c; border-radius: 8px; padding: 1rem 1.5rem;">
+          <p style="margin:0; color: #c0392b; font-weight: 600;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
+            {{ diasConDesviacion.length }} día(s) con desviación respecto a la meta de {{ kpis.meta }} kg/Ton:
+          </p>
+          <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <span *ngFor="let d of diasConDesviacion"
+                  style="background: #e74c3c; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.85rem;">
+              {{ d.etiqueta }} — {{ d.foco }} kg/Ton
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Gráfica 1: Comportamiento consumo de vapor ──── -->
+      <section class="charts-section">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-area"></i></div>
+                Comportamiento del Consumo de Vapor
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="comportamientoData" [options]="comportamientoOptions" type="line"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Gráficas 2 y 3: Vapor vs Ton B100 ────────────── -->
+      <section class="charts-section">
+        <div class="charts-grid">
+
+          <!-- Consumo total vs B100 -->
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
+                Consumo Total de Vapor vs Ton B100
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="totalVsB100Data" [options]="mixedOptions" type="line"></canvas>
+            </div>
+          </div>
+
+          <!-- ISBL vs B100 -->
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
+                Consumo ISBL Desagregado vs Ton B100
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="isblVsB100Data" [options]="mixedOptions" type="line"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Gráfica 4: Indicador FOCO diario ─────────────── -->
+      <section class="charts-section">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-tachometer-alt"></i></div>
+                Indicador FOCO Diario — <span style="color:#27ae60;">● ≤ {{ kpis.meta }}</span>&nbsp;<span style="color:#e74c3c;">● > {{ kpis.meta }}</span> kg vapor / Ton B100
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="focoData" [options]="focoOptions" type="line"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
+    </div><!-- /!cargando -->
+  </div><!-- /vapor -->
+
+</div><!-- /dashboard-container -->
