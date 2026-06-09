@@ -47,6 +47,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 	                .requestMatchers("/api/pulsos/**", "/pulsos/**").permitAll()
 	                .requestMatchers("/api/upload/**", "/upload/**").permitAll()
 	                .requestMatchers("/plc/leer/**").permitAll()
+	                .requestMatchers("/api/plc-db/**", "/plc-db/**").permitAll()
 	                .requestMatchers("/api/scada/ultimo/**", "/scada/ultimo/**").permitAll()
 	                .requestMatchers("/api/module-config/config/**", "/module-config/config/**").permitAll()
 	                .requestMatchers("/api/module-config/**", "/module-config/**").permitAll()
