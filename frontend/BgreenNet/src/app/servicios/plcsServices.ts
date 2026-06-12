@@ -24,15 +24,21 @@ export class plcsServices {
     return this.http.get<VaporPLC[]>(`${this.baseUrl}/vapor`);
   }
 
+  getEnergia(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/energia`);
+  }
+
   /**
    * Extrae el valor real del sensor desde la notación científica del PLC.
    * Ej: 9.325711345004874E-39 → 9.33
    */
   parsePlcValue(v: any): number {
-    if (!v) return 0;
-    const str = String(v).toUpperCase();
+    if (v === null || v === undefined || v === '') return 0;
+    let str = String(v).toUpperCase().replace(',', '.');
     const parts = str.split('E');
-    return Number(Number(parts[0]).toFixed(4));
+    const num = Number(parts[0]);
+    if (isNaN(num)) return 0;
+    return Number(num.toFixed(4));
   }
 
   /**

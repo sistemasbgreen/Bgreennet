@@ -20,4 +20,9 @@ public class PlcDbService {
         String sql = "SELECT * FROM Tabla_14";
         return plcJdbcTemplate.queryForList(sql);
     }
+
+    public List<Map<String, Object>> obtenerEnergia() {
+        String sql = "SELECT * FROM Tabla_15";
+        return plcJdbcTemplate.queryForList(sql);
+    }
 }

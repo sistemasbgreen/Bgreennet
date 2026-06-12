@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions, Chart, registerables } from 'chart.js';
-import { forkJoin, Subject } from 'rxjs';
-import { switchMap, takeUntil } from 'rxjs/operators';
+import { forkJoin, Subject, of } from 'rxjs';
+import { switchMap, takeUntil, catchError } from 'rxjs/operators';
 
 import { plcsServices } from '../../../servicios/plcsServices';
 import { cmiplantaservices } from '../../../servicios/cmiplantaservices';
@@ -81,6 +81,39 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   // Opciones para gráficas de doble eje
   mixedOptions: ChartOptions<'line'> = {};
   focoOptions: ChartOptions<'line'> = {};
+  barOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { display: false } }
+    }
+  };
+
+  Math = Math; // Allow usage of Math.abs in template
+
+  // Energía
+  energiaMeta = 110;
+  energiaKpis = {
+    ultimoDia: null as number | null,
+    mensual: null as number | null,
+    anual: null as number | null,
+    totalEnergiaMes: 0,
+    totalB100Mes: 0,
+    totalEnergiaAnio: 0,
+    totalB100Anio: 0,
+    meta: 110
+  };
+  datosDiariosEnergia: any[] = [];
+  diasConDesviacionEnergia: any[] = [];
+  selectedDia: string = '';
+  diasDisponiblesEnergia: string[] = [];
+  mapaEnergiaHoraria: Map<string, {hora: string; cg: number; label: string}[]> = new Map();
+
+  energiaTotalVsB100Data: ChartData<'line'> = { labels: [], datasets: [] };
+  energiaFocoLineaData: ChartData<'line'> = { labels: [], datasets: [] };
+  energiaB100BarrasData: ChartData<'bar'> = { labels: [], datasets: [] };
+  energiaComportamientoMultiData: ChartData<'line'> = { labels: [], datasets: [] };
 
   constructor(
     private plcsService: plcsServices,
@@ -90,7 +123,10 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.cargarDatos();
+    // Solo cargar datos si el servicio activo requiere llamadas a la API
+    if (this.selectedServicio === 'vapor' || this.selectedServicio === 'energia') {
+      this.cargarDatos();
+    }
   }
 
   ngOnDestroy() {
@@ -133,14 +169,12 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   // ─── Eventos ────────────────────────────────────────────────────────────────
 
   onServicioChange() {
-    if (this.selectedServicio === 'vapor') this.cargarDatos();
+    if (this.selectedServicio === 'vapor' || this.selectedServicio === 'energia') this.cargarDatos();
   }
 
   onFiltroChange() {
-    if (this.selectedServicio === 'vapor') this.cargarDatos();
+    if (this.selectedServicio === 'vapor' || this.selectedServicio === 'energia') this.cargarDatos();
   }
-
-  // ─── Carga de datos ─────────────────────────────────────────────────────────
 
   cargarDatos() {
     this.cargando = true;
@@ -166,133 +200,482 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           productionDocTypes:   b100.productionDocTypes
         };
 
-        // 2. Llamar en paralelo: vapor + B100 mes + B100 histórico
+        const isVapor = this.selectedServicio === 'vapor';
+        // 2. Llamar en paralelo con manejo de error individual por llamada
+        const emptyB100Response = { dailyData: [], totalProduction: 0, totalConsumption: 0, monthlyAccumulated: 0, validDays: 0 };
         return forkJoin({
-          vapor:    this.plcsService.getVapor(),
-          b100Mes:  this.cmiplantaService.obtenerDatos({ ...baseRequest, startDate: fechaInicio, endDate: fechaFin }),
-          b100Historico: this.cmiplantaService.obtenerDatos({ ...baseRequest, startDate: '2025-01-01', endDate: hoy.toISOString().split('T')[0] })
+          sensorData: (isVapor ? this.plcsService.getVapor() : this.plcsService.getEnergia()).pipe(
+            catchError(err => { console.error('❌ Error cargando sensor data (PLC):', err); return of([]); })
+          ),
+          b100Mes: this.cmiplantaService.obtenerDatos({ ...baseRequest, startDate: fechaInicio, endDate: fechaFin }).pipe(
+            catchError(err => { console.error('❌ Error cargando B100 mes:', err.status, err.error); return of(emptyB100Response as any); })
+          ),
+          b100Historico: this.cmiplantaService.obtenerDatos({ ...baseRequest, startDate: '2025-01-01', endDate: hoy.toISOString().split('T')[0] }).pipe(
+            catchError(err => { console.error('❌ Error cargando B100 histórico:', err.status, err.error); return of(emptyB100Response as any); })
+          )
         });
       }),
       takeUntil(this.destroy$)
     ).subscribe({
-      next: ({ vapor, b100Mes, b100Historico }) => {
-        // ── Datos por MINUTO para Gráfica 1 (Comportamiento) ──
-        const labelsMinuto: string[] = [];
-        const isblMinuto: number[] = [];
-        const zona700Minuto: number[] = [];
+      next: ({ sensorData, b100Mes, b100Historico }) => {
+        if (this.selectedServicio === 'vapor') {
+          // ── Datos por MINUTO para Gráfica 1 (Comportamiento) ──
+          const labelsMinuto: string[] = [];
+          const isblMinuto: number[] = [];
+          const zona700Minuto: number[] = [];
 
-        vapor
-          .filter(row => {
-            if (!row.FechaRegistro) return false;
-            const date = new Date(row.FechaRegistro);
-            return date.getUTCFullYear().toString() === this.selectedYear
-              && (date.getUTCMonth() + 1).toString().padStart(2, '0') === this.selectedMonth;
-          })
-          .forEach(row => {
-            const date = new Date(row.FechaRegistro);
-            const hh = date.getUTCHours().toString().padStart(2, '0');
-            const mm = date.getUTCMinutes().toString().padStart(2, '0');
-            const dd = date.getUTCDate().toString().padStart(2, '0');
-            const mo = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-            labelsMinuto.push(`${dd}/${mo} ${hh}:${mm}`);
+          sensorData
+            .filter(row => {
+              if (!row.FechaRegistro) return false;
+              const date = new Date(row.FechaRegistro);
+              return date.getUTCFullYear().toString() === this.selectedYear
+                && (date.getUTCMonth() + 1).toString().padStart(2, '0') === this.selectedMonth;
+            })
+            .forEach(row => {
+              const date = new Date(row.FechaRegistro);
+              const hh = date.getUTCHours().toString().padStart(2, '0');
+              const mm = date.getUTCMinutes().toString().padStart(2, '0');
+              const dd = date.getUTCDate().toString().padStart(2, '0');
+              const mo = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+              labelsMinuto.push(`${dd}/${mo} ${hh}:${mm}`);
 
+              const v1 = this.plcsService.parsePlcValue(row['1100FTSG11']);
+              const v2 = this.plcsService.parsePlcValue(row['550FT04']);
+              const v3 = this.plcsService.parsePlcValue(row['1100FTSG12']);
+              isblMinuto.push(Number((v1 - v2).toFixed(2)));
+              zona700Minuto.push(Number((v3 - v1).toFixed(2)));
+            });
+
+          // ── Agrupar vapor por día (para gráficas 2, 3 y FOCO) ──
+          const mapaVapor = new Map<string, { tv: number; isbl: number; z700: number }>();
+
+          sensorData.forEach(row => {
+            if (!row.FechaRegistro) return;
+            const date = new Date(row.FechaRegistro);
+            const rowYear  = date.getUTCFullYear().toString();
+            const rowMonth = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+            if (rowYear !== this.selectedYear || rowMonth !== this.selectedMonth) return;
+
+            const fecha = date.toISOString().split('T')[0];
             const v1 = this.plcsService.parsePlcValue(row['1100FTSG11']);
             const v2 = this.plcsService.parsePlcValue(row['550FT04']);
             const v3 = this.plcsService.parsePlcValue(row['1100FTSG12']);
-            isblMinuto.push(Number((v1 - v2).toFixed(2)));
-            zona700Minuto.push(Number((v3 - v1).toFixed(2)));
+
+            const ex = mapaVapor.get(fecha);
+            if (ex) {
+              ex.tv   += v3;
+              ex.isbl += (v1 - v2);
+              ex.z700 += (v3 - v1);
+            } else {
+              mapaVapor.set(fecha, { tv: v3, isbl: v1 - v2, z700: v3 - v1 });
+            }
           });
 
-        // ── Agrupar vapor por día (para gráficas 2, 3 y FOCO) ──
-        const mapaVapor = new Map<string, { tv: number; isbl: number; z700: number }>();
+          // ── Mapa B100 por fecha ──
+          const mapaB100 = new Map<string, number>();
+          (b100Mes.dailyData || []).forEach((d: any) => mapaB100.set(d.date, d.produccion));
 
-        vapor.forEach(row => {
-          if (!row.FechaRegistro) return;
-          const date = new Date(row.FechaRegistro);
-          const rowYear  = date.getUTCFullYear().toString();
-          const rowMonth = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-          if (rowYear !== this.selectedYear || rowMonth !== this.selectedMonth) return;
+          // ── Unir por fecha ──
+          const todasFechas = [
+            ...new Set([...mapaVapor.keys(), ...mapaB100.keys()])
+          ].sort();
 
-          const fecha = date.toISOString().split('T')[0];
-          const v1 = this.plcsService.parsePlcValue(row['1100FTSG11']);
-          const v2 = this.plcsService.parsePlcValue(row['550FT04']);
-          const v3 = this.plcsService.parsePlcValue(row['1100FTSG12']);
+          this.datosDiarios = todasFechas.map(fecha => {
+            const [y, m, d] = fecha.split('-');
+            const tv   = Number((mapaVapor.get(fecha)?.tv   || 0).toFixed(2));
+            const isbl = Number((mapaVapor.get(fecha)?.isbl || 0).toFixed(2));
+            const z700 = Number((mapaVapor.get(fecha)?.z700 || 0).toFixed(2));
+            const b100 = Number((mapaB100.get(fecha) || 0).toFixed(2));
+            const foco = b100 > 0 ? Number((tv / b100).toFixed(2)) : 0;
+            const focoStatus: 'ok' | 'desviacion' | 'sin-dato' =
+              b100 === 0 ? 'sin-dato' : foco <= FOCO_META ? 'ok' : 'desviacion';
 
-          const ex = mapaVapor.get(fecha);
-          if (ex) {
-            ex.tv   += v3;
-            ex.isbl += (v1 - v2);
-            ex.z700 += (v3 - v1);
-          } else {
-            mapaVapor.set(fecha, { tv: v3, isbl: v1 - v2, z700: v3 - v1 });
+            return { fecha, etiqueta: `${d}/${m}`, totalVapor: tv, isblDesagregado: isbl, zona700yOtros: z700, tonB100: b100, foco, focoStatus };
+          });
+
+          // Días con desviación
+          this.diasConDesviacion = this.datosDiarios.filter(d => d.focoStatus === 'desviacion');
+
+          // ── KPIs ──
+          const totalVaporMes = this.datosDiarios.reduce((s, d) => s + d.totalVapor, 0);
+          const totalB100Mes  = b100Mes.totalProduction || 0;
+          const focosValidos  = this.datosDiarios.filter(d => d.foco > 0).map(d => d.foco);
+
+          // KPI anual: sumar vapor año completo
+          let totalVaporAnio = 0;
+          sensorData.forEach(row => {
+            if (!row.FechaRegistro) return;
+            if (new Date(row.FechaRegistro).getUTCFullYear().toString() !== this.selectedYear) return;
+            totalVaporAnio += this.plcsService.parsePlcValue(row['1100FTSG12']);
+          });
+
+          // Calcular total producción B100 del año actual
+          const totalB100Anio = (b100Historico.dailyData || [])
+            .filter((d: any) => d.date.startsWith(this.selectedYear))
+            .reduce((sum: number, d: any) => sum + d.produccion, 0);
+
+          this.kpis = {
+            focoUltimoDia: focosValidos.length ? focosValidos[focosValidos.length - 1] : null,
+            focoMensual:   totalB100Mes  > 0 ? Number((totalVaporMes  / totalB100Mes).toFixed(2))  : null,
+            focoAnual:     totalB100Anio > 0 ? Number((totalVaporAnio / totalB100Anio).toFixed(2)) : null,
+            totalVaporMes, totalB100Mes,
+            totalVaporAnio: Number(totalVaporAnio.toFixed(2)),
+            totalB100Anio,
+            meta: FOCO_META
+          };
+
+          this.buildCharts(labelsMinuto, isblMinuto, zona700Minuto);
+        } else if (this.selectedServicio === 'energia') {
+          console.log("⚡ [Energía] sensorData:", sensorData);
+          console.log("⚡ [Energía] b100Mes:", b100Mes);
+
+          // ── Helper para deltas y promedios ──
+          const createTracker = () => ({ min: Number.MAX_VALUE, max: -Number.MAX_VALUE, sum: 0, count: 0 });
+          const trackVal = (t: any, val: number) => {
+            if (val > 0) {
+              if (val < t.min) t.min = val;
+              if (val > t.max) t.max = val;
+            }
+            t.sum += val; t.count++;
+          };
+          const getDelta = (t: any) => (t.min !== Number.MAX_VALUE && t.max >= t.min) ? (t.max - t.min) : 0;
+          const getAvg = (t: any) => t.count > 0 ? (t.sum / t.count) : 0;
+
+          // ── Agrupar energía por día Y por hora ──
+          const mapaEnergia = new Map<string, any>();
+          const mapaEnergiaHorariaTracker = new Map<string, {hora: string; cg: any; label: string}[]>();
+
+          const exactKeys: {[key: string]: string} = {};
+          if (sensorData.length > 0) {
+            Object.keys(sensorData[0]).forEach(k => exactKeys[k.toLowerCase()] = k);
           }
-        });
+          const fechaKey = exactKeys['fecharegistro'] || exactKeys['timestamp'];
+          const keyEnergia = exactKeys['energia'];
+          const keyFt = exactKeys['ft520129'];
+          const keyU520 = exactKeys['contador_u520'];
+          const keyCcm1 = exactKeys['contador_ccm1'];
+          const keyCcm2 = exactKeys['contador_ccm2'];
+          const keyCcm3 = exactKeys['contador_ccm3'];
+          const keyAdmon = exactKeys['contador_admon'];
+          const keyPotGen = exactKeys['potencia_gen'];
 
-        // ── Mapa B100 por fecha ──
-        const mapaB100 = new Map<string, number>();
-        (b100Mes.dailyData || []).forEach(d => mapaB100.set(d.date, d.produccion));
+          sensorData.forEach((row: any) => {
+            const rawFecha = fechaKey ? row[fechaKey] : null;
+            if (!rawFecha) return;
+            const date = new Date(rawFecha);
+            const rowYear  = date.getUTCFullYear().toString();
+            const rowMonth = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+            if (rowYear !== this.selectedYear || rowMonth !== this.selectedMonth) return;
 
-        // ── Unir por fecha ──
-        const todasFechas = [
-          ...new Set([...mapaVapor.keys(), ...mapaB100.keys()])
-        ].sort();
+            const fecha = date.toISOString().split('T')[0];
 
-        this.datosDiarios = todasFechas.map(fecha => {
-          const [y, m, d] = fecha.split('-');
-          const tv   = Number((mapaVapor.get(fecha)?.tv   || 0).toFixed(2));
-          const isbl = Number((mapaVapor.get(fecha)?.isbl || 0).toFixed(2));
-          const z700 = Number((mapaVapor.get(fecha)?.z700 || 0).toFixed(2));
-          const b100 = Number((mapaB100.get(fecha) || 0).toFixed(2));
-          const foco = b100 > 0 ? Number((tv / b100).toFixed(2)) : 0;
-          const focoStatus: 'ok' | 'desviacion' | 'sin-dato' =
-            b100 === 0 ? 'sin-dato' : foco <= FOCO_META ? 'ok' : 'desviacion';
+            const cg = keyEnergia ? this.plcsService.parsePlcValue(row[keyEnergia]) : 0;
+            const ft = keyFt ? this.plcsService.parsePlcValue(row[keyFt]) : 0;
+            const u520_val = keyU520 ? this.plcsService.parsePlcValue(row[keyU520]) : 0;
+            const ccm1 = keyCcm1 ? this.plcsService.parsePlcValue(row[keyCcm1]) : 0;
+            const ccm2 = keyCcm2 ? this.plcsService.parsePlcValue(row[keyCcm2]) : 0;
+            const ccm3 = keyCcm3 ? this.plcsService.parsePlcValue(row[keyCcm3]) : 0;
+            const adm = keyAdmon ? this.plcsService.parsePlcValue(row[keyAdmon]) : 0;
+            const potGen = keyPotGen ? this.plcsService.parsePlcValue(row[keyPotGen]) : 0;
+            const isbl = ft;
+            const u520 = u520_val;
+            const z700 = ccm1;
+            const z800 = ccm2;
+            const torre = ccm3;
 
-          return { fecha, etiqueta: `${d}/${m}`, totalVapor: tv, isblDesagregado: isbl, zona700yOtros: z700, tonB100: b100, foco, focoStatus };
-        });
+            // ── Acumular por día ──
+            const ex = mapaEnergia.get(fecha) || {
+              cg: createTracker(), potGen: createTracker(), isbl: createTracker(), u520: createTracker(),
+              z700: createTracker(), z800: createTracker(), torre: createTracker(), admon: createTracker()
+            };
+            trackVal(ex.cg, cg);
+            trackVal(ex.potGen, potGen);
+            trackVal(ex.isbl, isbl);
+            trackVal(ex.u520, u520);
+            trackVal(ex.z700, z700);
+            trackVal(ex.z800, z800);
+            trackVal(ex.torre, torre);
+            trackVal(ex.admon, adm);
+            mapaEnergia.set(fecha, ex);
 
-        // Días con desviación
-        this.diasConDesviacion = this.datosDiarios.filter(d => d.focoStatus === 'desviacion');
+            // ── Acumular por hora (para gráfica horaria FOCO) ──
+            const hh = date.getUTCHours().toString().padStart(2, '0');
+            if (!mapaEnergiaHorariaTracker.has(fecha)) mapaEnergiaHorariaTracker.set(fecha, []);
+            const horasDelDia = mapaEnergiaHorariaTracker.get(fecha)!;
+            let horaEntry = horasDelDia.find(e => e.hora === hh);
+            if (!horaEntry) {
+              horaEntry = { hora: hh, cg: createTracker(), label: `${hh}:00` };
+              horasDelDia.push(horaEntry);
+            }
+            trackVal(horaEntry.cg, cg);
+          });
 
-        // ── KPIs ──
-        const totalVaporMes = this.datosDiarios.reduce((s, d) => s + d.totalVapor, 0);
-        const totalB100Mes  = b100Mes.totalProduction || 0;
-        const focosValidos  = this.datosDiarios.filter(d => d.foco > 0).map(d => d.foco);
+          // Convertir trackers a valores finales (Deltas)
+          const mapaEnergiaHorariaFinal = new Map<string, {hora: string; cg: number; label: string}[]>();
+          mapaEnergiaHorariaTracker.forEach((horas, fecha) => {
+            horas.sort((a, b) => a.hora.localeCompare(b.hora));
+            mapaEnergiaHorariaFinal.set(fecha, horas.map(h => ({
+              hora: h.hora, label: h.label, cg: getDelta(h.cg)
+            })));
+          });
+          
+          this.mapaEnergiaHoraria = mapaEnergiaHorariaFinal;
+          this.diasDisponiblesEnergia = [...mapaEnergiaHorariaFinal.keys()].sort();
+          if (!this.selectedDia || !mapaEnergiaHorariaFinal.has(this.selectedDia)) {
+            this.selectedDia = this.diasDisponiblesEnergia[this.diasDisponiblesEnergia.length - 1] || '';
+          }
 
-        // KPI anual: sumar vapor año completo
-        let totalVaporAnio = 0;
-        vapor.forEach(row => {
-          if (!row.FechaRegistro) return;
-          if (new Date(row.FechaRegistro).getUTCFullYear().toString() !== this.selectedYear) return;
-          totalVaporAnio += this.plcsService.parsePlcValue(row['1100FTSG12']);
-        });
+          // ── Mapa B100 por fecha ──
+          const mapaB100 = new Map<string, number>();
+          (b100Mes.dailyData || []).forEach((d: any) => mapaB100.set(d.date, d.produccion));
 
-        // Calcular total producción B100 del año actual
-        const totalB100Anio = (b100Historico.dailyData || [])
-          .filter(d => d.date.startsWith(this.selectedYear))
-          .reduce((sum, d) => sum + d.produccion, 0);
+          // ── Unir por fecha ──
+          const todasFechas = [...new Set([...mapaEnergia.keys(), ...mapaB100.keys()])].sort();
 
-        this.kpis = {
-          focoUltimoDia: focosValidos.length ? focosValidos[focosValidos.length - 1] : null,
-          focoMensual:   totalB100Mes  > 0 ? Number((totalVaporMes  / totalB100Mes).toFixed(2))  : null,
-          focoAnual:     totalB100Anio > 0 ? Number((totalVaporAnio / totalB100Anio).toFixed(2)) : null,
-          totalVaporMes, totalB100Mes,
-          totalVaporAnio: Number(totalVaporAnio.toFixed(2)),
-          totalB100Anio,
-          meta: FOCO_META
-        };
+          this.datosDiariosEnergia = todasFechas.map(fecha => {
+            const [y, m, d] = fecha.split('-');
+            const entry = mapaEnergia.get(fecha);
+            
+            const cg = entry ? Number(getDelta(entry.cg).toFixed(2)) : 0;
+            const potGen = entry ? Number(getAvg(entry.potGen).toFixed(2)) : 0;
+            const isbl = entry ? Number(getDelta(entry.isbl).toFixed(2)) : 0;
+            const u520 = entry ? Number(getDelta(entry.u520).toFixed(2)) : 0;
+            const z700 = entry ? Number(getDelta(entry.z700).toFixed(2)) : 0;
+            const z800 = entry ? Number(getDelta(entry.z800).toFixed(2)) : 0;
+            const torre = entry ? Number(getDelta(entry.torre).toFixed(2)) : 0;
+            const admon = entry ? Number(getDelta(entry.admon).toFixed(2)) : 0;
+            const osbl = Math.max(0, Number((cg - (isbl + u520 + z700 + z800 + torre + admon)).toFixed(2)));
 
+            const b100 = Number((mapaB100.get(fecha) || 0).toFixed(2));
+            // Indicador FOCO = KWh / Ton B100 producida
+            const foco = b100 > 0 ? Number((cg / b100).toFixed(2)) : 0;
+            const focoStatus: 'ok' | 'desviacion' | 'sin-dato' =
+              b100 === 0 ? 'sin-dato' : foco <= this.energiaMeta ? 'ok' : 'desviacion';
 
+            return {
+              fecha, etiqueta: `${d}/${m}`,
+              totalEnergia: cg, osbl, potGen, isbl, u520, z700, z800, torre, admon,
+              tonB100: b100, foco, focoStatus
+            };
+          });
 
-        this.buildCharts(labelsMinuto, isblMinuto, zona700Minuto);
+          console.log("⚡ [Energía] datosDiariosEnergia procesados:", this.datosDiariosEnergia);
+
+          // Días con desviación
+          this.diasConDesviacionEnergia = this.datosDiariosEnergia.filter(d => d.focoStatus === 'desviacion');
+
+          // ── KPIs ──
+          const totalEnergiaMes = this.datosDiariosEnergia.reduce((s: number, d: any) => s + d.totalEnergia, 0);
+          const totalB100Mes  = b100Mes.totalProduction || 0;
+          const focosValidos  = this.datosDiariosEnergia.filter((d: any) => d.foco > 0).map((d: any) => d.foco);
+
+          // KPI anual: calcular delta (max - min) energía año completo
+          let minCgAnual = Number.MAX_VALUE;
+          let maxCgAnual = -Number.MAX_VALUE;
+          sensorData.forEach((row: any) => {
+            const rawFecha = fechaKey ? row[fechaKey] : null;
+            if (!rawFecha) return;
+            if (new Date(rawFecha).getUTCFullYear().toString() !== this.selectedYear) return;
+            if (keyEnergia) {
+              const val = this.plcsService.parsePlcValue(row[keyEnergia]);
+              if (val > 0) {
+                if (val < minCgAnual) minCgAnual = val;
+                if (val > maxCgAnual) maxCgAnual = val;
+              }
+            }
+          });
+          const totalEnergiaAnio = (minCgAnual !== Number.MAX_VALUE && maxCgAnual >= minCgAnual) ? (maxCgAnual - minCgAnual) : 0;
+
+          // Calcular total producción B100 del año actual
+          const totalB100Anio = (b100Historico.dailyData || [])
+            .filter((d: any) => d.date.startsWith(this.selectedYear))
+            .reduce((sum: number, d: any) => sum + d.produccion, 0);
+
+          this.energiaKpis = {
+            ultimoDia: focosValidos.length ? focosValidos[focosValidos.length - 1] : null,
+            mensual:   totalB100Mes  > 0 ? Number((totalEnergiaMes  / totalB100Mes).toFixed(2))  : null,
+            anual:     totalB100Anio > 0 ? Number((totalEnergiaAnio / totalB100Anio).toFixed(2)) : null,
+            totalEnergiaMes, totalB100Mes,
+            totalEnergiaAnio: Number(totalEnergiaAnio.toFixed(2)),
+            totalB100Anio,
+            meta: this.energiaMeta
+          };
+
+          this.buildEnergiaCharts();
+        }
+
         this.cargando = false;
         this.cdr.detectChanges();
       },
       error: err => {
-        console.error('Error cargando datos vapor + B100:', err);
+        console.error('Error cargando datos:', err);
         this.cargando = false;
         this.cdr.detectChanges();
       }
     });
+  }
+
+  buildEnergiaCharts() {
+    // ── Opciones de doble eje para energía ──
+    const energiaDualOptions = (labelLeft: string, labelRight: string): ChartOptions<'line'> => ({
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false } },
+        'y-left':  { type: 'linear', position: 'left',  grid: { display: false }, title: { display: true, text: labelLeft  } },
+        'y-right': { type: 'linear', position: 'right', grid: { display: false }, title: { display: true, text: labelRight } }
+      },
+      plugins: { legend: { position: 'top' } }
+    });
+    // Actualizar mixedOptions para que las gráficas de energía tengan doble eje
+    this.mixedOptions = energiaDualOptions('kWh', 'Ton B100');
+
+    // Opciones FOCO: eje único para la línea de tendencia FOCO + tooltip con B100
+    this.focoOptions = {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          grid: { display: false },
+          title: { display: true, text: 'kWh / Ton B100' }
+        }
+      },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            afterBody: (items: any[]) => {
+              const idx = items[0]?.dataIndex;
+              if (idx === undefined) return '';
+              const tonB100 = this.datosDiariosEnergia[idx]?.tonB100 ?? 0;
+              return `Producción B100: ${tonB100.toFixed(2)} Ton`;
+            }
+          }
+        }
+      }
+    };
+
+    // Opciones multi-serie: eje único para las 9 líneas de consumo
+    this.comportamientoOptions = {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 20 } },
+        y: { grid: { display: false }, title: { display: true, text: 'kWh' } }
+      },
+      plugins: { legend: { position: 'top' } }
+    };
+
+    const labels = this.datosDiariosEnergia.map(d => d.etiqueta);
+    const cg = this.datosDiariosEnergia.map(d => d.totalEnergia);
+    const osbl = this.datosDiariosEnergia.map(d => d.osbl);
+    const potGen = this.datosDiariosEnergia.map(d => d.potGen);
+    const isbl = this.datosDiariosEnergia.map(d => d.isbl);
+    const u520 = this.datosDiariosEnergia.map(d => d.u520);
+    const z700 = this.datosDiariosEnergia.map(d => d.z700);
+    const z800 = this.datosDiariosEnergia.map(d => d.z800);
+    const torre = this.datosDiariosEnergia.map(d => d.torre);
+    const admon = this.datosDiariosEnergia.map(d => d.admon);
+    const b100 = this.datosDiariosEnergia.map(d => d.tonB100);
+    const foco = this.datosDiariosEnergia.map(d => d.foco);
+    const focoColors = this.datosDiariosEnergia.map(d =>
+      d.focoStatus === 'ok' ? '#27ae60' : d.focoStatus === 'desviacion' ? '#e74c3c' : '#bdc3c7'
+    );
+
+    // 1. Consumo Total Eléctrico / Ton B100 (División diaria = kWh/Ton)
+    this.energiaTotalVsB100Data = {
+      labels,
+      datasets: [
+        {
+          label: 'energia / Ton B100 (kWh/Ton)',
+          data: foco,
+          borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.07)',
+          borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8,
+          pointBackgroundColor: '#ffffff', pointBorderColor: '#27ae60', pointBorderWidth: 2,
+          fill: true, tension: 0.3
+        }
+      ]
+    };
+
+
+    // 2. Gráfica de Línea: FOCO hora a hora — se construye con filtrarFocoDiarioHora()
+    // (se llama al final de este método)
+
+    // 3. Gráfica de Barras: Producción diaria de Ton B100
+    this.energiaB100BarrasData = {
+      labels,
+      datasets: [
+        {
+          label: 'Producción B100 (Ton)',
+          data: b100,
+          backgroundColor: '#13590c', borderColor: '#0f4409',
+          borderWidth: 1.5, borderRadius: 4
+        }
+      ]
+    };
+
+    // 4. Comportamiento Consumo Eléctrico de 9 series
+    this.energiaComportamientoMultiData = {
+      labels,
+      datasets: [
+        { label: 'Total consumo planta (energia)', data: cg,     borderColor: '#34495e', pointBackgroundColor: '#34495e', pointBorderColor: '#34495e', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Potencia generada en planta',      data: potGen, borderColor: '#2ecc71', pointBackgroundColor: '#2ecc71', pointBorderColor: '#2ecc71', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Consumo ISBL',                     data: isbl,   borderColor: '#3498db', pointBackgroundColor: '#3498db', pointBorderColor: '#3498db', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Unidad 520',                       data: u520,   borderColor: '#9b59b6', pointBackgroundColor: '#9b59b6', pointBorderColor: '#9b59b6', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Zona 700',                         data: z700,   borderColor: '#e67e22', pointBackgroundColor: '#e67e22', pointBorderColor: '#e67e22', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Zona 800',                         data: z800,   borderColor: '#e74c3c', pointBackgroundColor: '#e74c3c', pointBorderColor: '#e74c3c', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Torre de enfriamiento',            data: torre,  borderColor: '#1abc9c', pointBackgroundColor: '#1abc9c', pointBorderColor: '#1abc9c', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Edificio administración y chiller',data: admon,  borderColor: '#95a5a6', pointBackgroundColor: '#95a5a6', pointBorderColor: '#95a5a6', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Consumo OSBL',                     data: osbl,   borderColor: '#d35400', pointBackgroundColor: '#d35400', pointBorderColor: '#d35400', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 }
+      ]
+    };
+
+    // Construir gráfica horaria FOCO con el día seleccionado
+    this.filtrarFocoDiarioHora();
+  }
+
+  // ─── FOCO hora a hora por día ─────────────────────────────────────────────
+  filtrarFocoDiarioHora() {
+    if (!this.selectedDia || !this.mapaEnergiaHoraria.has(this.selectedDia)) {
+      this.energiaFocoLineaData = { labels: [], datasets: [] };
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const horas = this.mapaEnergiaHoraria.get(this.selectedDia)!;
+    const [y, m, d] = this.selectedDia.split('-');
+
+    // B100 total del día seleccionado
+    const diaData = this.datosDiariosEnergia.find((x: any) => x.fecha === this.selectedDia);
+    const b100Dia = diaData?.tonB100 ?? 0;
+
+    const labels = horas.map(h => h.label);
+    // foco hora = kWh de esa hora / Ton B100 total del día
+    const focoHora = horas.map(h =>
+      b100Dia > 0 ? Number((h.cg / b100Dia).toFixed(2)) : 0
+    );
+    const colores = focoHora.map(v =>
+      v === 0 ? '#bdc3c7' : v <= this.energiaMeta ? '#27ae60' : '#e74c3c'
+    );
+
+    this.energiaFocoLineaData = {
+      labels,
+      datasets: [
+        {
+          label: `FOCO ${d}/${m}/${y} — kWh/Ton B100`,
+          data: focoHora,
+          borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.06)',
+          borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8,
+          pointBackgroundColor: '#ffffff', pointBorderColor: '#27ae60', pointBorderWidth: 2,
+          fill: true, tension: 0.3
+        },
+        {
+          label: `Meta (${this.energiaMeta} kWh/Ton)`,
+          data: Array(labels.length).fill(this.energiaMeta),
+          borderColor: '#e74c3c', borderWidth: 2,
+          borderDash: [6, 4], pointRadius: 0, fill: false
+        }
+      ]
+    };
+    this.cdr.detectChanges();
   }
 
   // ─── Construcción de gráficas ────────────────────────────────────────────────
