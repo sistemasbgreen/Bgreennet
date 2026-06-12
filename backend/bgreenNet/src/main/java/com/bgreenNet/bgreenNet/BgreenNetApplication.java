@@ -16,8 +16,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.bgreenNet.bgreenNet.services.EmailReporteService;
 
-import jakarta.annotation.PostConstruct;
-
 @SpringBootApplication
 @EnableScheduling
 public class BgreenNetApplication {

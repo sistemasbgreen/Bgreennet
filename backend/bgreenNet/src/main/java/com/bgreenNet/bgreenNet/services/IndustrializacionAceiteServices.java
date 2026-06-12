@@ -6,25 +6,25 @@ import org.springframework.stereotype.Service;
 
 import com.bgreenNet.bgreenNet.dto.IndustrializacionAceiteDTO;
 
+import java.util.List;
+import java.util.Map;
+
 @Service
 public class IndustrializacionAceiteServices {
 
-	
-
-	
     private final JdbcTemplate siesaJdbcTemplate;
-    
+
     public IndustrializacionAceiteServices(@Qualifier("siesaJdbcTemplate") JdbcTemplate siesaJdbcTemplate) {
         this.siesaJdbcTemplate = siesaJdbcTemplate;
     }
-    
+
     public IndustrializacionAceiteDTO obtenerIndicador(Integer year) {
 
         String fechaInicio = year + "-01-01";
         String fechaFin = (year + 1) + "-01-01";
 
         String sql = """
-            SELECT 
+            SELECT
                 ((SUM(mov.f470_cant_1) / 1000) / 150000) * 100 AS Resultado
             FROM  t124_mc_items_referencias
             LEFT JOIN t120_mc_items item
@@ -39,7 +39,7 @@ public class IndustrializacionAceiteServices {
                 ON bod.f150_rowid = mov.f470_rowid_bodega
             INNER JOIN t200_mm_terceros ter
                 ON ter.f200_rowid = doc.f350_rowid_tercero
-            WHERE 
+            WHERE
                 f120_id_cia = 2
                 AND f200_nit IN ('900012728','824006708','900486803','901047298','802005075')
                 AND f350_ind_estado = 1
@@ -49,8 +49,16 @@ public class IndustrializacionAceiteServices {
                 AND mov.f470_id_fecha <=  ?
         """;
 
-        Double resultado = siesaJdbcTemplate.queryForObject(sql, Double.class, fechaInicio, fechaFin);
-
-        return new IndustrializacionAceiteDTO(resultado != null ? resultado : 0.0);
+        try {
+            List<Map<String, Object>> rows = siesaJdbcTemplate.queryForList(sql, fechaInicio, fechaFin);
+            if (rows.isEmpty() || rows.get(0).get("Resultado") == null) {
+                return new IndustrializacionAceiteDTO(0.0);
+            }
+            double resultado = ((Number) rows.get(0).get("Resultado")).doubleValue();
+            return new IndustrializacionAceiteDTO(resultado);
+        } catch (Exception e) {
+            System.err.println("⚠ [IndustrializacionAceite] Error al consultar: " + e.getMessage());
+            return new IndustrializacionAceiteDTO(0.0);
+        }
     }
 }

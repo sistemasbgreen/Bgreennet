@@ -1,0 +1,338 @@
+<div class="maestro-container">
+  <!-- Top Banner / Header -->
+  <header class="maestro-header">
+    <div class="header-title">
+      <h1><i class="fas fa-sliders-h"></i> MAESTRO DE VARIABLES Y PARÁMETROS</h1>
+      <p>Gestión y configuración global de variables, procesos y unidades de medición</p>
+    </div>
+  </header>
+
+  <!-- Tabs Selector -->
+  <div class="tabs-container" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem;">
+    <button class="tab-btn" [class.active]="activeTab === 'variables'" (click)="switchTab('variables')">
+      <i class="fas fa-microchip"></i> Variables SCADA/PLC
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'unidades'" (click)="switchTab('unidades')">
+      <i class="fas fa-industry"></i> Unidades de Planta
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'unidadesMedida'" (click)="switchTab('unidadesMedida')">
+      <i class="fas fa-balance-scale"></i> Unidades de Medida
+    </button>
+  </div>
+
+  <!-- Recipients Config Bar -->
+  <div class="email-config-card" style="background: var(--card-bg, #ffffff); border: 1px solid var(--border-color, #dee2e6); border-left: 4px solid #006c2c; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <i class="fas fa-envelope-open-text" style="color: #006c2c; font-size: 1.4rem;"></i>
+      <div>
+        <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-color, #2d3748);">Destinatarios de Alertas PLC</h4>
+        <p style="margin: 0; font-size: 0.8rem; color: #718096;">Correos separados por coma (ej: admin@bgreen.com, jefe@bgreen.com)</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-grow: 1; max-width: 480px; width: 100%;">
+      <input type="text" [(ngModel)]="receptoresPlc" placeholder="Ingresa los correos electrónicos..." 
+             style="flex-grow: 1; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; background: #fff; color: #333; outline: none;" />
+      <button class="btn btn-primary" (click)="guardarReceptores()" [disabled]="guardandoReceptores" style="white-space: nowrap; padding: 0.5rem 1.25rem;">
+        <span *ngIf="!guardandoReceptores"><i class="fas fa-save"></i> Guardar</span>
+        <span *ngIf="guardandoReceptores"><i class="fas fa-spinner fa-spin"></i></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Controls Bar -->
+  <div class="controls-bar">
+    <div class="search-box">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" [(ngModel)]="searchTerm" placeholder="Buscar..." />
+    </div>
+    <div class="action-buttons">
+      <button class="btn btn-primary" (click)="abrirCrear()">
+        <i class="fas fa-plus"></i> 
+        Agregar {{ activeTab === 'variables' ? 'Variable' : activeTab === 'unidades' ? 'Unidad de Planta' : 'Unidad de Medida' }}
+      </button>
+      <button class="btn btn-secondary" (click)="sincronizar()" *ngIf="activeTab === 'variables'">
+        <i class="fas fa-sync"></i> Sincronizar Tabla 14
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Grid Layout -->
+  <div class="maestro-grid">
+    <!-- Table Card -->
+    <div class="card table-card">
+      <div class="card-header">
+        <h3 style="text-transform: capitalize;">{{ activeTab === 'variables' ? 'Variables' : activeTab === 'unidades' ? 'Unidades de Planta' : 'Unidades de Medida' }} ({{ getFilteredItems().length }})</h3>
+      </div>
+      <div class="table-responsive">
+        
+        <!-- TABLE: VARIABLES -->
+        <table class="maestro-table" *ngIf="activeTab === 'variables'">
+          <thead>
+            <tr>
+              <th>Tag</th>
+              <th>Nombre / Descripción</th>
+              <th>Unidad (Proceso)</th>
+              <th>Unidad (Medida)</th>
+              <th>Meta Mín</th>
+              <th>Meta Máx</th>
+              <th style="text-align: center;">Notificar</th>
+              <th>Último Cambio</th>
+              <th style="width: 80px; text-align: center;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="loading">
+              <td colspan="9" class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+              </td>
+            </tr>
+            <tr *ngIf="!loading && getFilteredItems().length === 0">
+              <td colspan="9" class="text-center py-4 text-muted">No se encontraron variables.</td>
+            </tr>
+            <tr *ngFor="let v of getFilteredItems()">
+              <td><span class="tag-badge">{{ v.tag }}</span></td>
+              <td><strong>{{ v.nombre }}</strong></td>
+              <td>{{ v.unidad?.nombre || '-' }}</td>
+              <td><span class="unit-badge" *ngIf="v.unit">{{ v.unit.nombre }}</span><span *ngIf="!v.unit">-</span></td>
+              <td>{{ v.metaMin !== null ? v.metaMin : 'N/A' }}</td>
+              <td>{{ v.metaMax !== null ? v.metaMax : 'N/A' }}</td>
+              <td style="text-align: center;">
+                <span *ngIf="v.notificar" style="color: #e67e22; font-size: 1.1rem;" title="Sonido y correo activo">
+                  <i class="fas fa-bell"></i>
+                </span>
+                <span *ngIf="!v.notificar" style="color: #bdc3c7;" title="Sin alerta especial">
+                  <i class="fas fa-bell-slash"></i>
+                </span>
+              </td>
+              <td>
+                <div class="audit-info" *ngIf="v.actualizadoEn">
+                  <span class="date">{{ v.actualizadoEn | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <span class="user" *ngIf="v.usuario"><i class="fas fa-user-edit"></i> {{ v.usuario }}</span>
+                </div>
+                <span *ngIf="!v.actualizadoEn">-</span>
+              </td>
+              <td style="text-align: center;">
+                <button class="btn-icon" (click)="abrirEditar(v)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- TABLE: UNIDADES PLANTA -->
+        <table class="maestro-table" *ngIf="activeTab === 'unidades'">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th style="width: 120px;">Estado</th>
+              <th>Creado / Modificado</th>
+              <th style="width: 80px; text-align: center;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="loading">
+              <td colspan="5" class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+              </td>
+            </tr>
+            <tr *ngIf="!loading && getFilteredItems().length === 0">
+              <td colspan="5" class="text-center py-4 text-muted">No se encontraron unidades de planta.</td>
+            </tr>
+            <tr *ngFor="let u of getFilteredItems()">
+              <td>{{ u.id }}</td>
+              <td><strong>{{ u.nombre }}</strong></td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span [style.color]="u.estado === 1 ? 'green' : 'red'" style="font-size: 0.8rem; font-weight: bold;">
+                    {{ u.estado === 1 ? 'Activo' : 'Inactivo' }}
+                  </span>
+                  <label class="switch" style="position: relative; display: inline-block; width: 34px; height: 20px;">
+                    <input type="checkbox" [checked]="u.estado === 1" (change)="toggleEstado(u, $event)" style="opacity: 0; width: 0; height: 0;" />
+                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
+                  </label>
+                </div>
+              </td>
+              <td>
+                <div class="audit-info">
+                  <span class="date" *ngIf="u.dateModify">Modif: {{ u.dateModify | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <span class="user" *ngIf="u.usuario"><i class="fas fa-user-edit"></i> {{ u.usuario }}</span>
+                </div>
+              </td>
+              <td style="text-align: center;">
+                <button class="btn-icon" (click)="abrirEditar(u)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- TABLE: UNIDADES MEDIDA -->
+        <table class="maestro-table" *ngIf="activeTab === 'unidadesMedida'">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre (Símbolo)</th>
+              <th style="width: 120px;">Estado</th>
+              <th>Creado / Modificado</th>
+              <th style="width: 80px; text-align: center;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="loading">
+              <td colspan="5" class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+              </td>
+            </tr>
+            <tr *ngIf="!loading && getFilteredItems().length === 0">
+              <td colspan="5" class="text-center py-4 text-muted">No se encontraron unidades de medida.</td>
+            </tr>
+            <tr *ngFor="let um of getFilteredItems()">
+              <td>{{ um.id }}</td>
+              <td><strong>{{ um.nombre }}</strong></td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span [style.color]="um.estado === 1 ? 'green' : 'red'" style="font-size: 0.8rem; font-weight: bold;">
+                    {{ um.estado === 1 ? 'Activo' : 'Inactivo' }}
+                  </span>
+                  <label class="switch" style="position: relative; display: inline-block; width: 34px; height: 20px;">
+                    <input type="checkbox" [checked]="um.estado === 1" (change)="toggleEstado(um, $event)" style="opacity: 0; width: 0; height: 0;" />
+                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
+                  </label>
+                </div>
+              </td>
+              <td>
+                <div class="audit-info">
+                  <span class="date" *ngIf="um.dateModify">Modif: {{ um.dateModify | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <span class="user" *ngIf="um.usuario"><i class="fas fa-user-edit"></i> {{ um.usuario }}</span>
+                </div>
+              </td>
+              <td style="text-align: center;">
+                <button class="btn-icon" (click)="abrirEditar(um)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+      </div>
+    </div>
+
+    <!-- Side Form Panel -->
+    <div class="card form-card" *ngIf="showForm">
+      <div class="card-header">
+        <h3>{{ isEditing ? 'Editar' : 'Nueva' }} {{ activeTab === 'variables' ? 'Variable' : activeTab === 'unidades' ? 'Unidad de Planta' : 'Unidad de Medida' }}</h3>
+        <button class="close-form" (click)="cerrarForm()">&times;</button>
+      </div>
+      <div class="card-body">
+        
+        <div *ngIf="activeTab === 'variables' && !isEditing" style="background-color: #fff5e6; color: #d35400; padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid #fcdcb3; border-left: 4px solid #e67e22; margin-bottom: 1.5rem; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 0.6rem;">
+          <i class="fas fa-exclamation-triangle" style="margin-top: 0.15rem; color: #e67e22; font-size: 1.1rem;"></i>
+          <div>
+            <strong>Nota:</strong> El Tag de Variable (PLC) debe crearse primero en la base de datos, si la variable no está creada no se podrá Insertar/Consultar.
+          </div>
+        </div>
+
+        <!-- FORM: VARIABLES -->
+        <form (ngSubmit)="guardar()" *ngIf="activeTab === 'variables'">
+          <div class="form-group">
+            <label class="required">Tag de Variable (PLC):</label>
+            <input type="text" [(ngModel)]="formVariable.tag" name="tag" [disabled]="isEditing" required placeholder="Ej: 120TT01" />
+          </div>
+          <div class="form-group">
+            <label class="required">Nombre descriptivo:</label>
+            <input type="text" [(ngModel)]="formVariable.nombre" name="nombre" required placeholder="Ej: Temperatura Ingreso" />
+          </div>
+          <div class="form-group">
+            <label class="required">Unidad de Proceso:</label>
+            <select [(ngModel)]="formVariable.unidad.nombre" name="unidad" required style="padding: 0.65rem 0.85rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; background: white; outline: none;">
+              <option value="" disabled>Seleccione una Unidad</option>
+              <option *ngFor="let u of unidades" [value]="u.nombre" [disabled]="u.estado === 0">{{ u.nombre }} {{ u.estado === 0 ? '(Inactivo)' : '' }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Unidad de Medida (Física):</label>
+            <select [(ngModel)]="formVariable.unit.nombre" name="unit" style="padding: 0.65rem 0.85rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; background: white; outline: none;">
+              <option value="">Ninguna / Sin Unidad</option>
+              <option *ngFor="let um of unidadesMedida" [value]="um.nombre" [disabled]="um.estado === 0">{{ um.nombre }} {{ um.estado === 0 ? '(Inactivo)' : '' }}</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Meta Mínima:</label>
+              <input type="number" step="any" [(ngModel)]="formVariable.metaMin" name="metaMin" placeholder="Sin mínimo" />
+            </div>
+            <div class="form-group">
+              <label>Meta Máxima:</label>
+              <input type="number" step="any" [(ngModel)]="formVariable.metaMax" name="metaMax" placeholder="Sin máximo" />
+            </div>
+          </div>
+          <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; margin-bottom: 1.5rem;">
+            <label class="switch" style="position: relative; display: inline-block; width: 34px; height: 20px; margin-bottom: 0;">
+              <input type="checkbox" [(ngModel)]="formVariable.notificar" name="notificar" style="opacity: 0; width: 0; height: 0;" />
+              <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
+            </label>
+            <label style="font-weight: 600; cursor: pointer; margin-bottom: 0;" (click)="formVariable.notificar = !formVariable.notificar">
+              <i class="fas fa-bell" [style.color]="formVariable.notificar ? '#e67e22' : '#95a5a6'"></i> Activar Sonido y Correo
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-block" [disabled]="isSaving">
+              <span *ngIf="!isSaving"><i class="fas fa-save"></i> Guardar Cambios</span>
+              <span *ngIf="isSaving"><i class="fas fa-spinner fa-spin"></i> Guardando...</span>
+            </button>
+            <button type="button" class="btn btn-light btn-block" (click)="cerrarForm()">Cancelar</button>
+          </div>
+        </form>
+
+        <!-- FORM: UNIDADES PLANTA -->
+        <form (ngSubmit)="guardar()" *ngIf="activeTab === 'unidades'">
+          <div class="form-group">
+            <label class="required">Nombre de Unidad de Planta:</label>
+            <input type="text" [(ngModel)]="formUnidad.nombre" name="unidadNombre" required placeholder="Ej: Unidad 150" />
+          </div>
+          <div class="form-group">
+            <label>Estado:</label>
+            <select [(ngModel)]="formUnidad.estado" name="unidadEstado" style="padding: 0.65rem 0.85rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; background: white;">
+              <option [value]="1">Activo</option>
+              <option [value]="0">Inactivo</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-block" [disabled]="isSaving">
+              <span *ngIf="!isSaving"><i class="fas fa-save"></i> Guardar Unidad</span>
+              <span *ngIf="isSaving"><i class="fas fa-spinner fa-spin"></i> Guardando...</span>
+            </button>
+            <button type="button" class="btn btn-light btn-block" (click)="cerrarForm()">Cancelar</button>
+          </div>
+        </form>
+
+        <!-- FORM: UNIDADES MEDIDA -->
+        <form (ngSubmit)="guardar()" *ngIf="activeTab === 'unidadesMedida'">
+          <div class="form-group">
+            <label class="required">Nombre (Símbolo):</label>
+            <input type="text" [(ngModel)]="formUnidadMedida.nombre" name="umNombre" required placeholder="Ej: °C, Bar, mBar" />
+          </div>
+          <div class="form-group">
+            <label>Estado:</label>
+            <select [(ngModel)]="formUnidadMedida.estado" name="umEstado" style="padding: 0.65rem 0.85rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; background: white;">
+              <option [value]="1">Activo</option>
+              <option [value]="0">Inactivo</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-block" [disabled]="isSaving">
+              <span *ngIf="!isSaving"><i class="fas fa-save"></i> Guardar Medida</span>
+              <span *ngIf="isSaving"><i class="fas fa-spinner fa-spin"></i> Guardando...</span>
+            </button>
+            <button type="button" class="btn btn-light btn-block" (click)="cerrarForm()">Cancelar</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>

@@ -20,8 +20,20 @@ export class plcsServices {
    * Los valores numéricos vienen en notación científica (ej: 9.32E-39)
    * por diferencias de codificación entre el PLC y SQL Server.
    */
-  getVapor(): Observable<VaporPLC[]> {
-    return this.http.get<VaporPLC[]>(`${this.baseUrl}/vapor`);
+  getVapor(startDate?: string, endDate?: string): Observable<VaporPLC[]> {
+    let url = `${this.baseUrl}/vapor`;
+    if (startDate && endDate) {
+      url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+    return this.http.get<VaporPLC[]>(url);
+  }
+
+  getEnergia(startDate?: string, endDate?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/energia`;
+    if (startDate && endDate) {
+      url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+    return this.http.get<any[]>(url);
   }
 
   /**
@@ -29,10 +41,12 @@ export class plcsServices {
    * Ej: 9.325711345004874E-39 → 9.33
    */
   parsePlcValue(v: any): number {
-    if (!v) return 0;
-    const str = String(v).toUpperCase();
+    if (v === null || v === undefined || v === '') return 0;
+    let str = String(v).toUpperCase().replace(',', '.');
     const parts = str.split('E');
-    return Number(Number(parts[0]).toFixed(4));
+    const num = Number(parts[0]);
+    if (isNaN(num)) return 0;
+    return Number(num.toFixed(4));
   }
 
   /**
@@ -96,16 +110,34 @@ export class plcsServices {
    * Suma total de vapor para un año completo (para KPI anual).
    */
   getVaporTotalAnio(anio: string): Observable<{ totalVapor: number }> {
-    return this.getVapor().pipe(
+    return this.http.get<any[]>(`${this.baseUrl}/vapor/anual?year=${anio}`).pipe(
       map(data => {
         let total = 0;
         data.forEach(row => {
-          if (!row.FechaRegistro) return;
-          const year = new Date(row.FechaRegistro).getUTCFullYear().toString();
-          if (year !== anio) return;
           total += this.parsePlcValue(row['1100FTSG12']);
         });
         return { totalVapor: Number(total.toFixed(2)) };
+      })
+    );
+  }
+
+  /**
+   * Diferencia max-min total de energía para un año completo (para KPI anual).
+   */
+  getEnergiaTotalAnio(anio: string): Observable<{ totalEnergia: number }> {
+    return this.http.get<any[]>(`${this.baseUrl}/energia/anual?year=${anio}`).pipe(
+      map(data => {
+        let minCg = Number.MAX_VALUE;
+        let maxCg = -Number.MAX_VALUE;
+        data.forEach(row => {
+          const val = this.parsePlcValue(row['ENERGIA'] || row['energia']);
+          if (val > 0) {
+            if (val < minCg) minCg = val;
+            if (val > maxCg) maxCg = val;
+          }
+        });
+        const total = (minCg !== Number.MAX_VALUE && maxCg >= minCg) ? (maxCg - minCg) : 0;
+        return { totalEnergia: Number(total.toFixed(2)) };
       })
     );
   }

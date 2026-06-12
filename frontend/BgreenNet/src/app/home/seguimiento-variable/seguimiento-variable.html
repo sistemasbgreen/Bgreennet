@@ -1,0 +1,250 @@
+<div class="scada-main-container">
+    <!-- Sidebar navigation -->
+    <section>
+        <div id="sidebar" class="sidebar" [class.open]="isSidebarOpen">
+            <div class="sidebar-header">
+                <h3>Navegación</h3>
+                <button id="close-sidebar" class="close-btn" (click)="toggleSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="00PLCs_Variables.php"><i class="fas fa-cog"></i> PLCs Monitor</a></li>
+                    <li><a href="00PLCs_Admin.php"><i class="fas fa-tools"></i> PLCs Admin</a></li>
+                </ul>
+            </nav>
+        </div>
+    </section>
+
+    <!-- Header Section -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-container">
+                <a href="PLCs.php">
+                    <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo Bgreen" width="100" class="logo" />
+                </a>
+            </div>
+            <div class="title-section">
+                <h1 class="main-title">SEGUIMIENTO DE VARIABLES</h1>
+                <p class="subtitle">
+                    SISTEMA PLCS 
+                    <span class="status-indicator" [class.online]="connectionStatus === 'online'" [class.offline]="connectionStatus === 'offline'" id="status-indicator"></span>
+                </p>
+                <div class="date-display" id="current-date">{{ currentDate }}</div>
+                <div class="date-display" id="last-update" *ngIf="lastUpdate">Última actualización: {{ lastUpdate }}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button id="notification-toggle" class="notification-toggle" (click)="toggleNotificationPanel()">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notification-badge">{{ activeAlerts.length }}</span>
+                </button>
+                <button id="toggle-sidebar" class="toggle-btn" (click)="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout Grid -->
+    <div class="main-layout">
+        <div class="content-area">
+            <div class="full-width-container mt-2">
+                <!-- Unit Selector Buttons -->
+                <div class="units-selector">
+                    <label><i class="fas fa-filter"></i> Unidad:</label>
+                    <button class="unit-btn" [class.active]="selectedUnit === 'todas'" (click)="selectUnit('todas')">Todas</button>
+                    <button *ngFor="let unit of allUnits" class="unit-btn" [class.active]="selectedUnit === unit" (click)="selectUnit(unit)">
+                        {{ unit }}
+                    </button>
+                </div>
+
+                <!-- Filters & Search -->
+                <div class="filters-container" style="align-items: flex-end;">
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar-alt"></i> Fecha:</label>
+                        <input type="date" [(ngModel)]="selectedDate" (change)="onDateChange()" class="quick-range-select" style="min-width: 150px;" />
+                    </div>
+
+                    <div class="filter-group" style="flex-grow: 1; min-width: 250px;">
+                        <label><i class="fas fa-search"></i> Buscar:</label>
+                        <input type="text" id="search-input" [(ngModel)]="searchTerm" placeholder="Buscar sensor, tag o unidad..." />
+                    </div>
+
+                    <div class="filter-group" style="display: flex; gap: 0.5rem;">
+                        <button (click)="abrirGestionModal()" class="action-btn" title="Gestionar Variables">
+                            <i class="fas fa-edit"></i> Configurar Variables
+                        </button>
+                        <button (click)="sincronizarVariables()" class="action-btn-secondary" title="Sincronizar variables de PLCs (Tabla_14)">
+                            <i class="fas fa-sync"></i> Sincronizar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading" *ngIf="loading && !ultimoScada">
+                    <div class="spinner"></div>
+                    <span>Cargando sensores de la unidad...</span>
+                </div>
+
+                <!-- Error State -->
+                <div class="loading" *ngIf="error && !ultimoScada">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2.5rem; color: var(--danger);"></i>
+                    <span>{{ error }}</span>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid" id="individual-charts" *ngIf="!loading && ultimoScada">
+                    <div *ngIf="getFilteredSensors().length === 0" class="loading">
+                        <span>No se encontraron sensores coincidentes.</span>
+                    </div>
+
+                    <div *ngFor="let sensor of getFilteredSensors()" class="sensor-card" [id]="'card_' + sensor.tag">
+                        <!-- Sensor Header with dynamic status color -->
+                        <div class="sensor-header" [class.status-normal]="getSensorStatus(getValor(sensor.tag), sensor.min, sensor.max) === 'normal'" [class.status-warning]="getSensorStatus(getValor(sensor.tag), sensor.min, sensor.max) === 'warning'">
+                            <span class="sensor-name"><i class="fas fa-microchip"></i> {{ sensor.tag }}</span>
+                            <span class="sensor-value">
+                                {{ getValor(sensor.tag) !== null ? (getValor(sensor.tag)!.toFixed(1)) : 'N/A' }} 
+                                <span style="font-size: 1.25rem;">{{ sensor.unit }}</span>
+                            </span>
+                        </div>
+
+                        <!-- Real-time dynamic trend line chart -->
+                        <div class="sensor-trend">
+                            <div class="trend-label"><i class="fas fa-chart-line"></i> Tendencia {{ sensor.tag }}</div>
+                            <div class="chart-container small">
+                                <canvas [id]="'chart_' + sensor.tag"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Real-time dynamic gauge chart -->
+                        <div class="gauge-container">
+                            <canvas [id]="'gauge_' + sensor.tag" class="gauge-canvas" width="180" height="110"></canvas>
+                            <div class="gauge-label">{{ sensor.name }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Alerts Panel Drawer -->
+        <div id="notification-panel" class="notification-panel" [class.visible]="isNotificationPanelOpen">
+            <div class="notification-header">
+                <i class="fas fa-bell"></i> Alertas Activas (<span>{{ activeAlerts.length }}</span>)
+            </div>
+            <div class="notification-list" id="notification-list">
+                <p class="text-muted" *ngIf="activeAlerts.length === 0" style="padding: 12px; text-align: center;">
+                    No hay alertas activas en este momento.
+                </p>
+                <div *ngFor="let alert of activeAlerts" class="notification-item">
+                    <strong>
+                        <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i> 
+                        {{ alert.tag }} - {{ alert.name }}
+                    </strong>
+                    <div class="value-display">
+                        Valor actual: {{ alert.value.toFixed(1) }} {{ alert.unit }}
+                    </div>
+                    <div class="limits-display">
+                        Límites: Min: {{ alert.min !== null ? alert.min : 'N/A' }} | Max: {{ alert.max !== null ? alert.max : 'N/A' }}
+                    </div>
+                    <button class="goto-sensor" (click)="scrollToSensor(alert.tag)">
+                        Ver Sensor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Gestión de Variables -->
+    <div class="modal-backdrop" *ngIf="showGestionModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2><i class="fas fa-sliders-h"></i> Gestión de Variables y Metas</h2>
+                <button class="close-modal-btn" (click)="cerrarGestionModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Buscador de variables -->
+                <div style="margin-bottom: 1rem;">
+                    <div class="form-group" style="display: flex; align-items: center; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 0.25rem 0.75rem;">
+                        <i class="fas fa-search" style="color: var(--text-muted); margin-right: 0.5rem;"></i>
+                        <input type="text" [(ngModel)]="searchTermVariables" placeholder="Buscar variable por tag o nombre..." style="border: none; outline: none; width: 100%; padding: 0.5rem 0; font-size: 0.9rem;" />
+                    </div>
+                </div>
+
+                <!-- Tabla de todas las variables -->
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: 8px;">
+                    <table class="variables-table">
+                        <thead>
+                            <tr>
+                                <th>Tag</th>
+                                <th>Nombre</th>
+                                <th>Unidad (Proceso)</th>
+                                <th>Unidad (Medida)</th>
+                                <th>Meta Min</th>
+                                <th>Meta Max</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let v of getFilteredVariables()">
+                                <td><strong>{{ v.tag }}</strong></td>
+                                <td>{{ v.nombre }}</td>
+                                <td>{{ v.unidad?.nombre || '-' }}</td>
+                                <td>{{ v.unit?.nombre || '-' }}</td>
+                                <td>{{ v.metaMin !== null ? v.metaMin : 'N/A' }}</td>
+                                <td>{{ v.metaMax !== null ? v.metaMax : 'N/A' }}</td>
+                                <td>
+                                    <button class="edit-btn" (click)="iniciarEdicion(v)" title="Editar metas/nombres">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Formulario de Edición de Variable (se muestra al dar clic en editar) -->
+                <div class="edit-form-panel" *ngIf="editingVariable" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1.25rem;">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.15rem; color: #333;">
+                        Editar Variable: <span style="color: var(--success); font-weight: bold;">{{ editingVariable.tag }}</span>
+                    </h3>
+                    <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label style="font-size: 0.85rem; font-weight: 600; color: #495057;">Nombre/Descripción:</label>
+                            <input type="text" [(ngModel)]="editingVariable.nombre" placeholder="Nombre descriptivo" style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px;" />
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label style="font-size: 0.85rem; font-weight: 600; color: #495057;">Unidad de Proceso:</label>
+                            <select [(ngModel)]="editingVariable.unidad.nombre" style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; background: white;">
+                              <option value="" disabled>Seleccione una Unidad</option>
+                              <option *ngFor="let u of unidadesDisponibles" [value]="u.nombre">{{ u.nombre }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label style="font-size: 0.85rem; font-weight: 600; color: #495057;">Unidad de Medida:</label>
+                            <select [(ngModel)]="editingVariable.unit.nombre" style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; background: white;">
+                              <option value="">Ninguna / Sin Unidad</option>
+                              <option *ngFor="let um of unidadesMedidaDisponibles" [value]="um.nombre">{{ um.nombre }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label style="font-size: 0.85rem; font-weight: 600; color: #495057;">Meta Mínima:</label>
+                            <input type="number" step="any" [(ngModel)]="editingVariable.metaMin" placeholder="Sin límite" style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px;" />
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label style="font-size: 0.85rem; font-weight: 600; color: #495057;">Meta Máxima:</label>
+                            <input type="number" step="any" [(ngModel)]="editingVariable.metaMax" placeholder="Sin límite" style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px;" />
+                        </div>
+                    </div>
+                    <div class="form-actions" style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                        <button class="save-btn" (click)="guardarVariable()" [disabled]="isSaving" style="background: var(--success); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                            <span *ngIf="!isSaving"><i class="fas fa-save"></i> Guardar</span>
+                            <span *ngIf="isSaving"><i class="fas fa-spinner fa-spin"></i> Guardando...</span>
+                        </button>
+                        <button class="cancel-btn" (click)="cancelarEdicion()" style="background: #6c757d; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -13,6 +13,7 @@ interface ToastState {
 
 @Component({
   selector: 'app-metas-cmi',
+  standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './metas-cmi.html',
   styleUrl: './metas-cmi.css',
@@ -62,7 +63,6 @@ export class MetasCMI implements OnInit {
   tempConsumoDocs: any[] = [];
   tempProduccionDocs: any[] = [];
 
-  
   // Dynamic Flow Variables
   siesaSearchId: string = '';
   productWasSaved: boolean = false;
@@ -85,7 +85,12 @@ export class MetasCMI implements OnInit {
   tempProduccionEntradas: any[] = [];
   draggedDoc: any = null;
   dragSource: string = '';
+<<<<<<< HEAD
   draggedSign: boolean | null = null;
+=======
+  draggedSign: string | null = null;
+
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
   isFormulaDividedConsumo: boolean = false;
   
   // Isolated state for document linking per product row
@@ -152,7 +157,8 @@ export class MetasCMI implements OnInit {
       this.tiposMovimiento = res;
     });
     this.service.getTiposDocumento().subscribe(res => {
-      this.tiposDocumento = res;
+      // Ordenar por ID ascendente para Tipos de Documentos
+      this.tiposDocumento = (res || []).sort((a: any, b: any) => Number(a.id || 0) - Number(b.id || 0));
     });
     this.service.getSeccionesReporte().subscribe(res => {
       this.seccionesReporte = res;
@@ -192,7 +198,16 @@ export class MetasCMI implements OnInit {
   cargarProductos() {
     this.service.getProductos().subscribe({
       next: (data) => {
-        const baseProducts = [...data];
+        // Ordenar productos por ID Bgreen (numérico)
+        const baseProducts = [...data].sort((a, b) => {
+          const idA = Number(a.id);
+          const idB = Number(b.id);
+          if (isNaN(idA) && isNaN(idB)) return String(a.id).localeCompare(String(b.id));
+          if (isNaN(idA)) return 1;
+          if (isNaN(idB)) return -1;
+          return idA - idB;
+        });
+        
         baseProducts.push({
           id: 'CostoDirecto',
           nombre: 'Costo Directo',
@@ -201,6 +216,12 @@ export class MetasCMI implements OnInit {
         });
         this.productosOriginales = [...baseProducts];
         this.productos = [...baseProducts];
+        if (this.selectedProducto) {
+          const updated = baseProducts.find(p => String(p.id) === String(this.selectedProducto));
+          if (updated) {
+            this.selectedProductObj = updated;
+          }
+        }
         this.cargarMetasActuales();
         this.cdr.detectChanges();
       },
@@ -210,7 +231,6 @@ export class MetasCMI implements OnInit {
 
   cargarMetasActuales() {
     const anio = new Date().getFullYear().toString();
-    const mesIdx = new Date().getMonth(); // 0-11
 
     this.productos.forEach(p => {
       const obs = p.id === 'CostoDirecto'
@@ -220,7 +240,6 @@ export class MetasCMI implements OnInit {
       obs.subscribe({
         next: (res) => {
           // Buscar por campo 'mes' en vez de índice posicional
-          // (el Mes 0 puede desplazar índices si viene primero)
           const mesNum = new Date().getMonth() + 1; // 1-12
           const metaMes = res.mensuales?.find(m => m.mes === mesNum);
           p.metaActual = metaMes ? metaMes.valor : 0;
@@ -238,7 +257,7 @@ export class MetasCMI implements OnInit {
     this.selectedProducto = p.id;
     this.selectedAnio = new Date().getFullYear().toString();
     this.metas = Array(12).fill(0).map(() => ({ valor: 0 }));
-    this.distribuirValor = 0; // Solo se limpia el campo de Aplicar Masivo
+    this.distribuirValor = 0;
     this.showMetasModal = true;
     this.cdr.detectChanges();
     this.cargarMetas();
@@ -255,7 +274,7 @@ export class MetasCMI implements OnInit {
       next: (res: MetaResponse) => {
         const mensuales = res?.mensuales ?? [];
 
-        // Extraer meta diaria (Mes 0) si existe — comparar con Number()
+        // Extraer meta diaria (Mes 0) si existe
         const diaria = mensuales.find(m => Number(m.mes) === 0);
         this.metaDiaria = diaria ? diaria.valor : 0;
 
@@ -412,7 +431,6 @@ export class MetasCMI implements OnInit {
 
   finalizeBatchSave() {
     if (this.selectedProductObj && this.selectedProductObj.id !== 'CostoDirecto') {
-      // Send only necessary fields to avoid Jackson issues with complex lists/objects
       const updatePayload: any = {
         id: this.selectedProductObj.id,
         nombre: this.selectedProductObj.nombre,
@@ -428,7 +446,9 @@ export class MetasCMI implements OnInit {
         tbsDescripcion: this.selectedProductObj.tbsDescripcion,
         seccionId: this.selectedProductObj.seccionId,
         seccionNombre: this.selectedProductObj.seccionNombre,
-        ordenReporte: this.selectedProductObj.ordenReporte
+        ordenReporte: this.selectedProductObj.ordenReporte,
+        formulaOperadores: this.selectedProductObj.formulaOperadores,
+        produccionBaseId: this.selectedProductObj.produccionBaseId
       };
 
       this.service.actualizarProducto(updatePayload).subscribe({
@@ -462,11 +482,8 @@ export class MetasCMI implements OnInit {
   isEntradaDoc(codigo: string): boolean {
     if (!codigo) return false;
     const upperCode = codigo.toUpperCase();
-    // Typical Siesa Entradas
     if (upperCode === 'EI' || upperCode === 'EDP' || upperCode === 'AI' || upperCode === 'EPA') return true;
-    // Typical Siesa Salidas
     if (upperCode === 'TEP' || upperCode === 'RM' || upperCode === 'SM' || upperCode === 'SIP') return false;
-    // Fallback heuristic
     return upperCode.startsWith('E') || upperCode.startsWith('A');
   }
 
@@ -481,9 +498,15 @@ export class MetasCMI implements OnInit {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
       return { id: id, codigo: doc ? doc.codigo : '?' };
     });
+<<<<<<< HEAD
     this.tempConsumoEntradas = this.tempConsumoDocs.filter(d => this.isEntradaDoc(d.codigo));
     this.tempConsumoSalidas = this.tempConsumoDocs.filter(d => !this.isEntradaDoc(d.codigo));
     this.isFormulaDividedConsumo = this.tempConsumoSalidas.length > 0;
+=======
+    
+    // Ordenar por orden ASC
+    rawConsumoDocs.sort((a, b) => a.orden - b.orden);
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
     
     this.tempProduccionDocs = (p?.productionDocIds || []).map(id => {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
@@ -511,15 +534,32 @@ export class MetasCMI implements OnInit {
     this.showProductModal = true;
   }
 
-
-
-
   getAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): any[] {
     const selectedIds = type === 'CONSUMO' 
       ? this.tempConsumoDocs.map(d => String(d.id)) 
       : this.tempProduccionDocs.map(d => String(d.id));
     
     return this.tiposDocumento.filter(d => !selectedIds.includes(String(d.id)));
+  }
+
+  getGroupedAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): { key: string, label: string, docs: any[] }[] {
+    const available = this.getAvailableDocs(type);
+    const groups: { [key: string]: { label: string, docs: any[] } } = {};
+    
+    available.forEach(doc => {
+      const key = doc.origenId || 'none';
+      const label = doc.origenNombre || 'Producto';
+      if (!groups[key]) {
+        groups[key] = { label, docs: [] };
+      }
+      groups[key].docs.push(doc);
+    });
+
+    return Object.keys(groups).map(k => ({
+      key: k,
+      label: groups[k].label,
+      docs: groups[k].docs
+    }));
   }
 
   quickAddDoc(type: 'CONSUMO' | 'PRODUCCION', doc: any) {
@@ -567,10 +607,41 @@ export class MetasCMI implements OnInit {
     }
   }
 
+<<<<<<< HEAD
   removeDivision() {
     this.isFormulaDividedConsumo = false;
     this.tempConsumoEntradas = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
     this.tempConsumoSalidas = [];
+=======
+  addOperator(op: string) {
+    if (this.tempConsumoOperadores.length >= 4) {
+      this.showToast('Máximo de 5 zonas alcanzado (4 signos)', 'error');
+      return;
+    }
+    this.tempConsumoOperadores.push(op);
+    this.syncAllConsumptionDocs();
+  }
+
+  removeOperator(idx: number) {
+    if (idx < 0 || idx >= this.tempConsumoOperadores.length) return;
+    this.tempConsumoZonas[idx] = [...this.tempConsumoZonas[idx], ...this.tempConsumoZonas[idx + 1]];
+    for (let i = idx + 1; i < 4; i++) {
+      this.tempConsumoZonas[i] = this.tempConsumoZonas[i + 1];
+    }
+    this.tempConsumoZonas[4] = [];
+    
+    this.tempConsumoOperadores.splice(idx, 1);
+    this.syncAllConsumptionDocs();
+  }
+
+  syncAllConsumptionDocs() {
+    this.tempConsumoDocs = [];
+    for (let i = 0; i <= this.tempConsumoOperadores.length; i++) {
+      this.tempConsumoDocs = [...this.tempConsumoDocs, ...this.tempConsumoZonas[i]];
+    }
+    this.tempConsumoSalidas = this.tempConsumoZonas[0];
+    this.tempConsumoEntradas = this.tempConsumoZonas[1] || [];
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
   }
 
   allowDrop(event: DragEvent) {
@@ -622,10 +693,26 @@ export class MetasCMI implements OnInit {
   moveDoc(doc: any, from: string, to: string) {
     if (!doc || from === to) return;
     
+<<<<<<< HEAD
     if (from === 'SALIDAS') this.tempConsumoSalidas = this.tempConsumoSalidas.filter(d => d.id !== doc.id);
     else if (from === 'ENTRADAS') this.tempConsumoEntradas = this.tempConsumoEntradas.filter(d => d.id !== doc.id);
     else if (from === 'PROD_SALIDAS') this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => d.id !== doc.id);
     else if (from === 'PROD_ENTRADAS') this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => d.id !== doc.id);
+=======
+    // Remove from source
+    if (from.startsWith('ZONA_')) {
+      const fromIdx = parseInt(from.split('_')[1]);
+      this.tempConsumoZonas[fromIdx] = this.tempConsumoZonas[fromIdx].filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
+    } else if (from === 'SALIDAS') {
+      this.tempConsumoZonas[0] = this.tempConsumoZonas[0].filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
+    } else if (from === 'ENTRADAS') {
+      this.tempConsumoZonas[1] = this.tempConsumoZonas[1].filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
+    } else if (from === 'PROD_SALIDAS') {
+      this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
+    } else if (from === 'PROD_ENTRAS') {
+      this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
+    }
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
 
     if (to === 'SALIDAS') this.tempConsumoSalidas.push(doc);
     else if (to === 'ENTRADAS') this.tempConsumoEntradas.push(doc);
@@ -635,7 +722,6 @@ export class MetasCMI implements OnInit {
     this.tempConsumoDocs = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
     this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
   }
-  // ---------------------------
 
   agregarComponente() {
     const id = String(this.nuevoComponenteId || '').trim();
@@ -741,7 +827,7 @@ export class MetasCMI implements OnInit {
 
   ejecutarGuardadoProducto() {
     if (this.isCompuestoToggle) {
-      this.currentProduct.idProductoSiesa = ''; // Forzar ID vacío para usar el ID interno en el dashboard
+      this.currentProduct.idProductoSiesa = '';
     }
     this.currentProduct.usaSuma = this.tempUsaSuma ?? false;
     this.currentProduct.esCompuesto = this.isCompuestoToggle;
@@ -753,6 +839,18 @@ export class MetasCMI implements OnInit {
       this.tempProduccionDocs = this.tiposDocumento
         .filter(d => requiredDocs.includes(d.codigo))
         .map(d => ({ id: d.id, codigo: d.codigo }));
+<<<<<<< HEAD
+=======
+        
+      this.tempProduccionDocs = docs;
+      this.tempProduccionSalidas = [];
+      this.tempProduccionEntradas = [...docs];
+    } else {
+      this.currentProduct.produccionBaseId = undefined;
+      this.tempProduccionDocs = [];
+      this.tempProduccionSalidas = [];
+      this.tempProduccionEntradas = [];
+>>>>>>> 5f48b4e ([BGREEN-115][BGREEN-119][Bug]Asignacion de formula)
     }
     
     const obs = this.isEditingProduct 
@@ -794,7 +892,13 @@ export class MetasCMI implements OnInit {
 
   processSyncTasks(tasks: any[], index: number = 0) {
     if (index >= tasks.length) return this.finalizeProductSave();
-    tasks[index].subscribe(() => this.processSyncTasks(tasks, index + 1));
+    tasks[index].subscribe({
+      next: () => this.processSyncTasks(tasks, index + 1),
+      error: (err: any) => {
+        console.error('Error saving document mapping:', err);
+        this.processSyncTasks(tasks, index + 1);
+      }
+    });
   }
 
   finalizeProductSave() {
@@ -802,11 +906,17 @@ export class MetasCMI implements OnInit {
     this.service.guardarComponentes(productId, this.tempComponentes, this.tempUsaSuma).subscribe({
       next: () => {
         this.showToast(this.isEditingProduct ? 'Producto actualizado' : 'Producto creado', 'success');
+        if (this.selectedProductObj && String(this.selectedProductObj.id) === String(productId)) {
+          this.selectedProductObj = { ...this.selectedProductObj, ...this.currentProduct };
+        }
         this.cargarProductos();
         if (this.isEditingProduct) this.closeProductModal();
       },
       error: () => {
         this.showToast('Error al guardar componentes', 'error');
+        if (this.selectedProductObj && String(this.selectedProductObj.id) === String(productId)) {
+          this.selectedProductObj = { ...this.selectedProductObj, ...this.currentProduct };
+        }
         this.cargarProductos();
         if (this.isEditingProduct) this.closeProductModal();
       }
@@ -892,5 +1002,75 @@ export class MetasCMI implements OnInit {
     }
     return this.currentProduct.idProductoSiesa || 'N/A';
   }
+<<<<<<< HEAD
   
+=======
+
+  getProductoFormulaPartes(p: producto): { zonas: string[][], operadores: string[] } {
+    const zones: string[][] = [[], [], [], [], []];
+    
+    (p.consumptionDocOrden || []).forEach((orden, idx) => {
+      const codigo = p.consumptionDocTypes ? p.consumptionDocTypes[idx] : '';
+      const origenId = p.consumptionDocOrigenIds ? p.consumptionDocOrigenIds[idx] : null;
+      if (codigo) {
+        const text = origenId ? `${codigo} (${this.getItemName(origenId)})` : codigo;
+        const zoneIdx = Math.min(4, Math.max(0, Math.floor(orden / 100)));
+        zones[zoneIdx].push(text);
+      }
+    });
+
+    return {
+      zonas: zones,
+      operadores: p.formulaOperadores || ['+', '+', '+', '+']
+    };
+  }
+
+  isProductConsumoEspecifico(p: producto): boolean {
+    const isDefaultBase = p.produccionBaseId === '26';
+    const hasSpecificDocs = (p.productionDocTypes || []).some(t => ['EI', 'EDP', 'AI'].includes(t));
+    return isDefaultBase && hasSpecificDocs;
+  }
+
+  getProductoFormulaTokens(p: producto): { type: string, text: string }[] {
+    if (p.id === 'CostoDirecto') return [];
+    const tokens: { type: string, text: string }[] = [];
+    const partes = this.getProductoFormulaPartes(p);
+    
+    // Check if any zone actually has documents
+    const hasAnyDocs = partes.zonas.some(z => z.length > 0);
+    if (!hasAnyDocs) return [];
+
+    const isEspecifico = this.isProductConsumoEspecifico(p);
+    if (isEspecifico) {
+      tokens.push({ type: 'parenthesis', text: '(' });
+    }
+    
+    let printedAny = false;
+    for (let i = 0; i < 5; i++) {
+      const zoneDocs = partes.zonas[i];
+      if (zoneDocs && zoneDocs.length > 0) {
+        if (printedAny) {
+          const op = partes.operadores[i - 1] || '+';
+          tokens.push({ type: 'operator', text: ` ${op} ` });
+        }
+        // Join the documents of this zone with '+'
+        zoneDocs.forEach((doc, docIdx) => {
+          if (docIdx > 0) {
+            tokens.push({ type: 'operator', text: ' + ' });
+          }
+          tokens.push({ type: 'doc', text: doc });
+        });
+        printedAny = true;
+      }
+    }
+    
+    if (isEspecifico) {
+      tokens.push({ type: 'parenthesis', text: ')' });
+      tokens.push({ type: 'operator', text: ' / ' });
+      tokens.push({ type: 'doc', text: 'Producción B100' });
+    }
+    
+    return tokens;
+  }
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
 }

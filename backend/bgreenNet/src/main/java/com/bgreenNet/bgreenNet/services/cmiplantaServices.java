@@ -53,25 +53,94 @@ public class cmiplantaServices {
         validateDocTypes(consumptionDocTypes, "consumptionDocTypes");
         validateDocTypes(productionDocTypes, "productionDocTypes");
 
+        // Resolver el producto correcto en base a ID o Siesa ID para evitar duplicidades/cruces erróneos
+        String resolvedId = consumptionProductId;
+        String resolvedSiesaId = consumptionProductId;
+        try {
+            String sqlFindProduct = "SELECT id, id_producto_siesa FROM productos WHERE id = ? OR id_producto_siesa = ?";
+            List<Map<String, Object>> pRows = jdbcTemplate.queryForList(sqlFindProduct, consumptionProductId, consumptionProductId);
+            if (!pRows.isEmpty()) {
+                Map<String, Object> bestRow = pRows.get(0);
+                for (Map<String, Object> row : pRows) {
+                    String siesaId = row.get("id_producto_siesa") != null ? String.valueOf(row.get("id_producto_siesa")).trim() : "";
+                    String internalId = row.get("id") != null ? String.valueOf(row.get("id")).trim() : "";
+                    if (siesaId.equals(consumptionProductId)) {
+                        bestRow = row;
+                        break;
+                    } else if (internalId.equals(consumptionProductId)) {
+                        bestRow = row;
+                    }
+                }
+                resolvedId = String.valueOf(bestRow.get("id"));
+                Object siesaObj = bestRow.get("id_producto_siesa");
+                resolvedSiesaId = siesaObj != null ? String.valueOf(siesaObj).trim() : resolvedId;
+            }
+        } catch (Exception e) {
+            // fall back
+        }
+
         Map<String, Double> consumoMap = new HashMap<>();
         double[] totalConsumption = { 0.0 };
 
         // 1️ CONSUMO — Cargar componentes dinámicamente
         if (consumptionDocTypes != null && !consumptionDocTypes.isEmpty()) {
-            List<String> consumoProductIds = cargarComponentesDinamicos(consumptionProductId);
-            boolean useSumForConsumption = consultarUsaSuma(consumptionProductId);
+            List<String> consumoProductIds = cargarComponentesDinamicos(resolvedSiesaId);
+            boolean useSumForConsumption = consultarUsaSuma(resolvedSiesaId);
+            
+            // Cargar vinculaciones locales de documentos para conocer su orden y origen
+            String sqlLocalDocs = "SELECT td.codigo as doc_cod, ptd.orden, ptd.producto_origen_id " +
+                                  "FROM producto_tipos_documento ptd " +
+                                  "JOIN tipo_movimiento tm ON ptd.tipo_movimiento_id = tm.id " +
+                                  "JOIN tipos_documento td ON ptd.tipo_documento_id = td.id " +
+                                  "WHERE ptd.producto_id = ? " +
+                                  "AND tm.codigo = 'CONSUMO'";
+            List<Map<String, Object>> docMappings = jdbcTemplate.queryForList(sqlLocalDocs, resolvedId);
+            
+            // Cargar operadores de la fórmula
+            List<String> formulaOps = new ArrayList<>();
+            try {
+                String sqlOps = "SELECT formula_operadores FROM productos WHERE id = ?";
+                List<Map<String, Object>> opRows = jdbcTemplate.queryForList(sqlOps, resolvedId);
+                if (!opRows.isEmpty() && opRows.get(0).get("formula_operadores") != null) {
+                    String opsStr = String.valueOf(opRows.get(0).get("formula_operadores"));
+                    formulaOps = java.util.Arrays.asList(opsStr.split(","));
+                }
+            } catch (Exception e) {
+                // fall back
+            }
+            if (formulaOps.isEmpty()) {
+                formulaOps = java.util.Arrays.asList("+", "+", "+", "+");
+            }
 
-            String consumoProductPlaceholders = consumoProductIds.stream()
-                .map(id -> "?")
-                .collect(Collectors.joining(", "));
+            // Construir lógica de filtrado de documentos por producto
+            StringBuilder docFilterBuilder = new StringBuilder();
+            List<Object> consumoParams = new ArrayList<>();
+            consumoParams.add(startDate);
+            consumoParams.add(endDate);
+            
+            docFilterBuilder.append(" AND (");
+            for (int i = 0; i < consumptionDocTypes.size(); i++) {
+                if (i > 0) docFilterBuilder.append(" OR ");
                 
-            String consumoExpression = useSumForConsumption
-                ? "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END + CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)"
-                : "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END - CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)";
-
-            String consumoDocPlaceholders = consumptionDocTypes.stream()
-                .map(t -> "?")
-                .collect(Collectors.joining(", "));
+                String docType = consumptionDocTypes.get(i);
+                String origenId = (consumptionDocOrigenIds != null && i < consumptionDocOrigenIds.size()) ? consumptionDocOrigenIds.get(i) : null;
+                
+                if (origenId != null && !origenId.trim().isEmpty() && !origenId.equals("null")) {
+                    docFilterBuilder.append("(f120_id = ? AND f350_id_tipo_docto = ?)");
+                    consumoParams.add(origenId);
+                    consumoParams.add(docType);
+                } else {
+                    String placeholders = consumoProductIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    if (placeholders.isEmpty()) {
+                        placeholders = "?";
+                        consumoProductIds.add(consumptionProductId);
+                    }
+                    docFilterBuilder.append("(f120_id IN (").append(placeholders).append(") AND f350_id_tipo_docto = ?)");
+                    consumoParams.addAll(consumoProductIds);
+                    consumoParams.add(docType);
+                }
+            }
+            docFilterBuilder.append(")");
 
             String sqlConsumo = """
                 SELECT
@@ -100,7 +169,79 @@ public class cmiplantaServices {
 
             siesaJdbcTemplate.query(sqlConsumo, rs -> {
                 String date = rs.getString("fecha_documento");
-                double qty = rs.getDouble("cantidad_consumida");
+                String tipoDocto = rs.getString("tipo_docto");
+                String itemId = rs.getString("item_id");
+                double salidas = rs.getDouble("salidas");
+                double entradas = rs.getDouble("entradas");
+                
+                String cleanTipoDocto = tipoDocto != null ? tipoDocto.trim() : "";
+                String cleanItemId = itemId != null ? itemId.trim() : "";
+                
+                double netVal;
+                if (useSumForConsumption) {
+                    netVal = salidas + entradas;
+                } else {
+                    boolean isEntrada = cleanTipoDocto.equals("EI") || cleanTipoDocto.equals("EDP") || cleanTipoDocto.equals("AI") || cleanTipoDocto.equals("EPA") || cleanTipoDocto.startsWith("E") || cleanTipoDocto.startsWith("A");
+                    netVal = isEntrada ? (entradas - salidas) : (salidas - entradas);
+                }
+
+                Map<String, Object> bestMatch = null;
+                for (Map<String, Object> map : finalDocMappings) {
+                    String mapDoc = map.get("doc_cod") != null ? String.valueOf(map.get("doc_cod")).trim() : "";
+                    Object mapOrigenObj = map.get("producto_origen_id");
+                    String mapOrigen = mapOrigenObj != null ? String.valueOf(mapOrigenObj).trim() : "";
+                    
+                    if (mapDoc.equals(cleanTipoDocto)) {
+                        if (!mapOrigen.isEmpty() && !mapOrigen.equalsIgnoreCase("null") && mapOrigen.equals(cleanItemId)) {
+                            bestMatch = map;
+                            break;
+                        }
+                    }
+                }
+                
+                if (bestMatch == null) {
+                    for (Map<String, Object> map : finalDocMappings) {
+                        String mapDoc = map.get("doc_cod") != null ? String.valueOf(map.get("doc_cod")).trim() : "";
+                        Object mapOrigenObj = map.get("producto_origen_id");
+                        String mapOrigen = mapOrigenObj != null ? String.valueOf(mapOrigenObj).trim() : "";
+                        
+                        if (mapDoc.equals(cleanTipoDocto)) {
+                            if (mapOrigen.isEmpty() || mapOrigen.equalsIgnoreCase("null")) {
+                                bestMatch = map;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (bestMatch != null) {
+                    Object mapOrdenObj = bestMatch.get("orden");
+                    int orden = (mapOrdenObj instanceof Number) ? ((Number) mapOrdenObj).intValue() : 0;
+                    int zoneIdx = Math.min(4, Math.max(0, orden / 100));
+                    dailyZoneSums.putIfAbsent(date, new double[5]);
+                    dailyZoneSums.get(date)[zoneIdx] += netVal;
+                }
+            }, consumoParams.toArray());
+
+            final List<String> finalFormulaOps = formulaOps;
+            for (Map.Entry<String, double[]> entry : dailyZoneSums.entrySet()) {
+                String date = entry.getKey();
+                double[] zones = entry.getValue();
+                
+                double result = zones[0];
+                for (int i = 0; i < 4; i++) {
+                    String op = (i < finalFormulaOps.size()) ? finalFormulaOps.get(i).trim() : "+";
+                    double nextVal = zones[i + 1];
+                    if ("/".equals(op)) {
+                        result = (nextVal != 0) ? (result / nextVal) : 0.0;
+                    } else if ("-".equals(op)) {
+                        result -= nextVal;
+                    } else {
+                        result += nextVal;
+                    }
+                }
+                
+                double qty = result;
                 consumoMap.put(date, qty);
                 totalConsumption[0] += qty;
             }, consumoParams.toArray());

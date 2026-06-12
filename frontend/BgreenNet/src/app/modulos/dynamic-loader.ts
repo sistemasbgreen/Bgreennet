@@ -1,4 +1,4 @@
-import { Component, OnInit, Type } from '@angular/core';
+import { Component, OnInit, Type, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule, NgComponentOutlet } from '@angular/common';
 
@@ -30,7 +30,7 @@ export class DynamicLoader implements OnInit {
   componentLoaded = false;
   componentClass: Type<any> | null = null;
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
@@ -58,6 +58,9 @@ export class DynamicLoader implements OnInit {
         'configuracion/pulsos': () => import('../modulos/configuracion/pulsos/pulsos').then(m => m.Pulsos),
         'configuracion/metas-cmi': () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(m => m.MetasCMI),
         'configuracion/maestro-configuracion': () => import('../modulos/configuracion/maestro-configuracion/maestro-configuracion').then(m => m.MaestroConfiguracion),
+        'configuracion/generales': () => import('../modulos/configuracion/maestro-configuracion/maestro-configuracion').then(m => m.MaestroConfiguracion),
+        'configuracion/seguimiento-variable': () => import('../home/seguimiento-variable/seguimiento-variable').then(m => m.SeguimientoVariable),
+        'configuracion/variables-plc': () => import('../modulos/configuracion/variables-plc/variables-plc').then(m => m.VariablesPlc),
         // Agrega más rutas según necesites
       };
 
@@ -68,13 +71,16 @@ export class DynamicLoader implements OnInit {
         this.componentClass = await loader();
         this.componentLoaded = true;
         this.loading = false;
+        setTimeout(() => this.cdr.detectChanges());
       } else {
         this.error = `No se encontró el módulo: ${path}`;
         this.loading = false;
+        setTimeout(() => this.cdr.detectChanges());
       }
     } catch (err) {
       this.error = `Error al cargar el módulo: ${err}`;
       this.loading = false;
+      setTimeout(() => this.cdr.detectChanges());
     }
   }
 }
