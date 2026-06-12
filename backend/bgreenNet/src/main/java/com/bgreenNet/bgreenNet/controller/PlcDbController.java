@@ -25,4 +25,22 @@ public class PlcDbController {
         List<Map<String, Object>> datos = plcDbService.obtenerVapor();
         return ResponseEntity.ok(datos);
     }
+
+    @GetMapping("/energia")
+    public ResponseEntity<?> obtenerEnergia() {
+        try {
+            List<Map<String, Object>> datos = plcDbService.obtenerEnergia();
+            if (!datos.isEmpty()) {
+                System.out.println("✔ [PlcDbController] Tabla_15 leida. Registros: " + datos.size());
+                System.out.println("✔ [PlcDbController] Columnas en Tabla_15: " + datos.get(0).keySet());
+            } else {
+                System.out.println("⚠ [PlcDbController] Tabla_15 esta vacia.");
+            }
+            return ResponseEntity.ok(datos);
+        } catch (Exception e) {
+            System.err.println("❌ [PlcDbController] Error al obtener datos de Tabla_15: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
 }
