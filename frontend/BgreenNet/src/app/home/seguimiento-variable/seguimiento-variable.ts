@@ -35,10 +35,10 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
   unidadesDisponibles: any[] = [];
   unidadesMedidaDisponibles: any[] = [];
 
-  // Modal de gestión de variables
   showGestionModal = false;
   editingVariable: any = null;
   isSaving = false;
+  searchTermVariables: string = '';
 
   selectedUnit = 'todas';
   searchTerm = '';
@@ -131,11 +131,22 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
   abrirGestionModal() {
     this.showGestionModal = true;
     this.editingVariable = null;
+    this.searchTermVariables = '';
   }
 
   cerrarGestionModal() {
     this.showGestionModal = false;
     this.editingVariable = null;
+    this.searchTermVariables = '';
+  }
+
+  getFilteredVariables() {
+    if (!this.searchTermVariables) return this.rawVariables;
+    const term = this.searchTermVariables.toLowerCase();
+    return this.rawVariables.filter(v => 
+      (v.tag && v.tag.toLowerCase().includes(term)) ||
+      (v.nombre && v.nombre.toLowerCase().includes(term))
+    );
   }
 
   iniciarEdicion(variable: any) {
@@ -560,10 +571,10 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
     }
     this.isSoundPlaying = true;
 
-    const duration = tipo === 'fuera' ? 2000 : 350;
+    const duration = tipo === 'fuera' ? 200 : 350;
 
     if (tipo === 'fuera') {
-      // Un solo pitido de 2 segundos
+      // Un solo pitido corto (0.2 segundos)
       this.playBeep(880, duration);
       
       // Anuncio de voz en español después de que termine el pitido
@@ -571,7 +582,8 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
         this.speak(`Variable ${sensor.name} fuera de los límites`);
         setTimeout(() => {
           this.isSoundPlaying = false;
-        }, 3000); // Dar 3 segundos para terminar de hablar
+        }, 2000); // Dar 2 segundos para terminar de hablar
+
       }, duration + 200);
     } else {
       // Un pitido medio agradable de restablecimiento (350ms)
@@ -853,9 +865,11 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
 
     // Text value representation
     ctx.fillStyle = '#212529';
-    ctx.font = 'bold 22px Arial';
+    // Si el valor tiene muchos dígitos, reducir el tamaño de la fuente y formatear
+    const valString = new Intl.NumberFormat('es-CO').format(Number(value.toFixed(1)));
+    ctx.font = valString.length > 5 ? 'bold 18px Arial' : 'bold 22px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(value.toFixed(1), cx, cy - radius / 2.5);
+    ctx.fillText(valString, cx, cy - radius / 2.5);
 
     // Limit indicator lines
     const drawLimitLine = (limitValue: number | null, color: string) => {
@@ -874,13 +888,13 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
       ctx.stroke();
 
       // Draw value text above/outermost of the line
-      const tx = cx + (radius + 24) * Math.cos(angle);
-      const ty = cy + (radius + 24) * Math.sin(angle);
+      const tx = cx + (radius + 30) * Math.cos(angle);
+      const ty = cy + (radius + 30) * Math.sin(angle);
       ctx.fillStyle = '#212529';
-      ctx.font = 'bold 9px Arial';
+      ctx.font = 'bold 10px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const formattedVal = limitValue % 1 === 0 ? limitValue.toString() : limitValue.toFixed(1);
+      const formattedVal = new Intl.NumberFormat('es-CO').format(limitValue % 1 === 0 ? limitValue : Number(limitValue.toFixed(1)));
       ctx.fillText(formattedVal, tx, ty);
     };
 

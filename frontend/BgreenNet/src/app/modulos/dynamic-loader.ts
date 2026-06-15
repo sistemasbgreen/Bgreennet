@@ -1,4 +1,4 @@
-import { Component, OnInit, Type } from '@angular/core';
+import { Component, OnInit, Type, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule, NgComponentOutlet } from '@angular/common';
 
@@ -30,7 +30,7 @@ export class DynamicLoader implements OnInit {
   componentLoaded = false;
   componentClass: Type<any> | null = null;
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
@@ -71,13 +71,16 @@ export class DynamicLoader implements OnInit {
         this.componentClass = await loader();
         this.componentLoaded = true;
         this.loading = false;
+        setTimeout(() => this.cdr.detectChanges());
       } else {
         this.error = `No se encontró el módulo: ${path}`;
         this.loading = false;
+        setTimeout(() => this.cdr.detectChanges());
       }
     } catch (err) {
       this.error = `Error al cargar el módulo: ${err}`;
       this.loading = false;
+      setTimeout(() => this.cdr.detectChanges());
     }
   }
 }

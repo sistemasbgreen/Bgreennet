@@ -224,11 +224,18 @@
     <!-- Side Form Panel -->
     <div class="card form-card" *ngIf="showForm">
       <div class="card-header">
-        <h3>{{ isEditing ? 'Editar' : 'Nuevo' }} {{ activeTab === 'variables' ? 'Variable' : activeTab === 'unidades' ? 'Unidad de Planta' : 'Unidad de Medida' }}</h3>
+        <h3>{{ isEditing ? 'Editar' : 'Nueva' }} {{ activeTab === 'variables' ? 'Variable' : activeTab === 'unidades' ? 'Unidad de Planta' : 'Unidad de Medida' }}</h3>
         <button class="close-form" (click)="cerrarForm()">&times;</button>
       </div>
       <div class="card-body">
         
+        <div *ngIf="activeTab === 'variables' && !isEditing" style="background-color: #fff5e6; color: #d35400; padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid #fcdcb3; border-left: 4px solid #e67e22; margin-bottom: 1.5rem; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 0.6rem;">
+          <i class="fas fa-exclamation-triangle" style="margin-top: 0.15rem; color: #e67e22; font-size: 1.1rem;"></i>
+          <div>
+            <strong>Nota:</strong> El Tag de Variable (PLC) debe crearse primero en la base de datos, si la variable no está creada no se podrá Insertar/Consultar.
+          </div>
+        </div>
+
         <!-- FORM: VARIABLES -->
         <form (ngSubmit)="guardar()" *ngIf="activeTab === 'variables'">
           <div class="form-group">

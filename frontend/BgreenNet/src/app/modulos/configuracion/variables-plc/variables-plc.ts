@@ -62,28 +62,34 @@ export class VariablesPlc implements OnInit {
       next: (data) => {
         this.variables = data;
         this.loading = false;
-        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
+        });
       },
       error: (err) => {
         console.error('Error cargando variables:', err);
         this.loading = false;
-        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
+        });
       }
     });
 
     this.scadaService.getUnidades().subscribe(u => {
       this.unidades = u;
-      this.cdr.detectChanges();
+      setTimeout(() => this.cdr.detectChanges());
     });
     this.scadaService.getUnidadesMedida().subscribe(um => {
       this.unidadesMedida = um;
-      this.cdr.detectChanges();
+      setTimeout(() => this.cdr.detectChanges());
     });
 
     this.scadaService.getReceptoresPlc().subscribe({
       next: (res) => {
         this.receptoresPlc = res.destinatarios;
-        this.cdr.detectChanges();
+        setTimeout(() => this.cdr.detectChanges());
       },
       error: (err) => console.error('Error cargando receptores PLC:', err)
     });

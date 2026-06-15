@@ -163,8 +163,16 @@
                 <button class="close-modal-btn" (click)="cerrarGestionModal()">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- Buscador de variables -->
+                <div style="margin-bottom: 1rem;">
+                    <div class="form-group" style="display: flex; align-items: center; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 0.25rem 0.75rem;">
+                        <i class="fas fa-search" style="color: var(--text-muted); margin-right: 0.5rem;"></i>
+                        <input type="text" [(ngModel)]="searchTermVariables" placeholder="Buscar variable por tag o nombre..." style="border: none; outline: none; width: 100%; padding: 0.5rem 0; font-size: 0.9rem;" />
+                    </div>
+                </div>
+
                 <!-- Tabla de todas las variables -->
-                <div class="table-responsive" style="max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: 8px;">
                     <table class="variables-table">
                         <thead>
                             <tr>
@@ -178,7 +186,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let v of rawVariables">
+                            <tr *ngFor="let v of getFilteredVariables()">
                                 <td><strong>{{ v.tag }}</strong></td>
                                 <td>{{ v.nombre }}</td>
                                 <td>{{ v.unidad?.nombre || '-' }}</td>
