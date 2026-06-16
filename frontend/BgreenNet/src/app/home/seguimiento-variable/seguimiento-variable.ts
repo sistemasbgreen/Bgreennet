@@ -61,7 +61,7 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
   private rawTimestamps: Set<string> = new Set();
   private timestamps: string[] = [];
   private historyData: Map<string, number[]> = new Map();
-  private chartInstances: Map<string, Chart> = new Map();
+  private chartInstances: Map<string, any> = new Map();
 
   // Active alerts list
   activeAlerts: Array<{
@@ -256,7 +256,7 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
 
         if (historico && historico.length > 0) {
           historico.forEach((record: any) => {
-            const rawTime = record['timestamp'];
+            const rawTime = record['FechaRegistro'] || record['timestamp'];
             if (rawTime && !this.rawTimestamps.has(rawTime)) {
               this.rawTimestamps.add(rawTime);
               const formattedTime = this.formatTime(new Date(rawTime));
@@ -279,7 +279,7 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
           const isToday = this.selectedDate === todayStr;
           if (!isToday) {
             this.ultimoScada = historico[historico.length - 1];
-            const rawTime = this.ultimoScada['timestamp'];
+            const rawTime = this.ultimoScada['FechaRegistro'] || this.ultimoScada['timestamp'];
             this.lastUpdate = rawTime ? new Date(rawTime).toLocaleString('es-CO') : new Date().toLocaleString('es-CO');
             this.loading = false;
             this.updateAlerts();
@@ -358,7 +358,7 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
         this.connectionStatus = 'online';
         this.ultimoScada = data;
 
-        const rawTime = data['timestamp'];
+        const rawTime = data['FechaRegistro'] || data['timestamp'];
         this.lastUpdate = rawTime ? new Date(rawTime).toLocaleString('es-CO') : new Date().toLocaleString('es-CO');
 
         // Append to timeline only if it's a new database entry
@@ -749,18 +749,18 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
               }
             }
           });
-          this.chartInstances.set(sensor.tag, chart);
+          this.chartInstances.set(sensor.tag, chart as any);
         } else {
           const chart = this.chartInstances.get(sensor.tag)!;
           chart.data.labels = labels;
           chart.data.datasets[0].data = hist;
           (chart.data.datasets[0] as any).pointRadius = hist.length <= 10 ? 3 : 0;
 
-          const minDataset = chart.data.datasets.find(d => d.label === 'Mínimo');
+          const minDataset = chart.data.datasets.find((d: any) => d.label === 'Mínimo');
           if (minDataset && sensor.min !== null) {
             minDataset.data = Array(hist.length).fill(sensor.min);
           }
-          const maxDataset = chart.data.datasets.find(d => d.label === 'Máximo');
+          const maxDataset = chart.data.datasets.find((d: any) => d.label === 'Máximo');
           if (maxDataset && sensor.max !== null) {
             maxDataset.data = Array(hist.length).fill(sensor.max);
           }

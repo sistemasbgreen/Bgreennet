@@ -17,9 +17,9 @@
           <select class="filter-select" [(ngModel)]="selectedServicio" (change)="onServicioChange()">
             <option value="general">General</option>
             <option value="energia">Energía</option>
-            <option value="gas">Gas</option>
+            <!-- <option value="gas">Gas</option> -->
             <option value="vapor">Vapor</option>
-            <option value="agua">Agua</option>
+            <!-- <option value="agua">Agua</option> -->
           </select>
         </div>
         <div class="filter-group">
@@ -242,20 +242,7 @@
         </div>
       </section>
 
-      <!-- ── Alerta días con desviación ──────────────────── -->
-      <section *ngIf="diasConDesviacion.length > 0" style="padding: 0 2rem 1rem;">
-        <div style="background: #fff5f5; border-left: 4px solid #e74c3c; border-radius: 8px; padding: 1rem 1.5rem;">
-          <p style="margin:0; color: #c0392b; font-weight: 600;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
-            {{ diasConDesviacion.length }} día(s) con desviación respecto a la meta de {{ kpis.meta }} kg/Ton:
-          </p>
-          <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-            <span *ngFor="let d of diasConDesviacion"
-                  style="background: #e74c3c; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.85rem;">
-              {{ d.etiqueta }} — {{ d.foco }} kg/Ton
-            </span>
-          </div>
-        </div>
-      </section>
+
 
       <!-- ── Gráfica 1: Comportamiento consumo de vapor ──── -->
       <section class="charts-section">
@@ -402,20 +389,7 @@
         </div>
       </section>
 
-      <!-- ── Alerta días con desviación ──────────────────── -->
-      <section *ngIf="diasConDesviacionEnergia.length > 0" style="padding: 0 2rem 1rem;">
-        <div style="background: #fff5f5; border-left: 4px solid #e74c3c; border-radius: 8px; padding: 1rem 1.5rem;">
-          <p style="margin:0; color: #c0392b; font-weight: 600;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
-            {{ diasConDesviacionEnergia.length }} día(s) con desviación respecto a la meta de {{ energiaKpis.meta }} kWh/Ton:
-          </p>
-          <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-            <span *ngFor="let d of diasConDesviacionEnergia"
-                  style="background: #e74c3c; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.85rem;">
-              {{ d.etiqueta }} — {{ d.foco }} kWh/Ton
-            </span>
-          </div>
-        </div>
-      </section>
+
 
       <!-- ── Gráficas: Consumo / B100 e Indicador FOCO ──────────── -->
       <section class="charts-section">
@@ -452,7 +426,7 @@
               </div>
             </div>
             <div class="chart-container">
-              <canvas baseChart [data]="energiaFocoLineaData" [options]="focoOptions" type="line"></canvas>
+              <canvas baseChart [data]="energiaFocoLineaData" [options]="energiaHorariaOptions" type="line"></canvas>
             </div>
           </div>
 
