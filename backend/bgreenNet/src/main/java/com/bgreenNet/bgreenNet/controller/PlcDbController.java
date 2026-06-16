@@ -3,6 +3,7 @@ package com.bgreenNet.bgreenNet.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bgreenNet.bgreenNet.services.PlcDbService;
@@ -21,26 +22,30 @@ public class PlcDbController {
     }
 
     @GetMapping("/vapor")
-    public ResponseEntity<List<Map<String, Object>>> obtenerVapor() {
-        List<Map<String, Object>> datos = plcDbService.obtenerVapor();
+    public ResponseEntity<List<Map<String, Object>>> obtenerVapor(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        List<Map<String, Object>> datos = plcDbService.obtenerVapor(startDate, endDate);
         return ResponseEntity.ok(datos);
     }
 
     @GetMapping("/energia")
-    public ResponseEntity<?> obtenerEnergia() {
-        try {
-            List<Map<String, Object>> datos = plcDbService.obtenerEnergia();
-            if (!datos.isEmpty()) {
-                System.out.println("✔ [PlcDbController] Tabla_15 leida. Registros: " + datos.size());
-                System.out.println("✔ [PlcDbController] Columnas en Tabla_15: " + datos.get(0).keySet());
-            } else {
-                System.out.println("⚠ [PlcDbController] Tabla_15 esta vacia.");
-            }
-            return ResponseEntity.ok(datos);
-        } catch (Exception e) {
-            System.err.println("❌ [PlcDbController] Error al obtener datos de Tabla_15: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<List<Map<String, Object>>> obtenerEnergia(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        List<Map<String, Object>> datos = plcDbService.obtenerEnergia(startDate, endDate);
+        return ResponseEntity.ok(datos);
+    }
+
+    @GetMapping("/vapor/anual")
+    public ResponseEntity<List<Map<String, Object>>> obtenerVaporAnual(@RequestParam String year) {
+        List<Map<String, Object>> datos = plcDbService.obtenerVaporAnual(year);
+        return ResponseEntity.ok(datos);
+    }
+
+    @GetMapping("/energia/anual")
+    public ResponseEntity<List<Map<String, Object>>> obtenerEnergiaAnual(@RequestParam String year) {
+        List<Map<String, Object>> datos = plcDbService.obtenerEnergiaAnual(year);
+        return ResponseEntity.ok(datos);
     }
 }
