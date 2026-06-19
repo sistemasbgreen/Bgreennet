@@ -3248,4 +3248,70 @@
   border-bottom-color: #006c2c !important;
 }
 
+/* ----------------------------------------------------------
+   FORMULA COLUMN — tabla de productos
+   ---------------------------------------------------------- */
+.td-formula {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+.formula-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Chip base */
+.formula-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Inter', monospace;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* Zona izquierda (Salidas / primer operando) */
+.formula-chip.salida {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* Zona derecha (Entradas / segundo operando) */
+.formula-chip.entrada {
+  background: rgba(2, 132, 199, 0.08);
+  color: #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.25);
+}
+
+/* Signo operador */
+.formula-sign-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.formula-sign-badge.suma {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.formula-sign-badge.resta {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
 

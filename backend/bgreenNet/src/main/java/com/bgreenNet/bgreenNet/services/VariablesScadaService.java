@@ -376,7 +376,7 @@ public class VariablesScadaService {
                         [id] [int] PRIMARY KEY,
                         [destinatarios] [varchar](MAX) NOT NULL
                     )
-                    INSERT INTO [dbo].[config_receptores_reporte_plc] (id, destinatarios) VALUES (1, 'notificaciones@bgreen.com.co')
+                    INSERT INTO [dbo].[config_receptores_reporte_plc] (id, destinatarios) VALUES (1, 'Notificacionesbgreennet@bgreen.com.co')
                 END
             """);
         } catch (Exception e) {
@@ -389,7 +389,7 @@ public class VariablesScadaService {
         try {
             return appJdbcTemplate.queryForObject("SELECT destinatarios FROM config_receptores_reporte_plc WHERE id = 1", String.class);
         } catch (Exception e) {
-            return "notificaciones@bgreen.com.co"; // Fallback
+            return "Notificacionesbgreennet@bgreen.com.co"; // Fallback
         }
     }
 
@@ -421,7 +421,7 @@ public class VariablesScadaService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            String emailFrom = "notificaciones@bgreen.com.co";
+            String emailFrom = "Notificacionesbgreennet@bgreen.com.co";
             helper.setFrom(emailFrom);
             helper.setTo(destinatarios.split(","));
 
