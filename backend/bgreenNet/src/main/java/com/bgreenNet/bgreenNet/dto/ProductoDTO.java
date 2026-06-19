@@ -11,6 +11,10 @@ public class ProductoDTO {
     private List<String> productionDocTypes;
     private List<Integer> consumptionDocIds;
     private List<Integer> productionDocIds;
+    private List<Integer> consumptionDocOrden;
+    private List<Integer> productionDocOrden;
+    private List<String> consumptionDocOrigenIds;
+    private List<String> productionDocOrigenIds;
     private Double metaActual;
     private Boolean esCompuesto;
     private List<String> componenteSiesaIds;
@@ -24,6 +28,7 @@ public class ProductoDTO {
     private Integer seccionId;
     private String seccionNombre;
     private Integer ordenReporte;
+    private List<String> formulaOperadores;
 
     public Integer getSeccionId() {
         return seccionId;
@@ -128,6 +133,38 @@ public class ProductoDTO {
         this.productionDocIds = productionDocIds;
     }
 
+    public List<Integer> getConsumptionDocOrden() {
+        return consumptionDocOrden;
+    }
+
+    public void setConsumptionDocOrden(List<Integer> consumptionDocOrden) {
+        this.consumptionDocOrden = consumptionDocOrden;
+    }
+
+    public List<Integer> getProductionDocOrden() {
+        return productionDocOrden;
+    }
+
+    public void setProductionDocOrden(List<Integer> productionDocOrden) {
+        this.productionDocOrden = productionDocOrden;
+    }
+
+    public List<String> getConsumptionDocOrigenIds() {
+        return consumptionDocOrigenIds;
+    }
+
+    public void setConsumptionDocOrigenIds(List<String> consumptionDocOrigenIds) {
+        this.consumptionDocOrigenIds = consumptionDocOrigenIds;
+    }
+
+    public List<String> getProductionDocOrigenIds() {
+        return productionDocOrigenIds;
+    }
+
+    public void setProductionDocOrigenIds(List<String> productionDocOrigenIds) {
+        this.productionDocOrigenIds = productionDocOrigenIds;
+    }
+
     public Double getMetaActual() {
         return metaActual;
     }
@@ -193,4 +230,12 @@ public class ProductoDTO {
     }
 
     private Boolean metaDiariaManual;
+
+    public List<String> getFormulaOperadores() {
+        return formulaOperadores;
+    }
+
+    public void setFormulaOperadores(List<String> formulaOperadores) {
+        this.formulaOperadores = formulaOperadores;
+    }
 }
