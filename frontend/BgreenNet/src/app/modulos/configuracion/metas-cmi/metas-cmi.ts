@@ -159,7 +159,8 @@ export class MetasCMI implements OnInit {
       this.tiposMovimiento = res;
     });
     this.service.getTiposDocumento().subscribe(res => {
-      this.tiposDocumento = res;
+      // Ordenar por ID ascendente para Tipos de Documentos
+      this.tiposDocumento = (res || []).sort((a: any, b: any) => Number(a.id || 0) - Number(b.id || 0));
     });
     this.service.getSeccionesReporte().subscribe(res => {
       this.seccionesReporte = res;
@@ -199,7 +200,16 @@ export class MetasCMI implements OnInit {
   cargarProductos() {
     this.service.getProductos().subscribe({
       next: (data) => {
-        const baseProducts = [...data];
+        // Ordenar productos por ID Bgreen (numérico)
+        const baseProducts = [...data].sort((a, b) => {
+          const idA = Number(a.id);
+          const idB = Number(b.id);
+          if (isNaN(idA) && isNaN(idB)) return String(a.id).localeCompare(String(b.id));
+          if (isNaN(idA)) return 1;
+          if (isNaN(idB)) return -1;
+          return idA - idB;
+        });
+        
         baseProducts.push({
           id: 'CostoDirecto',
           nombre: 'Costo Directo',
@@ -597,6 +607,26 @@ export class MetasCMI implements OnInit {
     return available;
   }
 
+  getGroupedAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): { key: string, label: string, docs: any[] }[] {
+    const available = this.getAvailableDocs(type);
+    const groups: { [key: string]: { label: string, docs: any[] } } = {};
+    
+    available.forEach(doc => {
+      const key = doc.origenId || 'none';
+      const label = doc.origenNombre || 'Producto';
+      if (!groups[key]) {
+        groups[key] = { label, docs: [] };
+      }
+      groups[key].docs.push(doc);
+    });
+
+    return Object.keys(groups).map(k => ({
+      key: k,
+      label: groups[k].label,
+      docs: groups[k].docs
+    }));
+  }
+
   quickAddDoc(type: 'CONSUMO' | 'PRODUCCION', doc: any) {
     if (type === 'CONSUMO') {
       if (!this.tempConsumoDocs.find(d => d.id === doc.id && d.origenId === doc.origenId)) {
@@ -911,6 +941,11 @@ export class MetasCMI implements OnInit {
       this.tempProduccionDocs = docs;
       this.tempProduccionSalidas = [];
       this.tempProduccionEntradas = [...docs];
+    } else {
+      this.currentProduct.produccionBaseId = undefined;
+      this.tempProduccionDocs = [];
+      this.tempProduccionSalidas = [];
+      this.tempProduccionEntradas = [];
     }
     
     const obs = this.isEditingProduct 

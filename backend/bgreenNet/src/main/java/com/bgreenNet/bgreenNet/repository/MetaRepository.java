@@ -32,7 +32,6 @@ public class MetaRepository {
 
     private void ensureSchema() {
         if (schemaChecked) return;
-        log.info(">>> Verificando esquema de base de datos...");
         try {
             // Intentar añadir columnas si no existen (SQL Server syntax)
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'sentido_meta') " +
@@ -90,16 +89,13 @@ public class MetaRepository {
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'formula_operadores') " +
                                  "ALTER TABLE productos ADD formula_operadores VARCHAR(50)");
 
-            log.info(">>> Esquema verificado/actualizado correctamente.");
         } catch (Exception e) {
-            log.warn(">>> Aviso al verificar esquema (puede ser normal si no hay permisos): {}", e.getMessage());
         }
         schemaChecked = true;
     }
 
     public List<ProductoDTO> obtenerProductos() {
         ensureSchema();
-        log.info(">>> Iniciando carga robusta de productos...");
         
         // 1. Cargar lista base de productos con sus mapeos ERP
         String sql = "SELECT p.id, p.nombre, p.id_producto_siesa, p.sentido_meta, p.usa_suma, p.mostrar_cmi, p.produccion_base_id, p.meta_diaria_manual, " +
@@ -194,7 +190,6 @@ public class MetaRepository {
         }
 
         // 2. Cargar TODAS las vinculaciones de documentos de forma directa
-        log.info(">>> Cargando vinculaciones de documentos directas...");
         String sqlDocs = "SELECT ptd.producto_id, tm.codigo as tipo_mov, td.id as doc_id, td.codigo as doc_cod, ptd.orden as doc_orden, ptd.producto_origen_id " +
                         "FROM producto_tipos_documento ptd " +
                         "JOIN tipo_movimiento tm ON ptd.tipo_movimiento_id = tm.id " +
@@ -227,7 +222,6 @@ public class MetaRepository {
         }
 
         // 3. Cargar meta del mes actual
-        log.info(">>> Cargando metas del mes actual...");
         int mesActual = LocalDateTime.now().getMonthValue();
         int anioActual = LocalDateTime.now().getYear();
         
@@ -243,7 +237,6 @@ public class MetaRepository {
         }
         // 4. Cargar componentes de productos compuestos
         try {
-            log.info(">>> Cargando componentes de productos compuestos...");
             // Usamos OR activo IS NULL para asegurar que no se pierdan datos si la columna se acaba de crear
             String sqlComp = "SELECT producto_padre_id, producto_hijo_siesa_id, usa_suma FROM producto_componentes WHERE activo = 1 OR activo IS NULL";
             List<Map<String, Object>> compRows = jdbcTemplate.queryForList(sqlComp);
@@ -261,7 +254,6 @@ public class MetaRepository {
                 }
             }
         } catch (Exception e) {
-            log.error(">>> ERROR al cargar componentes (posiblemente falta la tabla): {}", e.getMessage());
             // No bloqueamos la carga de productos si fallan los componentes
         }
         
@@ -274,7 +266,6 @@ public class MetaRepository {
             }
         }
 
-        log.info(">>> Carga finalizada. Productos: {}", productosMap.size());
         return new ArrayList<>(productosMap.values());
     }
     
@@ -375,7 +366,7 @@ public class MetaRepository {
             producto.getUsaSuma() != null && producto.getUsaSuma() ? 1 : 0,
             producto.getSentidoMeta() != null && producto.getSentidoMeta() ? 1 : 0,
             producto.getMostrarCmi() != null && producto.getMostrarCmi() ? 1 : 0,
-            producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
+            producto.getProduccionBaseId() != null && !producto.getProduccionBaseId().trim().isEmpty() ? producto.getProduccionBaseId() : null,
             producto.getMetaDiariaManual() != null && producto.getMetaDiariaManual() ? 1 : 0,
             producto.getFormulaOperadores() != null ? String.join(",", producto.getFormulaOperadores()) : "+,+,+,+",
             producto.getSeccionId(),
@@ -408,8 +399,6 @@ public class MetaRepository {
                 ? producto.getIdProductoSiesa().toString()
                 : null;
             
-            log.info("[actualizarProducto] Ejecutando SQL para id={}", producto.getId());
-            
             jdbcTemplate.update(
                 sql,
                 producto.getNombre(),
@@ -417,7 +406,7 @@ public class MetaRepository {
                 producto.getUsaSuma() != null ? producto.getUsaSuma() : false,
                 producto.getSentidoMeta() != null ? producto.getSentidoMeta() : true,
                 producto.getMostrarCmi() != null ? producto.getMostrarCmi() : true,
-                producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
+                producto.getProduccionBaseId() != null && !producto.getProduccionBaseId().trim().isEmpty() ? producto.getProduccionBaseId() : null,
                 producto.getMetaDiariaManual() != null ? producto.getMetaDiariaManual() : false,
                 producto.getFormulaOperadores() != null ? String.join(",", producto.getFormulaOperadores()) : "+,+,+,+",
                 producto.getSeccionId(),
@@ -444,7 +433,6 @@ public class MetaRepository {
                 }
             }
         } catch (Exception e) {
-            log.error("[actualizarProducto] ERROR CRITICO AL ACTUALIZAR: {}", e.getMessage(), e);
             throw e; // Relanzar para que el Controller devuelva 500
         }
     }
