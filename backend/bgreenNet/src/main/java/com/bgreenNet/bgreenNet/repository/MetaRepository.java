@@ -32,7 +32,6 @@ public class MetaRepository {
 
     private void ensureSchema() {
         if (schemaChecked) return;
-        log.info(">>> Verificando esquema de base de datos...");
         try {
             // Intentar añadir columnas si no existen (SQL Server syntax)
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'sentido_meta') " +
@@ -87,20 +86,20 @@ public class MetaRepository {
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'orden_reporte') " +
                                  "ALTER TABLE productos ADD orden_reporte INT NULL");
 
-            log.info(">>> Esquema verificado/actualizado correctamente.");
+            jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'formula_operadores') " +
+                                 "ALTER TABLE productos ADD formula_operadores VARCHAR(50)");
+
         } catch (Exception e) {
-            log.warn(">>> Aviso al verificar esquema (puede ser normal si no hay permisos): {}", e.getMessage());
         }
         schemaChecked = true;
     }
 
     public List<ProductoDTO> obtenerProductos() {
         ensureSchema();
-        log.info(">>> Iniciando carga robusta de productos...");
         
         // 1. Cargar lista base de productos con sus mapeos ERP
         String sql = "SELECT p.id, p.nombre, p.id_producto_siesa, p.sentido_meta, p.usa_suma, p.mostrar_cmi, p.produccion_base_id, p.meta_diaria_manual, " +
-                     "p.seccion_id, p.orden_reporte, sr.nombre as seccion_nombre, " +
+                     "p.formula_operadores, p.seccion_id, p.orden_reporte, sr.nombre as seccion_nombre, " +
                      "tbs.id_producto_tbs, tbs.id_tbs_tipodoc, tbs.descripcion as tbs_desc " +
                      "FROM productos p " +
                      "LEFT JOIN secciones_reporte sr ON p.seccion_id = sr.id " +
@@ -124,6 +123,10 @@ public class MetaRepository {
                 p.setProductionDocTypes(new ArrayList<>());
                 p.setConsumptionDocIds(new ArrayList<>());
                 p.setProductionDocIds(new ArrayList<>());
+                p.setConsumptionDocOrden(new ArrayList<>());
+                p.setProductionDocOrden(new ArrayList<>());
+                p.setConsumptionDocOrigenIds(new ArrayList<>());
+                p.setProductionDocOrigenIds(new ArrayList<>());
                 p.setMetaActual(0.0);
                 
                 // Cargar usa_suma del producto base
@@ -163,6 +166,15 @@ public class MetaRepository {
                 Object mdmObj = row.get("meta_diaria_manual");
                 p.setMetaDiariaManual(mdmObj instanceof Boolean ? (Boolean) mdmObj : (mdmObj instanceof Number ? ((Number) mdmObj).intValue() == 1 : false));
                 
+                // Cargar formula_operadores
+                Object formulaOpsObj = row.get("formula_operadores");
+                if (formulaOpsObj != null) {
+                    String opsStr = String.valueOf(formulaOpsObj);
+                    p.setFormulaOperadores(java.util.Arrays.asList(opsStr.split(",")));
+                } else {
+                    p.setFormulaOperadores(java.util.Arrays.asList("+", "+", "+", "+"));
+                }
+                
                 // Mapeos ERP
                 p.setIdProductoTbs(row.get("id_producto_tbs") != null ? String.valueOf(row.get("id_producto_tbs")) : null);
                 p.setIdTbsTipoDoc(row.get("id_tbs_tipodoc") != null ? String.valueOf(row.get("id_tbs_tipodoc")) : null);
@@ -178,11 +190,12 @@ public class MetaRepository {
         }
 
         // 2. Cargar TODAS las vinculaciones de documentos de forma directa
-        log.info(">>> Cargando vinculaciones de documentos directas...");
-        String sqlDocs = "SELECT ptd.producto_id, tm.codigo as tipo_mov, td.id as doc_id, td.codigo as doc_cod " +
+        String sqlDocs = "SELECT ptd.producto_id, tm.codigo as tipo_mov, td.id as doc_id, td.codigo as doc_cod, ptd.orden as doc_orden, ptd.producto_origen_id " +
                         "FROM producto_tipos_documento ptd " +
                         "JOIN tipo_movimiento tm ON ptd.tipo_movimiento_id = tm.id " +
-                        "JOIN tipos_documento td ON ptd.tipo_documento_id = td.id";
+                        "JOIN tipos_documento td ON ptd.tipo_documento_id = td.id " +
+                        "ORDER BY ptd.producto_id, tm.codigo, ptd.orden ASC";
+
         
         List<Map<String, Object>> docRows = jdbcTemplate.queryForList(sqlDocs);
         for (Map<String, Object> row : docRows) {
@@ -192,19 +205,32 @@ public class MetaRepository {
                 String tipoMov = String.valueOf(row.get("tipo_mov"));
                 String docCod = String.valueOf(row.get("doc_cod"));
                 Integer docId = ((Number) row.get("doc_id")).intValue();
+                Integer docOrden = row.get("doc_orden") != null ? ((Number) row.get("doc_orden")).intValue() : 0;
+                String docOrigen = row.get("producto_origen_id") != null ? String.valueOf(row.get("producto_origen_id")) : null;
 
                 if ("CONSUMO".equals(tipoMov)) {
-                    if (!p.getConsumptionDocTypes().contains(docCod)) p.getConsumptionDocTypes().add(docCod);
-                    if (!p.getConsumptionDocIds().contains(docId)) p.getConsumptionDocIds().add(docId);
+                    p.getConsumptionDocTypes().add(docCod);
+                    p.getConsumptionDocIds().add(docId);
+                    p.getConsumptionDocOrden().add(docOrden);
+                    p.getConsumptionDocOrigenIds().add(docOrigen);
+                    p.getConsumptionDocTypes().add(docCod);
+                    p.getConsumptionDocIds().add(docId);
+                    p.getConsumptionDocOrden().add(docOrden);
+                    p.getConsumptionDocOrigenIds().add(docOrigen);
                 } else if ("PRODUCCION".equals(tipoMov)) {
-                    if (!p.getProductionDocTypes().contains(docCod)) p.getProductionDocTypes().add(docCod);
-                    if (!p.getProductionDocIds().contains(docId)) p.getProductionDocIds().add(docId);
+                    p.getProductionDocTypes().add(docCod);
+                    p.getProductionDocIds().add(docId);
+                    p.getProductionDocOrden().add(docOrden);
+                    p.getProductionDocOrigenIds().add(docOrigen);
+                    p.getProductionDocTypes().add(docCod);
+                    p.getProductionDocIds().add(docId);
+                    p.getProductionDocOrden().add(docOrden);
+                    p.getProductionDocOrigenIds().add(docOrigen);
                 }
             }
         }
 
         // 3. Cargar meta del mes actual
-        log.info(">>> Cargando metas del mes actual...");
         int mesActual = LocalDateTime.now().getMonthValue();
         int anioActual = LocalDateTime.now().getYear();
         
@@ -220,7 +246,6 @@ public class MetaRepository {
         }
         // 4. Cargar componentes de productos compuestos
         try {
-            log.info(">>> Cargando componentes de productos compuestos...");
             // Usamos OR activo IS NULL para asegurar que no se pierdan datos si la columna se acaba de crear
             String sqlComp = "SELECT producto_padre_id, producto_hijo_siesa_id, usa_suma FROM producto_componentes WHERE activo = 1 OR activo IS NULL";
             List<Map<String, Object>> compRows = jdbcTemplate.queryForList(sqlComp);
@@ -238,7 +263,6 @@ public class MetaRepository {
                 }
             }
         } catch (Exception e) {
-            log.error(">>> ERROR al cargar componentes (posiblemente falta la tabla): {}", e.getMessage());
             // No bloqueamos la carga de productos si fallan los componentes
         }
         
@@ -251,7 +275,6 @@ public class MetaRepository {
             }
         }
 
-        log.info(">>> Carga finalizada. Productos: {}", productosMap.size());
         return new ArrayList<>(productosMap.values());
     }
     
@@ -341,8 +364,8 @@ public class MetaRepository {
             ? producto.getIdProductoSiesa().toString()
             : null;
 
-        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, sentido_meta, mostrar_cmi, produccion_base_id, meta_diaria_manual, seccion_id, orden_reporte, date_create, date_Modify) " +
-                     "VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO productos (id, nombre, id_producto_siesa, activo, usa_suma, sentido_meta, mostrar_cmi, produccion_base_id, meta_diaria_manual, formula_operadores, seccion_id, orden_reporte, date_create, date_Modify) " +
+                     "VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
 
         jdbcTemplate.update(
             sql,
@@ -352,8 +375,9 @@ public class MetaRepository {
             producto.getUsaSuma() != null && producto.getUsaSuma() ? 1 : 0,
             producto.getSentidoMeta() != null && producto.getSentidoMeta() ? 1 : 0,
             producto.getMostrarCmi() != null && producto.getMostrarCmi() ? 1 : 0,
-            producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
+            producto.getProduccionBaseId() != null && !producto.getProduccionBaseId().trim().isEmpty() ? producto.getProduccionBaseId() : null,
             producto.getMetaDiariaManual() != null && producto.getMetaDiariaManual() ? 1 : 0,
+            producto.getFormulaOperadores() != null ? String.join(",", producto.getFormulaOperadores()) : "+,+,+,+",
             producto.getSeccionId(),
             producto.getOrdenReporte()
         );
@@ -377,14 +401,12 @@ public class MetaRepository {
     public void actualizarProducto(ProductoDTO producto) {
         ensureSchema();
         try {
-            String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, sentido_meta = ?, mostrar_cmi = ?, produccion_base_id = ?, meta_diaria_manual = ?, seccion_id = ?, orden_reporte = ?, date_Modify = GETDATE() " +
+            String sql = "UPDATE productos SET nombre = ?, id_producto_siesa = ?, usa_suma = ?, sentido_meta = ?, mostrar_cmi = ?, produccion_base_id = ?, meta_diaria_manual = ?, formula_operadores = ?, seccion_id = ?, orden_reporte = ?, date_Modify = GETDATE() " +
                          "WHERE id = ?";
 
             String idSiesa = producto.getIdProductoSiesa() != null
                 ? producto.getIdProductoSiesa().toString()
                 : null;
-            
-            log.info("[actualizarProducto] Ejecutando SQL para id={}", producto.getId());
             
             jdbcTemplate.update(
                 sql,
@@ -393,8 +415,9 @@ public class MetaRepository {
                 producto.getUsaSuma() != null ? producto.getUsaSuma() : false,
                 producto.getSentidoMeta() != null ? producto.getSentidoMeta() : true,
                 producto.getMostrarCmi() != null ? producto.getMostrarCmi() : true,
-                producto.getProduccionBaseId() != null ? producto.getProduccionBaseId() : "26",
+                producto.getProduccionBaseId() != null && !producto.getProduccionBaseId().trim().isEmpty() ? producto.getProduccionBaseId() : null,
                 producto.getMetaDiariaManual() != null ? producto.getMetaDiariaManual() : false,
+                producto.getFormulaOperadores() != null ? String.join(",", producto.getFormulaOperadores()) : "+,+,+,+",
                 producto.getSeccionId(),
                 producto.getOrdenReporte(),
                 producto.getId()
@@ -419,7 +442,6 @@ public class MetaRepository {
                 }
             }
         } catch (Exception e) {
-            log.error("[actualizarProducto] ERROR CRITICO AL ACTUALIZAR: {}", e.getMessage(), e);
             throw e; // Relanzar para que el Controller devuelva 500
         }
     }
@@ -431,15 +453,14 @@ public class MetaRepository {
 
  
         // According to user provided SQL, the SP name is sp_producto_tipo_doc_insertar
-    public void insertarTipoDocumento(String productoId, String tipoMov, String tipoDoc) {
-        String sql = "INSERT INTO producto_tipos_documento (producto_id, tipo_movimiento_id, tipo_documento_id) " +
-                     "VALUES (?, ?, ?)";
+    public void insertarTipoDocumento(String productoId, String tipoMov, String tipoDoc, int orden, String productoOrigenId) {
+        String sql = "INSERT INTO producto_tipos_documento (producto_id, tipo_movimiento_id, tipo_documento_id, orden, producto_origen_id) " +
+                     "VALUES (?, ?, ?, ?, ?)";
         
         jdbcTemplate.update(
             sql,
-            productoId,
-            tipoMov,
-            tipoDoc
+            new Object[]{ productoId, tipoMov, tipoDoc, orden, productoOrigenId },
+            new int[]{ java.sql.Types.VARCHAR, java.sql.Types.VARCHAR, java.sql.Types.VARCHAR, java.sql.Types.INTEGER, java.sql.Types.VARCHAR }
         );
     }
 

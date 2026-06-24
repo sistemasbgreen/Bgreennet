@@ -41,7 +41,7 @@
   <main class="main-content" *ngIf="selectedServicio === 'general'">
     <div class="overview-grid">
       <!-- VAPOR -->
-      <div class="overview-card vapor">
+      <div class="overview-card vapor" (click)="selectedServicio = 'vapor'; cargarDatosApropiados()" style="cursor: pointer;">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-wind" style="font-size: 1.5rem;"></i> VAPOR (FOCO Mensual)
@@ -104,7 +104,7 @@
       </div>
 
       <!-- ENERGÍA ELÉCTRICA -->
-      <div class="overview-card energia">
+      <div class="overview-card energia" (click)="selectedServicio = 'energia'; cargarDatosApropiados()" style="cursor: pointer;">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-bolt" style="font-size: 1.5rem;"></i> ENERGÍA ELÉCTRICA (FOCO Mensual)
@@ -207,7 +207,7 @@
             <div class="stat-detail">
               <i class="fas" [class.fa-check-circle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia <= kpis.meta"
                              [class.fa-exclamation-triangle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia > kpis.meta"></i>
-              <span>{{ kpis.focoUltimoDia !== null ? (kpis.focoUltimoDia <= kpis.meta ? 'Dentro de meta' : 'Desviación vs meta') : 'Sin dato' }}</span>
+              <span>{{ kpis.focoUltimoDia !== null ? (kpis.focoUltimoDia <= kpis.meta ? '' : '') : 'Sin dato' }}</span>
             </div>
           </div>
 
@@ -354,7 +354,7 @@
             <div class="stat-detail">
               <i class="fas" [class.fa-check-circle]="energiaKpis.ultimoDia !== null && energiaKpis.ultimoDia <= energiaKpis.meta"
                              [class.fa-exclamation-triangle]="energiaKpis.ultimoDia !== null && energiaKpis.ultimoDia > energiaKpis.meta"></i>
-              <span>{{ energiaKpis.ultimoDia !== null ? (energiaKpis.ultimoDia <= energiaKpis.meta ? 'Dentro de meta' : 'Desviación vs meta') : 'Sin dato' }}</span>
+              <span>{{ energiaKpis.ultimoDia !== null ? (energiaKpis.ultimoDia <= energiaKpis.meta ? '' : '') : 'Sin dato' }}</span>
             </div>
           </div>
 

@@ -59,11 +59,13 @@ export class productoservices {
     return this.http.post(`${this.baseUrl}/productos/actualizar`, p);
   }
 
-  insertarTipoDocumento(productoId: string, tipoMovimiento: string, tipoDocumento: string) {
+  insertarTipoDocumento(productoId: string, tipoMovimiento: string, tipoDocumento: string, orden: number = 0, productoOrigenId?: string) {
     return this.http.post(`${this.baseUrl}/productos/tipo-documento`, { 
       productoId, 
       tipoMovimiento, 
-      tipoDocumento 
+      tipoDocumento,
+      orden,
+      productoOrigenId
     });
   }
 
