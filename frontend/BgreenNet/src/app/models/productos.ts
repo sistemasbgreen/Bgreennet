@@ -7,6 +7,10 @@ export interface producto {
   productionDocTypes: string[];
   consumptionDocIds?: number[];
   productionDocIds?: number[];
+  consumptionDocOrden?: number[];
+  productionDocOrden?: number[];
+  consumptionDocOrigenIds?: string[];
+  productionDocOrigenIds?: string[];
   metaActual?: number;
   esCompuesto?: boolean;
   componenteSiesaIds?: string[];
@@ -21,4 +25,5 @@ export interface producto {
   seccionId?: number;
   seccionNombre?: string;
   ordenReporte?: number;
+  formulaOperadores?: string[];
 }

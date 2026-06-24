@@ -30,16 +30,25 @@ public class cmiplantaController {
     
     
     @PostMapping("/ConsumoProductos")
-    public CmiplantaResponseDTO generateInventoryReport(@RequestBody CmiplantaRequest request) {
-        return cmiplantaService.generateReport(
-            request.getStartDate(),
-            request.getEndDate(),
-            request.getConsumptionProductId(),
-            request.getProductionProductId(),
-            request.getConsumptionDocTypes(),
-            request.getProductionDocTypes()
-        );
-    }    
+    public ResponseEntity<?> generateInventoryReport(@RequestBody CmiplantaRequest request) {
+        try {
+            CmiplantaResponseDTO resp = cmiplantaService.generateReport(
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getConsumptionProductId(),
+                request.getProductionProductId(),
+                request.getConsumptionDocTypes(),
+                request.getProductionDocTypes(),
+                request.getConsumptionDocOrigenIds(),
+                request.getProductionDocOrigenIds()
+            );
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                .body(Map.of("error", e.getMessage() != null ? e.getMessage() : e.toString()));
+        }
+    }
     
     
     @PostMapping("/datos")
