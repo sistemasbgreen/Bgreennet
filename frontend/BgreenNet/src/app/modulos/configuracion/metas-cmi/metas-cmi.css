@@ -3315,3 +3315,72 @@
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+/* Formula Builder Custom Redesign */
+.avail-chip {
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.avail-chip:hover {
+  border-color: #006c2c;
+  background: #f0faf4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.dnd-source {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  border-width: 2px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.dnd-source:hover {
+  border-color: #94a3b8;
+}
+
+.dnd-target {
+  border: 2px dashed #7dd3fc;
+  background: #f8fafc;
+  min-height: 85px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 10px;
+  transition: all 0.25s ease;
+}
+
+.dnd-target:hover {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+}
+
+.doc-tag.consumption {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.doc-tag.consumption:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #dc2626;
+}
+
+

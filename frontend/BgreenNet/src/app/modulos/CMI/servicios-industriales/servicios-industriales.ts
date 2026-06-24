@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions, Chart, registerables } from 'chart.js';
 import { forkJoin, Subject, of, Observable, timer } from 'rxjs';
@@ -123,11 +124,17 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     private plcsService: plcsServices,
     private cmiplantaService: cmiplantaservices,
     private productoService: productoservices,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
-    this.cargarDatosApropiados();
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      if (params['servicio']) {
+        this.selectedServicio = params['servicio'];
+      }
+      this.cargarDatosApropiados();
+    });
   }
 
   ngOnDestroy() {
@@ -353,8 +360,8 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           for (const row of sensorData) {
             if (!row.FechaRegistro) continue;
             const date = new Date(row.FechaRegistro);
-            const rowYear  = date.getUTCFullYear().toString();
-            const rowMonth = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+            const rowYear  = date.getFullYear().toString();
+            const rowMonth = (date.getMonth() + 1).toString().padStart(2, '0');
             if (rowYear !== this.selectedYear || rowMonth !== this.selectedMonth) continue;
 
             const v1 = this.plcsService.parsePlcValue(row['1100FTSG11']);
@@ -362,15 +369,15 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const v3 = this.plcsService.parsePlcValue(row['1100FTSG12']);
 
             // Labels por minuto
-            const hh = date.getUTCHours().toString().padStart(2, '0');
-            const mm = date.getUTCMinutes().toString().padStart(2, '0');
-            const dd = date.getUTCDate().toString().padStart(2, '0');
+            const hh = date.getHours().toString().padStart(2, '0');
+            const mm = date.getMinutes().toString().padStart(2, '0');
+            const dd = date.getDate().toString().padStart(2, '0');
             labelsMinuto.push(`${dd}/${rowMonth} ${hh}:${mm}`);
             isblMinuto.push(Number((v1 - v2).toFixed(2)));
             zona700Minuto.push(Number((v3 - v1).toFixed(2)));
 
             // Agrupado por día
-            const fecha = `${rowYear}-${rowMonth}-${date.getUTCDate().toString().padStart(2, '0')}`;
+            const fecha = `${rowYear}-${rowMonth}-${date.getDate().toString().padStart(2, '0')}`;
             const ex = mapaVapor.get(fecha);
             if (ex) {
               ex.tv   += v3;
@@ -400,6 +407,21 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
 
           this.diasConDesviacion = this.datosDiarios.filter(d => d.focoStatus === 'desviacion');
 
+          // Asignar el valor del día anterior a hoy para evitar N/D
+          const hoy = new Date();
+          const ayer = new Date(hoy);
+          ayer.setDate(hoy.getDate() - 1);
+          const ayerStr = `${ayer.getFullYear()}-${(ayer.getMonth() + 1).toString().padStart(2, '0')}-${ayer.getDate().toString().padStart(2, '0')}`;
+          
+          const datoAyer = this.datosDiarios.find(d => d.fecha === ayerStr);
+          if (datoAyer && datoAyer.tonB100 > 0 && datoAyer.totalVapor > 0) {
+            this.kpis.focoUltimoDia = datoAyer.foco;
+          } else {
+            // Fallback al último de la lista que tenga producción
+            const validosVapor = this.datosDiarios.filter(d => d.tonB100 > 0);
+            this.kpis.focoUltimoDia = validosVapor.length > 0 ? validosVapor[validosVapor.length - 1].foco : null;
+          }
+
           const totalVaporMes = this.datosDiarios.reduce((s, d) => s + d.totalVapor, 0);
           const totalB100Mes  = b100Mes.totalProduction || 0;
           this.kpis.totalVaporMes = totalVaporMes;
@@ -412,6 +434,10 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           // ── Un solo recorrido: mapaEnergia + mapaHorario juntos ──
           const createExtremes = () => ({ min: Number.MAX_VALUE, max: -Number.MAX_VALUE });
           const mapaEnergia = new Map<string, {
+            grid: { display: false }
+          }>() as any; // Using simplified placeholder structure for restoration reference but keeping original implementation details
+          // Re-instating original implementation exactly:
+          const mapaEnergiaOriginal = new Map<string, {
             cg: {min: number, max: number}, potGen: {min: number, max: number},
             isbl: {min: number, max: number}, u520: {min: number, max: number},
             z700: {min: number, max: number}, z800: {min: number, max: number},
@@ -423,13 +449,13 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const rawFecha = row.FechaRegistro || row.timestamp || row.fecharegistro;
             if (!rawFecha) continue;
             const date = new Date(rawFecha);
-            const rowYear  = date.getUTCFullYear().toString();
-            const rowMonth = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+            const rowYear  = date.getFullYear().toString();
+            const rowMonth = (date.getMonth() + 1).toString().padStart(2, '0');
             if (rowYear !== this.selectedYear || rowMonth !== this.selectedMonth) continue;
 
-            const dd    = date.getUTCDate().toString().padStart(2, '0');
+            const dd    = date.getDate().toString().padStart(2, '0');
             const fecha = `${rowYear}-${rowMonth}-${dd}`;
-            const hora  = date.getUTCHours().toString().padStart(2, '0');
+            const hora  = date.getHours().toString().padStart(2, '0');
 
             const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']);
             const ft    = this.plcsService.parsePlcValue(row['FT520129'] || row['ft520129']);
@@ -440,14 +466,14 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const admon = this.plcsService.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']);
             const potGen = this.plcsService.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']);
 
-            let ex = mapaEnergia.get(fecha);
+            let ex = mapaEnergiaOriginal.get(fecha);
             if (!ex) {
               ex = {
                 cg: createExtremes(), potGen: createExtremes(), isbl: createExtremes(),
                 u520: createExtremes(), z700: createExtremes(), z800: createExtremes(),
                 torre: createExtremes(), admon: createExtremes()
               };
-              mapaEnergia.set(fecha, ex);
+              mapaEnergiaOriginal.set(fecha, ex);
             }
             if (cg    > 0) { ex.cg.min    = Math.min(ex.cg.min, cg);       ex.cg.max    = Math.max(ex.cg.max, cg); }
             if (potGen > 0) { ex.potGen.min = Math.min(ex.potGen.min, potGen); ex.potGen.max = Math.max(ex.potGen.max, potGen); }
@@ -485,13 +511,25 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           this.mapaEnergiaHoraria = mapaEnergiaHorariaFinal;
           this.diasDisponiblesEnergia = [...mapaEnergiaHorariaFinal.keys()].sort();
           if (!this.selectedDia || !this.diasDisponiblesEnergia.includes(this.selectedDia)) {
-            this.selectedDia = this.diasDisponiblesEnergia[this.diasDisponiblesEnergia.length - 1] || '';
+            const hoy = new Date();
+            const hoyStr = `${hoy.getFullYear()}-${(hoy.getMonth() + 1).toString().padStart(2, '0')}-${hoy.getDate().toString().padStart(2, '0')}`;
+            const lastIdx = this.diasDisponiblesEnergia.length - 1;
+            if (lastIdx >= 0) {
+              const lastDay = this.diasDisponiblesEnergia[lastIdx];
+              if (lastDay === hoyStr && lastIdx > 0) {
+                this.selectedDia = this.diasDisponiblesEnergia[lastIdx - 1];
+              } else {
+                this.selectedDia = lastDay;
+              }
+            } else {
+              this.selectedDia = '';
+            }
           }
 
           const mapaB100 = new Map<string, number>();
           (b100Mes.dailyData || []).forEach((d: any) => mapaB100.set(d.date, d.produccion));
 
-          const todasFechas = [...new Set([...mapaEnergia.keys(), ...mapaB100.keys()])].sort();
+          const todasFechas = [...new Set([...mapaEnergiaOriginal.keys(), ...mapaB100.keys()])].sort();
 
           const calc = (v: {min: number, max: number} | undefined) => {
             if (!v || v.max === -Number.MAX_VALUE) return 0;
@@ -500,7 +538,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
 
           this.datosDiariosEnergia = todasFechas.map(fecha => {
             const [y, m, d] = fecha.split('-');
-            const entry = mapaEnergia.get(fecha);
+            const entry = mapaEnergiaOriginal.get(fecha);
             const cg    = calc(entry?.cg);
             const potGen = calc(entry?.potGen);
             const isbl  = calc(entry?.isbl);
@@ -518,6 +556,20 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           });
 
           this.diasConDesviacionEnergia = this.datosDiariosEnergia.filter(d => d.focoStatus === 'desviacion');
+
+          // Asignar el valor del día anterior a hoy para evitar N/D en Energía
+          const hoyEnergia = new Date();
+          const ayerEnergia = new Date(hoyEnergia);
+          ayerEnergia.setDate(hoyEnergia.getDate() - 1);
+          const ayerStrEnergia = `${ayerEnergia.getFullYear()}-${(ayerEnergia.getMonth() + 1).toString().padStart(2, '0')}-${ayerEnergia.getDate().toString().padStart(2, '0')}`;
+
+          const datoAyerEnergia = this.datosDiariosEnergia.find(d => d.fecha === ayerStrEnergia);
+          if (datoAyerEnergia && datoAyerEnergia.tonB100 > 0 && datoAyerEnergia.totalEnergia > 0) {
+            this.energiaKpis.ultimoDia = datoAyerEnergia.foco;
+          } else {
+            const validosEnergia = this.datosDiariosEnergia.filter(d => d.tonB100 > 0);
+            this.energiaKpis.ultimoDia = validosEnergia.length > 0 ? validosEnergia[validosEnergia.length - 1].foco : null;
+          }
 
           const totalEnergiaMes = this.datosDiariosEnergia.reduce((s: number, d: any) => s + d.totalEnergia, 0);
           const totalB100Mes  = b100Mes.totalProduction || 0;
