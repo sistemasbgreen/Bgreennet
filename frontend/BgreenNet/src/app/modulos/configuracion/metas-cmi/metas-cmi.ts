@@ -13,6 +13,7 @@ interface ToastState {
 
 @Component({
   selector: 'app-metas-cmi',
+  standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './metas-cmi.html',
   styleUrl: './metas-cmi.css',
@@ -67,7 +68,6 @@ export class MetasCMI implements OnInit {
   tempConsumoDocs: any[] = [];
   tempProduccionDocs: any[] = [];
 
-  
   // Dynamic Flow Variables
   siesaSearchId: string = '';
   productWasSaved: boolean = false;
@@ -93,6 +93,7 @@ export class MetasCMI implements OnInit {
   draggedDoc: any = null;
   dragSource: string = '';
   draggedSign: string | null = null;
+
   isFormulaDividedConsumo: boolean = false;
   
   // Isolated state for document linking per product row
@@ -227,7 +228,6 @@ export class MetasCMI implements OnInit {
 
   cargarMetasActuales() {
     const anio = new Date().getFullYear().toString();
-    const mesIdx = new Date().getMonth(); // 0-11
 
     this.productos.forEach(p => {
       const obs = p.id === 'CostoDirecto'
@@ -237,7 +237,6 @@ export class MetasCMI implements OnInit {
       obs.subscribe({
         next: (res) => {
           // Buscar por campo 'mes' en vez de índice posicional
-          // (el Mes 0 puede desplazar índices si viene primero)
           const mesNum = new Date().getMonth() + 1; // 1-12
           const metaMes = res.mensuales?.find(m => m.mes === mesNum);
           p.metaActual = metaMes ? metaMes.valor : 0;
@@ -255,7 +254,7 @@ export class MetasCMI implements OnInit {
     this.selectedProducto = p.id;
     this.selectedAnio = new Date().getFullYear().toString();
     this.metas = Array(12).fill(0).map(() => ({ valor: 0 }));
-    this.distribuirValor = 0; // Solo se limpia el campo de Aplicar Masivo
+    this.distribuirValor = 0;
     this.showMetasModal = true;
     this.cdr.detectChanges();
     this.cargarMetas();
@@ -272,7 +271,7 @@ export class MetasCMI implements OnInit {
       next: (res: MetaResponse) => {
         const mensuales = res?.mensuales ?? [];
 
-        // Extraer meta diaria (Mes 0) si existe — comparar con Number()
+        // Extraer meta diaria (Mes 0) si existe
         const diaria = mensuales.find(m => Number(m.mes) === 0);
         this.metaDiaria = diaria ? diaria.valor : 0;
 
@@ -429,7 +428,6 @@ export class MetasCMI implements OnInit {
 
   finalizeBatchSave() {
     if (this.selectedProductObj && this.selectedProductObj.id !== 'CostoDirecto') {
-      // Send only necessary fields to avoid Jackson issues with complex lists/objects
       const updatePayload: any = {
         id: this.selectedProductObj.id,
         nombre: this.selectedProductObj.nombre,
@@ -479,11 +477,8 @@ export class MetasCMI implements OnInit {
   isEntradaDoc(codigo: string): boolean {
     if (!codigo) return false;
     const upperCode = codigo.toUpperCase();
-    // Typical Siesa Entradas
     if (upperCode === 'EI' || upperCode === 'EDP' || upperCode === 'AI' || upperCode === 'EPA') return true;
-    // Typical Siesa Salidas
     if (upperCode === 'TEP' || upperCode === 'RM' || upperCode === 'SM' || upperCode === 'SIP') return false;
-    // Fallback heuristic
     return upperCode.startsWith('E') || upperCode.startsWith('A');
   }
 
@@ -501,7 +496,8 @@ export class MetasCMI implements OnInit {
       const origenId = p?.consumptionDocOrigenIds ? p.consumptionDocOrigenIds[idx] : null;
       return { id: id, codigo: doc ? doc.codigo : '?', orden, origenId };
     });
-    // Ordenar por orden ASC (ya viene del backend, pero por seguridad)
+    
+    // Ordenar por orden ASC
     rawConsumoDocs.sort((a, b) => a.orden - b.orden);
     
     // Clasificar por zona según valor de orden: 0-99 (0), 100-199 (1), 200-299 (2), 300-399 (3), 400-499 (4)
@@ -569,9 +565,6 @@ export class MetasCMI implements OnInit {
     
     this.showProductModal = true;
   }
-
-
-
 
   getAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): any[] {
     const selected = type === 'CONSUMO' ? this.tempConsumoDocs : this.tempProduccionDocs;
@@ -700,15 +693,12 @@ export class MetasCMI implements OnInit {
 
   removeOperator(idx: number) {
     if (idx < 0 || idx >= this.tempConsumoOperadores.length) return;
-    // Merge documents of zone idx + 1 into zone idx
     this.tempConsumoZonas[idx] = [...this.tempConsumoZonas[idx], ...this.tempConsumoZonas[idx + 1]];
-    // Shift remaining zones down
     for (let i = idx + 1; i < 4; i++) {
       this.tempConsumoZonas[i] = this.tempConsumoZonas[i + 1];
     }
-    this.tempConsumoZonas[4] = []; // Clear the last one
+    this.tempConsumoZonas[4] = [];
     
-    // Remove the operator
     this.tempConsumoOperadores.splice(idx, 1);
     this.syncAllConsumptionDocs();
   }
@@ -788,7 +778,7 @@ export class MetasCMI implements OnInit {
       this.tempConsumoZonas[1] = this.tempConsumoZonas[1].filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
     } else if (from === 'PROD_SALIDAS') {
       this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
-    } else if (from === 'PROD_ENTRADAS') {
+    } else if (from === 'PROD_ENTRAS') {
       this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
     }
 
@@ -818,7 +808,6 @@ export class MetasCMI implements OnInit {
     ];
     this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
   }
-  // ---------------------------
 
   agregarComponente() {
     const id = String(this.nuevoComponenteId || '').trim();
@@ -924,7 +913,7 @@ export class MetasCMI implements OnInit {
 
   ejecutarGuardadoProducto() {
     if (this.isCompuestoToggle) {
-      this.currentProduct.idProductoSiesa = ''; // Forzar ID vacío para usar el ID interno en el dashboard
+      this.currentProduct.idProductoSiesa = '';
     }
     this.currentProduct.usaSuma = this.tempUsaSuma ?? false;
     this.currentProduct.esCompuesto = this.isCompuestoToggle;
@@ -1162,5 +1151,4 @@ export class MetasCMI implements OnInit {
     
     return tokens;
   }
-  
 }
