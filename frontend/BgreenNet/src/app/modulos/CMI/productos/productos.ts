@@ -544,7 +544,9 @@ getSelectedProductConfig() {
       consumptionProductId: producto.idProductoSiesa || producto.id,
       productionProductId: productionId,
       consumptionDocTypes: producto.consumptionDocTypes,
-      productionDocTypes: producto.productionDocTypes
+      productionDocTypes: producto.productionDocTypes,
+      consumptionDocOrigenIds: producto.consumptionDocOrigenIds,
+      productionDocOrigenIds: producto.productionDocOrigenIds
     };
     
     console.log('Request para cargarDatosMes:', request);
@@ -816,7 +818,9 @@ getSelectedProductConfig() {
       consumptionProductId: producto.idProductoSiesa || producto.id,
       productionProductId: productionId,
       consumptionDocTypes: producto.consumptionDocTypes,
-      productionDocTypes: producto.productionDocTypes
+      productionDocTypes: producto.productionDocTypes,
+      consumptionDocOrigenIds: producto.consumptionDocOrigenIds,
+      productionDocOrigenIds: producto.productionDocOrigenIds
     };
     
     console.log('Request para YTD:', request);
@@ -876,7 +880,9 @@ getSelectedProductConfig() {
         consumptionProductId: pid,
         productionProductId: productionId,
         consumptionDocTypes: producto.consumptionDocTypes,
-        productionDocTypes: producto.productionDocTypes
+        productionDocTypes: producto.productionDocTypes,
+        consumptionDocOrigenIds: producto.consumptionDocOrigenIds,
+        productionDocOrigenIds: producto.productionDocOrigenIds
       };
       observables.push(this.plantaService.obtenerDatos(req).pipe(catchError(() => of({} as any))));
     }
