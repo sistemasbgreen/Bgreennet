@@ -17,9 +17,9 @@
           <select class="filter-select" [(ngModel)]="selectedServicio" (change)="onServicioChange()">
             <option value="general">General</option>
             <option value="energia">Energía</option>
-            <option value="gas">Gas</option>
-            <option value="vapor">Vapor</option>
-            <option value="agua">Agua</option>
+            <!-- <option value="gas">Gas</option> -->
+            <!-- <option value="vapor">Vapor</option> -->
+            <!-- <option value="agua">Agua</option> -->
           </select>
         </div>
         <div class="filter-group">
@@ -40,8 +40,8 @@
   </header>
   <main class="main-content" *ngIf="selectedServicio === 'general'">
     <div class="overview-grid">
-      <!-- VAPOR -->
-      <div class="overview-card vapor" (click)="selectedServicio = 'vapor'; onServicioChange()" style="cursor: pointer;">
+      <!-- VAPOR 
+      <div class="overview-card vapor" *ngIf="false" (click)="selectedServicio = 'vapor'; cargarDatosApropiados()" style="cursor: pointer;">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-wind" style="font-size: 1.5rem;"></i> VAPOR
@@ -69,6 +69,7 @@
           </div>
         </div>
       </div>
+      -->
 
       <!-- GAS (TOTAL) -->
       <div class="overview-card gas">
@@ -162,4 +163,289 @@
       
     </div>
   </main>
-</div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- DASHBOARD VAPOR                                          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="selectedServicio === 'vapor'">
+
+    <!-- Cargando -->
+    <div *ngIf="cargando" style="text-align:center; padding: 3rem; color: #64748b;">
+      <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+      <p style="margin-top:1rem;">Cargando datos de vapor y producción B100...</p>
+    </div>
+
+    <div *ngIf="!cargando">
+
+      <!-- ── KPI Cards ────────────────────────────────── -->
+      <section class="stats-container" style="max-width: 100%; padding: 1rem 2rem;">
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+
+          <!-- Meta FOCO -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Meta FOCO</span>
+              <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
+            </div>
+            <div class="stat-value" style="color: #27ae60;">{{ kpis.meta }} <small style="font-size:1rem;">kg/Ton</small></div>
+            <div class="stat-detail"><i class="fas fa-info-circle"></i> <span>kg vapor / Ton B100 producida</span></div>
+          </div>
+
+          <!-- FOCO Último día -->
+          <div class="stat-card" [class.success]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia <= kpis.meta"
+                                 [class.danger]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia > kpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">FOCO Último Día</span>
+              <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+            </div>
+            <div class="stat-value">{{ kpis.focoUltimoDia !== null ? kpis.focoUltimoDia : 'N/D' }} <small style="font-size:1rem;">kg/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas" [class.fa-check-circle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia <= kpis.meta"
+                             [class.fa-exclamation-triangle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia > kpis.meta"></i>
+              <span>{{ kpis.focoUltimoDia !== null ? (kpis.focoUltimoDia <= kpis.meta ? '' : '') : 'Sin dato' }}</span>
+            </div>
+          </div>
+
+          <!-- FOCO Mensual -->
+          <div class="stat-card" [class.success]="kpis.focoMensual !== null && kpis.focoMensual <= kpis.meta"
+                                 [class.danger]="kpis.focoMensual !== null && kpis.focoMensual > kpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">FOCO Mensual</span>
+              <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            </div>
+            <div class="stat-value">{{ kpis.focoMensual !== null ? kpis.focoMensual : 'N/D' }} <small style="font-size:1rem;">kg/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas fa-calculator"></i>
+              <span>{{ kpis.totalVaporMes | number:'1.0-0' }} vapor / {{ kpis.totalB100Mes | number:'1.0-0' }} Ton B100</span>
+            </div>
+          </div>
+
+          <!-- FOCO Anual -->
+          <div class="stat-card" [class.success]="kpis.focoAnual !== null && kpis.focoAnual <= kpis.meta"
+                                 [class.danger]="kpis.focoAnual !== null && kpis.focoAnual > kpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">FOCO Anual {{ selectedYear }}</span>
+              <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
+            </div>
+            <div class="stat-value">{{ kpis.focoAnual !== null ? kpis.focoAnual : 'N/D' }} <small style="font-size:1rem;">kg/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas fa-calculator"></i>
+              <span>{{ kpis.totalVaporAnio | number:'1.0-0' }} vapor / {{ kpis.totalB100Anio | number:'1.0-0' }} Ton B100</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+
+
+      <!-- ── Gráfica 1: Comportamiento consumo de vapor ──── -->
+      <section class="charts-section">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-area"></i></div>
+                Comportamiento del Consumo de Vapor
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="comportamientoData" [options]="comportamientoOptions" type="line"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Gráficas 2 y 3: Vapor vs Ton B100 ────────────── -->
+      <section class="charts-section">
+        <div class="charts-grid">
+
+          <!-- Consumo total vs B100 -->
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
+                Consumo Total de Vapor vs Ton B100
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="totalVsB100Data" [options]="mixedOptions" type="line"></canvas>
+            </div>
+          </div>
+
+          <!-- ISBL vs B100 -->
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
+                Consumo ISBL Desagregado vs Ton B100
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="isblVsB100Data" [options]="mixedOptions" type="line"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Gráfica 4: Indicador FOCO diario ─────────────── -->
+      <section class="charts-section">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-tachometer-alt"></i></div>
+                Indicador FOCO Diario — <span style="color:#27ae60;">● ≤ {{ kpis.meta }}</span>&nbsp;<span style="color:#e74c3c;">● > {{ kpis.meta }}</span> kg vapor / Ton B100
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="focoData" [options]="focoOptions" type="line"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
+    </div><!-- /!cargando -->
+  </div><!-- /vapor -->
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- DASHBOARD ENERGÍA                                        -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="selectedServicio === 'energia'">
+
+    <!-- Cargando -->
+    <div *ngIf="cargando" style="text-align:center; padding: 3rem; color: #64748b;">
+      <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+      <p style="margin-top:1rem;">Cargando datos de energía y producción B100...</p>
+    </div>
+
+    <div *ngIf="!cargando">
+
+      <!-- ── KPI Cards ────────────────────────────────── -->
+      <section class="stats-container" style="max-width: 100%; padding: 1rem 2rem;">
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+
+          <!-- Meta Energía -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Meta Consumo</span>
+              <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
+            </div>
+            <div class="stat-value" style="color: #27ae60;">{{ energiaKpis.meta }} <small style="font-size:1rem;">kWh/Ton</small></div>
+            <div class="stat-detail"><i class="fas fa-info-circle"></i> <span>kWh/Ton B100 producida</span></div>
+          </div>
+
+          <!-- Consumo Último día -->
+          <div class="stat-card" [class.success]="energiaKpis.ultimoDia !== null && energiaKpis.ultimoDia <= energiaKpis.meta"
+                                 [class.danger]="energiaKpis.ultimoDia !== null && energiaKpis.ultimoDia > energiaKpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">Último Día</span>
+              <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+            </div>
+            <div class="stat-value">{{ energiaKpis.ultimoDia !== null ? energiaKpis.ultimoDia : 'N/D' }} <small style="font-size:1rem;">kWh/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas" [class.fa-check-circle]="energiaKpis.ultimoDia !== null && energiaKpis.ultimoDia <= energiaKpis.meta"
+                             [class.fa-exclamation-triangle]="energiaKpis.ultimoDia !== null && energiaKpis.ultimoDia > energiaKpis.meta"></i>
+              <span>{{ energiaKpis.ultimoDiaFecha ? (energiaKpis.ultimoDiaFecha | date:'dd/MM/yyyy') : 'Sin dato' }}</span>
+            </div>
+          </div>
+
+          <!-- Consumo Mensual -->
+          <div class="stat-card" [class.success]="energiaKpis.mensual !== null && energiaKpis.mensual <= energiaKpis.meta"
+                                 [class.danger]="energiaKpis.mensual !== null && energiaKpis.mensual > energiaKpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">Consumo Mensual</span>
+              <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            </div>
+            <div class="stat-value">{{ energiaKpis.mensual !== null ? energiaKpis.mensual : 'N/D' }} <small style="font-size:1rem;">kWh/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas fa-calculator"></i>
+              <span>{{ energiaKpis.totalEnergiaMes | number:'1.0-0' }} kWh / {{ energiaKpis.totalB100Mes | number:'1.0-0' }} Ton B100</span>
+            </div>
+          </div>
+
+          <!-- Consumo Anual -->
+          <div class="stat-card" [class.success]="energiaKpis.anual !== null && energiaKpis.anual <= energiaKpis.meta"
+                                 [class.danger]="energiaKpis.anual !== null && energiaKpis.anual > energiaKpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">Consumo Anual {{ selectedYear }}</span>
+              <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
+            </div>
+            <div class="stat-value">{{ energiaKpis.anual !== null ? energiaKpis.anual : 'N/D' }} <small style="font-size:1rem;">kWh/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas fa-calculator"></i>
+              <span>{{ energiaKpis.totalEnergiaAnio | number:'1.0-0' }} kWh / {{ energiaKpis.totalB100Anio | number:'1.0-0' }} Ton B100</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+
+
+      <!-- ── Gráficas: Consumo / B100 e Indicador FOCO ──────────── -->
+      <section class="charts-section">
+        <div class="charts-grid">
+
+          <!-- Consumo Total / Ton B100 (División diaria = FOCO kWh/Ton) -->
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
+                Consumo Eléctrico (energia) / Ton B100 producida
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="energiaTotalVsB100Data" [options]="focoOptions" type="line"></canvas>
+            </div>
+          </div>
+
+          <!-- Tendencia FOCO Diario (Hora a Hora) -->
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-area"></i></div>
+                Tendencia FOCO Diario (kWh/Ton B100)
+              </div>
+              <div class="chart-filter" *ngIf="diasDisponiblesEnergia.length > 0">
+                <select id="energia-dia-select" [(ngModel)]="selectedDia" (change)="filtrarFocoDiarioHora()"
+                  style="background:rgba(255,255,255,0.08);color:inherit;border:1px solid rgba(255,255,255,0.2);
+                         border-radius:6px;padding:4px 10px;font-size:0.82rem;cursor:pointer;">
+                  <option *ngFor="let dia of diasDisponiblesEnergia" [value]="dia">
+                    {{ dia }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="energiaFocoLineaData" [options]="energiaHorariaOptions" type="line"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Gráfica: Distribución de Consumo Eléctrico (9 Series) — ancho completo ── -->
+      <section class="charts-section">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
+                Distribución de Consumo Eléctrico
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="energiaComportamientoMultiData" [options]="comportamientoOptions" type="line"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div> <!-- /!cargando -->
+  </div> <!-- /energia -->
+
+</div> <!-- /dashboard-container -->
