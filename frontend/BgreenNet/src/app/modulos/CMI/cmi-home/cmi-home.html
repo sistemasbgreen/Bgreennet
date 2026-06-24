@@ -168,7 +168,7 @@
                     <span class="item-global" style="font-size: 10px; color: #6c757d;">/ 100</span>
                   </div>
                 </div>
-                <div class="indicator-icon-item">
+                <div class="indicator-icon-item" (click)="irIndustrial('energia'); $event.stopPropagation()" style="cursor: pointer;">
                   <i class="fas fa-bolt" style="color: #e8a214;" title="Energía"></i>
                   <div class="data-group">
                     <span class="item-data" style="font-weight: 700; color: #2c5f2d; font-size: 12px;">80</span>
@@ -182,7 +182,7 @@
                     <span class="item-global" style="font-size: 10px; color: #6c757d;">/ 100</span>
                   </div>
                 </div>
-                <div class="indicator-icon-item">
+                <div class="indicator-icon-item" (click)="irIndustrial('vapor'); $event.stopPropagation()" style="cursor: pointer;">
                   <i class="fas fa-wind" style="color: #7b5ea7;" title="Vapor"></i>
                   <div class="data-group">
                     <span class="item-data" style="font-weight: 700; color: #2c5f2d; font-size: 12px;">60</span>

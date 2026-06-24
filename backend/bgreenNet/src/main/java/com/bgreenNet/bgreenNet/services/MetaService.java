@@ -49,8 +49,8 @@ public class MetaService {
         repository.eliminarTiposDocumentoPorProducto(productoId);
     }
 
-    public void insertarTipoDocumento(String productoId, String tipoMov, String tipoDoc) {
-        repository.insertarTipoDocumento(productoId, tipoMov, tipoDoc);
+    public void insertarTipoDocumento(String productoId, String tipoMov, String tipoDoc, int orden, String productoOrigenId) {
+        repository.insertarTipoDocumento(productoId, tipoMov, tipoDoc, orden, productoOrigenId);
     }
 
     public List<Map<String, Object>> getTiposDocumento() {
