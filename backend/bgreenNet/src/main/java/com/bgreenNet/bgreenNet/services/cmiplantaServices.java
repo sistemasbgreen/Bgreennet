@@ -34,7 +34,9 @@ public class cmiplantaServices {
             String consumptionProductId,
             String productionProductId,
             List<String> consumptionDocTypes,
-            List<String> productionDocTypes) {
+            List<String> productionDocTypes,
+            List<String> consumptionDocOrigenIds,
+            List<String> productionDocOrigenIds) {
 
         // ========================================
         // CASO ESPECIAL: B100 (Producto 26)
@@ -60,23 +62,69 @@ public class cmiplantaServices {
         if (consumptionDocTypes != null && !consumptionDocTypes.isEmpty()) {
             List<String> consumoProductIds = cargarComponentesDinamicos(consumptionProductId);
             boolean useSumForConsumption = consultarUsaSuma(consumptionProductId);
+            
+            // Cargar vinculaciones locales de documentos para conocer su orden y origen
+            String sqlLocalDocs = "SELECT td.codigo as doc_cod, ptd.orden, ptd.producto_origen_id " +
+                                  "FROM producto_tipos_documento ptd " +
+                                  "JOIN tipo_movimiento tm ON ptd.tipo_movimiento_id = tm.id " +
+                                  "JOIN tipos_documento td ON ptd.tipo_documento_id = td.id " +
+                                  "WHERE (ptd.producto_id = ? OR ptd.producto_id IN (SELECT id FROM productos WHERE id_producto_siesa = ?)) " +
+                                  "AND tm.codigo = 'CONSUMO'";
+            List<Map<String, Object>> docMappings = jdbcTemplate.queryForList(sqlLocalDocs, consumptionProductId, consumptionProductId);
+            
+            // Cargar operadores de la fórmula
+            List<String> formulaOps = new ArrayList<>();
+            try {
+                String sqlOps = "SELECT formula_operadores FROM productos WHERE id = ? OR id_producto_siesa = ?";
+                List<Map<String, Object>> opRows = jdbcTemplate.queryForList(sqlOps, consumptionProductId, consumptionProductId);
+                if (!opRows.isEmpty() && opRows.get(0).get("formula_operadores") != null) {
+                    String opsStr = String.valueOf(opRows.get(0).get("formula_operadores"));
+                    formulaOps = java.util.Arrays.asList(opsStr.split(","));
+                }
+            } catch (Exception e) {
+                // fall back
+            }
+            if (formulaOps.isEmpty()) {
+                formulaOps = java.util.Arrays.asList("+", "+", "+", "+");
+            }
 
-            String consumoProductPlaceholders = consumoProductIds.stream()
-                .map(id -> "?")
-                .collect(Collectors.joining(", "));
+            // Construir lógica de filtrado de documentos por producto
+            StringBuilder docFilterBuilder = new StringBuilder();
+            List<Object> consumoParams = new ArrayList<>();
+            consumoParams.add(startDate);
+            consumoParams.add(endDate);
+            
+            docFilterBuilder.append(" AND (");
+            for (int i = 0; i < consumptionDocTypes.size(); i++) {
+                if (i > 0) docFilterBuilder.append(" OR ");
                 
-            String consumoExpression = useSumForConsumption
-                ? "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END + CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)"
-                : "SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END - CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END)";
-
-            String consumoDocPlaceholders = consumptionDocTypes.stream()
-                .map(t -> "?")
-                .collect(Collectors.joining(", "));
+                String docType = consumptionDocTypes.get(i);
+                String origenId = (consumptionDocOrigenIds != null && i < consumptionDocOrigenIds.size()) ? consumptionDocOrigenIds.get(i) : null;
+                
+                if (origenId != null && !origenId.trim().isEmpty() && !origenId.equals("null")) {
+                    docFilterBuilder.append("(f120_id = ? AND f350_id_tipo_docto = ?)");
+                    consumoParams.add(origenId);
+                    consumoParams.add(docType);
+                } else {
+                    String placeholders = consumoProductIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    if (placeholders.isEmpty()) {
+                        placeholders = "?";
+                        consumoProductIds.add(consumptionProductId);
+                    }
+                    docFilterBuilder.append("(f120_id IN (").append(placeholders).append(") AND f350_id_tipo_docto = ?)");
+                    consumoParams.addAll(consumoProductIds);
+                    consumoParams.add(docType);
+                }
+            }
+            docFilterBuilder.append(")");
 
             String sqlConsumo = """
                 SELECT
                     CONVERT(VARCHAR, mov.f470_id_fecha, 23) AS fecha_documento,
-                    %s AS cantidad_consumida
+                    doc.f350_id_tipo_docto AS tipo_docto,
+                    item.f120_id AS item_id,
+                    SUM(CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END) AS salidas,
+                    SUM(CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END) AS entradas
                 FROM [t124_mc_items_referencias]
                 LEFT JOIN [t120_mc_items] item ON f120_rowid = f124_rowid_item
                 INNER JOIN [t121_mc_items_extensiones] ON f121_rowid_item = f120_rowid
@@ -86,24 +134,69 @@ public class cmiplantaServices {
                 WHERE mov.f470_id_fecha BETWEEN ? AND ?
                   AND f120_id_cia = 2
                   AND f350_ind_estado = 1
-                  AND f120_id IN (%s)
-                  AND f350_id_tipo_docto IN (%s)
-                GROUP BY mov.f470_id_fecha
+                  %s
+                GROUP BY mov.f470_id_fecha, doc.f350_id_tipo_docto, item.f120_id
                 ORDER BY mov.f470_id_fecha
-                """.formatted(consumoExpression, consumoProductPlaceholders, consumoDocPlaceholders);
+                """.formatted(docFilterBuilder.toString());
 
-            List<Object> consumoParams = new ArrayList<>();
-            consumoParams.add(startDate);
-            consumoParams.add(endDate);
-            consumoParams.addAll(consumoProductIds);
-            consumoParams.addAll(consumptionDocTypes);
-
+            Map<String, double[]> dailyZoneSums = new HashMap<>();
+            final List<Map<String, Object>> finalDocMappings = docMappings;
+            
             siesaJdbcTemplate.query(sqlConsumo, rs -> {
                 String date = rs.getString("fecha_documento");
-                double qty = rs.getDouble("cantidad_consumida");
+                String tipoDocto = rs.getString("tipo_docto");
+                String itemId = rs.getString("item_id");
+                double salidas = rs.getDouble("salidas");
+                double entradas = rs.getDouble("entradas");
+                
+                double netVal = useSumForConsumption ? (salidas + entradas) : (salidas - entradas);
+                
+                for (Map<String, Object> map : finalDocMappings) {
+                    String mapDoc = String.valueOf(map.get("doc_cod"));
+                    Object mapOrdenObj = map.get("orden");
+                    int orden = (mapOrdenObj instanceof Number) ? ((Number) mapOrdenObj).intValue() : 0;
+                    Object mapOrigenObj = map.get("producto_origen_id");
+                    String mapOrigen = mapOrigenObj != null ? String.valueOf(mapOrigenObj) : null;
+                    
+                    if (mapDoc.equals(tipoDocto)) {
+                        boolean match = false;
+                        if (mapOrigen == null || mapOrigen.trim().isEmpty() || mapOrigen.equals("null")) {
+                            match = true;
+                        } else if (mapOrigen.equals(itemId)) {
+                            match = true;
+                        }
+                        
+                        if (match) {
+                            int zoneIdx = Math.min(4, Math.max(0, orden / 100));
+                            dailyZoneSums.putIfAbsent(date, new double[5]);
+                            dailyZoneSums.get(date)[zoneIdx] += netVal;
+                        }
+                    }
+                }
+            }, consumoParams.toArray());
+
+            final List<String> finalFormulaOps = formulaOps;
+            for (Map.Entry<String, double[]> entry : dailyZoneSums.entrySet()) {
+                String date = entry.getKey();
+                double[] zones = entry.getValue();
+                
+                double result = zones[0];
+                for (int i = 0; i < 4; i++) {
+                    String op = (i < finalFormulaOps.size()) ? finalFormulaOps.get(i) : "+";
+                    double nextVal = zones[i + 1];
+                    if ("/".equals(op)) {
+                        result = (nextVal != 0) ? (result / nextVal) : 0.0;
+                    } else if ("-".equals(op)) {
+                        result -= nextVal;
+                    } else {
+                        result += nextVal;
+                    }
+                }
+                
+                double qty = Math.abs(result);
                 consumoMap.put(date, qty);
                 totalConsumption[0] += qty;
-            }, consumoParams.toArray());
+            }
         }
 
         Map<String, Double> produccionMap = new HashMap<>();
@@ -111,9 +204,35 @@ public class cmiplantaServices {
 
         // 2️ PRODUCCIÓN
         if (productionDocTypes != null && !productionDocTypes.isEmpty()) {
-            String produccionPlaceholders = productionDocTypes.stream()
-                    .map(t -> "?")
-                    .collect(Collectors.joining(", "));
+            List<String> produccionProductIds = cargarComponentesDinamicos(productionProductId);
+            StringBuilder docFilterBuilder = new StringBuilder();
+            List<Object> produccionParams = new ArrayList<>();
+            produccionParams.add(startDate);
+            produccionParams.add(endDate);
+
+            docFilterBuilder.append(" AND (");
+            for (int i = 0; i < productionDocTypes.size(); i++) {
+                if (i > 0) docFilterBuilder.append(" OR ");
+                
+                String docType = productionDocTypes.get(i);
+                String origenId = (productionDocOrigenIds != null && i < productionDocOrigenIds.size()) ? productionDocOrigenIds.get(i) : null;
+                
+                if (origenId != null && !origenId.trim().isEmpty() && !origenId.equals("null")) {
+                    docFilterBuilder.append("(f120_id = ? AND f350_id_tipo_docto = ?)");
+                    produccionParams.add(origenId);
+                    produccionParams.add(docType);
+                } else {
+                    String placeholders = produccionProductIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    if (placeholders.isEmpty()) {
+                        placeholders = "?";
+                        produccionProductIds.add(productionProductId);
+                    }
+                    docFilterBuilder.append("(f120_id IN (").append(placeholders).append(") AND f350_id_tipo_docto = ?)");
+                    produccionParams.addAll(produccionProductIds);
+                    produccionParams.add(docType);
+                }
+            }
+            docFilterBuilder.append(")");
 
             String produccionExpression = "ABS(SUM(CASE WHEN f470_ind_naturaleza = 1 THEN f470_cant_base ELSE 0 END - CASE WHEN f470_ind_naturaleza = 2 THEN f470_cant_base ELSE 0 END))";
 
@@ -130,17 +249,10 @@ public class cmiplantaServices {
                 WHERE mov.f470_id_fecha BETWEEN ? AND ?
                   AND f120_id_cia = 2
                   AND f350_ind_estado = 1
-                  AND f120_id = ?
-                  AND f350_id_tipo_docto IN (%s)
+                  %s
                 GROUP BY mov.f470_id_fecha
                 ORDER BY mov.f470_id_fecha
-                """.formatted(produccionExpression, produccionPlaceholders);
-
-            List<Object> produccionParams = new ArrayList<>();
-            produccionParams.add(startDate);
-            produccionParams.add(endDate);
-            produccionParams.add(productionProductId);
-            produccionParams.addAll(productionDocTypes);
+                """.formatted(produccionExpression, docFilterBuilder.toString());
 
             siesaJdbcTemplate.query(sqlProduccion, rs -> {
                 String date = rs.getString("fecha_documento");
@@ -271,7 +383,7 @@ public class cmiplantaServices {
             if (type == null || type.trim().isEmpty()) {
                 throw new IllegalArgumentException(paramName + " contains null or empty value");
             }
-            if (!type.matches("^[A-Z0-9]{2,10}$")) {
+            if (!type.matches("^[a-zA-Z0-9_-]{1,20}$")) {
                 throw new IllegalArgumentException("Invalid document type in " + paramName + ": '" + type + "'");
             }
         }
@@ -282,6 +394,12 @@ public class cmiplantaServices {
     // ========================================
     
     private List<String> cargarComponentesDinamicos(String productoSiesaId) {
+        if (productoSiesaId != null && productoSiesaId.contains(",")) {
+            return java.util.Arrays.stream(productoSiesaId.split(","))
+                         .map(String::trim)
+                         .filter(s -> !s.isEmpty())
+                         .collect(Collectors.toList());
+        }
         try {
             // Buscar producto interno por su id o su id_producto_siesa
             String sqlBuscar = "SELECT id, id_producto_siesa FROM productos WHERE id = ? OR id_producto_siesa = ?";
