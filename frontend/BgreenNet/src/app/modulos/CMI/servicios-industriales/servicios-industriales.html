@@ -41,7 +41,7 @@
   <main class="main-content" *ngIf="selectedServicio === 'general'">
     <div class="overview-grid">
       <!-- VAPOR -->
-      <div class="overview-card vapor">
+      <div class="overview-card vapor" (click)="selectedServicio = 'vapor'; cargarDatosApropiados()" style="cursor: pointer;">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-wind" style="font-size: 1.5rem;"></i> VAPOR
@@ -101,7 +101,7 @@
       </div>
 
       <!-- ENERGÍA ELÉCTRICA -->
-      <div class="overview-card energia">
+      <div class="overview-card energia" (click)="selectedServicio = 'energia'; cargarDatosApropiados()" style="cursor: pointer;">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-bolt" style="font-size: 1.5rem;"></i> ENERGÍA ELÉCTRICA

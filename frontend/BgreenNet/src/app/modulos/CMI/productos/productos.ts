@@ -7,7 +7,8 @@ import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { forkJoin, Subject, takeUntil } from 'rxjs';
+import { forkJoin, Subject, takeUntil, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { cmiplantaservices } from '../../../servicios/cmiplantaservices';
 import { MetanolRequest } from '../../../models/Modelos_CMI/MetanolRequest';
 import { MetanolResponse } from '../../../models/Modelos_CMI/ProductoResponse';
@@ -579,6 +580,7 @@ getSelectedProductConfig() {
   }
   
   buildDailyChart(data: MetanolResponse, anio: string): void {
+    console.log('>>> [buildDailyChart] Datos que llenan la grafica:', data.dailyData);
     if (!data.dailyData || data.dailyData.length === 0) {
       console.warn('No hay datos diarios para mostrar');
       return;
@@ -876,7 +878,7 @@ getSelectedProductConfig() {
         consumptionDocTypes: producto.consumptionDocTypes,
         productionDocTypes: producto.productionDocTypes
       };
-      observables.push(this.plantaService.obtenerDatos(req));
+      observables.push(this.plantaService.obtenerDatos(req).pipe(catchError(() => of({} as any))));
     }
     
     forkJoin(observables)
@@ -1080,7 +1082,7 @@ getSelectedProductConfig() {
         if (ds.yAxisID === scaleId || (!ds.yAxisID && scaleId === 'y')) {
           ds.data.forEach((val: any) => {
             if (typeof val === 'number') {
-              if (val < minVal && val > 0) minVal = val;
+              if (val < minVal && val >= 0) minVal = val;
               if (val > maxVal) maxVal = val;
             }
           });

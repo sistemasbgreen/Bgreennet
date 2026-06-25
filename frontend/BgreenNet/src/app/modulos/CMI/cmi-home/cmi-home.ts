@@ -47,9 +47,13 @@ export class CmiHome implements OnInit {
   this.router.navigate(['/cmi/productos']);
 }
 
-  irIndustrial() {
-  this.router.navigate(['/cmi/servicios-industriales']);
-}
+  irIndustrial(servicio?: string) {
+    if (servicio) {
+      this.router.navigate(['/cmi/servicios-industriales'], { queryParams: { servicio } });
+    } else {
+      this.router.navigate(['/cmi/servicios-industriales']);
+    }
+  }
 
   irindustrializacion() {
   this.router.navigate(['/cmi/industrializacion-aceite']);

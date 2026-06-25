@@ -10,6 +10,8 @@ public class CmiplantaRequest {
     private String productionProductId;
     private List<String> consumptionDocTypes;
     private List<String> productionDocTypes;
+    private List<String> consumptionDocOrigenIds;
+    private List<String> productionDocOrigenIds;
 	public String getStartDate() {
 		return startDate;
 	}
@@ -45,6 +47,18 @@ public class CmiplantaRequest {
 	}
 	public void setProductionDocTypes(List<String> productionDocTypes) {
 		this.productionDocTypes = productionDocTypes;
+	}
+	public List<String> getConsumptionDocOrigenIds() {
+		return consumptionDocOrigenIds;
+	}
+	public void setConsumptionDocOrigenIds(List<String> consumptionDocOrigenIds) {
+		this.consumptionDocOrigenIds = consumptionDocOrigenIds;
+	}
+	public List<String> getProductionDocOrigenIds() {
+		return productionDocOrigenIds;
+	}
+	public void setProductionDocOrigenIds(List<String> productionDocOrigenIds) {
+		this.productionDocOrigenIds = productionDocOrigenIds;
 	}
     
     
