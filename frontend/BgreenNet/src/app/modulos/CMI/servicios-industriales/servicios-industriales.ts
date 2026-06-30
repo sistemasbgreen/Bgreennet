@@ -101,6 +101,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   energiaMeta = 110;
   energiaKpis = {
     ultimoDia: null as number | null,
+    ultimoDiaFecha: null as string | null,
     mensual: null as number | null,
     anual: null as number | null,
     totalEnergiaMes: 0,
@@ -566,9 +567,17 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           const datoAyerEnergia = this.datosDiariosEnergia.find(d => d.fecha === ayerStrEnergia);
           if (datoAyerEnergia && datoAyerEnergia.tonB100 > 0 && datoAyerEnergia.totalEnergia > 0) {
             this.energiaKpis.ultimoDia = datoAyerEnergia.foco;
+            this.energiaKpis.ultimoDiaFecha = datoAyerEnergia.fecha;
           } else {
-            const validosEnergia = this.datosDiariosEnergia.filter(d => d.tonB100 > 0);
-            this.energiaKpis.ultimoDia = validosEnergia.length > 0 ? validosEnergia[validosEnergia.length - 1].foco : null;
+            const validosEnergia = this.datosDiariosEnergia.filter(d => d.tonB100 > 0 && d.totalEnergia > 0);
+            if (validosEnergia.length > 0) {
+              const ultimoDato = validosEnergia[validosEnergia.length - 1];
+              this.energiaKpis.ultimoDia = ultimoDato.foco;
+              this.energiaKpis.ultimoDiaFecha = ultimoDato.fecha;
+            } else {
+              this.energiaKpis.ultimoDia = null;
+              this.energiaKpis.ultimoDiaFecha = null;
+            }
           }
 
           const totalEnergiaMes = this.datosDiariosEnergia.reduce((s: number, d: any) => s + d.totalEnergia, 0);
