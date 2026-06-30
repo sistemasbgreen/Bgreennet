@@ -18,7 +18,7 @@
             <option value="general">General</option>
             <option value="energia">Energía</option>
             <!-- <option value="gas">Gas</option> -->
-            <option value="vapor">Vapor</option>
+            <!-- <option value="vapor">Vapor</option> -->
             <!-- <option value="agua">Agua</option> -->
           </select>
         </div>
@@ -40,8 +40,8 @@
   </header>
   <main class="main-content" *ngIf="selectedServicio === 'general'">
     <div class="overview-grid">
-      <!-- VAPOR -->
-      <div class="overview-card vapor" (click)="selectedServicio = 'vapor'; cargarDatosApropiados()" style="cursor: pointer;">
+      <!-- VAPOR 
+      <div class="overview-card vapor" *ngIf="false" (click)="selectedServicio = 'vapor'; cargarDatosApropiados()" style="cursor: pointer;">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-wind" style="font-size: 1.5rem;"></i> VAPOR (FOCO Mensual)
@@ -72,6 +72,7 @@
           </div>
         </div>
       </div>
+      -->
 
       <!-- GAS (TOTAL) -->
       <div class="overview-card gas" *ngIf="false">
@@ -354,7 +355,7 @@
             <div class="stat-detail">
               <i class="fas" [class.fa-check-circle]="energiaKpis.ultimoDia !== null && energiaKpis.ultimoDia <= energiaKpis.meta"
                              [class.fa-exclamation-triangle]="energiaKpis.ultimoDia !== null && energiaKpis.ultimoDia > energiaKpis.meta"></i>
-              <span>{{ energiaKpis.ultimoDia !== null ? (energiaKpis.ultimoDia <= energiaKpis.meta ? '' : '') : 'Sin dato' }}</span>
+              <span>{{ energiaKpis.ultimoDiaFecha ? (energiaKpis.ultimoDiaFecha | date:'dd/MM/yyyy') : 'Sin dato' }}</span>
             </div>
           </div>
 

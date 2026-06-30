@@ -219,6 +219,12 @@ export class MetasCMI implements OnInit {
         });
         this.productosOriginales = [...baseProducts];
         this.productos = [...baseProducts];
+        if (this.selectedProducto) {
+          const updated = baseProducts.find(p => String(p.id) === String(this.selectedProducto));
+          if (updated) {
+            this.selectedProductObj = updated;
+          }
+        }
         this.cargarMetasActuales();
         this.cdr.detectChanges();
       },
@@ -443,7 +449,9 @@ export class MetasCMI implements OnInit {
         tbsDescripcion: this.selectedProductObj.tbsDescripcion,
         seccionId: this.selectedProductObj.seccionId,
         seccionNombre: this.selectedProductObj.seccionNombre,
-        ordenReporte: this.selectedProductObj.ordenReporte
+        ordenReporte: this.selectedProductObj.ordenReporte,
+        formulaOperadores: this.selectedProductObj.formulaOperadores,
+        produccionBaseId: this.selectedProductObj.produccionBaseId
       };
 
       this.service.actualizarProducto(updatePayload).subscribe({
@@ -986,7 +994,13 @@ export class MetasCMI implements OnInit {
 
   processSyncTasks(tasks: any[], index: number = 0) {
     if (index >= tasks.length) return this.finalizeProductSave();
-    tasks[index].subscribe(() => this.processSyncTasks(tasks, index + 1));
+    tasks[index].subscribe({
+      next: () => this.processSyncTasks(tasks, index + 1),
+      error: (err: any) => {
+        console.error('Error saving document mapping:', err);
+        this.processSyncTasks(tasks, index + 1);
+      }
+    });
   }
 
   finalizeProductSave() {
@@ -994,11 +1008,17 @@ export class MetasCMI implements OnInit {
     this.service.guardarComponentes(productId, this.tempComponentes, this.tempUsaSuma).subscribe({
       next: () => {
         this.showToast(this.isEditingProduct ? 'Producto actualizado' : 'Producto creado', 'success');
+        if (this.selectedProductObj && String(this.selectedProductObj.id) === String(productId)) {
+          this.selectedProductObj = { ...this.selectedProductObj, ...this.currentProduct };
+        }
         this.cargarProductos();
         if (this.isEditingProduct) this.closeProductModal();
       },
       error: () => {
         this.showToast('Error al guardar componentes', 'error');
+        if (this.selectedProductObj && String(this.selectedProductObj.id) === String(productId)) {
+          this.selectedProductObj = { ...this.selectedProductObj, ...this.currentProduct };
+        }
         this.cargarProductos();
         if (this.isEditingProduct) this.closeProductModal();
       }
