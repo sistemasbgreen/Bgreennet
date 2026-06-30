@@ -44,6 +44,9 @@ public class VariableScadaConfig {
     @Column(name = "notificar")
     private Boolean notificar = false;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     @Column(name = "creado_en")
     private LocalDateTime creadoEn;
 
@@ -52,6 +55,12 @@ public class VariableScadaConfig {
 
     @Column(name = "usuario", length = 100)
     private String usuario;
+
+    @Column(name = "origen_node_red")
+    private String origenNodeRed;
+
+    @Column(name = "db_node_red")
+    private String dbNodeRed;
 
     public String getTag() {
         return tag;
@@ -131,5 +140,29 @@ public class VariableScadaConfig {
 
     public void setNotificar(Boolean notificar) {
         this.notificar = notificar;
+    }
+
+    public Boolean getActivo() {
+        return activo != null ? activo : true;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
+    }
+
+    public String getOrigenNodeRed() {
+        return origenNodeRed;
+    }
+
+    public void setOrigenNodeRed(String origenNodeRed) {
+        this.origenNodeRed = origenNodeRed;
+    }
+
+    public String getDbNodeRed() {
+        return dbNodeRed;
+    }
+
+    public void setDbNodeRed(String dbNodeRed) {
+        this.dbNodeRed = dbNodeRed;
     }
 }

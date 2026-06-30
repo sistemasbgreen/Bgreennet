@@ -17,6 +17,7 @@ import com.bgreenNet.bgreenNet.models.Unidad;
 import com.bgreenNet.bgreenNet.models.UnidadMedida;
 import com.bgreenNet.bgreenNet.models.VariableScadaConfig;
 import com.bgreenNet.bgreenNet.services.VariablesScadaService;
+import com.bgreenNet.bgreenNet.services.NodeRedSyncService;
 
 @RestController
 @RequestMapping({"/api/scada", "/scada"})
@@ -24,9 +25,11 @@ import com.bgreenNet.bgreenNet.services.VariablesScadaService;
 public class VariablesScadaController {
 
     private final VariablesScadaService service;
+    private final NodeRedSyncService nodeRedSyncService;
 
-    public VariablesScadaController(VariablesScadaService service) {
+    public VariablesScadaController(VariablesScadaService service, NodeRedSyncService nodeRedSyncService) {
         this.service = service;
+        this.nodeRedSyncService = nodeRedSyncService;
     }
 
     // 🔹 Trae el último registro de Tabla_12 (3ª BD: DB_Process_Data_PLCs)
@@ -76,6 +79,12 @@ public class VariablesScadaController {
             "message", "Se sincronizaron " + total + " variables desde Tabla_14.",
             "total", total
         );
+    }
+
+    // 🔹 Sincroniza las variables desde Node-RED
+    @PostMapping("/variables/sync-node-red")
+    public Map<String, Object> sincronizarNodeRed() {
+        return nodeRedSyncService.sincronizarConfiguracion();
     }
 
     // 🔹 Crear o actualizar unidad de proceso

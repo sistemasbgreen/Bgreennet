@@ -1,3 +1,4 @@
+
 USE BgreenNet_Dev;
 GO
 
@@ -56,3 +57,10 @@ BEGIN
     END
 END
 GO
+
+
+--Agregar un estado de activo
+
+
+ALTER TABLE variables_scada ADD activo BIT NOT NULL DEFAULT 1
+

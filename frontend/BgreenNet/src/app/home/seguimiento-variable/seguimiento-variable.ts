@@ -54,6 +54,11 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
   loading = true;
   error = '';
 
+  // Modo histórico: true cuando la fecha seleccionada es anterior a hoy
+  isHistoricoMode = false;
+  // Indica si hay datos históricos cargados para la fecha seleccionada
+  hasHistoricoData = false;
+
   private pollIntervalId: any = null;
   private clockIntervalId: any = null;
 
@@ -111,6 +116,8 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
   mapearVariables(config: any[]) {
     const groups: SensorGroup = {};
     config.forEach(v => {
+      // No incluir variables inactivas en el panel de seguimiento
+      if (v.activo === false) return;
       const uName = v.unidad ? v.unidad.nombre : 'General';
       if (!groups[uName]) {
         groups[uName] = [];
@@ -157,7 +164,9 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
       unidad: { nombre: variable.unidad ? variable.unidad.nombre : '' },
       unit: { nombre: variable.unit ? variable.unit.nombre : '' },
       metaMin: variable.metaMin,
-      metaMax: variable.metaMax
+      metaMax: variable.metaMax,
+      notificar: variable.notificar,
+      activo: variable.activo !== false
     };
   }
 
@@ -205,6 +214,32 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
     }
   }
 
+  toggleActivo(variable: any) {
+    const nuevoEstado = !(variable.activo !== false);
+    const payload = {
+      tag: variable.tag,
+      nombre: variable.nombre,
+      unidad: { nombre: variable.unidad ? variable.unidad.nombre : '' },
+      unit: { nombre: variable.unit ? variable.unit.nombre : '' },
+      metaMin: variable.metaMin,
+      metaMax: variable.metaMax,
+      notificar: variable.notificar,
+      activo: nuevoEstado
+    };
+    this.scadaService.updateVariableConfig(payload).subscribe({
+      next: () => {
+        variable.activo = nuevoEstado;
+        // Actualizar panel de seguimiento sin recargar toda la página
+        this.mapearVariables(this.rawVariables);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cambiar estado de variable:', err);
+        alert('Error al cambiar el estado de la variable.');
+      }
+    });
+  }
+
 
   ngOnDestroy() {
     if (this.pollIntervalId) clearInterval(this.pollIntervalId);
@@ -240,12 +275,39 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
     // Destroy all chart instances to avoid reusing destroyed canvases
     this.chartInstances.forEach(chart => chart.destroy());
     this.chartInstances.clear();
+    this.ultimoScada = null;
+    this.hasHistoricoData = false;
+    this.error = '';
+    this.cargarHistoricoHoy();
+  }
+
+  limpiarFiltros() {
+    // Detener polling anterior
+    if (this.pollIntervalId) {
+      clearInterval(this.pollIntervalId);
+      this.pollIntervalId = null;
+    }
+    // Destruir charts
+    this.chartInstances.forEach(chart => chart.destroy());
+    this.chartInstances.clear();
+    // Resetear estado
+    this.ultimoScada = null;
+    this.hasHistoricoData = false;
+    this.isHistoricoMode = false;
+    this.error = '';
+    this.searchTerm = '';
+    // Volver a fecha de hoy
+    this.selectedDate = this.getLocalDateString(new Date());
     this.cargarHistoricoHoy();
   }
 
   cargarHistoricoHoy() {
     this.loading = true;
     this.error = '';
+
+    const todayStr = this.getLocalDateString(new Date());
+    const isToday = this.selectedDate === todayStr;
+    this.isHistoricoMode = !isToday;
 
     this.scadaService.getHoyScada(this.selectedDate).subscribe({
       next: (historico) => {
@@ -274,11 +336,10 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
             }
           });
 
-          // Set latest value from history if it is a past date
-          const todayStr = this.getLocalDateString(new Date());
-          const isToday = this.selectedDate === todayStr;
           if (!isToday) {
+            // Modo histórico: usar el último registro como referencia de valores
             this.ultimoScada = historico[historico.length - 1];
+            this.hasHistoricoData = true;
             const rawTime = this.ultimoScada['FechaRegistro'] || this.ultimoScada['timestamp'];
             this.lastUpdate = rawTime ? new Date(rawTime).toLocaleString('es-CO') : new Date().toLocaleString('es-CO');
             this.loading = false;
@@ -289,21 +350,15 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
             }, 50);
           }
         } else {
-          // If past date has no history, clear graphs and gauges
-          const todayStr = this.getLocalDateString(new Date());
-          const isToday = this.selectedDate === todayStr;
           if (!isToday) {
+            // Fecha pasada sin datos
             this.ultimoScada = null;
+            this.hasHistoricoData = false;
             this.loading = false;
+            this.error = `No hay datos históricos para la fecha ${this.selectedDate}.`;
             this.cdr.detectChanges();
-            setTimeout(() => {
-              this.renderChartsAndGauges();
-            }, 50);
           }
         }
-
-        const todayStr = this.getLocalDateString(new Date());
-        const isToday = this.selectedDate === todayStr;
 
         if (isToday) {
           // Fetch latest value immediately to set the gauge
@@ -324,8 +379,6 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Error fetching SCADA history:', err);
         // Fallback to latest point if daily history endpoint fails
-        const todayStr = this.getLocalDateString(new Date());
-        const isToday = this.selectedDate === todayStr;
         if (isToday) {
           this.cargarDatos(false);
           if (this.pollIntervalId) clearInterval(this.pollIntervalId);
@@ -334,6 +387,7 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
           }, 2000);
         } else {
           this.loading = false;
+          this.hasHistoricoData = false;
           this.error = 'No se pudo leer el histórico de SCADA.';
           this.cdr.detectChanges();
         }
@@ -866,20 +920,22 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
     // Text value representation
     ctx.fillStyle = '#212529';
     // Si el valor tiene muchos dígitos, reducir el tamaño de la fuente y formatear
-    const valString = new Intl.NumberFormat('es-CO').format(Number(value.toFixed(1)));
+    const valString = new Intl.NumberFormat('es-CO').format(Number(value.toFixed(2)));
     ctx.font = valString.length > 5 ? 'bold 18px Arial' : 'bold 22px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(valString, cx, cy - radius / 2.5);
 
-    // Limit indicator lines
+    // Limit indicator lines con texto rotado al lado de cada línea
     const drawLimitLine = (limitValue: number | null, color: string) => {
       if (limitValue === null || isNaN(limitValue)) return;
-      const norm = (limitValue - gaugeMin) / gaugeRange;
+      const norm = Math.max(0, Math.min(1, (limitValue - gaugeMin) / gaugeRange));
       const angle = startAngle + Math.PI * norm;
-      const x1 = cx + (radius - 10) * Math.cos(angle);
-      const y1 = cy + (radius - 10) * Math.sin(angle);
-      const x2 = cx + (radius + 15) * Math.cos(angle);
-      const y2 = cy + (radius + 15) * Math.sin(angle);
+
+      // Línea indicadora sobre el arco
+      const x1 = cx + (radius - 12) * Math.cos(angle);
+      const y1 = cy + (radius - 12) * Math.sin(angle);
+      const x2 = cx + (radius + 12) * Math.cos(angle);
+      const y2 = cy + (radius + 12) * Math.sin(angle);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -887,15 +943,22 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // Draw value text above/outermost of the line
-      const tx = cx + (radius + 30) * Math.cos(angle);
-      const ty = cy + (radius + 30) * Math.sin(angle);
+      // Texto rotado al lado de la línea (como en la imagen de referencia)
+      const textRadius = radius + 25;
+      const tx = cx + textRadius * Math.cos(angle);
+      const ty = cy + textRadius * Math.sin(angle);
+      const formattedVal = new Intl.NumberFormat('es-CO').format(
+        limitValue % 1 === 0 ? limitValue : Number(limitValue.toFixed(2))
+      );
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(angle + Math.PI / 2); // rotación perpendicular a la línea radial
       ctx.fillStyle = '#212529';
-      ctx.font = 'bold 10px Arial';
+      ctx.font = 'bold 11px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const formattedVal = new Intl.NumberFormat('es-CO').format(limitValue % 1 === 0 ? limitValue : Number(limitValue.toFixed(1)));
-      ctx.fillText(formattedVal, tx, ty);
+      ctx.fillText(formattedVal, 0, 0);
+      ctx.restore();
     };
 
     drawLimitLine(min, '#dc3545');
