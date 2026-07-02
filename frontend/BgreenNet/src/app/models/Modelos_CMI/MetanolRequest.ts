@@ -5,4 +5,6 @@ export interface MetanolRequest{
   productionProductId: string;
   consumptionDocTypes: string[];     // ← nuevo
   productionDocTypes: string[];      // ← nuevo
+  consumptionDocOrigenIds?: string[];
+  productionDocOrigenIds?: string[];
 }

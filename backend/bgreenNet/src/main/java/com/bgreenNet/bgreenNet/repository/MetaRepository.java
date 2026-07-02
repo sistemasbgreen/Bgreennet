@@ -89,6 +89,43 @@ public class MetaRepository {
             jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('productos') AND name = 'formula_operadores') " +
                                  "ALTER TABLE productos ADD formula_operadores VARCHAR(50)");
 
+            // Drop old 3-column unique constraint on producto_tipos_documento if it exists, and add a new one including orden
+            try {
+                jdbcTemplate.execute(
+                    "DECLARE @ConstraintName NVARCHAR(200); " +
+                    "SELECT @ConstraintName = kc.name " +
+                    "FROM sys.key_constraints kc " +
+                    "INNER JOIN sys.index_columns ic ON kc.parent_object_id = ic.object_id AND kc.unique_index_id = ic.index_id " +
+                    "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+                    "WHERE kc.parent_object_id = OBJECT_ID('producto_tipos_documento') " +
+                    "  AND kc.type = 'UQ' " +
+                    "GROUP BY kc.name " +
+                    "HAVING COUNT(*) = 3; " +
+                    "IF @ConstraintName IS NOT NULL " +
+                    "BEGIN " +
+                    "    EXEC('ALTER TABLE producto_tipos_documento DROP CONSTRAINT ' + @ConstraintName); " +
+                    "END"
+                );
+            } catch (Exception e) {
+                log.warn("Could not drop old unique constraint on producto_tipos_documento: " + e.getMessage());
+            }
+
+            try {
+                jdbcTemplate.execute(
+                    "IF NOT EXISTS ( " +
+                    "    SELECT * FROM sys.key_constraints " +
+                    "    WHERE parent_object_id = OBJECT_ID('producto_tipos_documento') " +
+                    "      AND name = 'UQ_producto_tipos_documento' " +
+                    ") " +
+                    "BEGIN " +
+                    "    ALTER TABLE producto_tipos_documento " +
+                    "    ADD CONSTRAINT UQ_producto_tipos_documento UNIQUE (producto_id, tipo_documento_id, tipo_movimiento_id, orden); " +
+                    "END"
+                );
+            } catch (Exception e) {
+                log.warn("Could not add new unique constraint UQ_producto_tipos_documento: " + e.getMessage());
+            }
+
         } catch (Exception e) {
         }
         schemaChecked = true;
@@ -262,9 +299,9 @@ public class MetaRepository {
             if (p.getEsCompuesto() == null) {
                 p.setEsCompuesto(false);
                 p.setComponenteSiesaIds(new ArrayList<>());
-                // p.setUsaSuma se mantiene como venga de la tabla productos
             }
         }
+
 
         return new ArrayList<>(productosMap.values());
     }
