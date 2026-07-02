@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions, Chart, registerables } from 'chart.js';
 import { forkJoin, Subject, of, Observable } from 'rxjs';
+import { forkJoin, Subject, of, Observable } from 'rxjs';
 import { switchMap, takeUntil, catchError, map } from 'rxjs/operators';
 
 import { cmiplantaservices } from '../../../servicios/cmiplantaservices';
@@ -301,7 +302,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
          const rawFecha = row.FechaRegistro || row.timestamp || row.fecharegistro;
          if (!rawFecha) return;
          const fecha = new Date(rawFecha).toISOString().split('T')[0];
-         const cg = this.parsePlcValue(row['ENERGIA'] || row['energia']);
+         const cg = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
          if (cg > 0) {
            if (!energiaMensualMap.has(fecha)) energiaMensualMap.set(fecha, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE});
            const dia = energiaMensualMap.get(fecha)!;
@@ -524,14 +525,14 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const fecha = `${rowYear}-${rowMonth}-${dd}`;
             const hora  = date.getHours().toString().padStart(2, '0');
 
-            const cg    = this.parsePlcValue(row['ENERGIA'] || row['energia']);
-            const ft    = this.parsePlcValue(row['FT520129'] || row['ft520129']);
-            const u520  = this.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']);
-            const z700  = this.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']);
-            const z800  = this.parsePlcValue(row['CONTADOR_CCM2'] || row['contador_ccm2']);
-            const torre = this.parsePlcValue(row['CONTADOR_CCM3'] || row['contador_ccm3']);
-            const admon = this.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']);
-            const potGen = this.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']);
+            const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
+            const ft    = this.plcsService.parsePlcValue(row['FT520129'] || row['ft520129']);
+            const u520  = this.plcsService.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']);
+            const z700  = this.plcsService.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']);
+            const z800  = this.plcsService.parsePlcValue(row['CONTADOR_CCM2'] || row['contador_ccm2']);
+            const torre = this.plcsService.parsePlcValue(row['CONTADOR_CCM3'] || row['contador_ccm3']);
+            const admon = this.plcsService.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']);
+            const potGen = this.plcsService.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']);
 
             let ex = mapaEnergiaOriginal.get(fecha);
             if (!ex) {
