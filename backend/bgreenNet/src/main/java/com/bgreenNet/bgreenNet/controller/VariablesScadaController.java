@@ -126,5 +126,29 @@ public class VariablesScadaController {
         service.guardarReceptoresPlc(destinatarios);
         return Map.of("success", true, "message", "Destinatarios actualizados correctamente.");
     }
+
+    // 🔹 Obtener datos de vapor en un rango de fechas
+    @GetMapping("/vapor")
+    public List<Map<String, Object>> obtenerVaporRango(@RequestParam("fechaInicio") String fechaInicio, @RequestParam("fechaFin") String fechaFin) {
+        return service.obtenerVaporRango(fechaInicio, fechaFin);
+    }
+
+    // 🔹 Obtener datos de energía en un rango de fechas
+    @GetMapping("/energia")
+    public List<Map<String, Object>> obtenerEnergiaRango(@RequestParam("fechaInicio") String fechaInicio, @RequestParam("fechaFin") String fechaFin) {
+        return service.obtenerEnergiaRango(fechaInicio, fechaFin);
+    }
+
+    // 🔹 Obtener acumulado anual de vapor
+    @GetMapping("/vapor/total-anio")
+    public Map<String, Object> obtenerVaporTotalAnio(@RequestParam("anio") String anio) {
+        return service.obtenerVaporTotalAnio(anio);
+    }
+
+    // 🔹 Obtener acumulado anual de energía
+    @GetMapping("/energia/total-anio")
+    public Map<String, Object> obtenerEnergiaTotalAnio(@RequestParam("anio") String anio) {
+        return service.obtenerEnergiaTotalAnio(anio);
+    }
 }
 

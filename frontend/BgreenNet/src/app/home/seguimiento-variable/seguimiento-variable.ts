@@ -66,7 +66,7 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
   private rawTimestamps: Set<string> = new Set();
   private timestamps: string[] = [];
   private historyData: Map<string, number[]> = new Map();
-  private chartInstances: Map<string, Chart> = new Map();
+  private chartInstances: Map<string, any> = new Map();
 
   // Active alerts list
   activeAlerts: Array<{
@@ -810,11 +810,11 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
           chart.data.datasets[0].data = hist;
           (chart.data.datasets[0] as any).pointRadius = hist.length <= 10 ? 3 : 0;
 
-          const minDataset = chart.data.datasets.find(d => d.label === 'Mínimo');
+          const minDataset = chart.data.datasets.find((d: any) => d.label === 'Mínimo');
           if (minDataset && sensor.min !== null) {
             minDataset.data = Array(hist.length).fill(sensor.min);
           }
-          const maxDataset = chart.data.datasets.find(d => d.label === 'Máximo');
+          const maxDataset = chart.data.datasets.find((d: any) => d.label === 'Máximo');
           if (maxDataset && sensor.max !== null) {
             maxDataset.data = Array(hist.length).fill(sensor.max);
           }
