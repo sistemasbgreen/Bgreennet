@@ -27,6 +27,10 @@ export class VariablesPlc implements OnInit {
   isEditing: boolean = false;
   isSaving: boolean = false;
 
+  // Modales y Dropdowns
+  showSyncDropdown: boolean = false;
+  showEmailModal: boolean = false;
+
   // Objetos para formularios
   formVariable: any = {
     tag: '',
@@ -35,7 +39,10 @@ export class VariablesPlc implements OnInit {
     unit: { nombre: '' },
     metaMin: null,
     metaMax: null,
-    notificar: false
+    notificar: false,
+    activo: true,
+    origenNodeRed: '',
+    dbNodeRed: ''
   };
 
   formUnidad: any = {
@@ -88,11 +95,32 @@ export class VariablesPlc implements OnInit {
 
     this.scadaService.getReceptoresPlc().subscribe({
       next: (res) => {
-        this.receptoresPlc = res.destinatarios;
+        this.receptoresPlc = res.destinatarios || '';
         setTimeout(() => this.cdr.detectChanges());
       },
       error: (err) => console.error('Error cargando receptores PLC:', err)
     });
+  }
+
+  get cantidadCorreos(): number {
+    if (!this.receptoresPlc || !this.receptoresPlc.trim()) return 0;
+    return this.receptoresPlc.split(',').filter(c => c.trim() !== '').length;
+  }
+
+  toggleSyncDropdown() {
+    this.showSyncDropdown = !this.showSyncDropdown;
+  }
+
+  closeSyncDropdown() {
+    this.showSyncDropdown = false;
+  }
+
+  abrirEmailModal() {
+    this.showEmailModal = true;
+  }
+
+  cerrarEmailModal() {
+    this.showEmailModal = false;
   }
 
   switchTab(tab: 'variables' | 'unidades' | 'unidadesMedida') {
@@ -132,7 +160,9 @@ export class VariablesPlc implements OnInit {
         unit: { nombre: '' },
         metaMin: null,
         metaMax: null,
-        notificar: false
+        notificar: false,
+        origenNodeRed: '',
+        dbNodeRed: ''
       };
     } else if (this.activeTab === 'unidades') {
       this.formUnidad = { id: null, nombre: '', estado: 1 };
@@ -153,7 +183,10 @@ export class VariablesPlc implements OnInit {
         unit: { nombre: item.unit ? item.unit.nombre : '' },
         metaMin: item.metaMin,
         metaMax: item.metaMax,
-        notificar: item.notificar
+        notificar: item.notificar,
+        activo: item.activo !== false,
+        origenNodeRed: item.origenNodeRed,
+        dbNodeRed: item.dbNodeRed
       };
     } else if (this.activeTab === 'unidades') {
       this.formUnidad = {
@@ -196,6 +229,30 @@ export class VariablesPlc implements OnInit {
         }
       });
     }
+  }
+
+  toggleActivoVariable(variable: any) {
+    const nuevoEstado = !(variable.activo !== false);
+    const payload = {
+      tag: variable.tag,
+      nombre: variable.nombre,
+      unidad: { nombre: variable.unidad ? variable.unidad.nombre : '' },
+      unit: { nombre: variable.unit ? variable.unit.nombre : '' },
+      metaMin: variable.metaMin,
+      metaMax: variable.metaMax,
+      notificar: variable.notificar,
+      activo: nuevoEstado
+    };
+    this.scadaService.updateVariableConfig(payload).subscribe({
+      next: () => {
+        variable.activo = nuevoEstado;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cambiar visibilidad:', err);
+        alert('Error al cambiar la visibilidad de la variable.');
+      }
+    });
   }
 
   cerrarForm() {
@@ -281,6 +338,23 @@ export class VariablesPlc implements OnInit {
     }
   }
 
+  sincronizarNodeRed() {
+    if (confirm('¿Desea sincronizar la configuración de DB y Origen leyendo directamente desde Node-RED?')) {
+      this.loading = true;
+      this.scadaService.syncNodeRed().subscribe({
+        next: (res) => {
+          alert(res.message);
+          this.cargarDatos();
+        },
+        error: (err) => {
+          console.error('Error sincronizando Node-RED:', err);
+          alert('Error al sincronizar Node-RED. Asegúrate de que el servidor Spring Boot tiene alcance a la IP de Node-RED.');
+          this.loading = false;
+        }
+      });
+    }
+  }
+
   guardarReceptores() {
     if (!this.receptoresPlc || !this.receptoresPlc.trim()) {
       alert('La lista de correos no puede estar vacía.');
@@ -291,6 +365,7 @@ export class VariablesPlc implements OnInit {
       next: (res) => {
         this.guardandoReceptores = false;
         alert(res.message);
+        this.showEmailModal = false;
         this.cdr.detectChanges();
       },
       error: (err) => {

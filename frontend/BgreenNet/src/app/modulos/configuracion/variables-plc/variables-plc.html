@@ -20,39 +20,50 @@
     </button>
   </div>
 
-  <!-- Recipients Config Bar -->
-  <div class="email-config-card" style="background: var(--card-bg, #ffffff); border: 1px solid var(--border-color, #dee2e6); border-left: 4px solid #006c2c; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <i class="fas fa-envelope-open-text" style="color: #006c2c; font-size: 1.4rem;"></i>
-      <div>
-        <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-color, #2d3748);">Destinatarios de Alertas PLC</h4>
-        <p style="margin: 0; font-size: 0.8rem; color: #718096;">Correos separados por coma (ej: admin@bgreen.com, jefe@bgreen.com)</p>
-      </div>
-    </div>
-    <div style="display: flex; gap: 0.5rem; flex-grow: 1; max-width: 480px; width: 100%;">
-      <input type="text" [(ngModel)]="receptoresPlc" placeholder="Ingresa los correos electrónicos..." 
-             style="flex-grow: 1; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; background: #fff; color: #333; outline: none;" />
-      <button class="btn btn-primary" (click)="guardarReceptores()" [disabled]="guardandoReceptores" style="white-space: nowrap; padding: 0.5rem 1.25rem;">
-        <span *ngIf="!guardandoReceptores"><i class="fas fa-save"></i> Guardar</span>
-        <span *ngIf="guardandoReceptores"><i class="fas fa-spinner fa-spin"></i></span>
-      </button>
-    </div>
-  </div>
+
 
   <!-- Controls Bar -->
   <div class="controls-bar">
-    <div class="search-box">
-      <i class="fas fa-search search-icon"></i>
-      <input type="text" [(ngModel)]="searchTerm" placeholder="Buscar..." />
+    <div style="display: flex; gap: 1rem; flex-grow: 1; flex-wrap: wrap; align-items: center;">
+      <div class="search-box">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Buscar..." />
+      </div>
+      <!-- Botón de Emails (abre modal) -->
+      <button class="btn btn-light" (click)="abrirEmailModal()">
+        <i class="fas fa-envelope"></i> 
+        Destinatarios Alertas <span class="badge" style="background-color: #00511b; color: white; padding: 2px 6px; border-radius: 12px; margin-left: 4px;">{{ cantidadCorreos }}</span>
+      </button>
     </div>
+    
     <div class="action-buttons">
       <button class="btn btn-primary" (click)="abrirCrear()">
         <i class="fas fa-plus"></i> 
         Agregar {{ activeTab === 'variables' ? 'Variable' : activeTab === 'unidades' ? 'Unidad de Planta' : 'Unidad de Medida' }}
       </button>
-      <button class="btn btn-secondary" (click)="sincronizar()" *ngIf="activeTab === 'variables'">
-        <i class="fas fa-sync"></i> Sincronizar Tabla 14
-      </button>
+      
+      <!-- Dropdown Sincronización -->
+      <div class="dropdown-container" *ngIf="activeTab === 'variables'">
+        <button class="btn btn-secondary dropdown-toggle" (click)="toggleSyncDropdown()">
+          <i class="fas fa-sync"></i> Opciones de Sincronización <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
+        </button>
+        <div class="dropdown-menu" *ngIf="showSyncDropdown" (click)="closeSyncDropdown()">
+          <!-- Sincronizar Tabla 14 -->
+          <div class="dropdown-item" (click)="sincronizar()">
+            <i class="fas fa-table" style="color: #00511b;"></i> Sincronizar Tabla 14
+          </div>
+          <!-- Sincronizar Tabla 12 (Solo UI por ahora) -->
+          <div class="dropdown-item" (click)="sincronizar()">
+            <i class="fas fa-table" style="color: #00511b;"></i> Sincronizar Tabla 12
+          </div>
+          <!-- Separador -->
+          <div class="dropdown-divider"></div>
+          <!-- Sincronizar Node RED (Botón Rojo) -->
+          <div class="dropdown-item node-red-item" (click)="sincronizarNodeRed()">
+            <i class="fas fa-network-wired"></i> Sincronizar Node-RED
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -73,9 +84,12 @@
               <th>Nombre / Descripción</th>
               <th>Unidad (Proceso)</th>
               <th>Unidad (Medida)</th>
+              <th>Origen</th>
+              <th>DB (Dirección)</th>
               <th>Meta Mín</th>
               <th>Meta Máx</th>
               <th style="text-align: center;">Notificar</th>
+              <th style="text-align: center;">Visible</th>
               <th>Último Cambio</th>
               <th style="width: 80px; text-align: center;">Acción</th>
             </tr>
@@ -89,11 +103,13 @@
             <tr *ngIf="!loading && getFilteredItems().length === 0">
               <td colspan="9" class="text-center py-4 text-muted">No se encontraron variables.</td>
             </tr>
-            <tr *ngFor="let v of getFilteredItems()">
+            <tr *ngFor="let v of getFilteredItems()" [style.opacity]="v.activo === false ? '0.45' : '1'">
               <td><span class="tag-badge">{{ v.tag }}</span></td>
               <td><strong>{{ v.nombre }}</strong></td>
               <td>{{ v.unidad?.nombre || '-' }}</td>
               <td><span class="unit-badge" *ngIf="v.unit">{{ v.unit.nombre }}</span><span *ngIf="!v.unit">-</span></td>
+              <td><span class="badge" style="background-color: #34495e; color: white; padding: 3px 6px; border-radius: 4px;" *ngIf="v.origenNodeRed">{{ v.origenNodeRed }}</span><span *ngIf="!v.origenNodeRed">-</span></td>
+              <td><span class="badge" style="background-color: #95a5a6; color: white; padding: 3px 6px; border-radius: 4px;" *ngIf="v.dbNodeRed">{{ v.dbNodeRed }}</span><span *ngIf="!v.dbNodeRed">-</span></td>
               <td>{{ v.metaMin !== null ? v.metaMin : 'N/A' }}</td>
               <td>{{ v.metaMax !== null ? v.metaMax : 'N/A' }}</td>
               <td style="text-align: center;">
@@ -103,6 +119,12 @@
                 <span *ngIf="!v.notificar" style="color: #bdc3c7;" title="Sin alerta especial">
                   <i class="fas fa-bell-slash"></i>
                 </span>
+              </td>
+              <td style="text-align: center;">
+                <label class="toggle-switch" [title]="v.activo === false ? 'Inactiva – clic para mostrar en seguimiento' : 'Activa – clic para ocultar de seguimiento'">
+                  <input type="checkbox" [checked]="v.activo !== false" (change)="toggleActivoVariable(v)" />
+                  <span class="toggle-slider"></span>
+                </label>
               </td>
               <td>
                 <div class="audit-info" *ngIf="v.actualizadoEn">
@@ -143,16 +165,11 @@
             <tr *ngFor="let u of getFilteredItems()">
               <td>{{ u.id }}</td>
               <td><strong>{{ u.nombre }}</strong></td>
-              <td>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <span [style.color]="u.estado === 1 ? 'green' : 'red'" style="font-size: 0.8rem; font-weight: bold;">
-                    {{ u.estado === 1 ? 'Activo' : 'Inactivo' }}
-                  </span>
-                  <label class="switch" style="position: relative; display: inline-block; width: 34px; height: 20px;">
-                    <input type="checkbox" [checked]="u.estado === 1" (change)="toggleEstado(u, $event)" style="opacity: 0; width: 0; height: 0;" />
-                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
-                  </label>
-                </div>
+              <td style="text-align: center;">
+                <label class="estado-switch" title="{{ u.estado === 1 ? 'Activo – clic para inactivar' : 'Inactivo – clic para activar' }}">
+                  <input type="checkbox" [checked]="u.estado === 1" (change)="toggleEstado(u, $event)" />
+                  <span class="estado-slider" [class.estado-on]="u.estado === 1" [class.estado-off]="u.estado !== 1"></span>
+                </label>
               </td>
               <td>
                 <div class="audit-info">
@@ -192,16 +209,11 @@
             <tr *ngFor="let um of getFilteredItems()">
               <td>{{ um.id }}</td>
               <td><strong>{{ um.nombre }}</strong></td>
-              <td>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <span [style.color]="um.estado === 1 ? 'green' : 'red'" style="font-size: 0.8rem; font-weight: bold;">
-                    {{ um.estado === 1 ? 'Activo' : 'Inactivo' }}
-                  </span>
-                  <label class="switch" style="position: relative; display: inline-block; width: 34px; height: 20px;">
-                    <input type="checkbox" [checked]="um.estado === 1" (change)="toggleEstado(um, $event)" style="opacity: 0; width: 0; height: 0;" />
-                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
-                  </label>
-                </div>
+              <td style="text-align: center;">
+                <label class="estado-switch" title="{{ um.estado === 1 ? 'Activo – clic para inactivar' : 'Inactivo – clic para activar' }}">
+                  <input type="checkbox" [checked]="um.estado === 1" (change)="toggleEstado(um, $event)" />
+                  <span class="estado-slider" [class.estado-on]="um.estado === 1" [class.estado-off]="um.estado !== 1"></span>
+                </label>
               </td>
               <td>
                 <div class="audit-info">
@@ -260,6 +272,18 @@
               <option *ngFor="let um of unidadesMedida" [value]="um.nombre" [disabled]="um.estado === 0">{{ um.nombre }} {{ um.estado === 0 ? '(Inactivo)' : '' }}</option>
             </select>
           </div>
+          
+          <div class="form-row" *ngIf="isEditing">
+            <div class="form-group">
+              <label>Origen (Node-RED):</label>
+              <input type="text" [(ngModel)]="formVariable.origenNodeRed" name="origenNodeRed" disabled style="background-color: #e9ecef; color: #495057;" />
+            </div>
+            <div class="form-group">
+              <label>DB,R (Node-RED):</label>
+              <input type="text" [(ngModel)]="formVariable.dbNodeRed" name="dbNodeRed" disabled style="background-color: #e9ecef; color: #495057;" />
+            </div>
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label>Meta Mínima:</label>
@@ -270,14 +294,20 @@
               <input type="number" step="any" [(ngModel)]="formVariable.metaMax" name="metaMax" placeholder="Sin máximo" />
             </div>
           </div>
-          <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; margin-bottom: 1.5rem;">
-            <label class="switch" style="position: relative; display: inline-block; width: 34px; height: 20px; margin-bottom: 0;">
-              <input type="checkbox" [(ngModel)]="formVariable.notificar" name="notificar" style="opacity: 0; width: 0; height: 0;" />
-              <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
-            </label>
-            <label style="font-weight: 600; cursor: pointer; margin-bottom: 0;" (click)="formVariable.notificar = !formVariable.notificar">
-              <i class="fas fa-bell" [style.color]="formVariable.notificar ? '#e67e22' : '#95a5a6'"></i> Activar Sonido y Correo
-            </label>
+          <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; margin-bottom: 1rem;">
+            <button type="button" class="bell-toggle-btn"
+              [class.bell-active]="formVariable.notificar"
+              [class.bell-inactive]="!formVariable.notificar"
+              (click)="formVariable.notificar = !formVariable.notificar"
+              [title]="formVariable.notificar ? 'Clic para desactivar alertas' : 'Clic para activar alertas'">
+              <i class="fas" [class.fa-bell]="formVariable.notificar" [class.fa-bell-slash]="!formVariable.notificar"></i>
+            </button>
+            <div style="display: flex; flex-direction: column; line-height: 1.3;">
+              <span style="font-weight: 600; font-size: 0.85rem; color: #212529;">Alertas por Sonido y Correo</span>
+              <span style="font-size: 0.75rem;" [style.color]="formVariable.notificar ? '#198754' : '#dc3545'">
+                {{ formVariable.notificar ? 'Activado' : 'Desactivado' }}
+              </span>
+            </div>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-block" [disabled]="isSaving">
@@ -332,6 +362,36 @@
           </div>
         </form>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Modal -->
+  <div class="modal-backdrop" *ngIf="showEmailModal">
+    <div class="email-modal-card">
+      <div class="email-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="background-color: #e8f5e9; color: #198754; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1rem; color: #212529;">Editar Receptores</h3>
+            <p style="margin: 0; font-size: 0.75rem; color: #6c757d;">Separa los correos con comas (,)</p>
+          </div>
+        </div>
+        <button class="close-modal-btn" (click)="cerrarEmailModal()">&times;</button>
+      </div>
+      <div class="email-modal-body">
+        <textarea [(ngModel)]="receptoresPlc" rows="4" 
+                  placeholder="ejemplo1@bgreen.com.co, ejemplo2@bgreen.com.co"
+                  style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; resize: none; outline: none;"></textarea>
+      </div>
+      <div class="email-modal-footer">
+        <button class="btn btn-light" (click)="cerrarEmailModal()" style="font-size: 0.8rem; padding: 0.5rem 1rem;">Cancelar</button>
+        <button class="btn btn-primary" (click)="guardarReceptores()" [disabled]="guardandoReceptores" style="font-size: 0.8rem; padding: 0.5rem 1.5rem; background-color: #006c2c;">
+          <span *ngIf="!guardandoReceptores">Guardar</span>
+          <span *ngIf="guardandoReceptores"><i class="fas fa-spinner fa-spin"></i> Guardando...</span>
+        </button>
       </div>
     </div>
   </div>

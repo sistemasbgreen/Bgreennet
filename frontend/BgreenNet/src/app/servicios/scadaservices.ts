@@ -53,6 +53,11 @@ export class ScadaService {
     return this.http.post<any>(`${this.scadaUrl}/variables/sync`, {});
   }
 
+  // Sincroniza configuración desde Node-RED
+  syncNodeRed(): Observable<any> {
+    return this.http.post<any>(`${this.scadaUrl}/variables/sync-node-red`, {});
+  }
+
   // Guarda/Actualiza unidad de proceso
   saveUnidad(unidad: any): Observable<any> {
     return this.http.post<any>(`${this.scadaUrl}/unidades`, unidad);

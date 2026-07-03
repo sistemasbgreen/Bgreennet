@@ -98,6 +98,7 @@ public class VariablesScadaService {
      * Si la tabla está vacía, la inicializa con los valores estáticos.
      */
     public List<VariableScadaConfig> obtenerTodasLasVariables() {
+        asegurarColumnasNodeRed();
         List<VariableScadaConfig> configList = variableScadaConfigRepository.findAll();
         if (configList.isEmpty()) {
             inicializarVariablesPorDefecto();
@@ -139,6 +140,7 @@ public class VariablesScadaService {
             aGuardar.setMetaMin(config.getMetaMin());
             aGuardar.setMetaMax(config.getMetaMax());
             aGuardar.setNotificar(config.getNotificar());
+            aGuardar.setActivo(config.getActivo() != null ? config.getActivo() : true);
             aGuardar.setActualizadoEn(LocalDateTime.now());
             aGuardar.setUsuario(usuarioModificador);
         } else {
@@ -146,6 +148,7 @@ public class VariablesScadaService {
             aGuardar.setUnidad(unidad);
             aGuardar.setUnit(unit);
             aGuardar.setNotificar(config.getNotificar() != null ? config.getNotificar() : false);
+            aGuardar.setActivo(config.getActivo() != null ? config.getActivo() : true);
             aGuardar.setCreadoEn(LocalDateTime.now());
             aGuardar.setActualizadoEn(LocalDateTime.now());
             aGuardar.setUsuario(usuarioModificador);
@@ -321,6 +324,7 @@ public class VariablesScadaService {
                 config.setUnit(unit);
                 config.setMetaMin(min);
                 config.setMetaMax(max);
+                config.setActivo(true);
                 config.setCreadoEn(LocalDateTime.now());
                 config.setActualizadoEn(LocalDateTime.now());
                 config.setUsuario("sistema");
@@ -381,6 +385,23 @@ public class VariablesScadaService {
             """);
         } catch (Exception e) {
             System.err.println("Error asegurando tabla config_receptores_reporte_plc: " + e.getMessage());
+        }
+    }
+
+    private void asegurarColumnasNodeRed() {
+        try {
+            appJdbcTemplate.execute("""
+                IF COL_LENGTH('dbo.variables_scada', 'origen_node_red') IS NULL
+                BEGIN
+                    ALTER TABLE dbo.variables_scada ADD origen_node_red VARCHAR(255) NULL;
+                END
+                IF COL_LENGTH('dbo.variables_scada', 'db_node_red') IS NULL
+                BEGIN
+                    ALTER TABLE dbo.variables_scada ADD db_node_red VARCHAR(255) NULL;
+                END
+            """);
+        } catch (Exception e) {
+            System.err.println("Error asegurando columnas de Node-RED en variables_scada: " + e.getMessage());
         }
     }
 
