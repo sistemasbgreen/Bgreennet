@@ -1,0 +1,155 @@
+<div class="scada-main-container">
+    <!-- Sidebar navigation -->
+    <section>
+        <div id="sidebar" class="sidebar" [class.open]="isSidebarOpen">
+            <div class="sidebar-header">
+                <h3>Navegación</h3>
+                <button id="close-sidebar" class="close-btn" (click)="toggleSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="00PLCs_Variables.php"><i class="fas fa-cog"></i> PLCs Monitor</a></li>
+                    <li><a href="00PLCs_Admin.php"><i class="fas fa-tools"></i> PLCs Admin</a></li>
+                </ul>
+            </nav>
+        </div>
+    </section>
+
+    <!-- Header Section -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-container">
+                <a href="PLCs.php">
+                    <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo Bgreen" width="100" class="logo" />
+                </a>
+            </div>
+            <div class="title-section">
+                <h1 class="main-title">SEGUIMIENTO DE VARIABLES</h1>
+                <p class="subtitle">
+                    SISTEMA PLCS 
+                    <span class="status-indicator" [class.online]="connectionStatus === 'online'" [class.offline]="connectionStatus === 'offline'" id="status-indicator"></span>
+                </p>
+                <div class="date-display" id="current-date" style="display:none;">{{ currentDate }}</div>
+                <div class="date-display" id="last-update" *ngIf="lastUpdate" style="display:none;">Última actualización: {{ lastUpdate }}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button id="notification-toggle" class="notification-toggle" (click)="toggleNotificationPanel()">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notification-badge">{{ activeAlerts.length }}</span>
+                </button>
+                <button id="toggle-sidebar" class="toggle-btn" (click)="toggleSidebar()" style="display: none;">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout Grid -->
+    <div class="main-layout">
+        <div class="content-area">
+            <div class="full-width-container mt-2">
+                <!-- Unit Selector Buttons -->
+                <div class="units-selector">
+                    <label><i class="fas fa-filter"></i> Unidad:</label>
+                    <button class="unit-btn" [class.active]="selectedUnit === 'todas'" (click)="selectUnit('todas')">Todas</button>
+                    <button *ngFor="let unit of allUnits" class="unit-btn" [class.active]="selectedUnit === unit" (click)="selectUnit(unit)">
+                        {{ unit }}
+                    </button>
+                </div>
+
+                <!-- Filters & Search -->
+                <div class="filters-container" style="align-items: flex-end;">
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar-alt"></i> Fecha:</label>
+                        <div style="display:flex; gap:0.4rem; align-items:center;">
+                            <input type="date" [(ngModel)]="selectedDate" (change)="onDateChange()" class="quick-range-select" style="min-width: 150px;" />
+                            <button (click)="limpiarFiltros()" class="clear-filter-btn" title="Limpiar filtros y volver a hoy">
+                                <i class="fas fa-times-circle"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-group" style="flex-grow: 1; min-width: 250px;">
+                        <label><i class="fas fa-search"></i> Buscar:</label>
+                        <input type="text" id="search-input" [(ngModel)]="searchTerm" placeholder="Buscar sensor, tag o unidad..." />
+                    </div>
+
+
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading" *ngIf="loading && !ultimoScada">
+                    <div class="spinner"></div>
+                    <span>Cargando sensores de la unidad...</span>
+                </div>
+
+                <!-- Error State -->
+                <div class="loading" *ngIf="error && !ultimoScada">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2.5rem; color: var(--danger);"></i>
+                    <span>{{ error }}</span>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid" id="individual-charts" *ngIf="!loading && (ultimoScada || hasHistoricoData)">
+                    <div *ngIf="getFilteredSensors().length === 0" class="loading">
+                        <span>No se encontraron sensores coincidentes.</span>
+                    </div>
+
+                    <div *ngFor="let sensor of getFilteredSensors()" class="sensor-card" [id]="'card_' + sensor.tag">
+                        <!-- Sensor Header with dynamic status color -->
+                        <div class="sensor-header" [class.status-normal]="getSensorStatus(getValor(sensor.tag), sensor.min, sensor.max) === 'normal'" [class.status-warning]="getSensorStatus(getValor(sensor.tag), sensor.min, sensor.max) === 'warning'">
+                            <span class="sensor-name"><i class="fas fa-microchip"></i> {{ sensor.tag }}</span>
+                            <span class="sensor-value">
+                                {{ getValor(sensor.tag) !== null ? (getValor(sensor.tag)!.toFixed(sensor.tag === '550PT04' ? 3 : 2)) : 'N/A' }} 
+                                <span style="font-size: 1.25rem;">{{ sensor.unit }}</span>
+                            </span>
+                        </div>
+
+                        <!-- Real-time dynamic trend line chart -->
+                        <div class="sensor-trend">
+                            <div class="trend-label"><i class="fas fa-chart-line"></i> Tendencia {{ sensor.tag }}</div>
+                            <div class="chart-container small">
+                                <canvas [id]="'chart_' + sensor.tag"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Real-time dynamic gauge chart -->
+                        <div class="gauge-container">
+                            <canvas [id]="'gauge_' + sensor.tag" class="gauge-canvas" width="240" height="130"></canvas>
+                            <div class="gauge-label">{{ sensor.name }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Alerts Panel Drawer -->
+        <div id="notification-panel" class="notification-panel" [class.visible]="isNotificationPanelOpen">
+            <div class="notification-header">
+                <i class="fas fa-bell"></i> Alertas Activas (<span>{{ activeAlerts.length }}</span>)
+            </div>
+            <div class="notification-list" id="notification-list">
+                <p class="text-muted" *ngIf="activeAlerts.length === 0" style="padding: 12px; text-align: center;">
+                    No hay alertas activas en este momento.
+                </p>
+                <div *ngFor="let alert of activeAlerts" class="notification-item">
+                    <strong>
+                        <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i> 
+                        {{ alert.tag }} - {{ alert.name }}
+                    </strong>
+                    <div class="value-display">
+                        Valor actual: {{ alert.value.toFixed(2) }} {{ alert.unit }}
+                    </div>
+                    <div class="limits-display">
+                        Límites: Min: {{ alert.min !== null ? alert.min : 'N/A' }} | Max: {{ alert.max !== null ? alert.max : 'N/A' }}
+                    </div>
+                    <button class="goto-sensor" (click)="scrollToSensor(alert.tag)">
+                        Ver Sensor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
