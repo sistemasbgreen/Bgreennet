@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions, Chart, registerables } from 'chart.js';
 import { forkJoin, Subject, of, Observable } from 'rxjs';
@@ -21,7 +21,7 @@ const B100_ID = '26'; // idProductoSiesa de B100
 @Component({
   selector: 'app-servicios-industriales',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgChartsModule],
+  imports: [CommonModule, FormsModule, NgChartsModule, RouterLink],
   templateUrl: './servicios-industriales.html',
   styleUrl: './servicios-industriales.css',
 })
@@ -120,7 +120,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   diasConDesviacionEnergia: any[] = [];
   selectedDia: string = '';
   diasDisponiblesEnergia: string[] = [];
-  mapaEnergiaHoraria: Map<string, {hora: string; cg: number; label: string}[]> = new Map();
+  mapaEnergiaHoraria: Map<string, {hora: string; cg: number; label: string; min?: number; max?: number}[]> = new Map();
 
   energiaTotalVsB100Data: ChartData<'line'> = { labels: [], datasets: [] };
   energiaFocoLineaData: ChartData<'line'> = { labels: [], datasets: [] };
@@ -282,7 +282,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
          const rawFecha = row.FechaRegistro || row.timestamp || row.fecharegistro;
          if (!rawFecha) return;
          const fecha = new Date(rawFecha).toISOString().split('T')[0];
-         const cg = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']);
+         const cg = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
          if (cg > 0) {
            if (!energiaMensualMap.has(fecha)) energiaMensualMap.set(fecha, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE});
            const dia = energiaMensualMap.get(fecha)!;
@@ -505,14 +505,14 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const fecha = `${rowYear}-${rowMonth}-${dd}`;
             const hora  = date.getHours().toString().padStart(2, '0');
 
-            const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']);
-            const ft    = this.plcsService.parsePlcValue(row['FT520129'] || row['ft520129']);
-            const u520  = this.plcsService.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']);
-            const z700  = this.plcsService.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']);
-            const z800  = this.plcsService.parsePlcValue(row['CONTADOR_CCM2'] || row['contador_ccm2']);
-            const torre = this.plcsService.parsePlcValue(row['CONTADOR_CCM3'] || row['contador_ccm3']);
-            const admon = this.plcsService.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']);
-            const potGen = this.plcsService.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']);
+            const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
+            const ft    = this.plcsService.parsePlcValue(row['FT520129'] || row['ft520129']) / 10;
+            const u520  = this.plcsService.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']) / 10;
+            const z700  = this.plcsService.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']) / 10;
+            const z800  = this.plcsService.parsePlcValue(row['CONTADOR_CCM2'] || row['contador_ccm2']) / 10;
+            const torre = this.plcsService.parsePlcValue(row['CONTADOR_CCM3'] || row['contador_ccm3']) / 10;
+            const admon = this.plcsService.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']) / 10;
+            const potGen = this.plcsService.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']) / 10;
 
             let ex = mapaEnergiaOriginal.get(fecha);
             if (!ex) {
@@ -544,14 +544,16 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           }
 
           // Construir mapa horario final
-          const mapaEnergiaHorariaFinal = new Map<string, {hora: string; cg: number; label: string}[]>();
+          const mapaEnergiaHorariaFinal = new Map<string, {hora: string; cg: number; label: string; min?: number; max?: number}[]>();
           mapaHorario.forEach((dayMap, fecha) => {
-            const horasArr: {hora: string; cg: number; label: string}[] = [];
+            const horasArr: {hora: string; cg: number; label: string; min?: number; max?: number}[] = [];
             for (let i = 0; i < 24; i++) {
               const hh = i.toString().padStart(2, '0');
               const hrData = dayMap.get(hh);
               const cgHora = (hrData && hrData.max >= hrData.min) ? hrData.max - hrData.min : 0;
-              horasArr.push({ hora: hh, cg: Number(cgHora.toFixed(2)), label: `${hh}:00` });
+              const minV = hrData?.min;
+              const maxV = hrData?.max;
+              horasArr.push({ hora: hh, cg: Number(cgHora.toFixed(2)), label: `${hh}:00`, min: minV, max: maxV });
             }
             mapaEnergiaHorariaFinal.set(fecha, horasArr);
           });
@@ -600,6 +602,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const foco  = b100 > 0 ? Number((cg / b100).toFixed(2)) : 0;
             const focoStatus: 'ok' | 'desviacion' | 'sin-dato' =
               b100 === 0 ? 'sin-dato' : foco <= this.energiaMeta ? 'ok' : 'desviacion';
+            console.log(`Consumo Eléctrico (energia) / Ton B100 producida [${fecha}]: Energía=${cg} kWh, B100=${b100} Ton => FOCO=${foco}`);
             return { fecha, etiqueta: `${d}/${m}`, totalEnergia: cg, osbl, potGen, isbl, u520, z700, z800, torre, admon, tonB100: b100, foco, focoStatus };
           });
 
@@ -781,10 +784,11 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     const b100Dia = diaData?.tonB100 ?? 0;
 
     const labels = horas.map(h => h.label);
-    // foco hora = kWh de esa hora / Ton B100 total del día
-    const focoHora = horas.map(h =>
-      b100Dia > 0 ? Number((h.cg / b100Dia).toFixed(2)) : 0
-    );
+    const focoHora = horas.map(h => {
+      const focoH = b100Dia > 0 ? Number((h.cg / b100Dia).toFixed(2)) : 0;
+      console.log(`Tendencia FOCO Diario Hora a Hora [${this.selectedDia} ${h.label}]: VALORES: MAX(${h.max}) - MIN(${h.min}) => Energía Hora=${h.cg} kWh, B100 Total Día=${b100Dia} Ton => FOCO Hora=${focoH}`);
+      return focoH;
+    });
     const colores = focoHora.map(v =>
       v === 0 ? '#bdc3c7' : v <= this.energiaMeta ? '#27ae60' : '#e74c3c'
     );
