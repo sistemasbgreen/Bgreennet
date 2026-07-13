@@ -60,7 +60,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 	                .requestMatchers("/api/metas/consultar_costo-directo/**", "/metas/consultar_costo-directo/**").permitAll()
 	                .requestMatchers("/api/metas/agregar_costo-directo/**", "/metas/agregar_costo-directo/**").permitAll()
 	                .requestMatchers("/api/catalogos/**", "/catalogos/**").permitAll()
-	                .requestMatchers("/api/configuracion-seguridad/**", "/configuracion-seguridad/**").permitAll()
+	                .requestMatchers("/api/configuracion-seguridad", "/api/configuracion-seguridad/**", "/configuracion-seguridad", "/configuracion-seguridad/**").permitAll()
 	                .requestMatchers("/api/listarDocumentos/**", "/listarDocumentos/**").permitAll()
 	                .requestMatchers("/error").permitAll()
 	                .anyRequest().authenticated()

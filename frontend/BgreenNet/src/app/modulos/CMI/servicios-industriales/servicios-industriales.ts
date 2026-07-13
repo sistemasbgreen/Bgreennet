@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions, Chart, registerables } from 'chart.js';
 import { forkJoin, Subject, of, Observable } from 'rxjs';
@@ -15,13 +15,28 @@ import { VaporConB100, FocoKPIs } from '../../../models/Modelos_CMI/VaporPLC';
 
 Chart.register(...registerables);
 
+// ── Tooltip global premium ────────────────────────────────────────────────────
+Chart.defaults.plugins.tooltip.backgroundColor  = 'rgba(15, 23, 42, 0.92)';
+Chart.defaults.plugins.tooltip.titleColor        = '#e2e8f0';
+Chart.defaults.plugins.tooltip.bodyColor         = '#94a3b8';
+Chart.defaults.plugins.tooltip.borderColor       = 'rgba(122, 195, 224, 0.35)';
+Chart.defaults.plugins.tooltip.borderWidth       = 1;
+Chart.defaults.plugins.tooltip.padding           = 12;
+Chart.defaults.plugins.tooltip.cornerRadius      = 10;
+Chart.defaults.plugins.tooltip.titleFont         = { size: 12, weight: 'bold' } as any;
+Chart.defaults.plugins.tooltip.bodyFont          = { size: 12 } as any;
+Chart.defaults.plugins.tooltip.displayColors     = true;
+Chart.defaults.plugins.tooltip.boxPadding        = 4;
+Chart.defaults.plugins.tooltip.mode              = 'index';
+Chart.defaults.plugins.tooltip.intersect         = false;
+// ─────────────────────────────────────────────────────────────────────────────
 const FOCO_META = 730;
 const B100_ID = '26'; // idProductoSiesa de B100
 
 @Component({
   selector: 'app-servicios-industriales',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgChartsModule],
+  imports: [CommonModule, FormsModule, NgChartsModule, RouterLink],
   templateUrl: './servicios-industriales.html',
   styleUrl: './servicios-industriales.css',
 })
@@ -76,6 +91,22 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     },
     plugins: { legend: { position: 'top' }, datalabels: { display: false } as any }
   };
+  vaporComportamientoOptions: ChartOptions<'line'> = {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { display: false }, title: { display: true, text: 'Flujo de Vapor' } }
+    },
+    plugins: { legend: { position: 'top' }, datalabels: { display: false } as any }
+  };
+  vaporB100Options: ChartOptions<'bar'> = {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { display: false }, title: { display: true, text: 'Producción B100 (Ton)' } }
+    },
+    plugins: { legend: { position: 'top' }, datalabels: { display: false } as any }
+  };
 
   // ── Gráfica 2: Consumo total vs Ton B100 (line doble eje) ──
   totalVsB100Data: ChartData<'line'> = { labels: [], datasets: [] };
@@ -85,6 +116,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
 
   // ── Gráfica 4: FOCO diario (line coloreada) ──
   focoData: ChartData<'line'> = { labels: [], datasets: [] };
+  vaporB100BarrasData: ChartData<'bar'> = { labels: [], datasets: [] };
 
 
 
@@ -120,7 +152,11 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   diasConDesviacionEnergia: any[] = [];
   selectedDia: string = '';
   diasDisponiblesEnergia: string[] = [];
-  mapaEnergiaHoraria: Map<string, {hora: string; cg: number; label: string}[]> = new Map();
+  mapaEnergiaHoraria: Map<string, {hora: string; cg: number; label: string; min?: number; max?: number}[]> = new Map();
+
+  selectedDiaVapor: string = '';
+  diasDisponiblesVapor: string[] = [];
+  mapaVapor5Min: Map<string, { label: string; isbl: number; zona700: number }[]> = new Map();
 
   energiaTotalVsB100Data: ChartData<'line'> = { labels: [], datasets: [] };
   energiaFocoLineaData: ChartData<'line'> = { labels: [], datasets: [] };
@@ -282,7 +318,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
          const rawFecha = row.FechaRegistro || row.timestamp || row.fecharegistro;
          if (!rawFecha) return;
          const fecha = new Date(rawFecha).toISOString().split('T')[0];
-         const cg = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']);
+         const cg = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
          if (cg > 0) {
            if (!energiaMensualMap.has(fecha)) energiaMensualMap.set(fecha, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE});
            const dia = energiaMensualMap.get(fecha)!;
@@ -399,10 +435,9 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
         const isVapor = this.selectedServicio === 'vapor';
 
         if (isVapor) {
-          // ── Un solo recorrido: labels por minuto + agrupado por día ──
-          const labelsMinuto: string[] = [];
-          const isblMinuto: number[] = [];
-          const zona700Minuto: number[] = [];
+          // Resetear el mapa de 5 minutos
+          this.mapaVapor5Min.clear();
+
           const mapaVapor = new Map<string, { tv: number; isbl: number; z700: number }>();
 
           for (const row of sensorData) {
@@ -416,23 +451,56 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const v2 = this.plcsService.parsePlcValue(row['550FT04']);
             const v3 = this.plcsService.parsePlcValue(row['1100FTSG12']);
 
-            // Labels por minuto
-            const hh = date.getHours().toString().padStart(2, '0');
-            const mm = date.getMinutes().toString().padStart(2, '0');
+            // Agrupado por día para el cálculo mensual y diario (multiplicando por 5 para aproximar la suma total real, ya que es cada 5 minutos)
             const dd = date.getDate().toString().padStart(2, '0');
-            labelsMinuto.push(`${dd}/${rowMonth} ${hh}:${mm}`);
-            isblMinuto.push(Number((v1 - v2).toFixed(2)));
-            zona700Minuto.push(Number((v3 - v1).toFixed(2)));
-
-            // Agrupado por día
-            const fecha = `${rowYear}-${rowMonth}-${date.getDate().toString().padStart(2, '0')}`;
+            const fecha = `${rowYear}-${rowMonth}-${dd}`;
             const ex = mapaVapor.get(fecha);
             if (ex) {
-              ex.tv   += v3;
-              ex.isbl += (v1 - v2);
-              ex.z700 += (v3 - v1);
+              ex.tv   += v3 * 5;
+              ex.isbl += (v1 - v2) * 5;
+              ex.z700 += (v3 - v1) * 5;
             } else {
-              mapaVapor.set(fecha, { tv: v3, isbl: v1 - v2, z700: v3 - v1 });
+              mapaVapor.set(fecha, { tv: v3 * 5, isbl: (v1 - v2) * 5, z700: (v3 - v1) * 5 });
+            }
+
+            // Datos de 5 minutos agrupados por día para la gráfica comportamientoData
+            const hh = date.getHours().toString().padStart(2, '0');
+            const mm = date.getMinutes().toString().padStart(2, '0');
+            const label = `${hh}:${mm}`;
+            
+            const calderaVal = Number(v3.toFixed(2));
+            const isblTotalVal = Number(v1.toFixed(2));
+            const isblDesVal = Number((v1 - v2).toFixed(2));
+            const u550Val = Number(v2.toFixed(2));
+            const z700Val = Number((v3 - v1).toFixed(2));
+
+            if (!this.mapaVapor5Min.has(fecha)) {
+              this.mapaVapor5Min.set(fecha, []);
+            }
+            this.mapaVapor5Min.get(fecha)!.push({
+              label,
+              caldera: calderaVal,
+              isblTotal: isblTotalVal,
+              isblDesagregado: isblDesVal,
+              u550: u550Val,
+              zona700: z700Val
+            } as any);
+          }
+
+          this.diasDisponiblesVapor = [...this.mapaVapor5Min.keys()].sort();
+          if (!this.selectedDiaVapor || !this.diasDisponiblesVapor.includes(this.selectedDiaVapor)) {
+            const hoy = new Date();
+            const hoyStr = `${hoy.getFullYear()}-${(hoy.getMonth() + 1).toString().padStart(2, '0')}-${hoy.getDate().toString().padStart(2, '0')}`;
+            const lastIdx = this.diasDisponiblesVapor.length - 1;
+            if (lastIdx >= 0) {
+              const lastDay = this.diasDisponiblesVapor[lastIdx];
+              if (lastDay === hoyStr && lastIdx > 0) {
+                this.selectedDiaVapor = this.diasDisponiblesVapor[lastIdx - 1];
+              } else {
+                this.selectedDiaVapor = lastDay;
+              }
+            } else {
+              this.selectedDiaVapor = '';
             }
           }
 
@@ -476,7 +544,8 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           this.kpis.totalB100Mes = totalB100Mes;
           this.kpis.focoMensual = totalB100Mes > 0 ? Number((totalVaporMes / totalB100Mes).toFixed(2)) : 0;
 
-          this.buildCharts(labelsMinuto, isblMinuto, zona700Minuto);
+          this.buildCharts([], [], []);
+          this.filtrarVaporDiarioHora();
 
         } else if (this.selectedServicio === 'energia') {
           // ── Un solo recorrido: mapaEnergia + mapaHorario juntos ──
@@ -505,14 +574,14 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const fecha = `${rowYear}-${rowMonth}-${dd}`;
             const hora  = date.getHours().toString().padStart(2, '0');
 
-            const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']);
-            const ft    = this.plcsService.parsePlcValue(row['FT520129'] || row['ft520129']);
-            const u520  = this.plcsService.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']);
-            const z700  = this.plcsService.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']);
-            const z800  = this.plcsService.parsePlcValue(row['CONTADOR_CCM2'] || row['contador_ccm2']);
-            const torre = this.plcsService.parsePlcValue(row['CONTADOR_CCM3'] || row['contador_ccm3']);
-            const admon = this.plcsService.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']);
-            const potGen = this.plcsService.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']);
+            const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
+            const ft    = this.plcsService.parsePlcValue(row['FT520129'] || row['ft520129']) / 10;
+            const u520  = this.plcsService.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']) / 10;
+            const z700  = this.plcsService.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']) / 10;
+            const z800  = this.plcsService.parsePlcValue(row['CONTADOR_CCM2'] || row['contador_ccm2']) / 10;
+            const torre = this.plcsService.parsePlcValue(row['CONTADOR_CCM3'] || row['contador_ccm3']) / 10;
+            const admon = this.plcsService.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']) / 10;
+            const potGen = this.plcsService.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']) / 10;
 
             let ex = mapaEnergiaOriginal.get(fecha);
             if (!ex) {
@@ -544,14 +613,16 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           }
 
           // Construir mapa horario final
-          const mapaEnergiaHorariaFinal = new Map<string, {hora: string; cg: number; label: string}[]>();
+          const mapaEnergiaHorariaFinal = new Map<string, {hora: string; cg: number; label: string; min?: number; max?: number}[]>();
           mapaHorario.forEach((dayMap, fecha) => {
-            const horasArr: {hora: string; cg: number; label: string}[] = [];
+            const horasArr: {hora: string; cg: number; label: string; min?: number; max?: number}[] = [];
             for (let i = 0; i < 24; i++) {
               const hh = i.toString().padStart(2, '0');
               const hrData = dayMap.get(hh);
               const cgHora = (hrData && hrData.max >= hrData.min) ? hrData.max - hrData.min : 0;
-              horasArr.push({ hora: hh, cg: Number(cgHora.toFixed(2)), label: `${hh}:00` });
+              const minV = hrData?.min;
+              const maxV = hrData?.max;
+              horasArr.push({ hora: hh, cg: Number(cgHora.toFixed(2)), label: `${hh}:00`, min: minV, max: maxV });
             }
             mapaEnergiaHorariaFinal.set(fecha, horasArr);
           });
@@ -600,6 +671,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const foco  = b100 > 0 ? Number((cg / b100).toFixed(2)) : 0;
             const focoStatus: 'ok' | 'desviacion' | 'sin-dato' =
               b100 === 0 ? 'sin-dato' : foco <= this.energiaMeta ? 'ok' : 'desviacion';
+            console.log(`Consumo Eléctrico (energia) / Ton B100 producida [${fecha}]: Energía=${cg} kWh, B100=${b100} Ton => FOCO=${foco}`);
             return { fecha, etiqueta: `${d}/${m}`, totalEnergia: cg, osbl, potGen, isbl, u520, z700, z800, torre, admon, tonB100: b100, foco, focoStatus };
           });
 
@@ -720,9 +792,9 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
         {
           label: 'Energía / Ton B100 (kWh/Ton)',
           data: foco,
-          borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.07)',
+          borderColor: '#13590c', backgroundColor: 'rgba(19,89,12,0.07)',
           borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8,
-          pointBackgroundColor: '#ffffff', pointBorderColor: '#27ae60', pointBorderWidth: 2,
+          pointBackgroundColor: '#ffffff', pointBorderColor: '#13590c', pointBorderWidth: 2,
           fill: true, tension: 0.3
         }
       ]
@@ -749,15 +821,15 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     this.energiaComportamientoMultiData = {
       labels,
       datasets: [
-        { label: 'Total consumo planta (energia)', data: cg,     borderColor: '#34495e', pointBackgroundColor: '#34495e', pointBorderColor: '#34495e', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
-        { label: 'Potencia generada en planta',      data: potGen, borderColor: '#2ecc71', pointBackgroundColor: '#2ecc71', pointBorderColor: '#2ecc71', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
-        { label: 'Consumo ISBL',                     data: isbl,   borderColor: '#3498db', pointBackgroundColor: '#3498db', pointBorderColor: '#3498db', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
-        { label: 'Unidad 520',                       data: u520,   borderColor: '#9b59b6', pointBackgroundColor: '#9b59b6', pointBorderColor: '#9b59b6', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
-        { label: 'Zona 700',                         data: z700,   borderColor: '#e67e22', pointBackgroundColor: '#e67e22', pointBorderColor: '#e67e22', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
-        { label: 'Zona 800',                         data: z800,   borderColor: '#e74c3c', pointBackgroundColor: '#e74c3c', pointBorderColor: '#e74c3c', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
-        { label: 'Torre de enfriamiento',            data: torre,  borderColor: '#1abc9c', pointBackgroundColor: '#1abc9c', pointBorderColor: '#1abc9c', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
-        { label: 'Edificio administración y chiller',data: admon,  borderColor: '#95a5a6', pointBackgroundColor: '#95a5a6', pointBorderColor: '#95a5a6', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
-        { label: 'Consumo OSBL',                     data: osbl,   borderColor: '#d35400', pointBackgroundColor: '#d35400', pointBorderColor: '#d35400', pointStyle: 'circle', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 }
+        { label: 'Total consumo planta (energia)', data: cg,     borderColor: '#34495e', backgroundColor: 'rgba(52,73,94,0.08)',    fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#34495e' },
+        { label: 'Potencia generada en planta',      data: potGen, borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.08)',  fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#2ecc71' },
+        { label: 'Consumo ISBL',                     data: isbl,   borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.08)',  fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#3498db' },
+        { label: 'Unidad 520',                       data: u520,   borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.08)', fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#9b59b6' },
+        { label: 'Zona 700',                         data: z700,   borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.08)', fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#e67e22' },
+        { label: 'Zona 800',                         data: z800,   borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.08)',  fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#e74c3c' },
+        { label: 'Torre de enfriamiento',            data: torre,  borderColor: '#1abc9c', backgroundColor: 'rgba(26,188,156,0.08)', fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#1abc9c' },
+        { label: 'Edificio administración y chiller',data: admon,  borderColor: '#95a5a6', backgroundColor: 'rgba(149,165,166,0.08)',fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#95a5a6' },
+        { label: 'Consumo OSBL',                     data: osbl,   borderColor: '#d35400', backgroundColor: 'rgba(211,84,0,0.08)',   fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#d35400' }
       ]
     };
 
@@ -781,12 +853,13 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     const b100Dia = diaData?.tonB100 ?? 0;
 
     const labels = horas.map(h => h.label);
-    // foco hora = kWh de esa hora / Ton B100 total del día
-    const focoHora = horas.map(h =>
-      b100Dia > 0 ? Number((h.cg / b100Dia).toFixed(2)) : 0
-    );
+    const focoHora = horas.map(h => {
+      const focoH = b100Dia > 0 ? Number((h.cg / b100Dia).toFixed(2)) : 0;
+      console.log(`Tendencia FOCO Diario Hora a Hora [${this.selectedDia} ${h.label}]: VALORES: MAX(${h.max}) - MIN(${h.min}) => Energía Hora=${h.cg} kWh, B100 Total Día=${b100Dia} Ton => FOCO Hora=${focoH}`);
+      return focoH;
+    });
     const colores = focoHora.map(v =>
-      v === 0 ? '#bdc3c7' : v <= this.energiaMeta ? '#27ae60' : '#e74c3c'
+      v === 0 ? '#bdc3c7' : v <= this.energiaMeta ? '#13590c' : '#e74c3c'
     );
 
     this.energiaFocoLineaData = {
@@ -803,7 +876,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
         {
           label: `FOCO ${d}/${m}/${y} — kWh/Ton B100`,
           data: focoHora,
-          borderColor: '#27ae60', backgroundColor: 'transparent',
+          borderColor: '#13590c', backgroundColor: 'transparent',
           borderWidth: 2, pointRadius: 5, pointHoverRadius: 8,
           pointBackgroundColor: colores, pointBorderColor: colores, pointBorderWidth: 2,
           fill: false, tension: 0.3, yAxisID: 'y-right'
@@ -852,27 +925,6 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
       d.focoStatus === 'ok' ? '#27ae60' : d.focoStatus === 'desviacion' ? '#e74c3c' : '#bdc3c7'
     );
 
-    // ── Gráfica 1: Comportamiento por minuto (line) ──
-    this.comportamientoData = {
-      labels: labelsMinuto,
-      datasets: [
-        {
-          label: 'ISBL Desagregado',
-          data: isblMinuto,
-          borderColor: '#36A2EB', backgroundColor: 'rgba(54,162,235,0.08)',
-          fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4,
-          borderWidth: 1.5
-        },
-        {
-          label: 'Zona 700 y Otros',
-          data: zona700Minuto,
-          borderColor: '#FF6384', backgroundColor: 'rgba(255,99,132,0.08)',
-          fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4,
-          borderWidth: 1.5
-        }
-      ]
-    };
-
     // Opciones de doble eje para líneas
     const dualLineOptions = (labelLeft: string, labelRight: string): ChartOptions<'line'> => ({
       responsive: true, maintainAspectRatio: false,
@@ -891,16 +943,18 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
         {
           label: 'Ton B100 producida',
           data: b100,
-          borderColor: '#13590c', backgroundColor: 'rgba(19,89,12,0.08)',
-          borderWidth: 2, pointRadius: 4, pointHoverRadius: 7,
-          fill: true, tension: 0.4, yAxisID: 'y-right'
+          borderColor: '#13590c', backgroundColor: 'rgba(19,89,12,0.06)',
+          borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8,
+          pointBackgroundColor: '#ffffff', pointBorderColor: '#13590c', pointBorderWidth: 2,
+          fill: true, tension: 0.3, yAxisID: 'y-right'
         },
         {
           label: 'Consumo Total Vapor (1100FTSG12)',
           data: tv,
-          borderColor: '#7ac3e0', backgroundColor: 'rgba(122,195,224,0.08)',
-          borderWidth: 2, pointRadius: 4, pointHoverRadius: 7,
-          fill: true, tension: 0.4, yAxisID: 'y-left'
+          borderColor: '#7ac3e0', backgroundColor: 'rgba(122,195,224,0.06)',
+          borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8,
+          pointBackgroundColor: '#ffffff', pointBorderColor: '#7ac3e0', pointBorderWidth: 2,
+          fill: true, tension: 0.3, yAxisID: 'y-left'
         }
       ]
     };
@@ -913,49 +967,159 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
         {
           label: 'Ton B100 producida',
           data: b100,
-          borderColor: '#13590c', backgroundColor: 'rgba(19,89,12,0.08)',
-          borderWidth: 2, pointRadius: 4, pointHoverRadius: 7,
-          fill: true, tension: 0.4, yAxisID: 'y-right'
+          borderColor: '#13590c', backgroundColor: 'rgba(19,89,12,0.06)',
+          borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8,
+          pointBackgroundColor: '#ffffff', pointBorderColor: '#13590c', pointBorderWidth: 2,
+          fill: true, tension: 0.3, yAxisID: 'y-right'
         },
         {
           label: 'ISBL Desagregado',
           data: isbl,
-          borderColor: '#36A2EB', backgroundColor: 'rgba(54,162,235,0.08)',
-          borderWidth: 2, pointRadius: 4, pointHoverRadius: 7,
-          fill: true, tension: 0.4, yAxisID: 'y-left'
+          borderColor: '#7ac3e0', backgroundColor: 'rgba(122,195,224,0.06)',
+          borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8,
+          pointBackgroundColor: '#ffffff', pointBorderColor: '#7ac3e0', pointBorderWidth: 2,
+          fill: true, tension: 0.3, yAxisID: 'y-left'
         }
       ]
     };
 
-    // ── Gráfica 4: FOCO diario (línea coloreada por punto + Ton B100) ──
+    // ── Gráfica 4: FOCO diario (línea coloreada por punto) ──
     this.focoData = {
       labels,
       datasets: [
         {
-          label: 'Ton B100 producida',
-          data: b100,
-          borderColor: '#13590c', backgroundColor: 'rgba(19,89,12,0.06)',
-          borderWidth: 1.5, pointRadius: 3,
-          fill: true, tension: 0.4, yAxisID: 'y-right'
-        },
-        {
           label: 'FOCO (kg vapor / Ton B100)',
           data: foco,
           borderColor: '#FF9800', backgroundColor: 'transparent',
-          borderWidth: 2, pointRadius: 6, pointHoverRadius: 9,
+          borderWidth: 2.5, pointRadius: 6, pointHoverRadius: 9,
           pointBackgroundColor: focoColors, pointBorderColor: focoColors,
-          fill: false, tension: 0.3, yAxisID: 'y-left'
+          fill: false, tension: 0.3
         },
         {
           label: `Meta (${FOCO_META} kg/Ton)`,
           data: Array(labels.length).fill(FOCO_META),
-          borderColor: '#2c3e50', borderWidth: 2,
-          borderDash: [6, 4], pointRadius: 0, fill: false,
-          yAxisID: 'y-left'
+          borderColor: '#e74c3c', borderWidth: 2,
+          borderDash: [6, 4], pointRadius: 0, fill: false
         }
       ]
     };
-    this.focoOptions = dualLineOptions('kg vapor / Ton B100', 'Ton B100');
+    this.focoOptions = {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { display: false }, title: { display: true, text: 'kg vapor / Ton B100' } }
+      },
+      plugins: {
+        legend: { position: 'top' },
+        datalabels: { display: false } as any,
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          filter: (item) => item.datasetIndex === 0, // Solo mostrar serie FOCO, ocultar Meta
+          callbacks: {
+            label: (context) => {
+              const index = context.dataIndex;
+              const dayData = this.datosDiarios[index];
+              if (dayData) {
+                return [
+                  `FOCO: ${dayData.foco} kg/Ton`,
+                  `Vapor: ${dayData.totalVapor.toLocaleString()} kg`,
+                  `B100: ${dayData.tonB100.toLocaleString()} Ton`
+                ];
+              }
+              return context.formattedValue;
+            }
+          }
+        }
+      }
+    };
+
+    // ── Gráfica 5: Producción diaria de B100 (barras) ──
+    this.vaporB100BarrasData = {
+      labels,
+      datasets: [
+        {
+          label: 'Producción B100 (Ton)',
+          data: b100,
+          backgroundColor: '#13590c', borderColor: '#0f4409',
+          borderWidth: 1.5, borderRadius: 4
+        }
+      ]
+    };
+  }
+
+  filtrarVaporDiarioHora() {
+    if (!this.selectedDiaVapor || !this.mapaVapor5Min.has(this.selectedDiaVapor)) {
+      this.comportamientoData = { labels: [], datasets: [] };
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const registros = this.mapaVapor5Min.get(this.selectedDiaVapor)!;
+    const [y, m, d] = this.selectedDiaVapor.split('-');
+
+    const labels = registros.map((r: any) => r.label);
+    const calderaData = registros.map((r: any) => r.caldera);
+    const isblTotalData = registros.map((r: any) => r.isblTotal);
+    const isblDesData = registros.map((r: any) => r.isblDesagregado);
+    const u550Data = registros.map((r: any) => r.u550);
+    const zona700Data = registros.map((r: any) => r.zona700);
+
+    this.comportamientoData = {
+      labels,
+      datasets: [
+        {
+          label: 'Consumo total caldera (1100FTSG12)',
+          data: calderaData,
+          borderColor: '#34495e', backgroundColor: 'rgba(52,73,94,0.08)',
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 5,
+          pointBackgroundColor: '#34495e', pointBorderColor: '#34495e', pointBorderWidth: 0,
+          fill: true, tension: 0.4
+        },
+        {
+          label: 'ISBL total (1100FTSG11)',
+          data: isblTotalData,
+          borderColor: '#2980b9', backgroundColor: 'rgba(41,128,185,0.08)',
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 5,
+          pointBackgroundColor: '#2980b9', pointBorderColor: '#2980b9', pointBorderWidth: 0,
+          fill: true, tension: 0.4
+        },
+        {
+          label: 'ISBL desagregado',
+          data: isblDesData,
+          borderColor: '#7ac3e0', backgroundColor: 'rgba(122,195,224,0.08)',
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 5,
+          pointBackgroundColor: '#7ac3e0', pointBorderColor: '#7ac3e0', pointBorderWidth: 0,
+          fill: true, tension: 0.4
+        },
+        {
+          label: 'Unidad 550 (550FT04)',
+          data: u550Data,
+          borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.08)',
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 5,
+          pointBackgroundColor: '#9b59b6', pointBorderColor: '#9b59b6', pointBorderWidth: 0,
+          fill: true, tension: 0.4
+        },
+        {
+          label: 'Zona 700 y otros consumidores',
+          data: zona700Data,
+          borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.08)',
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 5,
+          pointBackgroundColor: '#e67e22', pointBorderColor: '#e67e22', pointBorderWidth: 0,
+          fill: true, tension: 0.4
+        }
+      ]
+    };
+    this.cdr.detectChanges();
+  }
+
+  navegarDiaVapor(delta: number) {
+    const idx = this.diasDisponiblesVapor.indexOf(this.selectedDiaVapor);
+    const newIdx = idx + delta;
+    if (newIdx >= 0 && newIdx < this.diasDisponiblesVapor.length) {
+      this.selectedDiaVapor = this.diasDisponiblesVapor[newIdx];
+      this.filtrarVaporDiarioHora();
+    }
   }
 
   // ─── LÓGICA ASÍNCRONA DATOS ANUALES ──────────────────────────────────────────

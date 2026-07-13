@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/plc-db")
+@RequestMapping({"/api/plc-db", "/plc-db"})
 public class PlcDbController {
 
     private final PlcDbService plcDbService;

@@ -18,10 +18,20 @@ public class PlcDbService {
 
     public List<Map<String, Object>> obtenerVapor(String startDate, String endDate) {
         if (startDate != null && endDate != null) {
-            String sql = "SELECT FechaRegistro, [1100FTSG11], [550FT04], [1100FTSG12] FROM Tabla_14 WHERE FechaRegistro >= ? AND FechaRegistro <= ? ORDER BY FechaRegistro ASC";
+            String sql = "SELECT * FROM (" +
+                         "  SELECT FechaRegistro, [1100FTSG11], [550FT04], [1100FTSG12], " +
+                         "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
+                         "  FROM Tabla_14 " +
+                         "  WHERE FechaRegistro >= ? AND FechaRegistro <= ?" +
+                         ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
             return plcJdbcTemplate.queryForList(sql, startDate + " 00:00:00", endDate + " 23:59:59");
         } else {
-            String sql = "SELECT FechaRegistro, [1100FTSG11], [550FT04], [1100FTSG12] FROM Tabla_14 WHERE YEAR(FechaRegistro) = YEAR(GETDATE()) AND MONTH(FechaRegistro) = MONTH(GETDATE()) ORDER BY FechaRegistro ASC";
+            String sql = "SELECT * FROM (" +
+                         "  SELECT FechaRegistro, [1100FTSG11], [550FT04], [1100FTSG12], " +
+                         "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
+                         "  FROM Tabla_14 " +
+                         "  WHERE YEAR(FechaRegistro) = YEAR(GETDATE()) AND MONTH(FechaRegistro) = MONTH(GETDATE())" +
+                         ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
             return plcJdbcTemplate.queryForList(sql);
         }
     }
@@ -47,17 +57,29 @@ public class PlcDbService {
     }
 
     public List<Map<String, Object>> obtenerVaporAnual(String year) {
-        String sql = "SELECT FechaRegistro, [1100FTSG12] FROM Tabla_14 WHERE YEAR(FechaRegistro) = ?";
+        String sql = "SELECT SUM(CASE WHEN ISNUMERIC(REPLACE([1100FTSG12], ',', '.')) = 1 THEN CAST(REPLACE([1100FTSG12], ',', '.') AS FLOAT) ELSE 0 END) as totalVapor FROM Tabla_14 WHERE YEAR(FechaRegistro) = ?";
         return plcJdbcTemplate.queryForList(sql, year);
     }
 
     public List<Map<String, Object>> obtenerEnergiaAnual(String year) {
-        String sql = "SELECT * FROM (" +
-                     "  SELECT FechaRegistro, ENERGIA, " +
-                     "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(day, 0, FechaRegistro) ORDER BY FechaRegistro ASC) as rn " +
+        // Calcula la suma de diferencias (max-min) por día directamente en SQL
+        // Evita descargar todas las filas del año a la JVM
+        String sql = "SELECT " +
+                     "  SUM(daily_max - daily_min) as totalEnergia " +
+                     "FROM (" +
+                     "  SELECT " +
+                     "    CONVERT(date, FechaRegistro) as dia, " +
+                     "    MAX(CASE WHEN ISNUMERIC(REPLACE(CAST(ENERGIA AS VARCHAR(50)), ',', '.')) = 1 " +
+                     "             THEN CAST(REPLACE(CAST(ENERGIA AS VARCHAR(50)), ',', '.') AS FLOAT) / 10 ELSE NULL END) as daily_max, " +
+                     "    MIN(CASE WHEN ISNUMERIC(REPLACE(CAST(ENERGIA AS VARCHAR(50)), ',', '.')) = 1 " +
+                     "             THEN CAST(REPLACE(CAST(ENERGIA AS VARCHAR(50)), ',', '.') AS FLOAT) / 10 ELSE NULL END) as daily_min " +
                      "  FROM Tabla_15 " +
-                     "  WHERE YEAR(FechaRegistro) = ?" +
-                     ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
+                     "  WHERE YEAR(FechaRegistro) = ? " +
+                     "    AND ENERGIA IS NOT NULL " +
+                     "  GROUP BY CONVERT(date, FechaRegistro) " +
+                     "  HAVING MAX(CASE WHEN ISNUMERIC(REPLACE(CAST(ENERGIA AS VARCHAR(50)), ',', '.')) = 1 " +
+                     "               THEN CAST(REPLACE(CAST(ENERGIA AS VARCHAR(50)), ',', '.') AS FLOAT) / 10 ELSE NULL END) IS NOT NULL " +
+                     ") dias_con_data";
         return plcJdbcTemplate.queryForList(sql, year);
     }
 }

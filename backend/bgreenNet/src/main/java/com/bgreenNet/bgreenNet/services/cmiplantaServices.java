@@ -51,9 +51,37 @@ public class cmiplantaServices {
         // LOGICA NORMAL PARA OTROS PRODUCTOS
         // ========================================
         
+        // Resolver y autocompletar tipos de documento de producción si vienen vacíos
+        List<String> finalProdDocTypes = productionDocTypes;
+        List<String> finalProdDocOrigenIds = productionDocOrigenIds;
+        
+        if (finalProdDocTypes == null || finalProdDocTypes.isEmpty()) {
+            finalProdDocTypes = new ArrayList<>();
+            finalProdDocOrigenIds = new ArrayList<>();
+            try {
+                String sqlFindInternal = "SELECT id FROM productos WHERE id = ? OR id_producto_siesa = ?";
+                List<Map<String, Object>> rows = jdbcTemplate.queryForList(sqlFindInternal, productionProductId, productionProductId);
+                if (!rows.isEmpty()) {
+                    String internalId = String.valueOf(rows.get(0).get("id"));
+                    String sqlDocs = "SELECT td.codigo as doc_cod, ptd.producto_origen_id " +
+                                     "FROM producto_tipos_documento ptd " +
+                                     "JOIN tipo_movimiento tm ON ptd.tipo_movimiento_id = tm.id " +
+                                     "JOIN tipos_documento td ON ptd.tipo_documento_id = td.id " +
+                                     "WHERE ptd.producto_id = ? AND tm.codigo = 'PRODUCCION'";
+                    List<Map<String, Object>> docRows = jdbcTemplate.queryForList(sqlDocs, internalId);
+                    for (Map<String, Object> r : docRows) {
+                        finalProdDocTypes.add(String.valueOf(r.get("doc_cod")));
+                        finalProdDocOrigenIds.add(r.get("producto_origen_id") != null ? String.valueOf(r.get("producto_origen_id")) : "null");
+                    }
+                }
+            } catch (Exception e) {
+                // fall back
+            }
+        }
+
         // Validar tipos de documento
         validateDocTypes(consumptionDocTypes, "consumptionDocTypes");
-        validateDocTypes(productionDocTypes, "productionDocTypes");
+        validateDocTypes(finalProdDocTypes, "productionDocTypes");
 
         // Resolver el producto correcto en base a ID o Siesa ID para evitar duplicidades/cruces erróneos
         String resolvedId = consumptionProductId;
@@ -168,6 +196,7 @@ public class cmiplantaServices {
             Map<String, double[]> dailyZoneSums = new HashMap<>();
             final List<Map<String, Object>> finalDocMappings = docMappings;
             
+            final String finalResolvedSiesaId = resolvedSiesaId;
             siesaJdbcTemplate.query(sqlConsumo, rs -> {
                 String date = rs.getString("fecha_documento");
                 String tipoDocto = rs.getString("tipo_docto");
@@ -183,6 +212,9 @@ public class cmiplantaServices {
                     netVal = salidas + entradas;
                 } else {
                     boolean isEntrada = cleanTipoDocto.equals("EI") || cleanTipoDocto.equals("EDP") || cleanTipoDocto.equals("AI") || cleanTipoDocto.equals("EPA") || cleanTipoDocto.startsWith("E") || cleanTipoDocto.startsWith("A");
+                    if ("10".equals(finalResolvedSiesaId)) {
+                        isEntrada = false;
+                    }
                     netVal = isEntrada ? (entradas - salidas) : (salidas - entradas);
                 }
 
@@ -252,7 +284,7 @@ public class cmiplantaServices {
         double[] totalProduction = { 0.0 };
 
         // 2️ PRODUCCIÓN
-        if (productionDocTypes != null && !productionDocTypes.isEmpty()) {
+        if (finalProdDocTypes != null && !finalProdDocTypes.isEmpty()) {
             List<String> produccionProductIds = cargarComponentesDinamicos(productionProductId);
             StringBuilder docFilterBuilder = new StringBuilder();
             List<Object> produccionParams = new ArrayList<>();
@@ -260,11 +292,11 @@ public class cmiplantaServices {
             produccionParams.add(endDate);
 
             docFilterBuilder.append(" AND (");
-            for (int i = 0; i < productionDocTypes.size(); i++) {
+            for (int i = 0; i < finalProdDocTypes.size(); i++) {
                 if (i > 0) docFilterBuilder.append(" OR ");
                 
-                String docType = productionDocTypes.get(i);
-                String origenId = (productionDocOrigenIds != null && i < productionDocOrigenIds.size()) ? productionDocOrigenIds.get(i) : null;
+                String docType = finalProdDocTypes.get(i);
+                String origenId = (finalProdDocOrigenIds != null && i < finalProdDocOrigenIds.size()) ? finalProdDocOrigenIds.get(i) : null;
                 
                 if (origenId != null && !origenId.trim().isEmpty() && !origenId.equals("null")) {
                     docFilterBuilder.append("(f120_id = ? AND f350_id_tipo_docto = ?)");
@@ -318,7 +350,7 @@ public class cmiplantaServices {
         allDates.addAll(consumoMap.keySet());
         allDates.addAll(produccionMap.keySet());
         
-        boolean isConsumoEspecifico = (productionDocTypes != null && !productionDocTypes.isEmpty());
+        boolean isConsumoEspecifico = (finalProdDocTypes != null && !finalProdDocTypes.isEmpty());
 
         for (String date : allDates) {
             double cons = consumoMap.getOrDefault(date, 0.0);

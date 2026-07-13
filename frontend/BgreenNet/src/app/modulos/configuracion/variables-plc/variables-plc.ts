@@ -28,7 +28,7 @@ export class VariablesPlc implements OnInit {
   isSaving: boolean = false;
 
   // Modales y Dropdowns
-  showSyncDropdown: boolean = false;
+
   showEmailModal: boolean = false;
 
   // Objetos para formularios
@@ -107,13 +107,6 @@ export class VariablesPlc implements OnInit {
     return this.receptoresPlc.split(',').filter(c => c.trim() !== '').length;
   }
 
-  toggleSyncDropdown() {
-    this.showSyncDropdown = !this.showSyncDropdown;
-  }
-
-  closeSyncDropdown() {
-    this.showSyncDropdown = false;
-  }
 
   abrirEmailModal() {
     this.showEmailModal = true;
