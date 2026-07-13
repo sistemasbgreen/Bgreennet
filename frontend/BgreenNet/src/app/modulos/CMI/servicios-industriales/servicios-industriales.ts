@@ -282,7 +282,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
          const rawFecha = row.FechaRegistro || row.timestamp || row.fecharegistro;
          if (!rawFecha) return;
          const fecha = new Date(rawFecha).toISOString().split('T')[0];
-         const cg = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']);
+         const cg = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
          if (cg > 0) {
            if (!energiaMensualMap.has(fecha)) energiaMensualMap.set(fecha, {min: Number.MAX_VALUE, max: -Number.MAX_VALUE});
            const dia = energiaMensualMap.get(fecha)!;
@@ -505,7 +505,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const fecha = `${rowYear}-${rowMonth}-${dd}`;
             const hora  = date.getHours().toString().padStart(2, '0');
 
-            const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']);
+            const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
             const ft    = this.plcsService.parsePlcValue(row['FT520129'] || row['ft520129']);
             const u520  = this.plcsService.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']);
             const z700  = this.plcsService.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']);
