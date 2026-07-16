@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -21,7 +22,7 @@ import com.bgreenNet.bgreenNet.services.NodeRedSyncService;
 
 @RestController
 @RequestMapping({"/api/scada", "/scada"})
-@CrossOrigin(origins = "*") // luego puedes restringir a tu Angular
+@CrossOrigin(origins = "*")
 public class VariablesScadaController {
 
     private final VariablesScadaService service;

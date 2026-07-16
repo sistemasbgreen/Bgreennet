@@ -552,3 +552,7 @@ public class VariablesScadaService {
     }
 }
 
+    public VariablesScada obtenerUltimo() {
+        return repository.findTopByOrderByTimestampDesc();
+    }
+}
