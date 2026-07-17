@@ -82,4 +82,26 @@ export class ScadaService {
   saveReceptoresPlc(destinatarios: string): Observable<any> {
     return this.http.post<any>(`${this.scadaUrl}/receptores-plc`, { destinatarios });
   }
+
+  getVapor(fechaInicio: string, fechaFin: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.scadaUrl}/vapor?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`);
+  }
+
+  getEnergia(fechaInicio: string, fechaFin: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.scadaUrl}/energia?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`);
+  }
+
+  getVaporTotalAnio(anio: string): Observable<any> {
+    return this.http.get<any>(`${this.scadaUrl}/vapor/total-anio?anio=${anio}`);
+  }
+
+  getEnergiaTotalAnio(anio: string): Observable<any> {
+    return this.http.get<any>(`${this.scadaUrl}/energia/total-anio?anio=${anio}`);
+  }
+
+  parsePlcValue(val: any): number {
+    if (val === null || val === undefined || val === '') return 0;
+    const n = parseFloat(String(val));
+    return isNaN(n) ? 0 : n;
+  }
 }

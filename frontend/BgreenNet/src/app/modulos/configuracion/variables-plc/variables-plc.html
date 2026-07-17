@@ -42,28 +42,13 @@
         Agregar {{ activeTab === 'variables' ? 'Variable' : activeTab === 'unidades' ? 'Unidad de Planta' : 'Unidad de Medida' }}
       </button>
       
-      <!-- Dropdown Sincronización -->
-      <div class="dropdown-container" *ngIf="activeTab === 'variables'">
-        <button class="btn btn-secondary dropdown-toggle" (click)="toggleSyncDropdown()">
-          <i class="fas fa-sync"></i> Opciones de Sincronización <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
-        </button>
-        <div class="dropdown-menu" *ngIf="showSyncDropdown" (click)="closeSyncDropdown()">
-          <!-- Sincronizar Tabla 14 -->
-          <div class="dropdown-item" (click)="sincronizar()">
-            <i class="fas fa-table" style="color: #00511b;"></i> Sincronizar Tabla 14
-          </div>
-          <!-- Sincronizar Tabla 12 (Solo UI por ahora) -->
-          <div class="dropdown-item" (click)="sincronizar()">
-            <i class="fas fa-table" style="color: #00511b;"></i> Sincronizar Tabla 12
-          </div>
-          <!-- Separador -->
-          <div class="dropdown-divider"></div>
-          <!-- Sincronizar Node RED (Botón Rojo) -->
-          <div class="dropdown-item node-red-item" (click)="sincronizarNodeRed()">
-            <i class="fas fa-network-wired"></i> Sincronizar Node-RED
-          </div>
-        </div>
-      </div>
+      <!-- Botones de Sincronización Independientes -->
+      <button class="btn btn-light" *ngIf="activeTab === 'variables'" (click)="sincronizar()" style="background: white; color: #00511b; border: 1px solid #00511b;">
+        <i class="fas fa-sync"></i> Sincronizar Tabla 14
+      </button>
+      <button class="btn btn-danger" *ngIf="activeTab === 'variables'" (click)="sincronizarNodeRed()" style="background-color: #8b0000; color: white; border: none;">
+        <i class="fas fa-network-wired"></i> Sincronizar Node-RED
+      </button>
     </div>
   </div>
 

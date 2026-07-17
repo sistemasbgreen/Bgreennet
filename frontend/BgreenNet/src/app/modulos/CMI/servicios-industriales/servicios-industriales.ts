@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartData, ChartOptions, Chart, registerables } from 'chart.js';
-import { forkJoin, Observable, of, Subject, timer } from 'rxjs';
-import { catchError, map, switchMap, takeUntil } from 'rxjs/operators';
+import { forkJoin, Subject, of, Observable } from 'rxjs';
+import { switchMap, takeUntil, catchError, map } from 'rxjs/operators';
 
 import { cmiplantaservices } from '../../../servicios/cmiplantaservices';
 import { productoservices } from '../../../servicios/productoservices';
 import { MetanolRequest } from '../../../models/Modelos_CMI/MetanolRequest';
+import { ScadaService } from '../../../servicios/scadaservices';
 
 Chart.register(...registerables);
 
@@ -51,7 +52,13 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private b100BaseRequest: Omit<MetanolRequest, 'startDate' | 'endDate'> | null = null;
   // Cache de datos de sensores: clave = "servicio-anio-mes"
-  private sensorCache = new Map<string, any[]>();
+  private sensorCache    = new Map<string, any[]>();
+  // Cache de B100 mensual: clave = "anio-mes"
+  private b100MesCache   = new Map<string, any>();
+  // Cache de B100 anual: clave = anio
+  private b100AnioCache  = new Map<string, any>();
+  // Cache de sensor anual: clave = "vapor|energia-anio"
+  private sensorAnioCache = new Map<string, any>();
 
   // Filtros
   selectedServicio: any = 'general';
@@ -136,7 +143,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   diasConDesviacionEnergia: any[] = [];
   selectedDia: string = '';
   diasDisponiblesEnergia: string[] = [];
-  mapaEnergiaHoraria: Map<string, {hora: string; cg: number; label: string}[]> = new Map();
+  mapaEnergiaHoraria: Map<string, {hora: string; cg: number; label: string; min?: number; max?: number}[]> = new Map();
 
   energiaTotalVsB100Data: ChartData<'line'> = { labels: [], datasets: [] };
   energiaFocoLineaData: ChartData<'line'> = { labels: [], datasets: [] };
@@ -146,6 +153,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   constructor(
     private cmiplantaService: cmiplantaservices,
     private productoService: productoservices,
+    public plcsService: ScadaService,
     private cdr: ChangeDetectorRef,
     private route: ActivatedRoute
   ) {}
@@ -219,54 +227,77 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     const fechaFinAnio = hoy.getFullYear().toString() === this.selectedYear
       ? hoy.toISOString().split('T')[0]
       : `${this.selectedYear}-12-31`;
+    const anioInicio = `${this.selectedYear}-01-01`;
+    const mesKey  = `${this.selectedYear}-${this.selectedMonth}`;
+    const anioKey = this.selectedYear;
 
-    this.productoService.getProductos().pipe(
-      switchMap(productos => {
-        const b100 = productos.find(p => String(p.id) === B100_ID || String(p.idProductoSiesa) === B100_ID);
-        if (!b100) return of(null);
-        const req = {
-          consumptionProductId: b100.idProductoSiesa || b100.id,
-          productionProductId:  b100.idProductoSiesa || b100.id,
-          consumptionDocTypes:  b100.consumptionDocTypes,
-          productionDocTypes:   b100.productionDocTypes,
-        };
+    this.getBaseRequest().pipe(
+      switchMap(req => {
+        // ── FASE 1: solo datos mensuales (rápidos) ──
+        const b100Mes$ = this.b100MesCache.has(mesKey)
+          ? of(this.b100MesCache.get(mesKey))
+          : this.cmiplantaService.obtenerDatos({ ...(req as any), startDate: fechaInicio, endDate: fechaFin }).pipe(
+              map((d: any) => { this.b100MesCache.set(mesKey, d); return d; }),
+              catchError(() => of({ totalProduction: 0 }))
+            );
 
-        const anioInicio = `${this.selectedYear}-01-01`;
+        const sensorMes$ = this.sensorCache.has(`vapor-${mesKey}`)
+          ? of(this.sensorCache.get(`vapor-${mesKey}`))
+          : this.plcsService.getVapor(fechaInicio, fechaFin).pipe(
+              map((d: any) => { this.sensorCache.set(`vapor-${mesKey}`, d); return d; }),
+              catchError(() => of([]))
+            );
 
-        // Datos anuales diferidos 800ms para no competir con las gráficas
-        timer(800).pipe(takeUntil(this.destroy$)).subscribe(() => {
-          forkJoin({
-            b100Historico: this.cmiplantaService.obtenerDatos({ ...req, startDate: anioInicio, endDate: fechaFinAnio }).pipe(catchError(()=>of({dailyData:[]}))) as any,
-            vaporAnual: of(null),
-            energiaAnual: of(null)
-          }).pipe(takeUntil(this.destroy$)).subscribe((res: any) => {
-             (this as any).procesarDatosAnuales(res.b100Historico, res.vaporAnual, true);
-             (this as any).procesarDatosAnuales(res.b100Historico, res.energiaAnual, false);
-          });
+        const energiaMes$ = this.sensorCache.has(`energia-${mesKey}`)
+          ? of(this.sensorCache.get(`energia-${mesKey}`))
+          : this.plcsService.getEnergia(fechaInicio, fechaFin).pipe(
+              map((d: any) => { this.sensorCache.set(`energia-${mesKey}`, d); return d; }),
+              catchError(() => of([]))
+            );
+
+        // ── FASE 2: datos anuales en background (no bloquean la UI) ──
+        forkJoin({
+          b100Anio: this.b100AnioCache.has(anioKey)
+            ? of(this.b100AnioCache.get(anioKey))
+            : this.cmiplantaService.obtenerDatos({ ...(req as any), startDate: anioInicio, endDate: fechaFinAnio }).pipe(
+                map((d: any) => { this.b100AnioCache.set(anioKey, d); return d; }),
+                catchError(() => of({ dailyData: [] }))
+              ),
+          vaporAnual: this.sensorAnioCache.has(`vapor-${anioKey}`)
+            ? of(this.sensorAnioCache.get(`vapor-${anioKey}`))
+            : this.plcsService.getVaporTotalAnio(this.selectedYear).pipe(
+                map((d: any) => { this.sensorAnioCache.set(`vapor-${anioKey}`, d); return d; }),
+                catchError(() => of(null))
+              ),
+          energiaAnual: this.sensorAnioCache.has(`energia-${anioKey}`)
+            ? of(this.sensorAnioCache.get(`energia-${anioKey}`))
+            : this.plcsService.getEnergiaTotalAnio(this.selectedYear).pipe(
+                map((d: any) => { this.sensorAnioCache.set(`energia-${anioKey}`, d); return d; }),
+                catchError(() => of(null))
+              )
+        }).pipe(takeUntil(this.destroy$)).subscribe((anual: any) => {
+          (this as any).procesarDatosAnuales(anual.b100Anio, anual.vaporAnual, true);
+          (this as any).procesarDatosAnuales(anual.b100Anio, anual.energiaAnual, false);
+          this.cdr.detectChanges();
         });
 
-        // Datos mensuales síncronos
-        return forkJoin({
-          b100Mes: this.cmiplantaService.obtenerDatos({ ...req, startDate: fechaInicio, endDate: fechaFin }).pipe(catchError(()=>of({totalProduction:0}))) as any,
-          vaporMes: of([]) as any,
-          energiaMes: of([]) as any
-        });
+        return forkJoin({ b100Mes: b100Mes$, vaporMes: sensorMes$, energiaMes: energiaMes$ });
       }),
       takeUntil(this.destroy$)
     ).subscribe((res: any) => {
        if (!res) { this.cargando = false; return; }
-       
-       // Process monthly Vapor
+
+       // Procesar Vapor mensual
        let totalVaporMes = 0;
        res.vaporMes.forEach((row: any) => {
          totalVaporMes += this.parsePlcValue(row['1100FTSG12']);
        });
-       const totalB100Mes = res.b100Mes.totalProduction || 0;
+       const totalB100Mes = res.b100Mes?.totalProduction || 0;
        this.kpis.totalVaporMes = totalVaporMes;
        this.kpis.totalB100Mes = totalB100Mes;
        this.kpis.focoMensual = totalB100Mes > 0 ? Number((totalVaporMes / totalB100Mes).toFixed(2)) : 0;
 
-       // Process monthly Energia
+       // Procesar Energía mensual
        const energiaMensualMap = new Map<string, {min: number, max: number}>();
        res.energiaMes.forEach((row: any) => {
          const rawFecha = row.FechaRegistro || row.timestamp || row.fecharegistro;
@@ -330,37 +361,65 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
         const isVapor = this.selectedServicio === 'vapor';
         const emptyB100Response = { dailyData: [], totalProduction: 0, totalConsumption: 0, monthlyAccumulated: 0, validDays: 0 };
         const anioInicio = `${this.selectedYear}-01-01`;
+        const mesKey    = `${this.selectedYear}-${this.selectedMonth}`;
+        const anioKey   = this.selectedYear;
+        const svcKey    = isVapor ? 'vapor' : 'energia';
 
-        // ── Datos anuales diferidos 800ms para no competir con las gráficas ──
-        timer(800).pipe(takeUntil(this.destroy$)).subscribe(() => {
-          forkJoin({
-            b100Historico: this.cmiplantaService.obtenerDatos({ ...(baseRequest as any), startDate: anioInicio, endDate: fechaFinAnio }).pipe(
+        // ── Datos mensuales sensor — con caché ──
+        const cacheKey = `${svcKey}-${mesKey}`;
+        const sensorData$ = this.sensorCache.has(cacheKey)
+          ? of(this.sensorCache.get(cacheKey))
+          : isVapor
+            ? this.plcsService.getVapor(fechaInicio, fechaFin).pipe(
+                map((data: any[]) => { this.sensorCache.set(cacheKey, data); return data; }),
+                catchError(() => of([]))
+              )
+            : this.plcsService.getEnergia(fechaInicio, fechaFin).pipe(
+                map((data: any[]) => { this.sensorCache.set(cacheKey, data); return data; }),
+                catchError(() => of([]))
+              );
+
+        // ── B100 mensual — con caché ──
+        const b100Mes$ = this.b100MesCache.has(mesKey)
+          ? of(this.b100MesCache.get(mesKey))
+          : this.cmiplantaService.obtenerDatos({ ...(baseRequest as any), startDate: fechaInicio, endDate: fechaFin }).pipe(
+              map((d: any) => { this.b100MesCache.set(mesKey, d); return d; }),
               catchError(() => of(emptyB100Response as any))
-            ),
-            sensorDataAnual: of(null) as any
-          }).pipe(takeUntil(this.destroy$)).subscribe(({ b100Historico, sensorDataAnual }: any) => {
-            (this as any).procesarDatosAnuales(b100Historico, sensorDataAnual, isVapor);
-          });
+            );
+
+        // ── FASE 2: datos anuales en background (no bloquean la UI) ──
+        const sensorAnioKey = `${svcKey}-${anioKey}`;
+        forkJoin({
+          b100Anio: this.b100AnioCache.has(anioKey)
+            ? of(this.b100AnioCache.get(anioKey))
+            : this.cmiplantaService.obtenerDatos({ ...(baseRequest as any), startDate: anioInicio, endDate: fechaFinAnio }).pipe(
+                map((d: any) => { this.b100AnioCache.set(anioKey, d); return d; }),
+                catchError(() => of(emptyB100Response as any))
+              ),
+          sensorAnual: this.sensorAnioCache.has(sensorAnioKey)
+            ? of(this.sensorAnioCache.get(sensorAnioKey))
+            : isVapor
+              ? this.plcsService.getVaporTotalAnio(this.selectedYear).pipe(
+                  map((d: any) => { this.sensorAnioCache.set(sensorAnioKey, d); return d; }),
+                  catchError(() => of(null))
+                )
+              : this.plcsService.getEnergiaTotalAnio(this.selectedYear).pipe(
+                  map((d: any) => { this.sensorAnioCache.set(sensorAnioKey, d); return d; }),
+                  catchError(() => of(null))
+                )
+        }).pipe(takeUntil(this.destroy$)).subscribe(({ b100Anio, sensorAnual }: any) => {
+          (this as any).procesarDatosAnuales(b100Anio, sensorAnual, isVapor);
+          this.cdr.detectChanges();
         });
 
-        // ── Datos mensuales (gráficas) — con caché ──
-        const cacheKey = `${this.selectedServicio}-${this.selectedYear}-${this.selectedMonth}`;
-        const cachedSensor = this.sensorCache.get(cacheKey);
-        const sensorData$: Observable<any[]> = cachedSensor
-          ? of(cachedSensor as any[])
-          : of([]);
-
-        return forkJoin({
-          sensorData: sensorData$,
-          b100Mes: this.cmiplantaService.obtenerDatos({ ...(baseRequest as any), startDate: fechaInicio, endDate: fechaFin }).pipe(
-            catchError(() => of(emptyB100Response as any))
-          )
-        });
+        return forkJoin({ sensorData: sensorData$, b100Mes: b100Mes$ });
       }),
       takeUntil(this.destroy$)
     ).subscribe({
-      next: ({ sensorData, b100Mes }: { sensorData: any[]; b100Mes: any }) => {
-        if (this.selectedServicio === 'vapor') {
+      next: ({ sensorData, b100Mes }: any) => {
+        const isVapor = this.selectedServicio === 'vapor';
+
+        if (isVapor) {
           // ── Un solo recorrido: labels por minuto + agrupado por día ──
           const labelsMinuto: string[] = [];
           const isblMinuto: number[] = [];
@@ -467,14 +526,14 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const fecha = `${rowYear}-${rowMonth}-${dd}`;
             const hora  = date.getHours().toString().padStart(2, '0');
 
-            const cg    = this.parsePlcValue(row['ENERGIA'] || row['energia']);
-            const ft    = this.parsePlcValue(row['FT520129'] || row['ft520129']);
-            const u520  = this.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']);
-            const z700  = this.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']);
-            const z800  = this.parsePlcValue(row['CONTADOR_CCM2'] || row['contador_ccm2']);
-            const torre = this.parsePlcValue(row['CONTADOR_CCM3'] || row['contador_ccm3']);
-            const admon = this.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']);
-            const potGen = this.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']);
+            const cg    = this.plcsService.parsePlcValue(row['ENERGIA'] || row['energia']) / 10;
+            const ft    = this.plcsService.parsePlcValue(row['FT520129'] || row['ft520129']) / 10;
+            const u520  = this.plcsService.parsePlcValue(row['CONTADOR_U520'] || row['contador_u520']) / 10;
+            const z700  = this.plcsService.parsePlcValue(row['CONTADOR_CCM1'] || row['contador_ccm1']) / 10;
+            const z800  = this.plcsService.parsePlcValue(row['CONTADOR_CCM2'] || row['contador_ccm2']) / 10;
+            const torre = this.plcsService.parsePlcValue(row['CONTADOR_CCM3'] || row['contador_ccm3']) / 10;
+            const admon = this.plcsService.parsePlcValue(row['CONTADOR_ADMON'] || row['contador_admon']) / 10;
+            const potGen = this.plcsService.parsePlcValue(row['POTENCIA_GEN'] || row['potencia_gen']) / 10;
 
             let ex = mapaEnergiaOriginal.get(fecha);
             if (!ex) {
@@ -506,14 +565,16 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           }
 
           // Construir mapa horario final
-          const mapaEnergiaHorariaFinal = new Map<string, {hora: string; cg: number; label: string}[]>();
+          const mapaEnergiaHorariaFinal = new Map<string, {hora: string; cg: number; label: string; min?: number; max?: number}[]>();
           mapaHorario.forEach((dayMap, fecha) => {
-            const horasArr: {hora: string; cg: number; label: string}[] = [];
+            const horasArr: {hora: string; cg: number; label: string; min?: number; max?: number}[] = [];
             for (let i = 0; i < 24; i++) {
               const hh = i.toString().padStart(2, '0');
               const hrData = dayMap.get(hh);
               const cgHora = (hrData && hrData.max >= hrData.min) ? hrData.max - hrData.min : 0;
-              horasArr.push({ hora: hh, cg: Number(cgHora.toFixed(2)), label: `${hh}:00` });
+              const minV = hrData?.min;
+              const maxV = hrData?.max;
+              horasArr.push({ hora: hh, cg: Number(cgHora.toFixed(2)), label: `${hh}:00`, min: minV, max: maxV });
             }
             mapaEnergiaHorariaFinal.set(fecha, horasArr);
           });
@@ -562,6 +623,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             const foco  = b100 > 0 ? Number((cg / b100).toFixed(2)) : 0;
             const focoStatus: 'ok' | 'desviacion' | 'sin-dato' =
               b100 === 0 ? 'sin-dato' : foco <= this.energiaMeta ? 'ok' : 'desviacion';
+            console.log(`Consumo Eléctrico (energia) / Ton B100 producida [${fecha}]: Energía=${cg} kWh, B100=${b100} Ton => FOCO=${foco}`);
             return { fecha, etiqueta: `${d}/${m}`, totalEnergia: cg, osbl, potGen, isbl, u520, z700, z800, torre, admon, tonB100: b100, foco, focoStatus };
           });
 
@@ -743,10 +805,11 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     const b100Dia = diaData?.tonB100 ?? 0;
 
     const labels = horas.map(h => h.label);
-    // foco hora = kWh de esa hora / Ton B100 total del día
-    const focoHora = horas.map(h =>
-      b100Dia > 0 ? Number((h.cg / b100Dia).toFixed(2)) : 0
-    );
+    const focoHora = horas.map(h => {
+      const focoH = b100Dia > 0 ? Number((h.cg / b100Dia).toFixed(2)) : 0;
+      console.log(`Tendencia FOCO Diario Hora a Hora [${this.selectedDia} ${h.label}]: VALORES: MAX(${h.max}) - MIN(${h.min}) => Energía Hora=${h.cg} kWh, B100 Total Día=${b100Dia} Ton => FOCO Hora=${focoH}`);
+      return focoH;
+    });
     const colores = focoHora.map(v =>
       v === 0 ? '#bdc3c7' : v <= this.energiaMeta ? '#27ae60' : '#e74c3c'
     );
@@ -790,6 +853,16 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     };
 
     this.cdr.detectChanges();
+  }
+
+  /** Navega al día anterior (delta=-1) o siguiente (delta=+1) en la gráfica FOCO horario */
+  navegarDia(delta: number) {
+    const idx = this.diasDisponiblesEnergia.indexOf(this.selectedDia);
+    const newIdx = idx + delta;
+    if (newIdx >= 0 && newIdx < this.diasDisponiblesEnergia.length) {
+      this.selectedDia = this.diasDisponiblesEnergia[newIdx];
+      this.filtrarFocoDiarioHora();
+    }
   }
 
   // ─── Construcción de gráficas ────────────────────────────────────────────────

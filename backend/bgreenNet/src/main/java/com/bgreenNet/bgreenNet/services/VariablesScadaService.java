@@ -380,7 +380,7 @@ public class VariablesScadaService {
                         [id] [int] PRIMARY KEY,
                         [destinatarios] [varchar](MAX) NOT NULL
                     )
-                    INSERT INTO [dbo].[config_receptores_reporte_plc] (id, destinatarios) VALUES (1, 'notificaciones@bgreen.com.co')
+                    INSERT INTO [dbo].[config_receptores_reporte_plc] (id, destinatarios) VALUES (1, 'Notificacionesbgreennet@bgreen.com.co')
                 END
             """);
         } catch (Exception e) {
@@ -410,7 +410,7 @@ public class VariablesScadaService {
         try {
             return appJdbcTemplate.queryForObject("SELECT destinatarios FROM config_receptores_reporte_plc WHERE id = 1", String.class);
         } catch (Exception e) {
-            return "notificaciones@bgreen.com.co"; // Fallback
+            return "Notificacionesbgreennet@bgreen.com.co"; // Fallback
         }
     }
 
@@ -442,7 +442,7 @@ public class VariablesScadaService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            String emailFrom = "notificaciones@bgreen.com.co";
+            String emailFrom = "Notificacionesbgreennet@bgreen.com.co";
             helper.setFrom(emailFrom);
             helper.setTo(destinatarios.split(","));
 
@@ -550,9 +550,42 @@ public class VariablesScadaService {
             System.err.println("[AlertaScada] ❌ Error enviando correo de alerta para variable " + tag + ": " + e.getMessage());
         }
     }
-}
 
-    public VariablesScada obtenerUltimo() {
-        return repository.findTopByOrderByTimestampDesc();
+    public List<Map<String, Object>> obtenerVaporRango(String fechaInicio, String fechaFin) {
+        String sql = "SELECT timestamp, [1100FTSG12] FROM [DB_Process_Data_PLCs].[dbo].[Tabla_12] " +
+                     "WHERE [timestamp] >= ? AND [timestamp] <= ? " +
+                     "ORDER BY [timestamp] ASC";
+        return plcJdbcTemplate.queryForList(sql, fechaInicio + " 00:00:00", fechaFin + " 23:59:59");
+    }
+
+    public List<Map<String, Object>> obtenerEnergiaRango(String fechaInicio, String fechaFin) {
+        String sql = "SELECT timestamp, ENERGIA, FT520129, CONTADOR_U520, CONTADOR_CCM1, CONTADOR_CCM2, CONTADOR_CCM3, CONTADOR_ADMON, POTENCIA_GEN " +
+                     "FROM [DB_Process_Data_PLCs].[dbo].[Tabla_12] " +
+                     "WHERE [timestamp] >= ? AND [timestamp] <= ? " +
+                     "ORDER BY [timestamp] ASC";
+        return plcJdbcTemplate.queryForList(sql, fechaInicio + " 00:00:00", fechaFin + " 23:59:59");
+    }
+
+    public Map<String, Object> obtenerVaporTotalAnio(String anio) {
+        String sql = "SELECT SUM(CAST([1100FTSG12] AS FLOAT)) AS totalVapor FROM [DB_Process_Data_PLCs].[dbo].[Tabla_12] " +
+                     "WHERE [timestamp] >= ? AND [timestamp] <= ?";
+        try {
+            Double val = plcJdbcTemplate.queryForObject(sql, Double.class, anio + "-01-01 00:00:00", anio + "-12-31 23:59:59");
+            return Map.of("totalVapor", val != null ? val : 0.0);
+        } catch (Exception e) {
+            return Map.of("totalVapor", 0.0);
+        }
+    }
+
+    public Map<String, Object> obtenerEnergiaTotalAnio(String anio) {
+        String sql = "SELECT (MAX(CAST(ENERGIA AS FLOAT)) - MIN(CAST(ENERGIA AS FLOAT))) / 10.0 AS totalEnergia " +
+                     "FROM [DB_Process_Data_PLCs].[dbo].[Tabla_12] " +
+                     "WHERE [timestamp] >= ? AND [timestamp] <= ? AND ENERGIA > 0";
+        try {
+            Double val = plcJdbcTemplate.queryForObject(sql, Double.class, anio + "-01-01 00:00:00", anio + "-12-31 23:59:59");
+            return Map.of("totalEnergia", val != null ? val : 0.0);
+        } catch (Exception e) {
+            return Map.of("totalEnergia", 0.0);
+        }
     }
 }

@@ -23,7 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping({"/api/listas", "/listas"})
-@CrossOrigin(origins = "*")
+
+
 
 public class ListasController {
 	
