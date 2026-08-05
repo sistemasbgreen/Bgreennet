@@ -18,7 +18,7 @@ export interface ConfiguracionSeguridad {
   providedIn: 'root'
 })
 export class ConfiguracionSeguridadService {
-  private apiUrl = `${environment.apiUrl}/api/configuracion-seguridad`;
+  private apiUrl = `${environment.apiUrl}/api/configuracion-seguridad`.trim();
 
   constructor(private http: HttpClient) { }
 

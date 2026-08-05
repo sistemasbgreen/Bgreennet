@@ -1,7 +1,7 @@
 import { producto } from './../../../models/productos';
 import { productoservices } from './../../../servicios/productoservices';
 import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
@@ -53,7 +53,7 @@ const extendLinePlugin = {
 @Component({
   selector: 'productos',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgChartsModule],
+  imports: [CommonModule, FormsModule, NgChartsModule, RouterLink],
   templateUrl: './productos.html',
   styleUrl: './productos.css',
 })

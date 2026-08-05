@@ -47,8 +47,8 @@ public class ImageController {
             String imageUrl = imageService.saveImage(file);
 
             // Construir URL completa
-            String fullUrl = UrlUtils.sanitizeUrl("http://172.30.72.200/" + imageUrl);
-       //   String fullUrl = UrlUtils.sanitizeUrl("https://bgreennet.bgreen.com.co" + imageUrl);
+          //  String fullUrl = UrlUtils.sanitizeUrl("http://172.30.72.200/" + imageUrl);
+         String fullUrl = UrlUtils.sanitizeUrl("https://bgreennet.bgreen.com.co" + imageUrl);
             
             return ResponseEntity.ok(new ImageUploadResponse(fullUrl, "Imagen subida exitosamente"));
 

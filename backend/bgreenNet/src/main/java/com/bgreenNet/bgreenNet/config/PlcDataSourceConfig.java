@@ -1,6 +1,7 @@
 package com.bgreenNet.bgreenNet.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,7 +16,9 @@ public class PlcDataSourceConfig {
     @Bean(name = "plcDataSource")
     @ConfigurationProperties(prefix = "plc.datasource")
     public HikariDataSource plcDataSource() {
-        return new HikariDataSource();
+        HikariDataSource ds = new HikariDataSource();
+        ds.setConnectionTestQuery("SELECT 1");
+        return ds;
     }
 
     @Bean(name = "plcJdbcTemplate")
@@ -23,4 +26,7 @@ public class PlcDataSourceConfig {
             @Qualifier("plcDataSource") DataSource plcDataSource) {
         return new JdbcTemplate(plcDataSource);
     }
+    
+
+
 }
