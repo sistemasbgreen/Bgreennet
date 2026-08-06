@@ -110,13 +110,26 @@ export class plcsServices {
    * Suma total de vapor para un año completo (para KPI anual).
    */
   getVaporTotalAnio(anio: string): Observable<{ totalVapor: number }> {
-    return this.http.get<any[]>(`${this.baseUrl}/vapor/anual?year=${anio}`).pipe(
-      map(data => {
-        let total = 0;
-        data.forEach(row => {
-          total += this.parsePlcValue(row['1100FTSG12']);
-        });
-        return { totalVapor: Number(total.toFixed(2)) };
+    return this.http.get<any>(`${this.baseUrl}/vapor/anual?year=${anio}`).pipe(
+      map(res => {
+        if (res && typeof res === 'object') {
+          if (res.totalVapor !== undefined && res.totalVapor !== null) {
+            return { totalVapor: Number(Number(res.totalVapor).toFixed(2)) };
+          }
+          if (Array.isArray(res) && res.length > 0) {
+            const first = res[0];
+            if (first.totalVapor !== undefined && first.totalVapor !== null) {
+              return { totalVapor: Number(Number(first.totalVapor).toFixed(2)) };
+            }
+            // Fallback en caso de que devuelva filas crudas
+            let total = 0;
+            res.forEach((row: any) => {
+              total += this.parsePlcValue(row['1100FTSG12']);
+            });
+            return { totalVapor: Number(total.toFixed(2)) };
+          }
+        }
+        return { totalVapor: 0 };
       })
     );
   }
@@ -125,19 +138,35 @@ export class plcsServices {
    * Diferencia max-min total de energía para un año completo (para KPI anual).
    */
   getEnergiaTotalAnio(anio: string): Observable<{ totalEnergia: number }> {
-    return this.http.get<any[]>(`${this.baseUrl}/energia/anual?year=${anio}`).pipe(
-      map(data => {
-        let minCg = Number.MAX_VALUE;
-        let maxCg = -Number.MAX_VALUE;
-        data.forEach(row => {
-          const val = this.parsePlcValue(row['ENERGIA'] || row['energia']);
-          if (val > 0) {
-            if (val < minCg) minCg = val;
-            if (val > maxCg) maxCg = val;
+    return this.http.get<any>(`${this.baseUrl}/energia/anual?year=${anio}`).pipe(
+      map(res => {
+        // El backend ahora devuelve un objeto agregado { totalEnergia: X }
+        if (res && typeof res === 'object') {
+          // Respuesta directa como objeto
+          if (res.totalEnergia !== undefined && res.totalEnergia !== null) {
+            return { totalEnergia: Number(Number(res.totalEnergia).toFixed(2)) };
           }
-        });
-        const total = (minCg !== Number.MAX_VALUE && maxCg >= minCg) ? (maxCg - minCg) : 0;
-        return { totalEnergia: Number(total.toFixed(2)) };
+          // Respuesta como array con primer elemento
+          if (Array.isArray(res) && res.length > 0) {
+            const first = res[0];
+            if (first.totalEnergia !== undefined && first.totalEnergia !== null) {
+              return { totalEnergia: Number(Number(first.totalEnergia).toFixed(2)) };
+            }
+            // Fallback: si aún devuelve filas crudas (compatibilidad)
+            let minCg = Number.MAX_VALUE;
+            let maxCg = -Number.MAX_VALUE;
+            res.forEach((row: any) => {
+              const val = this.parsePlcValue(row['ENERGIA'] || row['energia']);
+              if (val > 0) {
+                if (val < minCg) minCg = val;
+                if (val > maxCg) maxCg = val;
+              }
+            });
+            const total = (minCg !== Number.MAX_VALUE && maxCg >= minCg) ? (maxCg - minCg) : 0;
+            return { totalEnergia: Number(total.toFixed(2)) };
+          }
+        }
+        return { totalEnergia: 0 };
       })
     );
   }
