@@ -19,6 +19,11 @@ interface ToastState {
   styleUrl: './metas-cmi.css',
 })
 export class MetasCMI implements OnInit {
+  activeTab: 'productos' | 'mapeoErp' | 'documentos' = 'productos';
+
+  switchTab(tab: 'productos' | 'mapeoErp' | 'documentos') {
+    this.activeTab = tab;
+  }
 
   soloNumeros(event: KeyboardEvent) {
     const pattern = /[0-9]/;
@@ -81,16 +86,16 @@ export class MetasCMI implements OnInit {
   // Drag and drop state for formula builder
   tempConsumoSalidas: any[] = [];
   tempConsumoEntradas: any[] = [];
+  tempConsumoZonas: any[][] = [[], [], [], [], []];
+  tempConsumoOperadores: string[] = ['+', '+', '+', '+'];
   tempProduccionSalidas: any[] = [];
   tempProduccionEntradas: any[] = [];
   draggedDoc: any = null;
   dragSource: string = '';
-<<<<<<< HEAD
-  draggedSign: boolean | null = null;
-=======
+  draggedSign: string | null = null;
   draggedSign: string | null = null;
 
->>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
+
   isFormulaDividedConsumo: boolean = false;
   
   // Isolated state for document linking per product row
@@ -494,26 +499,66 @@ export class MetasCMI implements OnInit {
       id: '', nombre: '', idProductoSiesa: '', consumptionDocTypes: [], productionDocTypes: [], sentidoMeta: true, mostrarCmi: true, produccionBaseId: '26'
     };
     
-    this.tempConsumoDocs = (p?.consumptionDocIds || []).map(id => {
+    // Reconstruir tempConsumoDocs con orden correcto desde el backend
+    const rawConsumoDocs = (p?.consumptionDocIds || []).map((id, idx) => {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
-      return { id: id, codigo: doc ? doc.codigo : '?' };
+      const orden = p?.consumptionDocOrden ? (p.consumptionDocOrden[idx] ?? idx) : idx;
+      const origenId = p?.consumptionDocOrigenIds ? p.consumptionDocOrigenIds[idx] : null;
+      return { id: id, codigo: doc ? doc.codigo : '?', orden, origenId };
     });
-<<<<<<< HEAD
-    this.tempConsumoEntradas = this.tempConsumoDocs.filter(d => this.isEntradaDoc(d.codigo));
-    this.tempConsumoSalidas = this.tempConsumoDocs.filter(d => !this.isEntradaDoc(d.codigo));
-    this.isFormulaDividedConsumo = this.tempConsumoSalidas.length > 0;
-=======
     
     // Ordenar por orden ASC
     rawConsumoDocs.sort((a, b) => a.orden - b.orden);
->>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
     
-    this.tempProduccionDocs = (p?.productionDocIds || []).map(id => {
-      const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
-      return { id: id, codigo: doc ? doc.codigo : '?' };
+    // Ordenar por orden ASC
+    rawConsumoDocs.sort((a, b) => a.orden - b.orden);
+    
+    // Clasificar por zona según valor de orden: 0-99 (0), 100-199 (1), 200-299 (2), 300-399 (3), 400-499 (4)
+    this.tempConsumoZonas = [[], [], [], [], []];
+    let maxZoneIdx = 0;
+    rawConsumoDocs.forEach(d => {
+      const zoneIdx = Math.min(4, Math.max(0, Math.floor(d.orden / 100)));
+      this.tempConsumoZonas[zoneIdx].push(d);
+      if (zoneIdx > maxZoneIdx) maxZoneIdx = zoneIdx;
     });
-    this.tempProduccionEntradas = this.tempProduccionDocs.filter(d => this.isEntradaDoc(d.codigo));
-    this.tempProduccionSalidas = this.tempProduccionDocs.filter(d => !this.isEntradaDoc(d.codigo));
+
+    this.tempConsumoSalidas = this.tempConsumoZonas[0];
+    this.tempConsumoEntradas = this.tempConsumoZonas[1];
+    this.tempConsumoDocs = [...rawConsumoDocs];
+    
+    let activeOps: string[] = [];
+    if (p && p.formulaOperadores) {
+      const isDefault = p.formulaOperadores.length === 4 && p.formulaOperadores.every(op => op === '+');
+      if (isDefault) {
+        activeOps = p.formulaOperadores.slice(0, maxZoneIdx);
+      } else {
+        activeOps = [...p.formulaOperadores];
+        while (activeOps.length > maxZoneIdx && (activeOps[activeOps.length - 1] === '+' || activeOps[activeOps.length - 1] === '')) {
+          activeOps.pop();
+        }
+      }
+    } else {
+      if (maxZoneIdx > 0) {
+        activeOps = Array(maxZoneIdx).fill(p && p.usaSuma === true ? '+' : '-');
+      } else {
+        activeOps = [];
+      }
+    }
+    this.tempConsumoOperadores = activeOps;
+    
+    this.isFormulaDividedConsumo = this.tempConsumoOperadores.length > 0;
+
+    // Reconstruir tempProduccionDocs con orden correcto desde el backend
+    const rawProduccionDocs = (p?.productionDocIds || []).map((id, idx) => {
+      const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
+      const orden = p?.productionDocOrden ? (p.productionDocOrden[idx] ?? idx) : idx;
+      const origenId = p?.productionDocOrigenIds ? p.productionDocOrigenIds[idx] : null;
+      return { id: id, codigo: doc ? doc.codigo : '?', orden, origenId };
+    });
+    rawProduccionDocs.sort((a, b) => a.orden - b.orden);
+    this.tempProduccionSalidas = rawProduccionDocs.filter(d => d.orden < 100);
+    this.tempProduccionEntradas = rawProduccionDocs.filter(d => d.orden >= 100);
+    this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
 
     this.siesaSearchId = p?.idProductoSiesa || '';
     this.productWasSaved = false;
@@ -535,11 +580,57 @@ export class MetasCMI implements OnInit {
   }
 
   getAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): any[] {
-    const selectedIds = type === 'CONSUMO' 
-      ? this.tempConsumoDocs.map(d => String(d.id)) 
-      : this.tempProduccionDocs.map(d => String(d.id));
+    const selected = type === 'CONSUMO' ? this.tempConsumoDocs : this.tempProduccionDocs;
     
-    return this.tiposDocumento.filter(d => !selectedIds.includes(String(d.id)));
+    // Identificar productos base (componentes o el producto mismo)
+    let bases = [];
+    if (this.isCompuestoToggle && this.tempComponentes.length > 0) {
+      bases = this.tempComponentes.map(c => ({ id: c, nombre: this.getItemName(c) }));
+    } else {
+      const siesaId = this.currentProduct?.idProductoSiesa || this.siesaSearchId;
+      if (siesaId) {
+        bases.push({ id: siesaId, nombre: this.currentProduct?.nombre || '' });
+      } else {
+        bases.push({ id: null, nombre: 'Producto' });
+      }
+    }
+
+    const available = [];
+    for (const doc of this.tiposDocumento) {
+      for (const base of bases) {
+        // Verificar si esta combinacion exacta ya esta seleccionada
+        const isSelected = selected.some(s => String(s.id) === String(doc.id) && s.origenId === base.id);
+        if (!isSelected) {
+          available.push({
+            id: doc.id,
+            codigo: doc.codigo,
+            origenId: base.id,
+            origenNombre: base.nombre
+          });
+        }
+      }
+    }
+    return available;
+  }
+
+  getGroupedAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): { key: string, label: string, docs: any[] }[] {
+    const available = this.getAvailableDocs(type);
+    const groups: { [key: string]: { label: string, docs: any[] } } = {};
+    
+    available.forEach(doc => {
+      const key = doc.origenId || 'none';
+      const label = doc.origenNombre || 'Producto';
+      if (!groups[key]) {
+        groups[key] = { label, docs: [] };
+      }
+      groups[key].docs.push(doc);
+    });
+
+    return Object.keys(groups).map(k => ({
+      key: k,
+      label: groups[k].label,
+      docs: groups[k].docs
+    }));
   }
 
   getGroupedAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): { key: string, label: string, docs: any[] }[] {
@@ -564,26 +655,43 @@ export class MetasCMI implements OnInit {
 
   quickAddDoc(type: 'CONSUMO' | 'PRODUCCION', doc: any) {
     if (type === 'CONSUMO') {
-      if (!this.tempConsumoDocs.find(d => d.id === doc.id)) {
-        this.tempConsumoSalidas.push({ id: doc.id, codigo: doc.codigo });
-        this.tempConsumoDocs = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
+      if (!this.tempConsumoDocs.find(d => d.id === doc.id && d.origenId === doc.origenId)) {
+        this.tempConsumoZonas[0].push({ id: doc.id, codigo: doc.codigo, origenId: doc.origenId });
+        this.tempConsumoDocs = [
+          ...this.tempConsumoZonas[0],
+          ...this.tempConsumoZonas[1],
+          ...this.tempConsumoZonas[2],
+          ...this.tempConsumoZonas[3],
+          ...this.tempConsumoZonas[4]
+        ];
+        this.tempConsumoSalidas = this.tempConsumoZonas[0];
+        this.tempConsumoEntradas = this.tempConsumoZonas[1];
       }
     } else {
-      if (!this.tempProduccionDocs.find(d => d.id === doc.id)) {
-        this.tempProduccionEntradas.push({ id: doc.id, codigo: doc.codigo });
+      if (!this.tempProduccionDocs.find(d => d.id === doc.id && d.origenId === doc.origenId)) {
+        this.tempProduccionEntradas.push({ id: doc.id, codigo: doc.codigo, origenId: doc.origenId });
         this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
       }
     }
   }
 
-  removeDoc(type: 'CONSUMO' | 'PRODUCCION', docId: number) {
+  removeDoc(type: 'CONSUMO' | 'PRODUCCION', doc: any) {
     if (type === 'CONSUMO') {
-      this.tempConsumoSalidas = this.tempConsumoSalidas.filter(d => d.id !== docId);
-      this.tempConsumoEntradas = this.tempConsumoEntradas.filter(d => d.id !== docId);
-      this.tempConsumoDocs = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
+      this.tempConsumoZonas = this.tempConsumoZonas.map(zona => 
+        zona.filter(d => !(d.id === doc.id && d.origenId === doc.origenId))
+      );
+      this.tempConsumoDocs = [
+        ...this.tempConsumoZonas[0],
+        ...this.tempConsumoZonas[1],
+        ...this.tempConsumoZonas[2],
+        ...this.tempConsumoZonas[3],
+        ...this.tempConsumoZonas[4]
+      ];
+      this.tempConsumoSalidas = this.tempConsumoZonas[0];
+      this.tempConsumoEntradas = this.tempConsumoZonas[1];
     } else {
-      this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => d.id !== docId);
-      this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => d.id !== docId);
+      this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
+      this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
       this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
     }
   }
@@ -594,25 +702,19 @@ export class MetasCMI implements OnInit {
     this.dragSource = source;
   }
 
-  onDragStartSign(event: DragEvent, sign: boolean) {
+  onDragStartSign(event: DragEvent, sign: string) {
     this.draggedSign = sign;
   }
 
   onDropSign(event: DragEvent) {
     event.preventDefault();
     if (this.draggedSign !== null) {
-      this.tempUsaSuma = this.draggedSign;
-      this.isFormulaDividedConsumo = true;
+      const op = typeof this.draggedSign === 'boolean' ? (this.draggedSign ? '+' : '-') : String(this.draggedSign);
+      this.addOperator(op);
       this.draggedSign = null;
     }
   }
 
-<<<<<<< HEAD
-  removeDivision() {
-    this.isFormulaDividedConsumo = false;
-    this.tempConsumoEntradas = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
-    this.tempConsumoSalidas = [];
-=======
   addOperator(op: string) {
     if (this.tempConsumoOperadores.length >= 4) {
       this.showToast('Máximo de 5 zonas alcanzado (4 signos)', 'error');
@@ -641,17 +743,24 @@ export class MetasCMI implements OnInit {
     }
     this.tempConsumoSalidas = this.tempConsumoZonas[0];
     this.tempConsumoEntradas = this.tempConsumoZonas[1] || [];
->>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
+
   }
 
   allowDrop(event: DragEvent) {
     event.preventDefault();
   }
 
+  onDropConsumoZona(event: DragEvent, zoneIdx: number) {
+    event.preventDefault();
+    if (this.draggedDoc) {
+      this.moveDoc(this.draggedDoc, this.dragSource, 'ZONA_' + zoneIdx);
+    }
+  }
+
   onDropSalidas(event: DragEvent) {
     event.preventDefault();
     if (this.draggedSign !== null) {
-      this.tempUsaSuma = this.draggedSign;
+      this.tempUsaSuma = this.draggedSign === '+';
       this.isFormulaDividedConsumo = true;
       this.draggedSign = null;
     } else if (this.draggedDoc) {
@@ -662,7 +771,7 @@ export class MetasCMI implements OnInit {
   onDropEntradas(event: DragEvent) {
     event.preventDefault();
     if (this.draggedSign !== null) {
-      this.tempUsaSuma = this.draggedSign;
+      this.tempUsaSuma = this.draggedSign === '+';
       this.isFormulaDividedConsumo = true;
       this.draggedSign = null;
     } else if (this.draggedDoc) {
@@ -693,12 +802,6 @@ export class MetasCMI implements OnInit {
   moveDoc(doc: any, from: string, to: string) {
     if (!doc || from === to) return;
     
-<<<<<<< HEAD
-    if (from === 'SALIDAS') this.tempConsumoSalidas = this.tempConsumoSalidas.filter(d => d.id !== doc.id);
-    else if (from === 'ENTRADAS') this.tempConsumoEntradas = this.tempConsumoEntradas.filter(d => d.id !== doc.id);
-    else if (from === 'PROD_SALIDAS') this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => d.id !== doc.id);
-    else if (from === 'PROD_ENTRADAS') this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => d.id !== doc.id);
-=======
     // Remove from source
     if (from.startsWith('ZONA_')) {
       const fromIdx = parseInt(from.split('_')[1]);
@@ -712,14 +815,32 @@ export class MetasCMI implements OnInit {
     } else if (from === 'PROD_ENTRAS') {
       this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
     }
->>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
 
-    if (to === 'SALIDAS') this.tempConsumoSalidas.push(doc);
-    else if (to === 'ENTRADAS') this.tempConsumoEntradas.push(doc);
-    else if (to === 'PROD_SALIDAS') this.tempProduccionSalidas.push(doc);
-    else if (to === 'PROD_ENTRADAS') this.tempProduccionEntradas.push(doc);
 
-    this.tempConsumoDocs = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
+    // Add to target
+    if (to.startsWith('ZONA_')) {
+      const toIdx = parseInt(to.split('_')[1]);
+      this.tempConsumoZonas[toIdx].push(doc);
+    } else if (to === 'SALIDAS') {
+      this.tempConsumoZonas[0].push(doc);
+    } else if (to === 'ENTRADAS') {
+      this.tempConsumoZonas[1].push(doc);
+    } else if (to === 'PROD_SALIDAS') {
+      this.tempProduccionSalidas.push(doc);
+    } else if (to === 'PROD_ENTRADAS') {
+      this.tempProduccionEntradas.push(doc);
+    }
+
+    this.tempConsumoSalidas = this.tempConsumoZonas[0];
+    this.tempConsumoEntradas = this.tempConsumoZonas[1];
+
+    this.tempConsumoDocs = [
+      ...this.tempConsumoZonas[0],
+      ...this.tempConsumoZonas[1],
+      ...this.tempConsumoZonas[2],
+      ...this.tempConsumoZonas[3],
+      ...this.tempConsumoZonas[4]
+    ];
     this.tempProduccionDocs = [...this.tempProduccionSalidas, ...this.tempProduccionEntradas];
   }
 
@@ -832,15 +953,14 @@ export class MetasCMI implements OnInit {
     this.currentProduct.usaSuma = this.tempUsaSuma ?? false;
     this.currentProduct.esCompuesto = this.isCompuestoToggle;
     this.currentProduct.componenteSiesaIds = [...this.tempComponentes];
+    this.currentProduct.formulaOperadores = [...this.tempConsumoOperadores];
 
     if (this.esConsumoEspecifico) {
       this.currentProduct.produccionBaseId = '26';
       const requiredDocs = ['EI', 'EDP', 'AI'];
-      this.tempProduccionDocs = this.tiposDocumento
+      const docs = this.tiposDocumento
         .filter(d => requiredDocs.includes(d.codigo))
         .map(d => ({ id: d.id, codigo: d.codigo }));
-<<<<<<< HEAD
-=======
         
       this.tempProduccionDocs = docs;
       this.tempProduccionSalidas = [];
@@ -850,7 +970,7 @@ export class MetasCMI implements OnInit {
       this.tempProduccionDocs = [];
       this.tempProduccionSalidas = [];
       this.tempProduccionEntradas = [];
->>>>>>> 5f48b4e ([BGREEN-115][BGREEN-119][Bug]Asignacion de formula)
+
     }
     
     const obs = this.isEditingProduct 
@@ -877,8 +997,18 @@ export class MetasCMI implements OnInit {
         if (!consumptionMov || !productionMov) return this.showToast('Tipos de movimiento no encontrados', 'error');
 
         const syncTasks: any[] = [];
-        this.tempConsumoDocs.forEach(d => syncTasks.push(this.service.insertarTipoDocumento(productId, consumptionMov.id.toString(), d.id.toString())));
-        this.tempProduccionDocs.forEach(d => syncTasks.push(this.service.insertarTipoDocumento(productId, productionMov.id.toString(), d.id.toString())));
+
+        this.tempConsumoZonas.forEach((zona, zoneIdx) => {
+          zona.forEach((d, i) => {
+            syncTasks.push(this.service.insertarTipoDocumento(productId, consumptionMov.id.toString(), d.id.toString(), zoneIdx * 100 + i, d.origenId));
+          });
+        });
+        this.tempProduccionSalidas.forEach((d, i) =>
+          syncTasks.push(this.service.insertarTipoDocumento(productId, productionMov.id.toString(), d.id.toString(), i, d.origenId))
+        );
+        this.tempProduccionEntradas.forEach((d, i) =>
+          syncTasks.push(this.service.insertarTipoDocumento(productId, productionMov.id.toString(), d.id.toString(), 100 + i, d.origenId))
+        );
 
         if (syncTasks.length === 0) return this.finalizeProductSave();
         this.processSyncTasks(syncTasks);
@@ -1002,9 +1132,7 @@ export class MetasCMI implements OnInit {
     }
     return this.currentProduct.idProductoSiesa || 'N/A';
   }
-<<<<<<< HEAD
   
-=======
 
   getProductoFormulaPartes(p: producto): { zonas: string[][], operadores: string[] } {
     const zones: string[][] = [[], [], [], [], []];
@@ -1043,8 +1171,7 @@ export class MetasCMI implements OnInit {
     const isEspecifico = this.isProductConsumoEspecifico(p);
     if (isEspecifico) {
       tokens.push({ type: 'parenthesis', text: '(' });
-    }
-    
+    }    
     let printedAny = false;
     for (let i = 0; i < 5; i++) {
       const zoneDocs = partes.zonas[i];
@@ -1068,9 +1195,7 @@ export class MetasCMI implements OnInit {
       tokens.push({ type: 'parenthesis', text: ')' });
       tokens.push({ type: 'operator', text: ' / ' });
       tokens.push({ type: 'doc', text: 'Producción B100' });
-    }
-    
-    return tokens;
-  }
->>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
+    }    
+    return tokens;  
+}
 }

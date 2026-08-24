@@ -122,12 +122,23 @@ public class MetaController {
     }
 
     @PostMapping("/productos/tipo-documento")
-    public void insertarTipoDocumento(@RequestBody Map<String, Object> body) {
-        service.insertarTipoDocumento(
-            (String) body.get("productoId"),
-            (String) body.get("tipoMovimiento"),
-            (String) body.get("tipoDocumento")
-        );
+    public ResponseEntity<?> insertarTipoDocumento(@RequestBody Map<String, Object> body) {
+        try {
+            int orden = body.get("orden") != null ? Integer.parseInt(body.get("orden").toString()) : 0;
+            String productoOrigenId = body.get("productoOrigenId") != null ? body.get("productoOrigenId").toString() : null;
+            service.insertarTipoDocumento(
+                (String) body.get("productoId"),
+                (String) body.get("tipoMovimiento"),
+                (String) body.get("tipoDocumento"),
+                orden,
+                productoOrigenId
+            );
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            log.error("[insertarTipoDocumento] ERROR: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage() != null ? e.getMessage() : e.toString()));
+        }
     }
 
     @DeleteMapping("/productos/tipo-documento")

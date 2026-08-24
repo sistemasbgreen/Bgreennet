@@ -49,8 +49,8 @@ public class MetaService {
         repository.eliminarTiposDocumentoPorProducto(productoId);
     }
 
-    public void insertarTipoDocumento(String productoId, String tipoMov, String tipoDoc) {
-        repository.insertarTipoDocumento(productoId, tipoMov, tipoDoc);
+    public void insertarTipoDocumento(String productoId, String tipoMov, String tipoDoc, int orden, String productoOrigenId) {
+        repository.insertarTipoDocumento(productoId, tipoMov, tipoDoc, orden, productoOrigenId);
     }
 
     public List<Map<String, Object>> getTiposDocumento() {
@@ -94,8 +94,21 @@ public class MetaService {
                 Map<String, String> data = new HashMap<>();
                 data.put("erp", p.getIdProductoTbs());
                 data.put("bwart", p.getIdTbsTipoDoc());
-                data.put("desc", p.getTbsDescripcion());
-                map.put(p.getId(), data);
+                data.put("desc", p.getTbsDescripcion() != null && !p.getTbsDescripcion().isEmpty() ? p.getTbsDescripcion() : p.getNombre());
+                
+                // Mapear por el ID de Siesa del producto simple
+                if (p.getIdProductoSiesa() != null) {
+                    map.put(String.valueOf(p.getIdProductoSiesa()).trim(), data);
+                }
+                
+                // Mapear por los IDs de Siesa de sus componentes (productos compuestos)
+                if (p.getComponenteSiesaIds() != null) {
+                    for (String hijoSiesaId : p.getComponenteSiesaIds()) {
+                        if (hijoSiesaId != null && !hijoSiesaId.trim().isEmpty()) {
+                            map.put(hijoSiesaId.trim(), data);
+                        }
+                    }
+                }
             }
         }
         return map;

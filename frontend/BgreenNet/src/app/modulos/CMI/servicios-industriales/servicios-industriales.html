@@ -121,9 +121,6 @@
         <div style="text-align:center; font-size:0.8rem; font-weight:600; color:#718096; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">
           Consumo Mensual
         </div>
-        <div *ngIf="fechaCalculoEnergia" style="text-align:center; font-size:0.75rem; color:#a0aec0; margin-top:-0.25rem; margin-bottom:0.5rem;">
-          Calculado al {{ fechaCalculoEnergia }}
-        </div>
         <div class="oc-meta" style="text-align:center;">Meta: {{ energiaKpis.meta }} kWh/ton</div>
         <div class="oc-divider"></div>
         <div class="oc-footer">
@@ -209,7 +206,7 @@
             <div class="stat-detail">
               <i class="fas" [class.fa-check-circle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia <= kpis.meta"
                              [class.fa-exclamation-triangle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia > kpis.meta"></i>
-              <span>{{ focoUltimoDiaFecha ? formatDateToDMY(focoUltimoDiaFecha) : 'Sin dato' }}</span>
+              <span>{{ kpis.focoUltimoDia !== null ? (kpis.focoUltimoDia <= kpis.meta ? '' : '') : 'Sin dato' }}</span>
             </div>
           </div>
 
@@ -224,10 +221,6 @@
             <div class="stat-detail">
               <i class="fas fa-calculator"></i>
               <span>{{ kpis.totalVaporMes | number:'1.0-0' }} vapor / {{ kpis.totalB100Mes | number:'1.0-0' }} Ton B100</span>
-            </div>
-            <div class="stat-detail" *ngIf="fechaCalculoVapor" style="margin-top: 4px;">
-              <i class="fas fa-clock"></i>
-              <span>Calculado al {{ fechaCalculoVapor }}</span>
             </div>
           </div>
 
@@ -300,10 +293,9 @@
         </div>
       </section>
 
-      <!-- ── Gráfica 4: Indicador FOCO diario ──────── -->
+      <!-- ── Gráfica 4: Indicador FOCO diario ─────────────── -->
       <section class="charts-section">
         <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
-          <!-- Indicador FOCO Diario (Línea) -->
           <div class="chart-card fade-in">
             <div class="chart-header">
               <div class="chart-title">
@@ -313,56 +305,6 @@
             </div>
             <div class="chart-container">
               <canvas baseChart [data]="focoData" [options]="focoOptions" type="line"></canvas>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── Gráfica 1: Comportamiento consumo de vapor ──── -->
-      <section class="charts-section">
-        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
-          <div class="chart-card fade-in">
-            <div class="chart-header">
-              <div class="chart-title">
-                <div class="chart-icon"><i class="fas fa-chart-area"></i></div>
-                Comportamiento del Consumo de Vapor
-              </div>
-              <div style="display: flex; gap: 12px; align-items: center;">
-                <!-- Botones de Resolución (Hora / Minuto) -->
-                <div style="display: flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; font-size: 0.75rem;">
-                  <button type="button" 
-                          (click)="cambiarResolucionVapor('hora')" 
-                          [style.background-color]="resolucionVapor === 'hora' ? '#2c3e50' : '#ffffff'"
-                          [style.color]="resolucionVapor === 'hora' ? '#ffffff' : '#64748b'"
-                          [style.font-weight]="resolucionVapor === 'hora' ? '600' : '400'"
-                          style="border: none; padding: 6px 12px; cursor: pointer; outline: none; transition: all 0.2s;">
-                    Hora
-                  </button>
-                  <button type="button" 
-                          (click)="cambiarResolucionVapor('minuto')" 
-                          [style.background-color]="resolucionVapor === 'minuto' ? '#2c3e50' : '#ffffff'"
-                          [style.color]="resolucionVapor === 'minuto' ? '#ffffff' : '#64748b'"
-                          [style.font-weight]="resolucionVapor === 'minuto' ? '600' : '400'"
-                          style="border: none; padding: 6px 12px; cursor: pointer; outline: none; transition: all 0.2s; border-left: 1px solid #cbd5e1;">
-                    Minuto
-                  </button>
-                </div>
-
-                <div class="chart-filter" *ngIf="diasDisponiblesVapor.length > 0">
-                  <button
-                    (click)="navegarDiaVapor(-1)"
-                    [disabled]="diasDisponiblesVapor.indexOf(selectedDiaVapor) <= 0"
-                    title="Día anterior">&#8249;</button>
-                  <span>{{ selectedDiaVapor }}</span>
-                  <button
-                    (click)="navegarDiaVapor(1)"
-                    [disabled]="diasDisponiblesVapor.indexOf(selectedDiaVapor) >= diasDisponiblesVapor.length - 1"
-                    title="Día siguiente">&#8250;</button>
-                </div>
-              </div>
-            </div>
-            <div class="chart-container">
-              <canvas baseChart [data]="comportamientoData" [options]="vaporComportamientoOptions" type="line"></canvas>
             </div>
           </div>
         </div>
@@ -426,10 +368,6 @@
             <div class="stat-detail">
               <i class="fas fa-calculator"></i>
               <span>{{ energiaKpis.totalEnergiaMes | number:'1.0-0' }} kWh / {{ energiaKpis.totalB100Mes | number:'1.0-0' }} Ton B100</span>
-            </div>
-            <div class="stat-detail" *ngIf="fechaCalculoEnergia" style="margin-top: 4px;">
-              <i class="fas fa-clock"></i>
-              <span>Calculado al {{ fechaCalculoEnergia }}</span>
             </div>
           </div>
 
