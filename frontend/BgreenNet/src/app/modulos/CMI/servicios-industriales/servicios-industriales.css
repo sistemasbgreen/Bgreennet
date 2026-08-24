@@ -367,6 +367,7 @@
   position: relative;
   height: 380px;
   margin-top: 0.5rem;
+  width: 100%;
 }
 
 /* Subtle inner glow on the canvas area */
