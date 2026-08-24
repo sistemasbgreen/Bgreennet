@@ -24,9 +24,15 @@ import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../../
 })
 export class Usuarios implements OnInit {
 
+  // ── Pestaña activa (como en metas) ────────────────────────
+  activeTab: 'usuarios' | 'perfiles' | 'areas' | 'cargos' | 'empresas' = 'usuarios';
+
   // ── Formularios ──────────────────────────────────────────
   usuarioForm: FormGroup;
   perfilForm: FormGroup;
+  areaForm: FormGroup;
+  cargoForm: FormGroup;
+  empresaForm: FormGroup;
 
   // ── Listas principales ───────────────────────────────────
   usuarios: Usuario[] = [];
@@ -34,13 +40,19 @@ export class Usuarios implements OnInit {
   perfiles: Perfil[] = [];
   perfilesFiltrados: Perfil[] = [];
   empresas: Empresa[] = [];
+  empresasFiltradas: Empresa[] = [];
   cargos: Cargo[] = [];
+  cargosFiltrados: Cargo[] = [];
   areas: Area[] = [];
+  areasFiltradas: Area[] = [];
   tiposIdentificacion: TiposIdentificacion[] = [];
 
   // ── Búsqueda ─────────────────────────────────────────────
   searchUsuario = '';
   searchPerfil = '';
+  searchArea = '';
+  searchCargo = '';
+  searchEmpresa = '';
 
   // ── Módulos y permisos ───────────────────────────────────
   modulos: ModuloDTO[] = [];
@@ -50,20 +62,30 @@ export class Usuarios implements OnInit {
   showModalUsuario = false;
   showModalPerfil = false;
   showModalCambiarClave = false;
+  showModalArea = false;
+  showModalCargo = false;
+  showModalEmpresa = false;
 
-  // ── Modos del modal de usuario ───────────────────────────
+  // ── Modos de modales ─────────────────────────────────────
   isEditModeUsuario = false;
   isViewModeUsuario = false; 
   isEditModePerfil = false;
+  isEditModeArea = false;
+  isEditModeCargo = false;
+  isEditModeEmpresa = false;
 
   // ── IDs en edición ───────────────────────────────────────
   usuarioIdEditar: number | null = null;
   idDetalleUsuarioEditar: number | null = null;
   perfilIdEditar: number | null = null;
+  areaIdEditar: number | null = null;
+  cargoIdEditar: number | null = null;
+  empresaIdEditar: number | null = null;
 
-  // ── Perfil seleccionado para permisos ────────────────────
+  // ── Selección para permisos ──────────────────────────────
   perfilSeleccionado: number | null = null;
   perfilIdSeleccionado: number | null = null;
+  usuarioSeleccionadoPermisos: number | null = null;
   usuarioSeleccionado: Usuario | null = null;
   nombre_perfil = '';
 
@@ -108,6 +130,21 @@ export class Usuarios implements OnInit {
       descripcionPerfil: ['', [Validators.required, Validators.minLength(4)]],
       activo: [true]
     });
+
+    this.areaForm = this.fb.group({
+      descripcionArea: ['', [Validators.required, Validators.minLength(3)]],
+      estado: [1]
+    });
+
+    this.cargoForm = this.fb.group({
+      descripcionCargo: ['', [Validators.required, Validators.minLength(3)]],
+      estado: [1]
+    });
+
+    this.empresaForm = this.fb.group({
+      descripcionEmpresa: ['', [Validators.required, Validators.minLength(3)]],
+      estado: [1]
+    });
   }
 
   ngOnInit(): void {
@@ -135,9 +172,40 @@ export class Usuarios implements OnInit {
     });
   }
 
+  // ======================================================
+  //  PESTAÑAS (Navegación estilo metas)
+  // ======================================================
+
+  switchTab(tab: 'usuarios' | 'perfiles' | 'areas' | 'cargos' | 'empresas'): void {
+    this.activeTab = tab;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Determina si un registro (Usuario, Perfil, Área, Cargo, Empresa o valor directo) está activo.
+   * Regla del sistema: 1 / true = Activo, 0 / false = Inactivo.
+   */
+  isActivo(val: any): boolean {
+    if (val === null || val === undefined) return false;
+    let v = val;
+    if (typeof val === 'object') {
+      v = val.activo !== undefined && val.activo !== null ? val.activo : val.estado;
+    }
+    if (typeof v === 'boolean') {
+      return v;
+    }
+    if (typeof v === 'number' || typeof v === 'string') {
+      return Number(v) === 1;
+    }
+    return false;
+  }
+
   // ── Helpers de validación ────────────────────────────────
   get f() { return this.usuarioForm.controls; }
   get pf() { return this.perfilForm.controls; }
+  get af() { return this.areaForm.controls; }
+  get cf() { return this.cargoForm.controls; }
+  get ef() { return this.empresaForm.controls; }
 
   // ── Validaciones Clave Admin ───────────────────────────
   get tieneMayusculaAdmin(): boolean { return /[A-Z]/.test(this.nuevaClaveAdmin); }
@@ -159,7 +227,7 @@ export class Usuarios implements OnInit {
   }
 
   // ======================================================
-  //  BÚSQUEDA
+  //  BÚSQUEDA & FILTROS
   // ======================================================
 
   filtrarUsuarios(): void {
@@ -183,8 +251,41 @@ export class Usuarios implements OnInit {
     );
   }
 
+  filtrarAreas(): void {
+    const term = this.searchArea.toLowerCase().trim();
+    if (!term) { this.areasFiltradas = [...this.areas]; return; }
+
+    this.areasFiltradas = this.areas.filter(a =>
+      a.descripcionArea.toLowerCase().includes(term) ||
+      String(a.idArea).includes(term)
+    );
+  }
+
+  filtrarCargos(): void {
+    const term = this.searchCargo.toLowerCase().trim();
+    if (!term) { this.cargosFiltrados = [...this.cargos]; return; }
+
+    this.cargosFiltrados = this.cargos.filter(c =>
+      c.descripcionCargo.toLowerCase().includes(term) ||
+      String(c.idCargo).includes(term)
+    );
+  }
+
+  filtrarEmpresas(): void {
+    const term = this.searchEmpresa.toLowerCase().trim();
+    if (!term) { this.empresasFiltradas = [...this.empresas]; return; }
+
+    this.empresasFiltradas = this.empresas.filter(e =>
+      e.descripcionEmpresa.toLowerCase().includes(term) ||
+      String(e.idEmpresa).includes(term)
+    );
+  }
+
   limpiarBusquedaUsuario(): void { this.searchUsuario = ''; this.filtrarUsuarios(); }
   limpiarBusquedaPerfil(): void { this.searchPerfil = ''; this.filtrarPerfiles(); }
+  limpiarBusquedaArea(): void { this.searchArea = ''; this.filtrarAreas(); }
+  limpiarBusquedaCargo(): void { this.searchCargo = ''; this.filtrarCargos(); }
+  limpiarBusquedaEmpresa(): void { this.searchEmpresa = ''; this.filtrarEmpresas(); }
 
   // ======================================================
   //  CARGA DE DATOS
@@ -213,21 +314,33 @@ export class Usuarios implements OnInit {
 
   cargarEmpresa(): void {
     this.listasServices.obtenerEmpresas().subscribe({
-      next: (data) => this.empresas = data,
+      next: (data) => {
+        this.empresas = data;
+        this.empresasFiltradas = [...data];
+        this.cdr.detectChanges();
+      },
       error: (err) => console.error('Error al cargar empresas', err)
     });
   }
 
   cargarCargo(): void {
     this.listasServices.obtenerCargos().subscribe({
-      next: (data) => this.cargos = data,
+      next: (data) => {
+        this.cargos = data;
+        this.cargosFiltrados = [...data];
+        this.cdr.detectChanges();
+      },
       error: (err) => console.error('Error al cargar cargos', err)
     });
   }
 
   cargarArea(): void {
     this.listasServices.obtenerAreas().subscribe({
-      next: (data) => this.areas = data,
+      next: (data) => {
+        this.areas = data;
+        this.areasFiltradas = [...data];
+        this.cdr.detectChanges();
+      },
       error: (err) => console.error('Error al cargar áreas', err)
     });
   }
@@ -444,13 +557,192 @@ export class Usuarios implements OnInit {
   }
 
   // ======================================================
-  //  PERMISOS — Sistemas externos
+  //  MODALES Y ACCIONES PARA ÁREAS, CARGOS Y EMPRESAS
   // ======================================================
 
-  seleccionarPerfil(p: Perfil): void {
-    if (this.perfilSeleccionado === p.idPerfil) {
-      this.perfilSeleccionado = null;
+  // ── ÁREAS ──────────────────────────────────────────
+  openCrearAreaModal(): void {
+    this.isEditModeArea = false;
+    this.areaIdEditar = null;
+    this.areaForm.reset({ estado: 1 });
+    this.showModalArea = true;
+  }
+
+  abrirEditarAreaModal(area: Area): void {
+    this.isEditModeArea = true;
+    this.areaIdEditar = area.idArea;
+    this.areaForm.patchValue({
+      descripcionArea: area.descripcionArea,
+      estado: area.estado
+    });
+    this.showModalArea = true;
+  }
+
+  cerrarModalArea(): void {
+    this.showModalArea = false;
+    this.isEditModeArea = false;
+    this.areaIdEditar = null;
+    this.areaForm.reset();
+  }
+
+  onSubmitArea(): void {
+    if (this.areaForm.invalid) { this.areaForm.markAllAsTouched(); return; }
+    const payload: any = {
+      descripcionArea: this.areaForm.value.descripcionArea,
+      estado: Number(this.areaForm.value.estado)
+    };
+
+    if (this.isEditModeArea && this.areaIdEditar) {
+      this.listasServices.actualizarArea(this.areaIdEditar, payload).subscribe({
+        next: () => { alert('Área actualizada exitosamente'); this.cargarArea(); this.cerrarModalArea(); },
+        error: (err) => {
+          console.error('Error al actualizar área:', err);
+          alert('Error al actualizar área: ' + (err.error?.message || err.message || 'Intente nuevamente.'));
+        }
+      });
     } else {
+      this.listasServices.crearArea(payload).subscribe({
+        next: () => { alert('Área creada exitosamente'); this.cargarArea(); this.cerrarModalArea(); },
+        error: (err) => {
+          console.error('Error al crear área:', err);
+          alert('Error al crear área: ' + (err.error?.message || err.message || 'Intente nuevamente.'));
+        }
+      });
+    }
+  }
+
+  // ── CARGOS ─────────────────────────────────────────
+  openCrearCargoModal(): void {
+    this.isEditModeCargo = false;
+    this.cargoIdEditar = null;
+    this.cargoForm.reset({ estado: 1 });
+    this.showModalCargo = true;
+  }
+
+  abrirEditarCargoModal(cargo: Cargo): void {
+    this.isEditModeCargo = true;
+    this.cargoIdEditar = cargo.idCargo!;
+    this.cargoForm.patchValue({
+      descripcionCargo: cargo.descripcionCargo,
+      estado: cargo.estado
+    });
+    this.showModalCargo = true;
+  }
+
+  cerrarModalCargo(): void {
+    this.showModalCargo = false;
+    this.isEditModeCargo = false;
+    this.cargoIdEditar = null;
+    this.cargoForm.reset();
+  }
+
+  onSubmitCargo(): void {
+    if (this.cargoForm.invalid) { this.cargoForm.markAllAsTouched(); return; }
+    const payload: any = {
+      descripcionCargo: this.cargoForm.value.descripcionCargo,
+      estado: Number(this.cargoForm.value.estado)
+    };
+
+    if (this.isEditModeCargo && this.cargoIdEditar) {
+      this.listasServices.actualizarCargo(this.cargoIdEditar, payload).subscribe({
+        next: () => { alert('Cargo actualizado exitosamente'); this.cargarCargo(); this.cerrarModalCargo(); },
+        error: (err) => {
+          console.error('Error al actualizar cargo:', err);
+          alert('Error al actualizar cargo: ' + (err.error?.message || err.message || 'Intente nuevamente.'));
+        }
+      });
+    } else {
+      this.listasServices.crearCargo(payload).subscribe({
+        next: () => { alert('Cargo creado exitosamente'); this.cargarCargo(); this.cerrarModalCargo(); },
+        error: (err) => {
+          console.error('Error al crear cargo:', err);
+          alert('Error al crear cargo: ' + (err.error?.message || err.message || 'Intente nuevamente.'));
+        }
+      });
+    }
+  }
+
+  // ── EMPRESAS ───────────────────────────────────────
+  openCrearEmpresaModal(): void {
+    this.isEditModeEmpresa = false;
+    this.empresaIdEditar = null;
+    this.empresaForm.reset({ estado: 1 });
+    this.showModalEmpresa = true;
+  }
+
+  abrirEditarEmpresaModal(empresa: Empresa): void {
+    this.isEditModeEmpresa = true;
+    this.empresaIdEditar = empresa.idEmpresa;
+    this.empresaForm.patchValue({
+      descripcionEmpresa: empresa.descripcionEmpresa,
+      estado: empresa.estado
+    });
+    this.showModalEmpresa = true;
+  }
+
+  cerrarModalEmpresa(): void {
+    this.showModalEmpresa = false;
+    this.isEditModeEmpresa = false;
+    this.empresaIdEditar = null;
+    this.empresaForm.reset();
+  }
+
+  onSubmitEmpresa(): void {
+    if (this.empresaForm.invalid) { this.empresaForm.markAllAsTouched(); return; }
+    const payload: any = {
+      descripcionEmpresa: this.empresaForm.value.descripcionEmpresa,
+      estado: Number(this.empresaForm.value.estado)
+    };
+
+    if (this.isEditModeEmpresa && this.empresaIdEditar) {
+      this.listasServices.actualizarEmpresa(this.empresaIdEditar, payload).subscribe({
+        next: () => { alert('Empresa actualizada exitosamente'); this.cargarEmpresa(); this.cerrarModalEmpresa(); },
+        error: (err) => {
+          console.error('Error al actualizar empresa:', err);
+          alert('Error al actualizar empresa: ' + (err.error?.message || err.message || 'Intente nuevamente.'));
+        }
+      });
+    } else {
+      this.listasServices.crearEmpresa(payload).subscribe({
+        next: () => { alert('Empresa creada exitosamente'); this.cargarEmpresa(); this.cerrarModalEmpresa(); },
+        error: (err) => {
+          console.error('Error al crear empresa:', err);
+          alert('Error al crear empresa: ' + (err.error?.message || err.message || 'Intente nuevamente.'));
+        }
+      });
+    }
+  }
+
+  // ======================================================
+  //  PERMISOS — Selección por Usuario y Perfil
+  // ======================================================
+
+  seleccionarUsuarioPermisos(u: Usuario): void {
+    if (this.usuarioSeleccionadoPermisos === u.idUsuario) {
+      this.usuarioSeleccionadoPermisos = null;
+      this.perfilSeleccionado = null;
+      this.perfilIdSeleccionado = null;
+      this.nombre_perfil = '';
+      this.permisosXperfil = [];
+    } else {
+      this.usuarioSeleccionadoPermisos = u.idUsuario;
+      this.perfilSeleccionado = u.id_perfil_fk;
+      this.perfilIdSeleccionado = u.id_perfil_fk;
+      const perfilObj = this.perfiles.find(p => p.idPerfil === u.id_perfil_fk);
+      const nombrePerfil = perfilObj?.descripcionPerfil || u.descripcionPerfil || 'Perfil';
+      this.nombre_perfil = `${u.usuario} — ${nombrePerfil}`;
+      this._cargarTodosLosPermisos(u.id_perfil_fk);
+    }
+  }
+
+  seleccionarPerfil(p: Perfil): void {
+    if (this.perfilSeleccionado === p.idPerfil && this.usuarioSeleccionadoPermisos === null) {
+      this.perfilSeleccionado = null;
+      this.perfilIdSeleccionado = null;
+      this.nombre_perfil = '';
+      this.permisosXperfil = [];
+    } else {
+      this.usuarioSeleccionadoPermisos = null;
       this.perfilSeleccionado = p.idPerfil!;
       this.perfilIdSeleccionado = p.idPerfil!;
       this.nombre_perfil = p.descripcionPerfil;
