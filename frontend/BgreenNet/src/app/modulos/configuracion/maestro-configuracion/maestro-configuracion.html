@@ -244,6 +244,62 @@
               </div>
             </div>
 
+            <hr class="section-divider mt-5">
+
+            <!-- ===== SECCIÓN: INTEGRACIÓN NOVO CONNECTOR ===== -->
+            <div class="section-block mt-4">
+              <div class="section-title mb-4">
+                <span class="section-icon-badge"><i class="bi bi-cloud-arrow-down-fill"></i></span>
+                <span>Integración NOVO Connector</span>
+              </div>
+
+              <div class="row g-4">
+                <!-- URL API -->
+                <div class="col-md-6">
+                  <label class="field-label">URL del Web Service SOAP</label>
+                  <div class="input-group">
+                    <span class="input-group-text field-prefix"><i class="bi bi-link"></i></span>
+                    <input type="text" class="form-control field-input" 
+                           placeholder="http://[IP]:[PUERTO]/scadaotherapp.asmx"
+                           formControlName="novoUrl">
+                  </div>
+                  <div class="field-hint">Estructura del WSDL. Ejemplo: http://172.30.72.10:8080/scadaotherapp.asmx</div>
+                </div>
+
+                <!-- API Key / AuthCode -->
+                <div class="col-md-6">
+                  <label class="field-label">API Key / AuthCode (Header X-API-KEY)</label>
+                  <div class="input-group">
+                    <span class="input-group-text field-prefix"><i class="bi bi-key-fill"></i></span>
+                    <input type="text" class="form-control field-input" 
+                           placeholder="Ingrese el AuthCode provisto"
+                           formControlName="novoApiKey">
+                  </div>
+                  <div class="field-hint">Token de autenticación provisto por el equipo de NOVO.</div>
+                </div>
+
+                <!-- Connection Timeout -->
+                <div class="col-md-6">
+                  <label class="field-label">Timeout de Conexión (ms)</label>
+                  <div class="input-group">
+                    <span class="input-group-text field-prefix"><i class="bi bi-stopwatch"></i></span>
+                    <input type="number" class="form-control field-input" formControlName="novoConnectionTimeout">
+                  </div>
+                  <div class="field-hint">Tiempo límite para establecer conexión en milisegundos (ej: 10000).</div>
+                </div>
+
+                <!-- Read Timeout -->
+                <div class="col-md-6">
+                  <label class="field-label">Timeout de Lectura (ms)</label>
+                  <div class="input-group">
+                    <span class="input-group-text field-prefix"><i class="bi bi-hourglass-split"></i></span>
+                    <input type="number" class="form-control field-input" formControlName="novoReadTimeout">
+                  </div>
+                  <div class="field-hint">Tiempo límite para recibir respuesta en milisegundos (ej: 30000).</div>
+                </div>
+              </div>
+            </div>
+
             <!-- ===== ACCIONES ===== -->
             <div class="mt-5 pt-4 d-flex justify-content-between border-top">
               <button type="button" class="btn-force-expire btn-lg px-4"

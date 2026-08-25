@@ -23,6 +23,10 @@ public class ConfiguracionSeguridadService {
                     defaultConf.setRequiereLetras(true);
                     defaultConf.setRequiereNumeros(true);
                     defaultConf.setRequiereEspeciales(true);
+                    defaultConf.setNovoUrl("http://localhost:8080/scadaotherapp.asmx");
+                    defaultConf.setNovoApiKey("default-fake-api-key");
+                    defaultConf.setNovoConnectionTimeout(10000);
+                    defaultConf.setNovoReadTimeout(30000);
                     return repository.save(defaultConf);
                 });
     }
@@ -35,6 +39,11 @@ public class ConfiguracionSeguridadService {
         existing.setRequiereLetras(configuracion.getRequiereLetras());
         existing.setRequiereNumeros(configuracion.getRequiereNumeros());
         existing.setRequiereEspeciales(configuracion.getRequiereEspeciales());
+        existing.setNovoUrl(configuracion.getNovoUrl());
+        existing.setNovoApiKey(configuracion.getNovoApiKey());
+        existing.setNovoConnectionTimeout(configuracion.getNovoConnectionTimeout());
+        existing.setNovoReadTimeout(configuracion.getNovoReadTimeout());
         return repository.save(existing);
     }
+
 }

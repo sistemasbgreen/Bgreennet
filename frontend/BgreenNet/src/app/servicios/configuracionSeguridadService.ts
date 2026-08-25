@@ -12,6 +12,10 @@ export interface ConfiguracionSeguridad {
   requiereLetras: boolean;
   requiereNumeros: boolean;
   requiereEspeciales: boolean;
+  novoUrl?: string;
+  novoApiKey?: string;
+  novoConnectionTimeout?: number;
+  novoReadTimeout?: number;
 }
 
 @Injectable({

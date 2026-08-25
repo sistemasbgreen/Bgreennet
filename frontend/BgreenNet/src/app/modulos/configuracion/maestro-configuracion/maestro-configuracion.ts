@@ -38,7 +38,11 @@ export class MaestroConfiguracion implements OnInit {
       minCaracteres: [8, [Validators.required, Validators.min(4), Validators.max(20)]],
       requiereLetras: [true],
       requiereNumeros: [true],
-      requiereEspeciales: [true]
+      requiereEspeciales: [true],
+      novoUrl: ['', []],
+      novoApiKey: ['', []],
+      novoConnectionTimeout: [10000, [Validators.required, Validators.min(100)]],
+      novoReadTimeout: [30000, [Validators.required, Validators.min(100)]]
     });
   }
 

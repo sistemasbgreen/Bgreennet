@@ -38,6 +38,19 @@ public class ConfiguracionSeguridad {
     @Column(name = "requiere_especiales", nullable = false)
     private Boolean requiereEspeciales;
 
+    @Column(name = "novo_url")
+    private String novoUrl;
+
+    @Column(name = "novo_api_key")
+    private String novoApiKey;
+
+    @Column(name = "novo_connection_timeout")
+    private Integer novoConnectionTimeout;
+
+    @Column(name = "novo_read_timeout")
+    private Integer novoReadTimeout;
+
+
     @Column(name = "date_create", nullable = false, updatable = false)
     private LocalDateTime dateCreate;
 
@@ -125,5 +138,37 @@ public class ConfiguracionSeguridad {
 
 	public void setDateModify(LocalDateTime dateModify) {
 		this.dateModify = dateModify;
+	}
+
+	public String getNovoUrl() {
+		return novoUrl;
+	}
+
+	public void setNovoUrl(String novoUrl) {
+		this.novoUrl = novoUrl;
+	}
+
+	public String getNovoApiKey() {
+		return novoApiKey;
+	}
+
+	public void setNovoApiKey(String novoApiKey) {
+		this.novoApiKey = novoApiKey;
+	}
+
+	public Integer getNovoConnectionTimeout() {
+		return novoConnectionTimeout;
+	}
+
+	public void setNovoConnectionTimeout(Integer novoConnectionTimeout) {
+		this.novoConnectionTimeout = novoConnectionTimeout;
+	}
+
+	public Integer getNovoReadTimeout() {
+		return novoReadTimeout;
+	}
+
+	public void setNovoReadTimeout(Integer novoReadTimeout) {
+		this.novoReadTimeout = novoReadTimeout;
 	}
 }
