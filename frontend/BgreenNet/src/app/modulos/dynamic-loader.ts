@@ -1,4 +1,5 @@
 import { Component, OnInit, Type, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Type, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule, NgComponentOutlet } from '@angular/common';
 
@@ -59,6 +60,7 @@ export class DynamicLoader implements OnInit {
         'configuracion/metas': () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(m => m.MetasCMI),
         'configuracion/metas-cmi': () => import('../modulos/configuracion/metas-cmi/metas-cmi').then(m => m.MetasCMI),
         'configuracion/maestro-configuracion': () => import('../modulos/configuracion/maestro-configuracion/maestro-configuracion').then(m => m.MaestroConfiguracion),
+        'configuracion/generales': () => import('../modulos/configuracion/maestro-configuracion/maestro-configuracion').then(m => m.MaestroConfiguracion),
         'configuracion/seguimiento-variable': () => import('../home/seguimiento-variable/seguimiento-variable').then(m => m.SeguimientoVariable),
         'configuracion/variables-plc': () => import('../modulos/configuracion/variables-plc/variables-plc').then(m => m.VariablesPlc),
         // Agrega más rutas según necesites

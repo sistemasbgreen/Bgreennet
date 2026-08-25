@@ -302,8 +302,32 @@
 
 .chart-container {
   position: relative;
-  height: 400px;
-  margin-top: 1rem;
+  height: 380px;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+/* Subtle inner glow on the canvas area */
+.chart-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(19,89,12,0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.chart-container canvas {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Chart.js tooltip premium override ──────────────────
+   Hace el tooltip más visible y elegante al parar el cursor */
+:root {
+  --chartjs-tooltip-bg: rgba(15, 23, 42, 0.92);
+  --chartjs-tooltip-border: rgba(122, 195, 224, 0.3);
 }
 
 /* Sidebar */

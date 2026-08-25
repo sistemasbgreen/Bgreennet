@@ -9,6 +9,7 @@
       </div>
       <div class="title-section">
         <h1 class="main-title">CMI - OPERACIONAL</h1>
+        <h1 class="main-title">CMI - OPERACIONAL</h1>
         <p class="subtitle">Servicios Industriales - {{ getServicioNombre() }}</p>
       </div>
       <div class="filter-section">
@@ -24,15 +25,15 @@
         </div>
         <div class="filter-group">
           <label class="filter-label">Año</label>
-          <select class="filter-select">
+          <select class="filter-select" [(ngModel)]="selectedYear" (change)="onFiltroChange()">
             <option value="2025">2025</option>
             <option value="2026">2026</option>
           </select>
         </div>
         <div class="filter-group">
           <label class="filter-label">Mes</label>
-          <select class="filter-select">
-            <option value="">Mes actual</option>
+          <select class="filter-select" [(ngModel)]="selectedMonth" (change)="onFiltroChange()">
+            <option *ngFor="let m of getMesesDisponibles()" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
       </div>
@@ -40,10 +41,45 @@
   </header>
   <main class="main-content" *ngIf="selectedServicio === 'general'">
     <div class="overview-grid">
-
+      <!-- VAPOR 
+      <div class="overview-card vapor" *ngIf="false" (click)="selectedServicio = 'vapor'; cargarDatosApropiados()" style="cursor: pointer;">
+        <div class="oc-header">
+          <div class="oc-title-wrap">
+            <i class="fas fa-wind" style="font-size: 1.5rem;"></i> VAPOR (FOCO Mensual)
+          </div>
+          <div class="oc-status-dot" [style.background-color]="kpis.focoMensual && kpis.focoMensual <= kpis.meta ? '#27ae60' : '#e74c3c'"></div>
+        </div>
+        <div class="oc-main-data">
+          <span class="oc-value">{{ kpis.focoMensual ? (kpis.focoMensual | number:'1.0-2') : '---' }}</span>
+          <span class="oc-unit">kg/ton</span>
+          <div class="oc-change-wrap" *ngIf="kpis.focoMensual">
+            <span class="oc-change" [ngClass]="kpis.focoMensual <= kpis.meta ? 'down' : 'up'" [style.color]="kpis.focoMensual <= kpis.meta ? '#27ae60' : '#e74c3c'">
+              {{ kpis.focoMensual <= kpis.meta ? '▼' : '▲' }} 
+              {{ Math.abs((kpis.focoMensual - kpis.meta) / kpis.meta * 100) | number:'1.0-1' }}%
+            </span>
+            <span class="oc-change-label">vs meta</span>
+          </div>
+        </div>
+        <div *ngIf="fechaCalculoVapor" style="text-align:center; font-size:0.75rem; color:#a0aec0; margin-top:-0.25rem; margin-bottom:0.5rem;">
+          Calculado al {{ fechaCalculoVapor }}
+        </div>
+        <div class="oc-meta" style="text-align:center;">Meta: {{ kpis.meta }} kg/ton</div>
+        <div class="oc-divider"></div>
+        <div class="oc-footer">
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Total Vapor Mes</div>
+            <div class="oc-footer-val">{{ kpis.totalVaporMes | number:'1.0-0' }} kg</div>
+          </div>
+          <div class="oc-footer-item">
+            <div class="oc-footer-label">Total B100 Mes</div>
+            <div class="oc-footer-val">{{ kpis.totalB100Mes | number:'1.0-0' }} Ton</div>
+          </div>
+        </div>
+      </div>
+      -->
 
       <!-- GAS (TOTAL) -->
-      <div class="overview-card gas">
+      <div class="overview-card gas" *ngIf="false">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-fire" style="font-size: 1.5rem;"></i> GAS (TOTAL)
@@ -73,6 +109,8 @@
       </div>
 
       <!-- ENERGÍA ELÉCTRICA -->
+      <div class="overview-card energia" (click)="selectedServicio = 'energia'; cargarDatosApropiados()" style="cursor: pointer;">
+        <div class="oc-header" style="justify-content:center;">
       <div class="overview-card energia" (click)="selectedServicio = 'energia'; onServicioChange()" style="cursor: pointer;">
         <div class="oc-header">
           <div class="oc-title-wrap">
@@ -81,10 +119,15 @@
         </div>
         <div class="oc-main-data" style="justify-content:center;">
           <span class="oc-value">{{ energiaKpis.mensual ? (energiaKpis.mensual | number:'1.0-2') : '---' }}</span>
+        <div class="oc-main-data" style="justify-content:center;">
+          <span class="oc-value">{{ energiaKpis.mensual ? (energiaKpis.mensual | number:'1.0-2') : '---' }}</span>
           <span class="oc-unit">kWh/ton</span>
         </div>
         <div style="text-align:center; font-size:0.8rem; font-weight:600; color:#718096; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">
           Consumo Mensual
+        </div>
+        <div *ngIf="fechaCalculoEnergia" style="text-align:center; font-size:0.75rem; color:#a0aec0; margin-top:-0.25rem; margin-bottom:0.5rem;">
+          Calculado al {{ fechaCalculoEnergia }}
         </div>
         <div class="oc-meta" style="text-align:center;">Meta: {{ energiaKpis.meta }} kWh/ton</div>
         <div class="oc-divider"></div>
@@ -101,7 +144,7 @@
       </div>
 
       <!-- AGUA -->
-      <div class="overview-card agua">
+      <div class="overview-card agua" *ngIf="false">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-tint" style="font-size: 1.5rem;"></i> AGUA
@@ -171,7 +214,7 @@
             <div class="stat-detail">
               <i class="fas" [class.fa-check-circle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia <= kpis.meta"
                              [class.fa-exclamation-triangle]="kpis.focoUltimoDia !== null && kpis.focoUltimoDia > kpis.meta"></i>
-              <span>{{ kpis.focoUltimoDia !== null ? (kpis.focoUltimoDia <= kpis.meta ? '' : '') : 'Sin dato' }}</span>
+              <span>{{ focoUltimoDiaFecha ? formatDateToDMY(focoUltimoDiaFecha) : 'Sin dato' }}</span>
             </div>
           </div>
 
@@ -186,6 +229,10 @@
             <div class="stat-detail">
               <i class="fas fa-calculator"></i>
               <span>{{ kpis.totalVaporMes | number:'1.0-0' }} vapor / {{ kpis.totalB100Mes | number:'1.0-0' }} Ton B100</span>
+            </div>
+            <div class="stat-detail" *ngIf="fechaCalculoVapor" style="margin-top: 4px;">
+              <i class="fas fa-clock"></i>
+              <span>Calculado al {{ fechaCalculoVapor }}</span>
             </div>
           </div>
 
@@ -258,9 +305,10 @@
         </div>
       </section>
 
-      <!-- ── Gráfica 4: Indicador FOCO diario ─────────────── -->
+      <!-- ── Gráfica 4: Indicador FOCO diario ──────── -->
       <section class="charts-section">
         <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+          <!-- Indicador FOCO Diario (Línea) -->
           <div class="chart-card fade-in">
             <div class="chart-header">
               <div class="chart-title">
@@ -270,6 +318,56 @@
             </div>
             <div class="chart-container">
               <canvas baseChart [data]="focoData" [options]="focoOptions" type="line"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Gráfica 1: Comportamiento consumo de vapor ──── -->
+      <section class="charts-section">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+          <div class="chart-card fade-in">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-area"></i></div>
+                Comportamiento del Consumo de Vapor
+              </div>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <!-- Botones de Resolución (Hora / Minuto) -->
+                <div style="display: flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; font-size: 0.75rem;">
+                  <button type="button" 
+                          (click)="cambiarResolucionVapor('hora')" 
+                          [style.background-color]="resolucionVapor === 'hora' ? '#2c3e50' : '#ffffff'"
+                          [style.color]="resolucionVapor === 'hora' ? '#ffffff' : '#64748b'"
+                          [style.font-weight]="resolucionVapor === 'hora' ? '600' : '400'"
+                          style="border: none; padding: 6px 12px; cursor: pointer; outline: none; transition: all 0.2s;">
+                    Hora
+                  </button>
+                  <button type="button" 
+                          (click)="cambiarResolucionVapor('minuto')" 
+                          [style.background-color]="resolucionVapor === 'minuto' ? '#2c3e50' : '#ffffff'"
+                          [style.color]="resolucionVapor === 'minuto' ? '#ffffff' : '#64748b'"
+                          [style.font-weight]="resolucionVapor === 'minuto' ? '600' : '400'"
+                          style="border: none; padding: 6px 12px; cursor: pointer; outline: none; transition: all 0.2s; border-left: 1px solid #cbd5e1;">
+                    Minuto
+                  </button>
+                </div>
+
+                <div class="chart-filter" *ngIf="diasDisponiblesVapor.length > 0">
+                  <button
+                    (click)="navegarDiaVapor(-1)"
+                    [disabled]="diasDisponiblesVapor.indexOf(selectedDiaVapor) <= 0"
+                    title="Día anterior">&#8249;</button>
+                  <span>{{ selectedDiaVapor }}</span>
+                  <button
+                    (click)="navegarDiaVapor(1)"
+                    [disabled]="diasDisponiblesVapor.indexOf(selectedDiaVapor) >= diasDisponiblesVapor.length - 1"
+                    title="Día siguiente">&#8250;</button>
+                </div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="comportamientoData" [options]="vaporComportamientoOptions" type="line"></canvas>
             </div>
           </div>
         </div>
@@ -333,6 +431,10 @@
             <div class="stat-detail">
               <i class="fas fa-calculator"></i>
               <span>{{ energiaKpis.totalEnergiaMes | number:'1.0-0' }} kWh / {{ energiaKpis.totalB100Mes | number:'1.0-0' }} Ton B100</span>
+            </div>
+            <div class="stat-detail" *ngIf="fechaCalculoEnergia" style="margin-top: 4px;">
+              <i class="fas fa-clock"></i>
+              <span>Calculado al {{ fechaCalculoEnergia }}</span>
             </div>
           </div>
 
