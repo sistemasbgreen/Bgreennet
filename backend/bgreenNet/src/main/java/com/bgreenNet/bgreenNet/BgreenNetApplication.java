@@ -16,8 +16,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.bgreenNet.bgreenNet.services.EmailReporteService;
 
-import jakarta.annotation.PostConstruct;
-
 @SpringBootApplication
 @EnableScheduling
 public class BgreenNetApplication {
@@ -36,15 +34,26 @@ public class BgreenNetApplication {
             @Qualifier("primaryJdbcTemplate") JdbcTemplate primaryJdbcTemplate,
             @Qualifier("primaryDataSource") DataSource primaryDataSource,
             @Qualifier("siesaJdbcTemplate") JdbcTemplate siesaJdbcTemplate,
-            @Qualifier("siesaDataSource") DataSource siesaDataSource
+            @Qualifier("siesaDataSource") DataSource siesaDataSource,
+            @Qualifier("plcJdbcTemplate") JdbcTemplate plcJdbcTemplate,
+            @Qualifier("plcDataSource") DataSource plcDataSource
     ) {
         return args -> {
-            probarConexion("BASE DE DATOS PRINCIPAL", primaryJdbcTemplate, primaryDataSource);
-            probarConexion("BASE DE DATOS SIESA", siesaJdbcTemplate, siesaDataSource);
+            boolean conn1 = probarConexion("BASE DE DATOS PRINCIPAL", primaryJdbcTemplate, primaryDataSource);
+            boolean conn2 = probarConexion("BASE DE DATOS SIESA", siesaJdbcTemplate, siesaDataSource);
+            boolean conn3 = probarConexion("BASE DE DATOS PLC", plcJdbcTemplate, plcDataSource);
+
+            System.out.println("\n========================================");
+            System.out.println("    RESUMEN DE CONEXIONES A BASE DE DATOS");
+            System.out.println("========================================");
+            System.out.println(" CONEXIÓN 1 (Principal) : " + (conn1 ? "✅ CONECTADO" : "❌ FALLÓ"));
+            System.out.println(" CONEXIÓN 2 (SIESA)     : " + (conn2 ? "✅ CONECTADO" : "❌ FALLÓ"));
+            System.out.println(" CONEXIÓN 3 (PLC)       : " + (conn3 ? "✅ CONECTADO" : "❌ FALLÓ"));
+            System.out.println("========================================\n");
         };
     }
 
-    private void probarConexion(
+    private boolean probarConexion(
             String nombreConexion,
             JdbcTemplate jdbcTemplate,
             DataSource dataSource
@@ -67,10 +76,12 @@ public class BgreenNetApplication {
 
                 System.out.println("Base actual : " + actualDatabaseName);
             }
+            return true;
 
         } catch (Exception e) {
             System.err.println("❌ ERROR en " + nombreConexion);
             System.err.println("Motivo: " + e.getMessage());
+            return false;
         }
     }
 }

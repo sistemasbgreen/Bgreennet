@@ -228,6 +228,7 @@ public class MetaRepository {
 
         // 2. Cargar TODAS las vinculaciones de documentos de forma directa
         String sqlDocs = "SELECT ptd.producto_id, tm.codigo as tipo_mov, td.id as doc_id, td.codigo as doc_cod, ptd.orden as doc_orden, ptd.producto_origen_id " +
+
                         "FROM producto_tipos_documento ptd " +
                         "JOIN tipo_movimiento tm ON ptd.tipo_movimiento_id = tm.id " +
                         "JOIN tipos_documento td ON ptd.tipo_documento_id = td.id " +

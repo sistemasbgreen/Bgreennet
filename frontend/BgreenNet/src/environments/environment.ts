@@ -8,6 +8,6 @@ production: true,
 
  //apiUrl: 'http://45.183.247.77:8060' // URL de Preprod
 
- // apiUrl: 'https://bgreennet.bgreen.com.co'// URL PROD
+// apiUrl: 'https://bgreennet.bgreen.com.co'// URL PROD
 
 };

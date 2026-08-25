@@ -93,6 +93,8 @@ export class MetasCMI implements OnInit {
   draggedDoc: any = null;
   dragSource: string = '';
   draggedSign: string | null = null;
+  draggedSign: string | null = null;
+
 
   isFormulaDividedConsumo: boolean = false;
   
@@ -508,6 +510,9 @@ export class MetasCMI implements OnInit {
     // Ordenar por orden ASC
     rawConsumoDocs.sort((a, b) => a.orden - b.orden);
     
+    // Ordenar por orden ASC
+    rawConsumoDocs.sort((a, b) => a.orden - b.orden);
+    
     // Clasificar por zona según valor de orden: 0-99 (0), 100-199 (1), 200-299 (2), 300-399 (3), 400-499 (4)
     this.tempConsumoZonas = [[], [], [], [], []];
     let maxZoneIdx = 0;
@@ -628,6 +633,26 @@ export class MetasCMI implements OnInit {
     }));
   }
 
+  getGroupedAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): { key: string, label: string, docs: any[] }[] {
+    const available = this.getAvailableDocs(type);
+    const groups: { [key: string]: { label: string, docs: any[] } } = {};
+    
+    available.forEach(doc => {
+      const key = doc.origenId || 'none';
+      const label = doc.origenNombre || 'Producto';
+      if (!groups[key]) {
+        groups[key] = { label, docs: [] };
+      }
+      groups[key].docs.push(doc);
+    });
+
+    return Object.keys(groups).map(k => ({
+      key: k,
+      label: groups[k].label,
+      docs: groups[k].docs
+    }));
+  }
+
   quickAddDoc(type: 'CONSUMO' | 'PRODUCCION', doc: any) {
     if (type === 'CONSUMO') {
       if (!this.tempConsumoDocs.find(d => d.id === doc.id && d.origenId === doc.origenId)) {
@@ -718,6 +743,7 @@ export class MetasCMI implements OnInit {
     }
     this.tempConsumoSalidas = this.tempConsumoZonas[0];
     this.tempConsumoEntradas = this.tempConsumoZonas[1] || [];
+
   }
 
   allowDrop(event: DragEvent) {
@@ -789,6 +815,7 @@ export class MetasCMI implements OnInit {
     } else if (from === 'PROD_ENTRAS') {
       this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
     }
+
 
     // Add to target
     if (to.startsWith('ZONA_')) {
@@ -943,6 +970,7 @@ export class MetasCMI implements OnInit {
       this.tempProduccionDocs = [];
       this.tempProduccionSalidas = [];
       this.tempProduccionEntradas = [];
+
     }
     
     const obs = this.isEditingProduct 
@@ -1104,6 +1132,7 @@ export class MetasCMI implements OnInit {
     }
     return this.currentProduct.idProductoSiesa || 'N/A';
   }
+  
 
   getProductoFormulaPartes(p: producto): { zonas: string[][], operadores: string[] } {
     const zones: string[][] = [[], [], [], [], []];
@@ -1142,8 +1171,7 @@ export class MetasCMI implements OnInit {
     const isEspecifico = this.isProductConsumoEspecifico(p);
     if (isEspecifico) {
       tokens.push({ type: 'parenthesis', text: '(' });
-    }
-    
+    }    
     let printedAny = false;
     for (let i = 0; i < 5; i++) {
       const zoneDocs = partes.zonas[i];
@@ -1167,8 +1195,7 @@ export class MetasCMI implements OnInit {
       tokens.push({ type: 'parenthesis', text: ')' });
       tokens.push({ type: 'operator', text: ' / ' });
       tokens.push({ type: 'doc', text: 'Producción B100' });
-    }
-    
-    return tokens;
-  }
+    }    
+    return tokens;  
+}
 }

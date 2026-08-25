@@ -24,15 +24,15 @@
         </div>
         <div class="filter-group">
           <label class="filter-label">Año</label>
-          <select class="filter-select">
+          <select class="filter-select" [(ngModel)]="selectedYear" (change)="onFiltroChange()">
             <option value="2025">2025</option>
             <option value="2026">2026</option>
           </select>
         </div>
         <div class="filter-group">
           <label class="filter-label">Mes</label>
-          <select class="filter-select">
-            <option value="">Mes actual</option>
+          <select class="filter-select" [(ngModel)]="selectedMonth" (change)="onFiltroChange()">
+            <option *ngFor="let m of getMesesDisponibles()" [value]="m.value">{{ m.label }}</option>
           </select>
         </div>
       </div>
@@ -44,35 +44,41 @@
       <div class="overview-card vapor" *ngIf="false" (click)="selectedServicio = 'vapor'; cargarDatosApropiados()" style="cursor: pointer;">
         <div class="oc-header">
           <div class="oc-title-wrap">
-            <i class="fas fa-wind" style="font-size: 1.5rem;"></i> VAPOR
+            <i class="fas fa-wind" style="font-size: 1.5rem;"></i> VAPOR (FOCO Mensual)
           </div>
-          <div class="oc-status-dot"></div>
+          <div class="oc-status-dot" [style.background-color]="kpis.focoMensual && kpis.focoMensual <= kpis.meta ? '#27ae60' : '#e74c3c'"></div>
         </div>
         <div class="oc-main-data">
-          <span class="oc-value">520</span>
+          <span class="oc-value">{{ kpis.focoMensual ? (kpis.focoMensual | number:'1.0-2') : '---' }}</span>
           <span class="oc-unit">kg/ton</span>
-          <div class="oc-change-wrap">
-            <span class="oc-change up">▲ 8.3%</span>
+          <div class="oc-change-wrap" *ngIf="kpis.focoMensual">
+            <span class="oc-change" [ngClass]="kpis.focoMensual <= kpis.meta ? 'down' : 'up'" [style.color]="kpis.focoMensual <= kpis.meta ? '#27ae60' : '#e74c3c'">
+              {{ kpis.focoMensual <= kpis.meta ? '▼' : '▲' }} 
+              {{ Math.abs((kpis.focoMensual - kpis.meta) / kpis.meta * 100) | number:'1.0-1' }}%
+            </span>
             <span class="oc-change-label">vs meta</span>
           </div>
         </div>
-        <div class="oc-meta">Meta: 480 kg/ton</div>
+        <div *ngIf="fechaCalculoVapor" style="text-align:center; font-size:0.75rem; color:#a0aec0; margin-top:-0.25rem; margin-bottom:0.5rem;">
+          Calculado al {{ fechaCalculoVapor }}
+        </div>
+        <div class="oc-meta" style="text-align:center;">Meta: {{ kpis.meta }} kg/ton</div>
         <div class="oc-divider"></div>
         <div class="oc-footer">
           <div class="oc-footer-item">
-            <div class="oc-footer-label">Eficiencia caldera</div>
-            <div class="oc-footer-val">81.2%</div>
+            <div class="oc-footer-label">Total Vapor Mes</div>
+            <div class="oc-footer-val">{{ kpis.totalVaporMes | number:'1.0-0' }} kg</div>
           </div>
           <div class="oc-footer-item">
-            <div class="oc-footer-label">Retorno condensado</div>
-            <div class="oc-footer-val">88.5%</div>
+            <div class="oc-footer-label">Total B100 Mes</div>
+            <div class="oc-footer-val">{{ kpis.totalB100Mes | number:'1.0-0' }} Ton</div>
           </div>
         </div>
       </div>
       -->
 
       <!-- GAS (TOTAL) -->
-      <div class="overview-card gas">
+      <div class="overview-card gas" *ngIf="false">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-fire" style="font-size: 1.5rem;"></i> GAS (TOTAL)
@@ -130,7 +136,7 @@
       </div>
 
       <!-- AGUA -->
-      <div class="overview-card agua">
+      <div class="overview-card agua" *ngIf="false">
         <div class="oc-header">
           <div class="oc-title-wrap">
             <i class="fas fa-tint" style="font-size: 1.5rem;"></i> AGUA
