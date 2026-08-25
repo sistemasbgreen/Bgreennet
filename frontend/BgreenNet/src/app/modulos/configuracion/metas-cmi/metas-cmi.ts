@@ -14,6 +14,7 @@ interface ToastState {
 @Component({
   selector: 'app-metas-cmi',
   standalone: true,
+  standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './metas-cmi.html',
   styleUrl: './metas-cmi.css',
@@ -92,8 +93,12 @@ export class MetasCMI implements OnInit {
   tempProduccionEntradas: any[] = [];
   draggedDoc: any = null;
   dragSource: string = '';
+<<<<<<< HEAD
+  draggedSign: boolean | null = null;
+=======
   draggedSign: string | null = null;
 
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
   isFormulaDividedConsumo: boolean = false;
   
   // Isolated state for document linking per product row
@@ -545,6 +550,17 @@ export class MetasCMI implements OnInit {
 
     // Reconstruir tempProduccionDocs con orden correcto desde el backend
     const rawProduccionDocs = (p?.productionDocIds || []).map((id, idx) => {
+<<<<<<< HEAD
+    this.tempConsumoEntradas = this.tempConsumoDocs.filter(d => this.isEntradaDoc(d.codigo));
+    this.tempConsumoSalidas = this.tempConsumoDocs.filter(d => !this.isEntradaDoc(d.codigo));
+    this.isFormulaDividedConsumo = this.tempConsumoSalidas.length > 0;
+=======
+    
+    // Ordenar por orden ASC
+    rawConsumoDocs.sort((a, b) => a.orden - b.orden);
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
+    
+    this.tempProduccionDocs = (p?.productionDocIds || []).map(id => {
       const doc = this.tiposDocumento.find(d => String(d.id) === String(id));
       const orden = p?.productionDocOrden ? (p.productionDocOrden[idx] ?? idx) : idx;
       const origenId = p?.productionDocOrigenIds ? p.productionDocOrigenIds[idx] : null;
@@ -574,38 +590,13 @@ export class MetasCMI implements OnInit {
     this.showProductModal = true;
   }
 
-  getAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): any[] {
-    const selected = type === 'CONSUMO' ? this.tempConsumoDocs : this.tempProduccionDocs;
-    
-    // Identificar productos base (componentes o el producto mismo)
-    let bases = [];
-    if (this.isCompuestoToggle && this.tempComponentes.length > 0) {
-      bases = this.tempComponentes.map(c => ({ id: c, nombre: this.getItemName(c) }));
-    } else {
-      const siesaId = this.currentProduct?.idProductoSiesa || this.siesaSearchId;
-      if (siesaId) {
-        bases.push({ id: siesaId, nombre: this.currentProduct?.nombre || '' });
-      } else {
-        bases.push({ id: null, nombre: 'Producto' });
-      }
-    }
 
-    const available = [];
-    for (const doc of this.tiposDocumento) {
-      for (const base of bases) {
-        // Verificar si esta combinacion exacta ya esta seleccionada
-        const isSelected = selected.some(s => String(s.id) === String(doc.id) && s.origenId === base.id);
-        if (!isSelected) {
-          available.push({
-            id: doc.id,
-            codigo: doc.codigo,
-            origenId: base.id,
-            origenNombre: base.nombre
-          });
-        }
-      }
-    }
-    return available;
+  getAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): any[] {
+    const selectedIds = type === 'CONSUMO' 
+      ? this.tempConsumoDocs.map(d => String(d.id)) 
+      : this.tempProduccionDocs.map(d => String(d.id));
+    
+    return this.tiposDocumento.filter(d => !selectedIds.includes(String(d.id)));
   }
 
   getGroupedAvailableDocs(type: 'CONSUMO' | 'PRODUCCION'): { key: string, label: string, docs: any[] }[] {
@@ -690,6 +681,12 @@ export class MetasCMI implements OnInit {
     }
   }
 
+<<<<<<< HEAD
+  removeDivision() {
+    this.isFormulaDividedConsumo = false;
+    this.tempConsumoEntradas = [...this.tempConsumoSalidas, ...this.tempConsumoEntradas];
+    this.tempConsumoSalidas = [];
+=======
   addOperator(op: string) {
     if (this.tempConsumoOperadores.length >= 4) {
       this.showToast('Máximo de 5 zonas alcanzado (4 signos)', 'error');
@@ -718,6 +715,7 @@ export class MetasCMI implements OnInit {
     }
     this.tempConsumoSalidas = this.tempConsumoZonas[0];
     this.tempConsumoEntradas = this.tempConsumoZonas[1] || [];
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
   }
 
   allowDrop(event: DragEvent) {
@@ -776,6 +774,12 @@ export class MetasCMI implements OnInit {
   moveDoc(doc: any, from: string, to: string) {
     if (!doc || from === to) return;
     
+<<<<<<< HEAD
+    if (from === 'SALIDAS') this.tempConsumoSalidas = this.tempConsumoSalidas.filter(d => d.id !== doc.id);
+    else if (from === 'ENTRADAS') this.tempConsumoEntradas = this.tempConsumoEntradas.filter(d => d.id !== doc.id);
+    else if (from === 'PROD_SALIDAS') this.tempProduccionSalidas = this.tempProduccionSalidas.filter(d => d.id !== doc.id);
+    else if (from === 'PROD_ENTRADAS') this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => d.id !== doc.id);
+=======
     // Remove from source
     if (from.startsWith('ZONA_')) {
       const fromIdx = parseInt(from.split('_')[1]);
@@ -789,23 +793,12 @@ export class MetasCMI implements OnInit {
     } else if (from === 'PROD_ENTRAS') {
       this.tempProduccionEntradas = this.tempProduccionEntradas.filter(d => !(d.id === doc.id && d.origenId === doc.origenId));
     }
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
 
-    // Add to target
-    if (to.startsWith('ZONA_')) {
-      const toIdx = parseInt(to.split('_')[1]);
-      this.tempConsumoZonas[toIdx].push(doc);
-    } else if (to === 'SALIDAS') {
-      this.tempConsumoZonas[0].push(doc);
-    } else if (to === 'ENTRADAS') {
-      this.tempConsumoZonas[1].push(doc);
-    } else if (to === 'PROD_SALIDAS') {
-      this.tempProduccionSalidas.push(doc);
-    } else if (to === 'PROD_ENTRADAS') {
-      this.tempProduccionEntradas.push(doc);
-    }
-
-    this.tempConsumoSalidas = this.tempConsumoZonas[0];
-    this.tempConsumoEntradas = this.tempConsumoZonas[1];
+    if (to === 'SALIDAS') this.tempConsumoSalidas.push(doc);
+    else if (to === 'ENTRADAS') this.tempConsumoEntradas.push(doc);
+    else if (to === 'PROD_SALIDAS') this.tempProduccionSalidas.push(doc);
+    else if (to === 'PROD_ENTRADAS') this.tempProduccionEntradas.push(doc);
 
     this.tempConsumoDocs = [
       ...this.tempConsumoZonas[0],
@@ -934,6 +927,8 @@ export class MetasCMI implements OnInit {
       const docs = this.tiposDocumento
         .filter(d => requiredDocs.includes(d.codigo))
         .map(d => ({ id: d.id, codigo: d.codigo }));
+<<<<<<< HEAD
+=======
         
       this.tempProduccionDocs = docs;
       this.tempProduccionSalidas = [];
@@ -943,6 +938,7 @@ export class MetasCMI implements OnInit {
       this.tempProduccionDocs = [];
       this.tempProduccionSalidas = [];
       this.tempProduccionEntradas = [];
+>>>>>>> 5f48b4e ([BGREEN-115][BGREEN-119][Bug]Asignacion de formula)
     }
     
     const obs = this.isEditingProduct 
@@ -1171,4 +1167,75 @@ export class MetasCMI implements OnInit {
     
     return tokens;
   }
+<<<<<<< HEAD
+  
+=======
+
+  getProductoFormulaPartes(p: producto): { zonas: string[][], operadores: string[] } {
+    const zones: string[][] = [[], [], [], [], []];
+    
+    (p.consumptionDocOrden || []).forEach((orden, idx) => {
+      const codigo = p.consumptionDocTypes ? p.consumptionDocTypes[idx] : '';
+      const origenId = p.consumptionDocOrigenIds ? p.consumptionDocOrigenIds[idx] : null;
+      if (codigo) {
+        const text = origenId ? `${codigo} (${this.getItemName(origenId)})` : codigo;
+        const zoneIdx = Math.min(4, Math.max(0, Math.floor(orden / 100)));
+        zones[zoneIdx].push(text);
+      }
+    });
+
+    return {
+      zonas: zones,
+      operadores: p.formulaOperadores || ['+', '+', '+', '+']
+    };
+  }
+
+  isProductConsumoEspecifico(p: producto): boolean {
+    const isDefaultBase = p.produccionBaseId === '26';
+    const hasSpecificDocs = (p.productionDocTypes || []).some(t => ['EI', 'EDP', 'AI'].includes(t));
+    return isDefaultBase && hasSpecificDocs;
+  }
+
+  getProductoFormulaTokens(p: producto): { type: string, text: string }[] {
+    if (p.id === 'CostoDirecto') return [];
+    const tokens: { type: string, text: string }[] = [];
+    const partes = this.getProductoFormulaPartes(p);
+    
+    // Check if any zone actually has documents
+    const hasAnyDocs = partes.zonas.some(z => z.length > 0);
+    if (!hasAnyDocs) return [];
+
+    const isEspecifico = this.isProductConsumoEspecifico(p);
+    if (isEspecifico) {
+      tokens.push({ type: 'parenthesis', text: '(' });
+    }
+    
+    let printedAny = false;
+    for (let i = 0; i < 5; i++) {
+      const zoneDocs = partes.zonas[i];
+      if (zoneDocs && zoneDocs.length > 0) {
+        if (printedAny) {
+          const op = partes.operadores[i - 1] || '+';
+          tokens.push({ type: 'operator', text: ` ${op} ` });
+        }
+        // Join the documents of this zone with '+'
+        zoneDocs.forEach((doc, docIdx) => {
+          if (docIdx > 0) {
+            tokens.push({ type: 'operator', text: ' + ' });
+          }
+          tokens.push({ type: 'doc', text: doc });
+        });
+        printedAny = true;
+      }
+    }
+    
+    if (isEspecifico) {
+      tokens.push({ type: 'parenthesis', text: ')' });
+      tokens.push({ type: 'operator', text: ' / ' });
+      tokens.push({ type: 'doc', text: 'Producción B100' });
+    }
+    
+    return tokens;
+  }
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
 }

@@ -53,8 +53,16 @@
             <th class="col-id" style="width: 5%; padding-left: 24px;">ID</th>
             <th class="col-nombre">Nombre</th>
             <th class="col-siesa">ID Siesa</th>
+<<<<<<< HEAD
             <th class="col-formula" style="width: 22%;">Fórmula de Consumo</th>
             <th class="col-formula" style="width: 22%;">Fórmula de Consumo</th>
+=======
+<<<<<<< HEAD
+=======
+            <th class="col-formula" style="width: 22%;">Fórmula de Consumo</th>
+            <th class="col-formula" style="width: 22%;">Fórmula de Consumo</th>
+>>>>>>> cbf1e1f ([Bgreen-115][Bugs]- Validar formulas de parametrización de indicadores.)
+>>>>>>> a2fd8fc ([CMIB-30]Indicador - servicios industriales consumo de vapor)
             <th class="col-meta-stat">Meta (Mes Actual)</th>
             <th class="col-actions">Acciones</th>
           </tr>
@@ -522,6 +530,15 @@
 
              <div class="dnd-container mt-3" style="display: flex; gap: 15px;">
               <div class="dnd-source" (dragover)="allowDrop($event)" (drop)="onDropAvailable($event)" style="flex: 2; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 12px; background: #f8fafc; min-height: 60px;">
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+                <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Tipos de Documentos (Arrastra)</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                  <div class="avail-chip" draggable="true" *ngFor="let doc of getAvailableDocs('CONSUMO')" (dragstart)="onDragStart($event, doc, 'AVAILABLE')" style="cursor: grab; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <i class="bi bi-grip-vertical" style="opacity: 0.5;"></i> {{doc.codigo}}
+=======
+>>>>>>> a2fd8fc ([CMIB-30]Indicador - servicios industriales consumo de vapor)
                 <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Tipos de Documentos (Arrastra o haz Clic)</div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                   <div *ngFor="let group of getGroupedAvailableDocs('CONSUMO')">
@@ -533,6 +550,10 @@
                         <i class="bi bi-grip-vertical" style="opacity: 0.5; cursor: grab;"></i> {{doc.codigo}}
                       </div>
                     </div>
+<<<<<<< HEAD
+=======
+>>>>>>> 5f48b4e ([BGREEN-115][BGREEN-119][Bug]Asignacion de formula)
+>>>>>>> a2fd8fc ([CMIB-30]Indicador - servicios industriales consumo de vapor)
                   </div>
                   <div *ngIf="getAvailableDocs('CONSUMO').length === 0" style="font-size: 11px; color: #94a3b8; font-style: italic;">No hay más documentos disponibles</div>
                 </div>
