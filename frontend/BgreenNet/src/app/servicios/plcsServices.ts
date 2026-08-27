@@ -36,6 +36,40 @@ export class plcsServices {
     return this.http.get<any[]>(url);
   }
 
+  getAgua(startDate?: string, endDate?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/agua`;
+    if (startDate && endDate) {
+      url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getVaporAnual(year: string, endMonth?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/vapor/anual?year=${year}`;
+    if (endMonth) {
+      url += `&endMonth=${endMonth}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getEnergiaAnual(year: string, endMonth?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/energia/anual?year=${year}`;
+    if (endMonth) {
+      url += `&endMonth=${endMonth}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getAguaAnual(year: string, endMonth?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/agua/anual?year=${year}`;
+    if (endMonth) {
+      url += `&endMonth=${endMonth}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+
+
   /**
    * Extrae el valor real del sensor desde la notación científica del PLC.
    * Ej: 9.325711345004874E-39 → 9.33
@@ -137,10 +171,12 @@ export class plcsServices {
   /**
    * Diferencia max-min total de energía para un año completo (para KPI anual).
    */
-  getEnergiaTotalAnio(anio: string): Observable<{ totalEnergia: number }> {
-    return this.http.get<any>(`${this.baseUrl}/energia/anual?year=${anio}`).pipe(
+  getEnergiaTotalAnio(anio: string, endMonth?: string): Observable<{ totalEnergia: number }> {
+    let url = `${this.baseUrl}/energia/anual?year=${anio}`;
+    if (endMonth) url += `&endMonth=${endMonth}`;
+    return this.http.get<any>(url).pipe(
+      // El backend ahora devuelve un objeto agregado { totalEnergia: X }
       map(res => {
-        // El backend ahora devuelve un objeto agregado { totalEnergia: X }
         if (res && typeof res === 'object') {
           // Respuesta directa como objeto
           if (res.totalEnergia !== undefined && res.totalEnergia !== null) {
@@ -167,6 +203,27 @@ export class plcsServices {
           }
         }
         return { totalEnergia: 0 };
+      })
+    );
+  }
+
+  getAguaTotalAnio(anio: string, endMonth?: string): Observable<{ totalAgua: number }> {
+    let url = `${this.baseUrl}/agua/anual?year=${anio}`;
+    if (endMonth) url += `&endMonth=${endMonth}`;
+    return this.http.get<any>(url).pipe(
+      map(res => {
+        if (res && typeof res === 'object') {
+          if (res.totalAgua !== undefined && res.totalAgua !== null) {
+            return { totalAgua: Number(Number(res.totalAgua).toFixed(2)) };
+          }
+          if (Array.isArray(res) && res.length > 0) {
+            const first = res[0];
+            if (first.totalAgua !== undefined && first.totalAgua !== null) {
+              return { totalAgua: Number(Number(first.totalAgua).toFixed(2)) };
+            }
+          }
+        }
+        return { totalAgua: 0 };
       })
     );
   }
