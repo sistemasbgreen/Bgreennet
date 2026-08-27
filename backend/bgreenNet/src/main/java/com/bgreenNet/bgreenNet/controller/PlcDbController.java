@@ -37,15 +37,35 @@ public class PlcDbController {
         return ResponseEntity.ok(datos);
     }
 
+    @GetMapping("/agua")
+    public ResponseEntity<List<Map<String, Object>>> obtenerAgua(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        List<Map<String, Object>> datos = plcDbService.obtenerAgua(startDate, endDate);
+        return ResponseEntity.ok(datos);
+    }
+
     @GetMapping("/vapor/anual")
-    public ResponseEntity<List<Map<String, Object>>> obtenerVaporAnual(@RequestParam String year) {
-        List<Map<String, Object>> datos = plcDbService.obtenerVaporAnual(year);
+    public ResponseEntity<List<Map<String, Object>>> obtenerVaporAnual(
+            @RequestParam String year,
+            @RequestParam(required = false) String endMonth) {
+        List<Map<String, Object>> datos = plcDbService.obtenerVaporAnual(year, endMonth);
         return ResponseEntity.ok(datos);
     }
 
     @GetMapping("/energia/anual")
-    public ResponseEntity<List<Map<String, Object>>> obtenerEnergiaAnual(@RequestParam String year) {
-        List<Map<String, Object>> datos = plcDbService.obtenerEnergiaAnual(year);
+    public ResponseEntity<List<Map<String, Object>>> obtenerEnergiaAnual(
+            @RequestParam String year,
+            @RequestParam(required = false) String endMonth) {
+        List<Map<String, Object>> datos = plcDbService.obtenerEnergiaAnual(year, endMonth);
+        return ResponseEntity.ok(datos);
+    }
+
+    @GetMapping("/agua/anual")
+    public ResponseEntity<List<Map<String, Object>>> obtenerAguaAnual(
+            @RequestParam String year,
+            @RequestParam(required = false) String endMonth) {
+        List<Map<String, Object>> datos = plcDbService.obtenerAguaAnual(year, endMonth);
         return ResponseEntity.ok(datos);
     }
 }

@@ -128,7 +128,7 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
         max: v.metaMax,
         unit: v.unit ? v.unit.nombre : '',
         name: v.nombre,
-        notificar: v.notificar
+        notificar: v.notificar === true || (v.notificar as any) === 1
       });
     });
     this.sensorGroups = groups;
@@ -526,10 +526,15 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
     return null;
   }
 
-  getSensorStatus(value: number | null, min: number | null, max: number | null): 'normal' | 'warning' {
+  getSensorStatus(value: number | null, min: any, max: any): 'normal' | 'warning' {
     if (value === null) return 'normal';
-    if (min !== null && value < min) return 'warning';
-    if (max !== null && value > max) return 'warning';
+    
+    const limitMin = (min !== null && min !== undefined && min !== '') ? Number(min) : null;
+    const limitMax = (max !== null && max !== undefined && max !== '') ? Number(max) : null;
+    
+    if (limitMin !== null && !isNaN(limitMin) && value < limitMin) return 'warning';
+    if (limitMax !== null && !isNaN(limitMax) && value > limitMax) return 'warning';
+    
     return 'normal';
   }
 
@@ -619,8 +624,17 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
   }
 
   dispararAlertaEspecial(sensor: Sensor, valor: number, tipo: 'fuera' | 'dentro') {
+    // 1. Enviar el correo siempre (independientemente de si hay sonido reproduciéndose)
+    const canvas = document.getElementById('chart_' + sensor.tag) as HTMLCanvasElement;
+    const chartImage = canvas ? canvas.toDataURL('image/png') : null;
+
+    this.scadaService.sendAlertEmail(sensor.tag, valor, tipo, chartImage).subscribe({
+      next: () => console.log(`[AlertaScada] Solicitud de correo con gráfico procesada para ${sensor.tag}`),
+      error: (err) => console.error('[AlertaScada] Error en envío de correo para ' + sensor.tag, err)
+    });
+
+    // 2. Reproducir sonido y habla si no hay otro sonido en reproducción
     if (this.isSoundPlaying) {
-      // Evitar la superposición de alarmas sonoras consecutivas
       return;
     }
     this.isSoundPlaying = true;
@@ -628,22 +642,17 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
     const duration = tipo === 'fuera' ? 200 : 350;
 
     if (tipo === 'fuera') {
-      // Un solo pitido corto (0.2 segundos)
       this.playBeep(880, duration);
       
-      // Anuncio de voz en español después de que termine el pitido
       setTimeout(() => {
         this.speak(`Variable ${sensor.name} fuera de los límites`);
         setTimeout(() => {
           this.isSoundPlaying = false;
         }, 2000); // Dar 2 segundos para terminar de hablar
-
       }, duration + 200);
     } else {
-      // Un pitido medio agradable de restablecimiento (350ms)
       this.playBeep(520, duration);
       
-      // Anuncio de voz en español después de que termine el pitido
       setTimeout(() => {
         this.speak(`Variable ${sensor.name} normalizada`);
         setTimeout(() => {
@@ -651,16 +660,6 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
         }, 2000); // Dar 2 segundos para terminar de hablar
       }, duration + 150);
     }
-
-    // Obtener la imagen base64 del gráfico correspondiente
-    const canvas = document.getElementById('chart_' + sensor.tag) as HTMLCanvasElement;
-    const chartImage = canvas ? canvas.toDataURL('image/png') : null;
-
-    // Llamar al backend para enviar el correo a los destinatarios configurados con el gráfico
-    this.scadaService.sendAlertEmail(sensor.tag, valor, tipo, chartImage).subscribe({
-      next: () => console.log(`[AlertaScada] Solicitud de correo con gráfico procesada para ${sensor.tag}`),
-      error: (err) => console.error('[AlertaScada] Error en envío de correo para ' + sensor.tag, err)
-    });
   }
 
   updateAlerts() {

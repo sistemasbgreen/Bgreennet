@@ -23,10 +23,13 @@ export class homeservices {
 
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
+    let headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
+    if (token && token !== 'null' && token !== 'undefined') {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    return headers;
   }
 
   // Sistemas de informacion
