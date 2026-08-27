@@ -19,8 +19,8 @@
             <option value="general">General</option>
             <option value="energia">Energía</option>
             <!-- <option value="gas">Gas</option> -->
-            <!-- <option value="vapor">Vapor</option> -->
-            <!-- <option value="agua">Agua</option> -->
+            <option value="vapor">Vapor</option>
+            <option value="agua">Agua</option>
           </select>
         </div>
         <div class="filter-group">
@@ -144,35 +144,35 @@
       </div>
 
       <!-- AGUA -->
-      <div class="overview-card agua" *ngIf="false">
-        <div class="oc-header">
+      <div class="overview-card agua" (click)="selectedServicio = 'agua'; cargarDatosApropiados()" style="cursor: pointer;">
+        <div class="oc-header" style="justify-content:center;">
           <div class="oc-title-wrap">
             <i class="fas fa-tint" style="font-size: 1.5rem;"></i> AGUA
           </div>
-          <div class="oc-status-dot"></div>
         </div>
-        <div class="oc-main-data">
-          <span class="oc-value">4.5</span>
+        <div class="oc-main-data" style="justify-content:center;">
+          <span class="oc-value">{{ aguaKpis.mensual ? (aguaKpis.mensual | number:'1.0-2') : '---' }}</span>
           <span class="oc-unit">m³/ton</span>
-          <div class="oc-change-wrap">
-            <span class="oc-change down">▼ 2.1%</span>
-            <span class="oc-change-label">vs meta</span>
-          </div>
         </div>
-        <div class="oc-meta">Meta: 4.8 m³/ton</div>
+        <div style="text-align:center; font-size:0.8rem; font-weight:600; color:#718096; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">
+          Consumo Mensual
+        </div>
+        <div *ngIf="fechaCalculoAgua" style="text-align:center; font-size:0.75rem; color:#a0aec0; margin-top:-0.25rem; margin-bottom:0.5rem;">
+          Calculado al {{ fechaCalculoAgua }}
+        </div>
+        <div class="oc-meta" style="text-align:center;">Meta: {{ aguaKpis.meta }} m³/ton</div>
         <div class="oc-divider"></div>
         <div class="oc-footer">
           <div class="oc-footer-item">
-            <div class="oc-footer-label">Agua recuperada</div>
-            <div class="oc-footer-val">35%</div>
+            <div class="oc-footer-label">Total Agua Mes</div>
+            <div class="oc-footer-val">{{ aguaKpis.totalAguaMes | number:'1.0-0' }} m³</div>
           </div>
           <div class="oc-footer-item">
-            <div class="oc-footer-label">Consumo pozo</div>
-            <div class="oc-footer-val">1,200 m³</div>
+            <div class="oc-footer-label">Total Agua Año</div>
+            <div class="oc-footer-val">{{ aguaKpis.totalAguaAnio | number:'1.0-0' }} m³</div>
           </div>
         </div>
       </div>
-      
     </div>
   </main>
 
@@ -219,8 +219,8 @@
           </div>
 
           <!-- FOCO Mensual -->
-          <div class="stat-card" [class.success]="kpis.focoMensual !== null && kpis.focoMensual <= kpis.meta"
-                                 [class.danger]="kpis.focoMensual !== null && kpis.focoMensual > kpis.meta">
+          <div class="stat-card" [class.success]="kpis.focoMensual !== null && kpis.focoMensual <= ((kpis.metaMensual || kpis.meta)!)"
+                                 [class.danger]="kpis.focoMensual !== null && kpis.focoMensual > ((kpis.metaMensual || kpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">FOCO Mensual</span>
               <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
@@ -237,8 +237,8 @@
           </div>
 
           <!-- FOCO Anual -->
-          <div class="stat-card" [class.success]="kpis.focoAnual !== null && kpis.focoAnual <= kpis.meta"
-                                 [class.danger]="kpis.focoAnual !== null && kpis.focoAnual > kpis.meta">
+          <div class="stat-card" [class.success]="kpis.focoAnual !== null && kpis.focoAnual <= ((kpis.metaMensual || kpis.meta)!)"
+                                 [class.danger]="kpis.focoAnual !== null && kpis.focoAnual > ((kpis.metaMensual || kpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">FOCO Anual {{ selectedYear }}</span>
               <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
@@ -421,8 +421,8 @@
           </div>
 
           <!-- Consumo Mensual -->
-          <div class="stat-card" [class.success]="energiaKpis.mensual !== null && energiaKpis.mensual <= energiaKpis.meta"
-                                 [class.danger]="energiaKpis.mensual !== null && energiaKpis.mensual > energiaKpis.meta">
+          <div class="stat-card" [class.success]="energiaKpis.mensual !== null && energiaKpis.mensual <= ((energiaKpis.metaMensual || energiaKpis.meta)!)"
+                                 [class.danger]="energiaKpis.mensual !== null && energiaKpis.mensual > ((energiaKpis.metaMensual || energiaKpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">Consumo Mensual</span>
               <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
@@ -439,8 +439,8 @@
           </div>
 
           <!-- Consumo Anual -->
-          <div class="stat-card" [class.success]="energiaKpis.anual !== null && energiaKpis.anual <= energiaKpis.meta"
-                                 [class.danger]="energiaKpis.anual !== null && energiaKpis.anual > energiaKpis.meta">
+          <div class="stat-card" [class.success]="energiaKpis.anual !== null && energiaKpis.anual <= ((energiaKpis.metaMensual || energiaKpis.meta)!)"
+                                 [class.danger]="energiaKpis.anual !== null && energiaKpis.anual > ((energiaKpis.metaMensual || energiaKpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">Consumo Anual {{ selectedYear }}</span>
               <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
@@ -530,4 +530,188 @@
     </div> <!-- /!cargando -->
   </div> <!-- /energia -->
 
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- DASHBOARD AGUA                                           -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="selectedServicio === 'agua'">
+
+    <!-- Cargando -->
+    <div *ngIf="cargando" style="text-align:center; padding: 3rem; color: #64748b;">
+      <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+      <p style="margin-top:1rem;">Cargando datos de agua y producción B100...</p>
+    </div>
+
+    <div *ngIf="!cargando">
+
+      <!-- ── KPI Cards ────────────────────────────────── -->
+      <section class="stats-container" style="max-width: 100%; padding: 1rem 2rem;">
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+
+          <!-- Meta Agua -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Meta Consumo</span>
+              <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
+            </div>
+            <div class="stat-value" style="color:#0288d1 !important;">{{ aguaKpis.meta }} <small style="font-size:1rem;">m³/Ton</small></div>
+            <div class="stat-detail"><i class="fas fa-info-circle"></i> <span>m³ Agua / Ton B100 producida</span></div>
+          </div>
+
+          <!-- Consumo Último día -->
+          <div class="stat-card" [class.success]="aguaKpis.ultimoDia !== null && aguaKpis.ultimoDia <= aguaKpis.meta"
+                                 [class.danger]="aguaKpis.ultimoDia !== null && aguaKpis.ultimoDia > aguaKpis.meta">
+            <div class="stat-header">
+              <span class="stat-title">Último Día</span>
+              <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+            </div>
+            <div class="stat-value">{{ aguaKpis.ultimoDia !== null ? aguaKpis.ultimoDia : 'N/D' }} <small style="font-size:1rem;">m³/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas" [class.fa-check-circle]="aguaKpis.ultimoDia !== null && aguaKpis.ultimoDia <= aguaKpis.meta"
+                             [class.fa-exclamation-triangle]="aguaKpis.ultimoDia !== null && aguaKpis.ultimoDia > aguaKpis.meta"></i>
+              <span>{{ aguaKpis.ultimoDiaFecha ? (aguaKpis.ultimoDiaFecha | date:'dd/MM/yyyy') : 'Sin dato' }}</span>
+            </div>
+          </div>
+
+          <!-- Consumo Mensual -->
+          <div class="stat-card" [class.success]="aguaKpis.mensual !== null && aguaKpis.mensual <= ((aguaKpis.metaMensual || aguaKpis.meta)!)"
+                                 [class.danger]="aguaKpis.mensual !== null && aguaKpis.mensual > ((aguaKpis.metaMensual || aguaKpis.meta)!)">
+            <div class="stat-header">
+              <span class="stat-title">Consumo Mensual</span>
+              <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            </div>
+            <div class="stat-value">{{ aguaKpis.mensual !== null ? aguaKpis.mensual : 'N/D' }} <small style="font-size:1rem;">m³/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas fa-calculator"></i>
+              <span>{{ aguaKpis.totalAguaMes | number:'1.0-0' }} m³ / {{ aguaKpis.totalB100Mes | number:'1.0-0' }} Ton B100</span>
+            </div>
+          </div>
+
+          <!-- Consumo Anual -->
+          <div class="stat-card" [class.success]="aguaKpis.anual !== null && aguaKpis.anual <= ((aguaKpis.metaMensual || aguaKpis.meta)!)"
+                                 [class.danger]="aguaKpis.anual !== null && aguaKpis.anual > ((aguaKpis.metaMensual || aguaKpis.meta)!)">
+            <div class="stat-header">
+              <span class="stat-title">Consumo Anual {{ selectedYear }}</span>
+              <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
+            </div>
+            <div class="stat-value">{{ aguaKpis.anual !== null ? aguaKpis.anual : 'N/D' }} <small style="font-size:1rem;">m³/Ton</small></div>
+            <div class="stat-detail">
+              <i class="fas fa-calculator"></i>
+              <span>{{ aguaKpis.totalAguaAnio | number:'1.0-0' }} m³ / {{ aguaKpis.totalB100Anio | number:'1.0-0' }} Ton B100</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Gráficas: Consumo / B100 e Indicador FOCO ──────────── -->
+      <section class="charts-section">
+        <div class="charts-grid">
+
+          <!-- Consumo Total vs Ton B100 -->
+          <div class="chart-card fade-in" [class.focus-mode-active]="focusAguaTotalVsB100">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
+                Consumo Total de Agua vs Ton B100
+              </div>
+              <!-- Botón de Enfoque -->
+              <button type="button" 
+                      (click)="focusAguaTotalVsB100 = !focusAguaTotalVsB100"
+                      [title]="focusAguaTotalVsB100 ? 'Salir del modo enfoque' : 'Modo enfoque'"
+                      style="background: #f1f5f9; border: 1px solid rgba(0,0,0,0.06); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.2s;">
+                <i class="fas" [class.fa-compress]="focusAguaTotalVsB100" [class.fa-expand]="!focusAguaTotalVsB100"></i>
+              </button>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="aguaTotalVsB100Data" [options]="mixedOptions" type="line" (chartClick)="onAguaDiariaClick($event)"></canvas>
+            </div>
+          </div>
+
+          <!-- Indicador FOCO diario -->
+          <div class="chart-card fade-in" [class.focus-mode-active]="focusAguaFocoLinea">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-tachometer-alt"></i></div>
+                Indicador FOCO Diario (m³/Ton B100)
+              </div>
+              <!-- Botón de Enfoque -->
+              <button type="button" 
+                      (click)="focusAguaFocoLinea = !focusAguaFocoLinea"
+                      [title]="focusAguaFocoLinea ? 'Salir del modo enfoque' : 'Modo enfoque'"
+                      style="background: #f1f5f9; border: 1px solid rgba(0,0,0,0.06); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.2s;">
+                <i class="fas" [class.fa-compress]="focusAguaFocoLinea" [class.fa-expand]="!focusAguaFocoLinea"></i>
+              </button>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="aguaFocoLineaData" [options]="focoOptions" type="line" (chartClick)="onAguaDiariaClick($event)"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Gráfica: Comportamiento Flujo de Agua y Consumo Mensual ── -->
+      <section class="charts-section">
+        <div class="charts-grid">
+          <!-- Comportamiento del Flujo de Agua (1100FTAF01) -->
+          <div class="chart-card fade-in" [class.focus-mode-active]="focusAguaComportamiento">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-area"></i></div>
+                Comportamiento del Flujo de Agua (1100FTAF01)
+              </div>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <!-- Botón de Enfoque -->
+                <button type="button" 
+                        (click)="focusAguaComportamiento = !focusAguaComportamiento"
+                        [title]="focusAguaComportamiento ? 'Salir del modo enfoque' : 'Modo enfoque'"
+                        style="background: #f1f5f9; border: 1px solid rgba(0,0,0,0.06); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.2s;">
+                  <i class="fas" [class.fa-compress]="focusAguaComportamiento" [class.fa-expand]="!focusAguaComportamiento"></i>
+                </button>
+
+                <div class="chart-filter" *ngIf="diasDisponiblesAgua.length > 0">
+                  <button
+                    (click)="navegarDiaAgua(-1)"
+                    [disabled]="diasDisponiblesAgua.indexOf(selectedDiaAgua) <= 0"
+                    title="Día anterior">&#8249;</button>
+                  <span>{{ selectedDiaAgua }}</span>
+                  <button
+                    (click)="navegarDiaAgua(1)"
+                    [disabled]="diasDisponiblesAgua.indexOf(selectedDiaAgua) >= diasDisponiblesAgua.length - 1"
+                    title="Día siguiente">&#8250;</button>
+                </div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="aguaComportamientoMultiData" [options]="aguaComportamientoOptions" type="line"></canvas>
+            </div>
+          </div>
+
+          <!-- Consumo Mensual de Agua (Barras) -->
+          <div class="chart-card fade-in" [class.focus-mode-active]="focusAguaB100Mensual">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-bar"></i></div>
+                Consumo Mensual de Agua
+              </div>
+              <!-- Botón de Enfoque -->
+              <button type="button" 
+                      (click)="focusAguaB100Mensual = !focusAguaB100Mensual"
+                      [title]="focusAguaB100Mensual ? 'Salir del modo enfoque' : 'Modo enfoque'"
+                      style="background: #f1f5f9; border: 1px solid rgba(0,0,0,0.06); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.2s;">
+                <i class="fas" [class.fa-compress]="focusAguaB100Mensual" [class.fa-expand]="!focusAguaB100Mensual"></i>
+              </button>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="aguaB100MensualData" [options]="aguaB100MensualOptions" type="bar" (chartClick)="onAguaMensualClick($event)"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div> <!-- /!cargando -->
+  </div> <!-- /agua -->
+
 </div> <!-- /dashboard-container -->
+
+

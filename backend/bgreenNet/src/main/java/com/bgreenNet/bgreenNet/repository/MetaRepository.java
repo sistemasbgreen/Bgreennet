@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.bgreenNet.bgreenNet.dto.MetaDetalleDTO;
+import com.bgreenNet.bgreenNet.dto.MetaResponseDTO;
 import com.bgreenNet.bgreenNet.dto.ProductoDTO;
 
 @Repository
@@ -124,6 +125,20 @@ public class MetaRepository {
             } catch (Exception e) {
                 log.warn("Could not add new unique constraint UQ_producto_tipos_documento: " + e.getMessage());
             }
+
+            jdbcTemplate.execute(
+                "IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('metas_servicios_industriales') AND type in ('U')) " +
+                "CREATE TABLE metas_servicios_industriales (" +
+                "  id INT IDENTITY PRIMARY KEY, " +
+                "  servicio_id VARCHAR(20) NOT NULL, " +
+                "  anio INT NOT NULL, " +
+                "  mes INT NOT NULL, " +
+                "  valor DECIMAL(18,4) NOT NULL, " +
+                "  creado_en DATETIME DEFAULT GETDATE(), " +
+                "  creado_por VARCHAR(100), " +
+                "  CONSTRAINT UQ_meta_servicio_ind UNIQUE (servicio_id, anio, mes)" +
+                ")"
+            );
 
         } catch (Exception e) {
         }
@@ -542,5 +557,74 @@ public class MetaRepository {
 
     public List<Map<String, Object>> obtenerSecciones() {
         return jdbcTemplate.queryForList("SELECT id, nombre FROM secciones_reporte ORDER BY id");
+    }
+
+    // =============================
+    // METAS SERVICIOS INDUSTRIALES
+    // =============================
+    public List<MetaDetalleDTO> obtenerMetasServiciosIndustriales(String servicioId, int anio) {
+        ensureSchema();
+        List<MetaDetalleDTO> lista = new ArrayList<>();
+        // Indice 0 para mes 0 (meta diaria), indices 1..12 para meses 1..12
+        for (int i = 0; i <= 12; i++) {
+            double defaultVal = 0.0;
+            if (servicioId != null) {
+                switch (servicioId.toLowerCase()) {
+                    case "agua": defaultVal = 1.55; break;
+                    case "energia": defaultVal = 110.0; break;
+                    case "vapor": defaultVal = 730.0; break;
+                    case "gas": defaultVal = 0.0; break;
+                }
+            }
+            MetaDetalleDTO dto = new MetaDetalleDTO();
+            dto.setMes(i);
+            dto.setValor(defaultVal);
+            lista.add(dto);
+        }
+
+        try {
+            String sql = "SELECT mes, valor, creado_en, creado_por FROM metas_servicios_industriales WHERE LOWER(servicio_id) = LOWER(?) AND anio = ?";
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, servicioId, anio);
+            for (Map<String, Object> r : rows) {
+                Object mesObj = r.get("mes");
+                if (mesObj == null) continue;
+                int m = ((Number) mesObj).intValue();
+
+                if (m >= 0 && m <= 12) {
+                    MetaDetalleDTO dto = lista.get(m);
+                    Object valObj = r.get("valor");
+                    if (valObj != null) {
+                        dto.setValor(((Number) valObj).doubleValue());
+                    }
+                    
+                    Object creadoEnObj = r.get("creado_en");
+                    if (creadoEnObj instanceof Timestamp) {
+                        dto.setDateCreate(((Timestamp) creadoEnObj).toLocalDateTime());
+                    } else if (creadoEnObj instanceof LocalDateTime) {
+                        dto.setDateCreate((LocalDateTime) creadoEnObj);
+                    }
+                    if (r.get("creado_por") != null) {
+                        dto.setUserName(r.get("creado_por").toString());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("[obtenerMetasServiciosIndustriales] Error consultando DB: {}", e.getMessage(), e);
+        }
+
+        return lista;
+    }
+
+    public void guardarMetaServicioIndustrial(String servicioId, int anio, int mes, double valor, String usuario) {
+        ensureSchema();
+        String sql = "MERGE metas_servicios_industriales AS target " +
+                     "USING (SELECT ? AS servicio_id, ? AS anio, ? AS mes) AS source " +
+                     "ON (target.servicio_id = source.servicio_id AND target.anio = source.anio AND target.mes = source.mes) " +
+                     "WHEN MATCHED THEN " +
+                     "  UPDATE SET valor = ?, creado_en = GETDATE(), creado_por = ? " +
+                     "WHEN NOT MATCHED THEN " +
+                     "  INSERT (servicio_id, anio, mes, valor, creado_en, creado_por) " +
+                     "  VALUES (source.servicio_id, source.anio, source.mes, ?, GETDATE(), ?);";
+        jdbcTemplate.update(sql, servicioId.toLowerCase(), anio, mes, valor, usuario, valor, usuario);
     }
 }

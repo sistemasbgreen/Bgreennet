@@ -51,6 +51,18 @@ export class productoservices {
     return this.http.post(`${this.baseUrl}/metas/agregar_costo-directo`, data);
   }
 
+  getMetasServiciosIndustriales(servicio: string, anio: string): Observable<MetaResponse> {
+    const cleanAnio = String(anio || '').replace(/[^0-9]/g, '') || '2026';
+    const cleanSvc = String(servicio || '').replace(/[^a-zA-Z]/g, '');
+    return this.http.get<MetaResponse>(
+      `${this.baseUrl}/metas/servicios-industriales?servicio=${cleanSvc}&anio=${cleanAnio}`
+    );
+  }
+
+  guardarMetaServicioIndustrial(data: any) {
+    return this.http.post(`${this.baseUrl}/metas/servicios-industriales/guardar`, data);
+  }
+
   insertarProducto(p: producto) {
     return this.http.post(`${this.baseUrl}/productos/insertar`, p);
   }
