@@ -36,6 +36,44 @@ export class plcsServices {
     return this.http.get<any[]>(url);
   }
 
+  getAgua(startDate?: string, endDate?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/agua`;
+    if (startDate && endDate) {
+      url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getVaporAnual(year: string, endMonth?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/vapor/anual?year=${year}`;
+    if (endMonth) {
+      url += `&endMonth=${endMonth}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getEnergiaAnual(year: string, endMonth?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/energia/anual?year=${year}`;
+    if (endMonth) {
+      url += `&endMonth=${endMonth}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getAguaAnual(year: string, endMonth?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/agua/anual?year=${year}`;
+    if (endMonth) {
+      url += `&endMonth=${endMonth}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getAguaMensual(year: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/agua/mensual?year=${year}`);
+  }
+
+
+
   /**
    * Extrae el valor real del sensor desde la notación científica del PLC.
    * Ej: 9.325711345004874E-39 → 9.33
@@ -124,20 +162,59 @@ export class plcsServices {
   /**
    * Diferencia max-min total de energía para un año completo (para KPI anual).
    */
-  getEnergiaTotalAnio(anio: string): Observable<{ totalEnergia: number }> {
-    return this.http.get<any[]>(`${this.baseUrl}/energia/anual?year=${anio}`).pipe(
-      map(data => {
-        let minCg = Number.MAX_VALUE;
-        let maxCg = -Number.MAX_VALUE;
-        data.forEach(row => {
-          const val = this.parsePlcValue(row['ENERGIA'] || row['energia']);
-          if (val > 0) {
-            if (val < minCg) minCg = val;
-            if (val > maxCg) maxCg = val;
+  getEnergiaTotalAnio(anio: string, endMonth?: string): Observable<{ totalEnergia: number }> {
+    let url = `${this.baseUrl}/energia/anual?year=${anio}`;
+    if (endMonth) url += `&endMonth=${endMonth}`;
+    return this.http.get<any>(url).pipe(
+      // El backend ahora devuelve un objeto agregado { totalEnergia: X }
+      map(res => {
+        if (res && typeof res === 'object') {
+          // Respuesta directa como objeto
+          if (res.totalEnergia !== undefined && res.totalEnergia !== null) {
+            return { totalEnergia: Number(Number(res.totalEnergia).toFixed(2)) };
           }
-        });
-        const total = (minCg !== Number.MAX_VALUE && maxCg >= minCg) ? (maxCg - minCg) : 0;
-        return { totalEnergia: Number(total.toFixed(2)) };
+          // Respuesta como array con primer elemento
+          if (Array.isArray(res) && res.length > 0) {
+            const first = res[0];
+            if (first.totalEnergia !== undefined && first.totalEnergia !== null) {
+              return { totalEnergia: Number(Number(first.totalEnergia).toFixed(2)) };
+            }
+            // Fallback: si aún devuelve filas crudas (compatibilidad)
+            let minCg = Number.MAX_VALUE;
+            let maxCg = -Number.MAX_VALUE;
+            res.forEach((row: any) => {
+              const val = this.parsePlcValue(row['ENERGIA'] || row['energia']);
+              if (val > 0) {
+                if (val < minCg) minCg = val;
+                if (val > maxCg) maxCg = val;
+              }
+            });
+            const total = (minCg !== Number.MAX_VALUE && maxCg >= minCg) ? (maxCg - minCg) : 0;
+            return { totalEnergia: Number(total.toFixed(2)) };
+          }
+        }
+        return { totalEnergia: 0 };
+      })
+    );
+  }
+
+  getAguaTotalAnio(anio: string, endMonth?: string): Observable<{ totalAgua: number }> {
+    let url = `${this.baseUrl}/agua/anual?year=${anio}`;
+    if (endMonth) url += `&endMonth=${endMonth}`;
+    return this.http.get<any>(url).pipe(
+      map(res => {
+        if (res && typeof res === 'object') {
+          if (res.totalAgua !== undefined && res.totalAgua !== null) {
+            return { totalAgua: Number(Number(res.totalAgua).toFixed(2)) };
+          }
+          if (Array.isArray(res) && res.length > 0) {
+            const first = res[0];
+            if (first.totalAgua !== undefined && first.totalAgua !== null) {
+              return { totalAgua: Number(Number(first.totalAgua).toFixed(2)) };
+            }
+          }
+        }
+        return { totalAgua: 0 };
       })
     );
   }
