@@ -68,4 +68,11 @@ public class PlcDbController {
         List<Map<String, Object>> datos = plcDbService.obtenerAguaAnual(year, endMonth);
         return ResponseEntity.ok(datos);
     }
+
+    @GetMapping("/agua/mensual")
+    public ResponseEntity<List<Map<String, Object>>> obtenerAguaMensual(
+            @RequestParam String year) {
+        List<Map<String, Object>> datos = plcDbService.obtenerAguaMensual(year);
+        return ResponseEntity.ok(datos);
+    }
 }
