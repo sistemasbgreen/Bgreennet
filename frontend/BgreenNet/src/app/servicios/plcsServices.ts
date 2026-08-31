@@ -68,6 +68,10 @@ export class plcsServices {
     return this.http.get<any[]>(url);
   }
 
+  getAguaMensual(year: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/agua/mensual?year=${year}`);
+  }
+
 
 
   /**

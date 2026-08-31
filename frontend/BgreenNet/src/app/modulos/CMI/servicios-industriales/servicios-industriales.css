@@ -796,3 +796,22 @@
   font-weight: 800;
   color: #2d3748;
 }
+
+/* Modo enfoque para la gráfica de agua */
+.chart-card.focus-mode-active {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 90vw !important;
+  height: 80vh !important;
+  max-width: 1400px !important;
+  z-index: 9999 !important;
+  background: var(--surface-color, #ffffff) !important;
+  box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.7) !important;
+  transition: all 0.3s ease !important;
+}
+
+.chart-card.focus-mode-active .chart-container {
+  height: calc(80vh - 120px) !important;
+}

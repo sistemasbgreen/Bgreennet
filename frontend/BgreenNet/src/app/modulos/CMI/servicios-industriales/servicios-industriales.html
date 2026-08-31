@@ -571,57 +571,102 @@
         <div class="charts-grid">
 
           <!-- Consumo Total vs Ton B100 -->
-          <div class="chart-card fade-in">
+          <div class="chart-card fade-in" [class.focus-mode-active]="focusAguaTotalVsB100">
             <div class="chart-header">
               <div class="chart-title">
                 <div class="chart-icon"><i class="fas fa-chart-line"></i></div>
                 Consumo Total de Agua vs Ton B100
               </div>
+              <!-- Botón de Enfoque -->
+              <button type="button" 
+                      (click)="focusAguaTotalVsB100 = !focusAguaTotalVsB100"
+                      [title]="focusAguaTotalVsB100 ? 'Salir del modo enfoque' : 'Modo enfoque'"
+                      style="background: #f1f5f9; border: 1px solid rgba(0,0,0,0.06); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.2s;">
+                <i class="fas" [class.fa-compress]="focusAguaTotalVsB100" [class.fa-expand]="!focusAguaTotalVsB100"></i>
+              </button>
             </div>
             <div class="chart-container">
-              <canvas baseChart [data]="aguaTotalVsB100Data" [options]="mixedOptions" type="line"></canvas>
+              <canvas baseChart [data]="aguaTotalVsB100Data" [options]="mixedOptions" type="line" (chartClick)="onAguaDiariaClick($event)"></canvas>
             </div>
           </div>
 
           <!-- Indicador FOCO diario -->
-          <div class="chart-card fade-in">
+          <div class="chart-card fade-in" [class.focus-mode-active]="focusAguaFocoLinea">
             <div class="chart-header">
               <div class="chart-title">
                 <div class="chart-icon"><i class="fas fa-tachometer-alt"></i></div>
                 Indicador FOCO Diario (m³/Ton B100)
               </div>
+              <!-- Botón de Enfoque -->
+              <button type="button" 
+                      (click)="focusAguaFocoLinea = !focusAguaFocoLinea"
+                      [title]="focusAguaFocoLinea ? 'Salir del modo enfoque' : 'Modo enfoque'"
+                      style="background: #f1f5f9; border: 1px solid rgba(0,0,0,0.06); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.2s;">
+                <i class="fas" [class.fa-compress]="focusAguaFocoLinea" [class.fa-expand]="!focusAguaFocoLinea"></i>
+              </button>
             </div>
             <div class="chart-container">
-              <canvas baseChart [data]="aguaFocoLineaData" [options]="focoOptions" type="line"></canvas>
+              <canvas baseChart [data]="aguaFocoLineaData" [options]="focoOptions" type="line" (chartClick)="onAguaDiariaClick($event)"></canvas>
             </div>
           </div>
 
         </div>
       </section>
 
-      <!-- ── Gráfica: Comportamiento Flujo de Agua — ancho completo ── -->
+      <!-- ── Gráfica: Comportamiento Flujo de Agua y Consumo Mensual ── -->
       <section class="charts-section">
-        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
-          <div class="chart-card fade-in">
+        <div class="charts-grid">
+          <!-- Comportamiento del Flujo de Agua (1100FTAF01) -->
+          <div class="chart-card fade-in" [class.focus-mode-active]="focusAguaComportamiento">
             <div class="chart-header">
               <div class="chart-title">
                 <div class="chart-icon"><i class="fas fa-chart-area"></i></div>
                 Comportamiento del Flujo de Agua (1100FTAF01)
               </div>
-              <div class="chart-filter" *ngIf="diasDisponiblesAgua.length > 0">
-                <button
-                  (click)="navegarDiaAgua(-1)"
-                  [disabled]="diasDisponiblesAgua.indexOf(selectedDiaAgua) <= 0"
-                  title="Día anterior">&#8249;</button>
-                <span>{{ selectedDiaAgua }}</span>
-                <button
-                  (click)="navegarDiaAgua(1)"
-                  [disabled]="diasDisponiblesAgua.indexOf(selectedDiaAgua) >= diasDisponiblesAgua.length - 1"
-                  title="Día siguiente">&#8250;</button>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <!-- Botón de Enfoque -->
+                <button type="button" 
+                        (click)="focusAguaComportamiento = !focusAguaComportamiento"
+                        [title]="focusAguaComportamiento ? 'Salir del modo enfoque' : 'Modo enfoque'"
+                        style="background: #f1f5f9; border: 1px solid rgba(0,0,0,0.06); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.2s;">
+                  <i class="fas" [class.fa-compress]="focusAguaComportamiento" [class.fa-expand]="!focusAguaComportamiento"></i>
+                </button>
+
+                <div class="chart-filter" *ngIf="diasDisponiblesAgua.length > 0">
+                  <button
+                    (click)="navegarDiaAgua(-1)"
+                    [disabled]="diasDisponiblesAgua.indexOf(selectedDiaAgua) <= 0"
+                    title="Día anterior">&#8249;</button>
+                  <span>{{ selectedDiaAgua }}</span>
+                  <button
+                    (click)="navegarDiaAgua(1)"
+                    [disabled]="diasDisponiblesAgua.indexOf(selectedDiaAgua) >= diasDisponiblesAgua.length - 1"
+                    title="Día siguiente">&#8250;</button>
+                </div>
               </div>
             </div>
             <div class="chart-container">
               <canvas baseChart [data]="aguaComportamientoMultiData" [options]="aguaComportamientoOptions" type="line"></canvas>
+            </div>
+          </div>
+
+          <!-- Consumo Mensual de Agua (Barras) -->
+          <div class="chart-card fade-in" [class.focus-mode-active]="focusAguaB100Mensual">
+            <div class="chart-header">
+              <div class="chart-title">
+                <div class="chart-icon"><i class="fas fa-chart-bar"></i></div>
+                Consumo Mensual de Agua
+              </div>
+              <!-- Botón de Enfoque -->
+              <button type="button" 
+                      (click)="focusAguaB100Mensual = !focusAguaB100Mensual"
+                      [title]="focusAguaB100Mensual ? 'Salir del modo enfoque' : 'Modo enfoque'"
+                      style="background: #f1f5f9; border: 1px solid rgba(0,0,0,0.06); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; transition: all 0.2s;">
+                <i class="fas" [class.fa-compress]="focusAguaB100Mensual" [class.fa-expand]="!focusAguaB100Mensual"></i>
+              </button>
+            </div>
+            <div class="chart-container">
+              <canvas baseChart [data]="aguaB100MensualData" [options]="aguaB100MensualOptions" type="bar" (chartClick)="onAguaMensualClick($event)"></canvas>
             </div>
           </div>
         </div>

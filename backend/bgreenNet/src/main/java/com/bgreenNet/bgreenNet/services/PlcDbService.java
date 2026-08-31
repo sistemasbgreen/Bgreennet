@@ -183,4 +183,28 @@ public class PlcDbService {
                      ") dias_con_data";
         return plcJdbcTemplate.queryForList(sql, params.toArray());
     }
+
+    /**
+     * Suma de (max - min) de Agua_total agrupado por mes para un año determinado.
+     */
+    public List<Map<String, Object>> obtenerAguaMensual(String year) {
+        String sql = "SELECT " +
+                     "  MONTH(dia) as mes, " +
+                     "  SUM(daily_max - daily_min) as totalAgua " +
+                     "FROM (" +
+                     "  SELECT " +
+                     "    CONVERT(date, FechaRegistro) as dia, " +
+                     "    MAX(CAST(Agua_total AS FLOAT)) as daily_max, " +
+                     "    MIN(CAST(Agua_total AS FLOAT)) as daily_min " +
+                     "  FROM Tabla_16 " +
+                     "  WHERE YEAR(FechaRegistro) = ? " +
+                     "    AND Agua_total IS NOT NULL " +
+                     "  GROUP BY CONVERT(date, FechaRegistro) " +
+                     "  HAVING MAX(CAST(Agua_total AS FLOAT)) IS NOT NULL " +
+                     "     AND MIN(CAST(Agua_total AS FLOAT)) IS NOT NULL " +
+                     ") dias_con_data " +
+                     "GROUP BY MONTH(dia) " +
+                     "ORDER BY MONTH(dia) ASC";
+        return plcJdbcTemplate.queryForList(sql, year);
+    }
 }
