@@ -1,263 +1,834 @@
 <div class="container-fluid py-4">
   <div class="row justify-content-center">
-    <div class="col-12 col-xl-10">
-      <div class="card shadow-lg border-0 overflow-hidden rounded-4">
+    <div class="col-12 col-xl-11">
+      <div class="mc-shell">
 
-        <!-- ===== HEADER ===== -->
-        <div class="card-header-custom">
-          <div class="d-flex align-items-center justify-content-between">
+        <!-- ═══════════════════════════════════════════════════════
+             HEADER
+             ═══════════════════════════════════════════════════════ -->
+        <div class="mc-header">
+          <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-2">
+
             <div class="d-flex align-items-center gap-3">
-              <div class="header-icon">
-                <i class="bi bi-shield-lock-fill"></i>
+              <div class="mc-header-icon">
+                <i class="bi bi-gear-wide-connected"></i>
               </div>
               <div>
-                <h4 class="mb-0 fw-bold text-white">Configuración de Seguridad</h4>
-                <p class="mb-0 text-white-50 small">Control de acceso, contraseñas y políticas del sistema</p>
+                <h4 class="mc-header-title">Maestro de Configuración</h4>
+                <p class="mc-header-sub">Seguridad · Servidor · Base de Datos · Almacenamiento</p>
               </div>
             </div>
-            <div *ngIf="loading" class="d-flex align-items-center gap-2 text-white">
-              <div class="spinner-border spinner-border-sm" role="status"></div>
-              <small class="fw-semibold">Guardando...</small>
+
+            <div class="d-flex align-items-center gap-2">
+              <button *ngIf="activeTab === 'servidor'"
+                      class="btn-header-action"
+                      (click)="loadPropiedadesServidor()"
+                      [disabled]="loadingPropiedades">
+                <i class="bi bi-arrow-clockwise" [class.spin-animation]="loadingPropiedades"></i>
+                {{ loadingPropiedades ? 'Actualizando...' : 'Recargar' }}
+              </button>
+
+              <div *ngIf="loading && activeTab === 'seguridad'"
+                   class="d-flex align-items-center gap-2 text-white" style="font-size:0.82rem;">
+                <div class="spinner-border spinner-border-sm" role="status"></div>
+                <span>Guardando...</span>
+              </div>
             </div>
+          </div>
+
+          <!-- TABS -->
+          <div class="mc-tabs-bar">
+            <button class="mc-tab-btn" [class.active]="activeTab === 'seguridad'" (click)="cambiarTab('seguridad')">
+              <i class="bi bi-shield-lock"></i>
+              <span>Políticas de Seguridad</span>
+            </button>
+            <button class="mc-tab-btn" [class.active]="activeTab === 'servidor'" (click)="cambiarTab('servidor')">
+              <i class="bi bi-hdd-network"></i>
+              <span>Servidor &amp; Propiedades</span>
+              <span class="mc-tab-badge">{{ propiedadesServidor?.servidor?.serverPort || '8081' }}</span>
+            </button>
+            <button class="mc-tab-btn" [class.active]="activeTab === 'imagenes'" (click)="cambiarTab('imagenes')">
+              <i class="bi bi-images"></i>
+              <span>Imágenes de Login</span>
+              <span class="mc-tab-badge">{{ imagenes.length }}</span>
+            </button>
           </div>
         </div>
 
-        <!-- ===== BODY ===== -->
-        <div class="card-body p-4 p-lg-5">
-          <form [formGroup]="configForm" (ngSubmit)="saveConfig()">
+        <!-- ═══════════════════════════════════════════════════════
+             BODY
+             ═══════════════════════════════════════════════════════ -->
+        <div class="mc-body">
 
-            <!-- ===== FILA 1: ACCESO + LONGITUD ===== -->
-            <div class="section-block mb-4">
-              <div class="section-title mb-3">
-                <span class="section-icon-badge"><i class="bi bi-sliders"></i></span>
-                <span>Parámetros de Seguridad</span>
+          <!-- ──────────────────────────────────────────────────────
+               TAB 1 · POLÍTICAS DE SEGURIDAD
+               ────────────────────────────────────────────────────── -->
+          <div *ngIf="activeTab === 'seguridad'">
+            <form [formGroup]="configForm" (ngSubmit)="saveConfig()">
+
+              <!-- Toast copiado -->
+              <div *ngIf="copiadoReciente" class="toast-inline">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                Copiado: <strong>{{ copiadoReciente }}</strong>
               </div>
 
-              <div class="row g-4">
+              <!-- BLOQUE 1 · Parámetros numéricos -->
+              <div class="section-header">
+                <div class="section-header-icon sh-green"><i class="bi bi-sliders"></i></div>
+                <div class="section-header-text">
+                  <h6>Parámetros de Acceso</h6>
+                  <p>Configuración de expiración, bloqueo y longitud de contraseña</p>
+                </div>
+              </div>
+
+              <div class="security-params-grid mb-4">
                 <!-- Expiración -->
-                <div class="col-md-4">
-                  <label class="field-label">Expiración de Contraseña</label>
-                  <div class="input-group input-group-lg">
-                    <span class="input-group-text field-prefix"><i class="bi bi-clock-history"></i></span>
-                    <input type="number" class="form-control field-input"
-                      formControlName="expiracionDias" min="0" max="365">
-                    <span class="input-group-text field-prefix">días</span>
+                <div class="param-field">
+                  <label>Expiración de Contraseña</label>
+                  <div class="field-group">
+                    <span class="field-group-icon"><i class="bi bi-clock-history"></i></span>
+                    <input type="number" formControlName="expiracionDias" min="0" max="365" placeholder="90">
+                    <span class="field-group-suffix">días</span>
                   </div>
-                  <div class="field-hint">Días antes de exigir cambio de clave. (0 = sin expiración)</div>
+                  <span class="field-hint">0 = sin expiración automática</span>
                 </div>
 
-                <!-- Intentos -->
-                <div class="col-md-4">
-                  <label class="field-label">Intentos Fallidos</label>
-                  <div class="input-group input-group-lg">
-                    <span class="input-group-text field-prefix"><i class="bi bi-shield-exclamation"></i></span>
-                    <input type="number" class="form-control field-input"
-                      formControlName="intentosInvalidos" min="0" max="20">
-                    <span class="input-group-text field-prefix">intentos</span>
+                <!-- Intentos fallidos -->
+                <div class="param-field">
+                  <label>Intentos Fallidos</label>
+                  <div class="field-group">
+                    <span class="field-group-icon"><i class="bi bi-shield-exclamation"></i></span>
+                    <input type="number" formControlName="intentosInvalidos" min="0" max="20" placeholder="5">
+                    <span class="field-group-suffix">intentos</span>
                   </div>
-                  <div class="field-hint">Bloqueo automático al superar el límite. (0 = sin límite)</div>
+                  <span class="field-hint">0 = sin límite de intentos</span>
                 </div>
 
-
-                <!-- Longitud -->
-                <div class="col-md-4">
-                  <label class="field-label">Longitud Mínima</label>
-                  <div class="input-group input-group-lg">
-                    <span class="input-group-text field-prefix"><i class="bi bi-ruler"></i></span>
-                    <input type="number" class="form-control field-input"
-                      formControlName="minCaracteres" min="4" max="20">
+                <!-- Longitud mínima -->
+                <div class="param-field">
+                  <label>Longitud Mínima</label>
+                  <div class="field-group">
+                    <span class="field-group-icon"><i class="bi bi-ruler"></i></span>
+                    <input type="number" formControlName="minCaracteres" min="4" max="20" placeholder="8">
+                    <span class="field-group-suffix">chars</span>
                   </div>
-                  <div class="field-hint">Entre 4 y 20 caracteres.</div>
+                  <span class="field-hint">Entre 4 y 20 caracteres</span>
                 </div>
               </div>
-            </div>
 
-            <hr class="section-divider">
+              <hr class="section-divider">
 
-            <!-- ===== FILA 2: COMPLEJIDAD ===== -->
-            <div class="section-block mt-4">
-              <div class="section-title mb-3">
-                <span class="section-icon-badge"><i class="bi bi-key-fill"></i></span>
-                <span>La contraseña debe incluir</span>
+              <!-- BLOQUE 2 · Complejidad -->
+              <div class="section-header">
+                <div class="section-header-icon sh-purple"><i class="bi bi-key-fill"></i></div>
+                <div class="section-header-text">
+                  <h6>Complejidad de Contraseña</h6>
+                  <p>Requisitos que deben cumplir las contraseñas de los usuarios</p>
+                </div>
               </div>
 
-              <div class="row g-3">
+              <div class="toggle-row mb-4">
                 <!-- Letras -->
-                <div class="col-md-4">
-                  <label class="toggle-item" for="swLetras">
-                    <div class="toggle-item-icon icon-purple"><i class="bi bi-fonts"></i></div>
-                    <div class="toggle-item-text">
-                      <span class="toggle-item-name">Letras</span>
-                      <span class="toggle-item-sub">A-Z, a-z</span>
-                    </div>
-                    <div class="form-check form-switch ms-auto mb-0">
-                      <input class="form-check-input bgreen-toggle" type="checkbox"
-                        id="swLetras" formControlName="requiereLetras">
-                    </div>
-                  </label>
-                </div>
+                <label class="toggle-item" for="swLetras">
+                  <div class="toggle-item-icon t-purple"><i class="bi bi-fonts"></i></div>
+                  <div class="toggle-item-label">
+                    <span class="toggle-item-name">Letras (A – Z)</span>
+                    <span class="toggle-item-sub">Exige al menos una letra mayúscula o minúscula</span>
+                  </div>
+                  <div class="form-check form-switch mb-0 ms-2">
+                    <input class="form-check-input bgreen-toggle" type="checkbox" id="swLetras" formControlName="requiereLetras">
+                  </div>
+                </label>
 
                 <!-- Números -->
-                <div class="col-md-4">
-                  <label class="toggle-item" for="swNumeros">
-                    <div class="toggle-item-icon icon-amber"><i class="bi bi-123"></i></div>
-                    <div class="toggle-item-text">
-                      <span class="toggle-item-name">Números</span>
-                      <span class="toggle-item-sub">0 — 9</span>
-                    </div>
-                    <div class="form-check form-switch ms-auto mb-0">
-                      <input class="form-check-input bgreen-toggle" type="checkbox"
-                        id="swNumeros" formControlName="requiereNumeros">
-                    </div>
-                  </label>
-                </div>
+                <label class="toggle-item" for="swNumeros">
+                  <div class="toggle-item-icon t-amber"><i class="bi bi-123"></i></div>
+                  <div class="toggle-item-label">
+                    <span class="toggle-item-name">Números (0 – 9)</span>
+                    <span class="toggle-item-sub">Exige al menos un dígito numérico</span>
+                  </div>
+                  <div class="form-check form-switch mb-0 ms-2">
+                    <input class="form-check-input bgreen-toggle" type="checkbox" id="swNumeros" formControlName="requiereNumeros">
+                  </div>
+                </label>
 
                 <!-- Especiales -->
-                <div class="col-md-4">
-                  <label class="toggle-item" for="swEspeciales">
-                    <div class="toggle-item-icon icon-red"><i class="bi bi-asterisk"></i></div>
-                    <div class="toggle-item-text">
-                      <span class="toggle-item-name">Caracteres Especiales</span>
-                      <span class="toggle-item-sub">&#64; # $ % &amp; !</span>
-                    </div>
-                    <div class="form-check form-switch ms-auto mb-0">
-                      <input class="form-check-input bgreen-toggle" type="checkbox"
-                        id="swEspeciales" formControlName="requiereEspeciales">
-                    </div>
-                  </label>
-                </div>
+                <label class="toggle-item" for="swEspeciales">
+                  <div class="toggle-item-icon t-red"><i class="bi bi-asterisk"></i></div>
+                  <div class="toggle-item-label">
+                    <span class="toggle-item-name">Caracteres Especiales</span>
+                    <span class="toggle-item-sub">&#64; # $ % &amp; ! . _ - </span>
+                  </div>
+                  <div class="form-check form-switch mb-0 ms-2">
+                    <input class="form-check-input bgreen-toggle" type="checkbox" id="swEspeciales" formControlName="requiereEspeciales">
+                  </div>
+                </label>
               </div>
 
-              <!-- Alerta de validación personalizada -->
-              <div class="alert alert-warning mt-4 d-flex align-items-center gap-3 border-0 rounded-4 shadow-sm" 
-                   *ngIf="!atLeastOneRequirement">
-                <i class="bi bi-exclamation-triangle-fill fs-4 text-warning"></i>
+              <!-- Alerta de validación -->
+              <div class="validation-alert" *ngIf="!atLeastOneRequirement">
+                <i class="bi bi-exclamation-triangle-fill va-icon"></i>
                 <div>
-                  <h6 class="mb-0 fw-bold">Política de Seguridad Inválida</h6>
-                  <p class="mb-0 small text-muted">Debes seleccionar al menos un requisito (Letras, Números o Especiales) para que el sistema pueda validar las contraseñas.</p>
+                  <h6>Política de Seguridad Inválida</h6>
+                  <p>Debe habilitarse al menos un requisito (Letras, Números o Especiales).</p>
+                </div>
+              </div>
+
+              <!-- Acciones -->
+              <div class="actions-bar">
+                <button type="button" class="btn-danger-outline"
+                        (click)="forzarVencimiento()" [disabled]="loading">
+                  <i class="bi bi-exclamation-triangle-fill"></i>Forzar Vencimiento de Claves
+                </button>
+                <button type="submit" class="btn-bgreen"
+                        [disabled]="configForm.invalid || loading || !atLeastOneRequirement">
+                  <span *ngIf="loading" class="spinner-border spinner-border-sm" role="status"></span>
+                  <i *ngIf="!loading" class="bi bi-save2-fill"></i>
+                  {{ loading ? 'Guardando...' : 'Guardar Cambios' }}
+                </button>
+              </div>
+
+            </form>
+          </div>
+
+
+          <!-- ──────────────────────────────────────────────────────
+               TAB 2 · SERVIDOR & PROPIEDADES
+               ────────────────────────────────────────────────────── -->
+          <div *ngIf="activeTab === 'servidor'">
+
+            <!-- Toast copiado -->
+            <div *ngIf="copiadoReciente" class="toast-inline">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              Copiado al portapapeles: <strong>{{ copiadoReciente }}</strong>
+            </div>
+
+            <!-- KPI ROW -->
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-icon ki-green"><i class="bi bi-hdd-rack-fill"></i></div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Puerto HTTP</span>
+                  <span class="kpi-value text-success font-monospace">
+                    :{{ propiedadesServidor?.servidor?.serverPort || '8081' }}
+                  </span>
+                  <span class="kpi-sub"><i class="bi bi-dot text-success"></i>En ejecución</span>
+                </div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-icon ki-blue"><i class="bi bi-database-fill-check"></i></div>
+                <div class="kpi-content">
+                  <span class="kpi-label">DataSources</span>
+                  <span class="kpi-value text-primary">{{ propiedadesServidor?.basesDatos?.length || 3 }}</span>
+                  <span class="kpi-sub">BgreenNet · SIESA · PLC</span>
+                </div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-icon ki-amber"><i class="bi bi-envelope-check-fill"></i></div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Correo SMTP</span>
+                  <span class="kpi-value-sm" [title]="propiedadesServidor?.correo?.host || 'smtp.office365.com'">
+                    {{ propiedadesServidor?.correo?.host || 'smtp.office365.com' }}
+                  </span>
+                  <span class="kpi-sub font-monospace">Puerto {{ propiedadesServidor?.correo?.puerto || '587' }} · TLS</span>
+                </div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-icon ki-purple"><i class="bi bi-folder-check"></i></div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Almacenamiento</span>
+                  <span class="kpi-value-sm">{{ propiedadesServidor?.almacenamiento?.tamanoTotalFormateado || '—' }}</span>
+                  <span class="kpi-sub font-monospace">
+                    <span class="text-success" *ngIf="propiedadesServidor?.almacenamiento?.carpetaExiste">
+                      <i class="bi bi-check2"></i> {{ propiedadesServidor?.almacenamiento?.totalArchivos }} archivos
+                    </span>
+                    <span class="text-muted" *ngIf="!propiedadesServidor?.almacenamiento?.carpetaExiste">Verificando...</span>
+                  </span>
                 </div>
               </div>
             </div>
 
-            <hr class="section-divider mt-5">
-
-            <!-- ===== SECCIÓN: IMÁGENES DE LOGIN ===== -->
-            <div class="section-block mt-4">
-              <div class="section-title mb-4">
-                <span class="section-icon-badge"><i class="bi bi-images"></i></span>
-                <span>Imágenes de Fondo de Login</span>
+            <!-- ── DATASOURCES ── -->
+            <div class="panel-card">
+              <div class="panel-head">
+                <div class="panel-head-left">
+                  <div class="section-header-icon sh-blue" style="width:32px;height:32px;border-radius:8px;font-size:0.88rem;">
+                    <i class="bi bi-database-fill-gear"></i>
+                  </div>
+                  <div>
+                    <div class="panel-head-title">DataSources &amp; Conexiones Activas</div>
+                    <div class="panel-head-sub">URLs JDBC, credenciales y configuración de pools Hikari</div>
+                  </div>
+                </div>
+                <span class="badge-info">{{ propiedadesServidor?.basesDatos?.length || 3 }} Motores</span>
               </div>
 
-              <!-- Agregar nueva imagen -->
-              <div class="row mb-4 align-items-end g-3">
-                <div class="col-lg-4">
-                  <label class="field-label">Nombre de la imagen</label>
-                  <div class="input-group">
-                    <span class="input-group-text field-prefix"><i class="bi bi-tag-fill"></i></span>
-                    <input type="text" class="form-control field-input" 
-                           placeholder="Ej: Fondo Principal"
-                           [(ngModel)]="nuevaImagenNombre" [ngModelOptions]="{standalone: true}">
-                  </div>
+              <div class="panel-body">
+                <!-- Loading -->
+                <div *ngIf="loadingPropiedades" class="loading-state">
+                  <div class="spinner-border text-success" role="status" style="width:2rem;height:2rem;"></div>
+                  <p>Consultando DataSources activos...</p>
                 </div>
-                <div class="col-lg-5">
-                  <label class="field-label">URL de imagen</label>
-                  <div class="input-group">
-                    <span class="input-group-text field-prefix"><i class="bi bi-link-45deg"></i></span>
-                    <input type="text" class="form-control field-input" 
-                           placeholder="https://ejemplo.com/imagen.jpg"
-                           [(ngModel)]="nuevaImagenUrl" [ngModelOptions]="{standalone: true}">
+
+                <!-- DB Cards -->
+                <div *ngIf="!loadingPropiedades" class="row g-3">
+                  <div *ngFor="let db of propiedadesServidor?.basesDatos" class="col-12 col-lg-4">
+                    <div class="db-card">
+                      <!-- Head -->
+                      <div class="db-card-head d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-database-fill text-success"></i>
+                          <span class="db-name">{{ db.nombre }}</span>
+                        </div>
+                        <span class="db-badge-active">Activo</span>
+                      </div>
+
+                      <!-- Body -->
+                      <div class="db-card-body">
+                        <!-- JDBC URL -->
+                        <div class="jdbc-box">
+                          <div class="jdbc-label">
+                            <span><i class="bi bi-link-45deg me-1"></i>JDBC Connection URL</span>
+                            <button class="btn-copy-inline" (click)="copiarAlPortapapeles(db.url, db.nombre + ' URL')">
+                              <i class="bi bi-clipboard"></i> Copiar
+                            </button>
+                          </div>
+                          <div class="jdbc-value">{{ db.url || 'No configurada' }}</div>
+                        </div>
+
+                        <!-- Meta -->
+                        <div class="db-meta-grid">
+                          <div class="db-meta-item">
+                            <span class="db-meta-label"><i class="bi bi-hdd-rack me-1"></i>Host / Servidor</span>
+                            <span class="db-meta-value" [title]="db.host">{{ db.host || '—' }}</span>
+                          </div>
+                          <div class="db-meta-item">
+                            <span class="db-meta-label"><i class="bi bi-collection me-1"></i>Base de Datos</span>
+                            <span class="db-meta-value text-primary" [title]="db.databaseName">{{ db.databaseName || '—' }}</span>
+                          </div>
+                          <div class="db-meta-item">
+                            <span class="db-meta-label"><i class="bi bi-person-badge me-1"></i>Usuario</span>
+                            <span class="db-meta-value">{{ db.usuario || '—' }}</span>
+                          </div>
+                          <div class="db-meta-item">
+                            <span class="db-meta-label"><i class="bi bi-shield-check me-1"></i>Contraseña</span>
+                            <span class="db-meta-value">
+                              <span *ngIf="db.passwordConfigurada" class="text-success" style="font-family:sans-serif;font-size:0.78rem;">
+                                <i class="bi bi-shield-fill-check me-1"></i>Configurada
+                              </span>
+                              <span *ngIf="!db.passwordConfigurada" class="text-warning" style="font-family:sans-serif;font-size:0.78rem;">
+                                <i class="bi bi-shield-exclamation me-1"></i>No definida
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Footer -->
+                      <div class="db-footer">
+                        <span class="db-footer-info"><i class="bi bi-archive me-1"></i>Driver: {{ (db.driver || '').split('.').pop() }}</span>
+                        <span class="db-footer-pool">Pool {{ db.poolMin }}—{{ db.poolMax }} · {{ db.connectionTimeout }}ms</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div class="col-lg-3">
-                  <div class="d-flex gap-2">
-                    <button type="button" class="btn-bgreen flex-grow-1" 
-                            (click)="agregarImagen()" [disabled]="!nuevaImagenUrl || loadingImagenes">
-                      <i class="bi bi-plus-lg me-1"></i>Añadir
+
+                  <!-- Empty state -->
+                  <div *ngIf="!propiedadesServidor?.basesDatos || propiedadesServidor?.basesDatos?.length === 0"
+                       class="col-12 text-center py-5 text-muted">
+                    <i class="bi bi-database-slash fs-2 d-block mb-2 text-warning"></i>
+                    <span class="small">No se encontraron DataSources configurados.</span>
+                    <br>
+                    <button class="btn-bgreen mt-3" style="font-size:0.8rem;padding:8px 18px;" (click)="loadPropiedadesServidor()">
+                      <i class="bi bi-arrow-clockwise"></i> Reintentar
                     </button>
-                    <div class="input-group search-group" style="width: 150px;">
-                      <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                      <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar..." 
-                             [(ngModel)]="filtroBusqueda" [ngModelOptions]="{standalone: true}">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── SERVIDOR BACKEND ── -->
+            <div class="panel-card">
+              <div class="panel-head">
+                <div class="panel-head-left">
+                  <div class="section-header-icon sh-green" style="width:32px;height:32px;border-radius:8px;font-size:0.88rem;">
+                    <i class="bi bi-server"></i>
+                  </div>
+                  <div>
+                    <div class="panel-head-title">Servidor Backend &amp; Entorno Spring Boot</div>
+                  </div>
+                </div>
+                <span class="badge-ok"><i class="bi bi-dot"></i> {{ propiedadesServidor?.servidor?.appName || 'bgreenNet' }}</span>
+              </div>
+
+              <div class="panel-body">
+                <div class="row g-3">
+                  <div class="col-6 col-md-3">
+                    <div class="pbox pbox-highlight">
+                      <span class="pbox-label">Puerto HTTP</span>
+                      <span class="pbox-value font-monospace text-success fw-bold fs-5">:{{ propiedadesServidor?.servidor?.serverPort || '8081' }}</span>
+                      <span class="pbox-hint">server.port</span>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="pbox">
+                      <span class="pbox-label">Perfil Activo</span>
+                      <span class="pbox-value"><span class="badge-info">{{ propiedadesServidor?.servidor?.activeProfile || 'default' }}</span></span>
+                      <span class="pbox-hint">spring.profiles.active</span>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="pbox">
+                      <span class="pbox-label">Versión Java</span>
+                      <span class="pbox-value font-monospace">{{ propiedadesServidor?.servidor?.javaVersion || '—' }}</span>
+                      <span class="pbox-hint">JDK Runtime</span>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="pbox">
+                      <span class="pbox-label">Uptime</span>
+                      <span class="pbox-value font-monospace text-primary">{{ propiedadesServidor?.servidor?.uptime || '—' }}</span>
+                      <span class="pbox-hint">Tiempo continuo activo</span>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pbox">
+                      <span class="pbox-label">Sistema Operativo</span>
+                      <span class="pbox-value text-truncate" [title]="propiedadesServidor?.servidor?.osName">
+                        {{ propiedadesServidor?.servidor?.osName || '—' }}
+                      </span>
+                      <span class="pbox-hint">Servidor anfitrión</span>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pbox">
+                      <span class="pbox-label">Tomcat Threads</span>
+                      <span class="pbox-value font-monospace">
+                        Máx: {{ propiedadesServidor?.servidor?.tomcatMaxThreads || '50' }} &nbsp;·&nbsp;
+                        Min: {{ propiedadesServidor?.servidor?.tomcatMinSpareThreads || '5' }}
+                      </span>
+                      <span class="pbox-hint">server.tomcat.threads.max / min-spare</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── ALMACENAMIENTO + CORREO + JWT ── -->
+            <div class="row g-4">
+
+              <!-- ALMACENAMIENTO -->
+              <div class="col-12 col-lg-6">
+                <div class="panel-card" style="margin-bottom:0;">
+                  <div class="panel-head">
+                    <div class="panel-head-left">
+                      <div class="section-header-icon sh-purple" style="width:32px;height:32px;border-radius:8px;font-size:0.88rem;">
+                        <i class="bi bi-folder-fill"></i>
+                      </div>
+                      <div>
+                        <div class="panel-head-title">Almacenamiento &amp; Archivos</div>
+                        <div class="panel-head-sub">Directorio local en servidor</div>
+                      </div>
+                    </div>
+                    <span class="badge-ok" *ngIf="propiedadesServidor?.almacenamiento?.carpetaExiste">
+                      <i class="bi bi-check2"></i> OK
+                    </span>
+                    <span class="badge-warn" *ngIf="!propiedadesServidor?.almacenamiento?.carpetaExiste">
+                      <i class="bi bi-exclamation"></i> No accesible
+                    </span>
+                  </div>
+                  <div class="panel-body">
+                    <!-- Ruta -->
+                    <div class="pbox pbox-highlight mb-3">
+                      <span class="pbox-label"><i class="bi bi-folder2-open me-1"></i>Ruta (upload.path)</span>
+                      <div class="d-flex align-items-center justify-content-between gap-2">
+                        <span class="pbox-value font-monospace small text-truncate" [title]="propiedadesServidor?.almacenamiento?.rutaUpload">
+                          {{ propiedadesServidor?.almacenamiento?.rutaUpload || 'C:/inetpub/Bgreen/Imagenes/Img' }}
+                        </span>
+                        <button class="btn-copy-inline"
+                                (click)="copiarAlPortapapeles(propiedadesServidor?.almacenamiento?.rutaUpload || '', 'Ruta Upload')">
+                          <i class="bi bi-clipboard"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <div class="folder-stat stat-green">
+                          <span class="stat-num">{{ propiedadesServidor?.almacenamiento?.totalArchivos || 0 }}</span>
+                          <span class="stat-label">Total Archivos</span>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="folder-stat">
+                          <span class="stat-num">{{ propiedadesServidor?.almacenamiento?.tamanoTotalFormateado || '0 B' }}</span>
+                          <span class="stat-label">Espacio Ocupado</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <small class="text-muted d-block" style="font-size:0.76rem;">
+                      <i class="bi bi-info-circle me-1"></i>{{ propiedadesServidor?.almacenamiento?.estadoCarpeta }}
+                    </small>
+
+                    <div class="row g-2 mt-3">
+                      <div class="col-6">
+                        <div class="pbox">
+                          <span class="pbox-label">Máx. Archivo</span>
+                          <span class="pbox-value font-monospace">{{ propiedadesServidor?.almacenamiento?.maxFileSize || '5MB' }}</span>
+                          <span class="pbox-hint">multipart.max-file-size</span>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="pbox">
+                          <span class="pbox-label">Máx. Petición</span>
+                          <span class="pbox-value font-monospace">{{ propiedadesServidor?.almacenamiento?.maxRequestSize || '5MB' }}</span>
+                          <span class="pbox-hint">multipart.max-request-size</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Lista de imágenes -->
-              <div class="table-responsive rounded-3 border border-light-subtle">
-                <table class="table table-hover align-middle mb-0">
-                  <thead class="table-light">
-                    <tr>
-                      <th class="ps-3" style="width: 80px;">Vista</th>
-                      <th style="width: 200px;">Nombre</th>
-                      <th>URL / Enlace</th>
-                      <th style="width: 120px;">Estado</th>
-                      <th class="text-center" style="width: 80px;">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let img of filteredImagenes">
-                      <td class="ps-3">
-                        <div class="image-preview">
-                          <img [src]="img.url" (error)="$any($event.target).src='assets/img/placeholder.png'">
+              <!-- CORREO + JWT -->
+              <div class="col-12 col-lg-6 d-flex flex-column gap-4">
+
+                <!-- CORREO -->
+                <div class="panel-card" style="margin-bottom:0;">
+                  <div class="panel-head">
+                    <div class="panel-head-left">
+                      <div class="section-header-icon sh-amber" style="width:32px;height:32px;border-radius:8px;font-size:0.88rem;">
+                        <i class="bi bi-envelope-at-fill"></i>
+                      </div>
+                      <div>
+                        <div class="panel-head-title">Servidor de Correo (Office 365)</div>
+                      </div>
+                    </div>
+                    <span class="badge-mono">Puerto {{ propiedadesServidor?.correo?.puerto || '587' }}</span>
+                  </div>
+                  <div class="panel-body">
+                    <div class="row g-3">
+                      <div class="col-8">
+                        <div class="pbox">
+                          <span class="pbox-label">Host SMTP</span>
+                          <span class="pbox-value font-monospace">{{ propiedadesServidor?.correo?.host || 'smtp.office365.com' }}</span>
+                          <span class="pbox-hint">spring.mail.host</span>
                         </div>
-                      </td>
-                      <td>
-                        <input type="text" class="form-control form-control-sm border-0 bg-transparent fw-semibold" 
-                               [value]="img.nombre || ''" (blur)="actualizarNombre(img, $event)" placeholder="Sin nombre">
-                      </td>
-                      <td>
-                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" 
-                               [value]="img.url" (blur)="actualizarUrl(img, $event)">
-                        <small class="text-muted d-block mt-1" style="font-size: 0.65rem;">
-                          Creado por: {{img.usuarioCreacion || 'Sistema'}} — {{img.dateCreate | date:'dd/MM/yyyy HH:mm'}}
-                        </small>
-                      </td>
-                      <td>
-                        <div class="form-check form-switch mb-0">
-                          <input class="form-check-input bgreen-toggle" type="checkbox" 
-                                 [checked]="img.activo === 1" (click)="onToggleImagen($event, img)">
-                          <span class="ms-2 small fw-semibold" [ngClass]="img.activo === 1 ? 'text-success' : 'text-danger'">
-                            {{img.activo === 1 ? 'Activa' : 'Inactiva'}}
+                      </div>
+                      <div class="col-4">
+                        <div class="pbox">
+                          <span class="pbox-label">Puerto</span>
+                          <span class="pbox-value font-monospace text-primary fw-bold">{{ propiedadesServidor?.correo?.puerto || '587' }}</span>
+                          <span class="pbox-hint">spring.mail.port</span>
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <div class="pbox">
+                          <span class="pbox-label">Remitente</span>
+                          <span class="pbox-value font-monospace small text-truncate">{{ propiedadesServidor?.correo?.usuario || '—' }}</span>
+                          <span class="pbox-hint">spring.mail.username</span>
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <div class="pbox">
+                          <span class="pbox-label">Destinatario Reportes</span>
+                          <span class="pbox-value font-monospace small text-truncate">{{ propiedadesServidor?.correo?.reporteEmailTo || '—' }}</span>
+                          <span class="pbox-hint">report.email.to</span>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="pbox">
+                          <span class="pbox-label">Autenticación</span>
+                          <span class="badge-ok"><i class="bi bi-check-lg"></i> Habilitada</span>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="pbox">
+                          <span class="pbox-label">STARTTLS</span>
+                          <span class="badge-ok"><i class="bi bi-shield-lock-fill"></i> Habilitado</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- JWT & JPA -->
+                <div class="panel-card" style="margin-bottom:0;flex:1;">
+                  <div class="panel-head">
+                    <div class="panel-head-left">
+                      <div class="section-header-icon sh-green" style="width:32px;height:32px;border-radius:8px;font-size:0.88rem;">
+                        <i class="bi bi-key-fill"></i>
+                      </div>
+                      <div>
+                        <div class="panel-head-title">JWT &amp; Persistencia JPA</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="panel-body">
+                    <div class="row g-3">
+                      <div class="col-6">
+                        <div class="pbox pbox-highlight">
+                          <span class="pbox-label">Expiración Token</span>
+                          <span class="pbox-value font-monospace text-success fw-bold">
+                            {{ propiedadesServidor?.seguridadJpa?.jwtExpiracionFormateada || '5 días' }}
                           </span>
+                          <span class="pbox-hint">jwt.expiration</span>
                         </div>
-                      </td>
-                      <td class="text-center">
-                        <button type="button" class="btn btn-link text-danger p-0" (click)="eliminarImagen(img.id!)">
-                          <i class="bi bi-trash3-fill"></i>
-                        </button>
-                      </td>
-                    </tr>
-                    <tr *ngIf="filteredImagenes.length === 0 && !loadingImagenes">
-                      <td colspan="5" class="text-center py-4 text-muted">
-                        <i class="bi bi-info-circle me-2"></i>No se encontraron imágenes.
-                      </td>
-                    </tr>
-                    <tr *ngIf="loadingImagenes">
-                      <td colspan="5" class="text-center py-4">
-                        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
-                        <span class="ms-2">Cargando...</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </div>
+                      <div class="col-6">
+                        <div class="pbox">
+                          <span class="pbox-label">Firma HMAC</span>
+                          <span class="badge-ok"><i class="bi bi-shield-fill-check"></i> Configurada</span>
+                          <span class="pbox-hint">jwt.secret (256-bit)</span>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="pbox">
+                          <span class="pbox-label">Dialecto Hibernate</span>
+                          <span class="pbox-value font-monospace small text-truncate">
+                            {{ (propiedadesServidor?.seguridadJpa?.jpaDialect || 'SQLServerDialect').split('.').pop() }}
+                          </span>
+                          <span class="pbox-hint">spring.jpa.properties</span>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="pbox">
+                          <span class="pbox-label">DDL Auto</span>
+                          <span class="badge-mono">{{ propiedadesServidor?.seguridadJpa?.jpaDdlAuto || 'none' }}</span>
+                          <span class="pbox-hint">spring.jpa.hibernate.ddl-auto</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
-            <!-- ===== ACCIONES ===== -->
-            <div class="mt-5 pt-4 d-flex justify-content-between border-top">
-              <button type="button" class="btn-force-expire btn-lg px-4"
-                (click)="forzarVencimiento()" [disabled]="loading">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>Forzar Vencimiento de Claves
-              </button>
-              <button type="submit" class="btn-bgreen btn-lg px-5"
-                [disabled]="configForm.invalid || loading || !atLeastOneRequirement">
-                <span *ngIf="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                <i *ngIf="!loading" class="bi bi-save me-2"></i>Guardar Cambios
-              </button>
+            <!-- TRÁFICO Y CONEXIONES (Dentro de Servidor) -->
+            <div class="section-header mb-4 mt-4">
+              <div class="section-header-icon sh-blue"><i class="bi bi-activity"></i></div>
+              <div class="section-header-text">
+                <h6>Monitoreo en Tiempo Real</h6>
+                <p>Tráfico de conexiones, peticiones HTTP y latencia con PLCs — actualización cada 5s</p>
+              </div>
             </div>
 
-          </form>
+            <div class="row g-4">
+
+              <!-- Gráfica BD -->
+              <div class="col-12 col-xl-4">
+                <div class="panel-card h-100" style="margin-bottom:0;">
+                  <div class="panel-head">
+                    <div class="panel-head-left">
+                      <div class="section-header-icon sh-blue" style="width:32px;height:32px;border-radius:8px;font-size:0.88rem;">
+                        <i class="bi bi-database-fill-gear"></i>
+                      </div>
+                      <div>
+                        <div class="panel-head-title">Conexiones Base de Datos</div>
+                        <div class="panel-head-sub">HikariCP Connection Pool</div>
+                      </div>
+                    </div>
+                    <span class="badge-ok"><i class="bi bi-circle-fill" style="font-size:0.5rem;"></i> Live</span>
+                  </div>
+                  <div class="panel-body" style="padding:16px;">
+                    <div style="height: 220px; position: relative;">
+                      <canvas baseChart
+                        [data]="dbChartData"
+                        [options]="commonChartOptions"
+                        [type]="'line'">
+                      </canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gráfica HTTP -->
+              <div class="col-12 col-xl-4">
+                <div class="panel-card h-100" style="margin-bottom:0;">
+                  <div class="panel-head">
+                    <div class="panel-head-left">
+                      <div class="section-header-icon sh-green" style="width:32px;height:32px;border-radius:8px;font-size:0.88rem;">
+                        <i class="bi bi-globe"></i>
+                      </div>
+                      <div>
+                        <div class="panel-head-title">Tráfico HTTP</div>
+                        <div class="panel-head-sub">Peticiones al servidor web</div>
+                      </div>
+                    </div>
+                    <span class="badge-ok"><i class="bi bi-circle-fill" style="font-size:0.5rem;"></i> Live</span>
+                  </div>
+                  <div class="panel-body" style="padding:16px;">
+                    <div style="height: 220px; position: relative;">
+                      <canvas baseChart
+                        [data]="httpChartData"
+                        [options]="commonChartOptions"
+                        [type]="'line'">
+                      </canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gráfica Node-RED / PLC -->
+              <div class="col-12 col-xl-4">
+                <div class="panel-card h-100" style="margin-bottom:0;">
+                  <div class="panel-head">
+                    <div class="panel-head-left">
+                      <div class="section-header-icon sh-amber" style="width:32px;height:32px;border-radius:8px;font-size:0.88rem;">
+                        <i class="bi bi-cpu-fill"></i>
+                      </div>
+                      <div>
+                        <div class="panel-head-title">Latencia Node-RED / PLCs</div>
+                        <div class="panel-head-sub">Tiempo de respuesta sincronización</div>
+                      </div>
+                    </div>
+                    <span class="badge-ok"><i class="bi bi-circle-fill" style="font-size:0.5rem;"></i> Live</span>
+                  </div>
+                  <div class="panel-body" style="padding:16px;">
+                    <div style="height: 220px; position: relative;">
+                      <canvas baseChart
+                        [data]="nodeRedChartData"
+                        [options]="commonChartOptions"
+                        [type]="'line'">
+                      </canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- ──────────────────────────────────────────────────────
+               TAB 3 · IMÁGENES DE LOGIN
+               ────────────────────────────────────────────────────── -->
+          <div *ngIf="activeTab === 'imagenes'">
+
+            <!-- Header de sección -->
+            <div class="section-header mb-4">
+              <div class="section-header-icon sh-purple"><i class="bi bi-images"></i></div>
+              <div class="section-header-text">
+                <h6>Imágenes de Fondo de Inicio de Sesión</h6>
+                <p>Agrega, edita o activa/desactiva las imágenes del carrusel de login</p>
+              </div>
+            </div>
+
+            <!-- Agregar nueva imagen -->
+            <div class="add-image-panel">
+              <div class="row align-items-end g-3">
+                <div class="col-12 col-md-4">
+                  <div class="param-field">
+                    <label>Nombre de la imagen</label>
+                    <div class="field-group">
+                      <span class="field-group-icon"><i class="bi bi-tag-fill"></i></span>
+                      <input type="text" placeholder="Ej: Fondo Principal Planta"
+                             [(ngModel)]="nuevaImagenNombre" [ngModelOptions]="{standalone: true}">
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-5">
+                  <div class="param-field">
+                    <label>URL de imagen</label>
+                    <div class="field-group">
+                      <span class="field-group-icon"><i class="bi bi-link-45deg"></i></span>
+                      <input type="text" placeholder="https://ejemplo.com/imagen.jpg"
+                             [(ngModel)]="nuevaImagenUrl" [ngModelOptions]="{standalone: true}">
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-3">
+                  <div class="d-flex gap-2 align-items-stretch">
+                    <button type="button" class="btn-bgreen flex-grow-1"
+                            (click)="agregarImagen()" [disabled]="!nuevaImagenUrl || loadingImagenes">
+                      <i class="bi bi-plus-lg"></i> Añadir
+                    </button>
+                    <div class="field-group" style="flex:0 0 140px;min-width:0;">
+                      <span class="field-group-icon"><i class="bi bi-search"></i></span>
+                      <input type="text" placeholder="Buscar..."
+                             [(ngModel)]="filtroBusqueda" [ngModelOptions]="{standalone: true}"
+                             style="font-size:0.85rem;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="img-table-wrap">
+              <table class="table mb-0">
+                <thead>
+                  <tr>
+                    <th style="width:80px;">Vista</th>
+                    <th style="width:200px;">Nombre</th>
+                    <th>URL / Enlace</th>
+                    <th style="width:120px;">Estado</th>
+                    <th class="text-center" style="width:70px;">Eliminar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let img of filteredImagenes">
+                    <td>
+                      <div class="img-thumb">
+                        <img [src]="img.url" (error)="$any($event.target).src='assets/img/placeholder.png'" alt="">
+                      </div>
+                    </td>
+                    <td>
+                      <input class="table-input" type="text" [value]="img.nombre || ''"
+                             (blur)="actualizarNombre(img, $event)" placeholder="Sin nombre">
+                    </td>
+                    <td>
+                      <input class="table-input" type="text" [value]="img.url"
+                             (blur)="actualizarUrl(img, $event)">
+                      <small class="text-muted d-block mt-1" style="font-size:0.65rem;">
+                        Por: {{ img.usuarioCreacion || 'Sistema' }} — {{ img.dateCreate | date:'dd/MM/yyyy HH:mm' }}
+                      </small>
+                    </td>
+                    <td>
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input bgreen-toggle" type="checkbox"
+                               [checked]="img.activo === 1" (click)="onToggleImagen($event, img)">
+                        <span class="ms-2 small fw-semibold"
+                              [ngClass]="img.activo === 1 ? 'text-success' : 'text-danger'">
+                          {{ img.activo === 1 ? 'Activa' : 'Inactiva' }}
+                        </span>
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <button type="button" class="btn btn-link text-danger p-0 fs-5"
+                              (click)="eliminarImagen(img.id!)" title="Eliminar imagen">
+                        <i class="bi bi-trash3-fill"></i>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr *ngIf="filteredImagenes.length === 0 && !loadingImagenes">
+                    <td colspan="5" class="text-center py-5 text-muted">
+                      <i class="bi bi-image-alt fs-2 d-block mb-2"></i>
+                      No se encontraron imágenes.
+                    </td>
+                  </tr>
+
+                  <tr *ngIf="loadingImagenes">
+                    <td colspan="5" class="text-center py-5">
+                      <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                      <span class="ms-2 text-muted">Cargando imágenes...</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+
+
         </div>
       </div>
     </div>
