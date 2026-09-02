@@ -16,7 +16,7 @@ export class JwtInterceptor implements HttpInterceptor {
 
     const token = this.authService.getToken();
 
-    if (token && token !== 'null' && token !== 'undefined' && !request.url.includes('/auth/login')) {
+    if (token && token !== 'null' && token !== 'undefined' && !request.url.includes('/auth/login') && !request.url.includes('/logistico') && !request.url.includes('tbs.com.co')) {
       request = request.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
