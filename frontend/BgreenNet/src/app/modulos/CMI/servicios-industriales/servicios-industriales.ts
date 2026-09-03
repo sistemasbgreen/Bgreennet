@@ -310,20 +310,10 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
 
   getMesesDisponibles() {
     const hoy = new Date();
-    let disponibles = this.meses;
     if (this.selectedYear === hoy.getFullYear().toString()) {
-      disponibles = disponibles.filter(m => parseInt(m.value) <= hoy.getMonth() + 1);
+      return this.meses.filter(m => parseInt(m.value) <= hoy.getMonth() + 1);
     }
-    return disponibles;
-  }
-
-  validarMesSeleccionado() {
-    const disponibles = this.getMesesDisponibles();
-    if (!disponibles.find(m => m.value === this.selectedMonth)) {
-      if (disponibles.length > 0) {
-        this.selectedMonth = disponibles[disponibles.length - 1].value;
-      }
-    }
+    return this.meses;
   }
 
   getFechaRango(mes: string, anio: string) {
@@ -346,12 +336,10 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
   // ─── Eventos ────────────────────────────────────────────────────────────────
 
   onServicioChange() {
-    this.validarMesSeleccionado();
     this.cargarDatosApropiados();
   }
 
   onFiltroChange() {
-    this.validarMesSeleccionado();
     this.cargarDatosApropiados();
   }
 
@@ -636,16 +624,9 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
             totalAguaMes += (flow * 5 / 60);
           });
         }
-       let totalB100MesAgua = 0;
-       for (let d = 1; d <= numDays; d++) {
-         const fechaStr = `${this.selectedYear}-${this.selectedMonth}-${pad(d)}`;
-         if (!esMesActual || fechaStr <= ayerStr) {
-           totalB100MesAgua += (mapaB100.get(fechaStr) || 0);
-         }
-       }
        this.aguaKpis.totalAguaMes = totalAguaMes;
-       this.aguaKpis.totalB100Mes = totalB100MesAgua;
-       this.aguaKpis.mensual = totalB100MesAgua > 0 ? Number((totalAguaMes / totalB100MesAgua).toFixed(2)) : 0;
+       this.aguaKpis.totalB100Mes = totalB100Mes;
+       this.aguaKpis.mensual = totalB100Mes > 0 ? Number((totalAguaMes / totalB100Mes).toFixed(2)) : 0;
 
        this.cargando = false;
        this.cdr.detectChanges();
@@ -1412,7 +1393,12 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           (b100Mes.dailyData || []).forEach((d: any) => mapaB100.set(d.date, d.produccion));
 
           // Constante de inicio real del sensor de agua (comenzó a operar el 19/08/2026)
-          const todasFechas = [...new Set([...mapaAgua.keys(), ...mapaB100.keys()])].sort();
+          const AGUA_SENSOR_INICIO = '2026-08-19';
+          const esAgosto2026 = this.selectedYear === '2026' && this.selectedMonth === '08';
+
+          const todasFechas = [...new Set([...mapaAgua.keys(), ...mapaB100.keys()])]
+            .sort()
+            .filter(f => esAgosto2026 ? f >= AGUA_SENSOR_INICIO : true);
 
           this.datosDiariosAgua = todasFechas.map(fecha => {
             const [y, m, d] = fecha.split('-');
@@ -1457,7 +1443,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
           }
 
           const totalAguaMes = this.datosDiariosAgua.reduce((s: number, d: any) => s + d.totalAgua, 0);
-          const totalB100Mes = todasFechas.reduce((sum, fecha) => sum + (mapaB100.get(fecha) || 0), 0);
+          const totalB100Mes  = b100Mes.totalProduction || 0;
           this.aguaKpis.totalAguaMes = totalAguaMes;
           this.aguaKpis.totalB100Mes = totalB100Mes;
           this.aguaKpis.mensual = totalB100Mes > 0 ? Number((totalAguaMes / totalB100Mes).toFixed(2)) : 0;
@@ -2060,7 +2046,10 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
       ? hoy.toISOString().split('T')[0]
       : `${this.selectedYear}-${this.selectedMonth}-${pad(lastDayOfSelectedMonth)}`;
 
-    const anioInicioEfectivo = anioInicio;
+    // Para agua en 2026, el sensor empezó en agosto → acumulado anual solo desde agosto
+    const anioInicioEfectivo = (servicio === 'agua' && this.selectedYear === '2026')
+      ? '2026-08-01'
+      : anioInicio;
 
     const totalB100Anio = (b100Historico?.dailyData || [])
       .filter((d: any) => d.date >= anioInicioEfectivo && d.date <= fechaFinAnio)
@@ -2130,8 +2119,7 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
     // Procesar cada mes que tenga datos de agua
     this.datosMensualesAgua.forEach((d: any) => {
       const mesNum = parseInt(d.mes || d.Mes || 0, 10);
-      const limitMonth = parseInt(this.selectedMonth, 10);
-      if (mesNum > 0 && mesNum <= limitMonth) {
+      if (mesNum > 0) {
         const mesLabel = this.meses[mesNum - 1]?.label || `Mes ${mesNum}`;
         labels.push(mesLabel);
         renderedMonths.push(mesNum.toString().padStart(2, '0'));
@@ -2143,7 +2131,9 @@ export class ServiciosIndustriales implements OnInit, OnDestroy {
         const foco = tonB100 > 0 ? totalAgua / tonB100 : 0;
         const focoStatus = tonB100 === 0 ? 'sin-dato' : foco <= this.aguaMeta ? 'ok' : 'desviacion';
 
-        const color = 'rgba(2,136,209,0.80)'; // Todas las barras azules
+        const color = focoStatus === 'ok' ? 'rgba(2,136,209,0.80)' :
+                      focoStatus === 'desviacion' ? 'rgba(231,76,60,0.80)' :
+                      'rgba(150,150,150,0.60)';
         colores.push(color);
       }
     });
