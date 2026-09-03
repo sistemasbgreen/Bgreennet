@@ -19,10 +19,13 @@ interface ToastState {
   styleUrl: './metas-cmi.css',
 })
 export class MetasCMI implements OnInit {
-  activeTab: 'productos' | 'mapeoErp' | 'documentos' = 'productos';
+  activeTab: 'productos' | 'mapeoErp' | 'documentos' | 'serviciosIndustriales' = 'productos';
 
-  switchTab(tab: 'productos' | 'mapeoErp' | 'documentos') {
+  switchTab(tab: 'productos' | 'mapeoErp' | 'documentos' | 'serviciosIndustriales') {
     this.activeTab = tab;
+    if (tab === 'serviciosIndustriales') {
+      this.cargarMetasServicioIndustrial();
+    }
   }
 
   soloNumeros(event: KeyboardEvent) {
@@ -1195,7 +1198,188 @@ export class MetasCMI implements OnInit {
       tokens.push({ type: 'parenthesis', text: ')' });
       tokens.push({ type: 'operator', text: ' / ' });
       tokens.push({ type: 'doc', text: 'Producción B100' });
-    }    
-    return tokens;  
-}
+    }
+    
+    return tokens;
+  }
+
+  // =============================
+  // METAS SERVICIOS INDUSTRIALES
+  // =============================
+  selectedServicioIndustrial: 'agua' | 'energia' | 'vapor' | 'gas' = 'agua';
+  selectedAnioServicios: string = new Date().getFullYear().toString();
+  metasServicios: MetaDetalle[] = Array(12).fill(0).map(() => ({ valor: 0 }));
+  metaDiariaServicio: number = 0;
+  metaDiariaServicioManual: boolean = false;
+  metaDiariaServicioUser?: string;
+  metaDiariaServicioDate?: string;
+  distribuirValorServicio: number = 0;
+  cargandoServicios: boolean = false;
+  guardandoServicios: boolean = false;
+
+  get maxMetaServicios(): number {
+    return Math.max(...this.metasServicios.map(m => m.valor || 0), 0);
+  }
+
+  get minMetaServicios(): number {
+    const conValor = this.metasServicios.filter(m => m.valor > 0).map(m => m.valor);
+    return conValor.length > 0 ? Math.min(...conValor) : 0;
+  }
+
+  get promedioMetaServicios(): number {
+    const conValor = this.metasServicios.filter(m => m.valor > 0).map(m => m.valor);
+    if (conValor.length === 0) return 0;
+    const sum = conValor.reduce((a, b) => a + b, 0);
+    return Number((sum / conValor.length).toFixed(2));
+  }
+
+  get mesesConMetaServicios(): number {
+    return this.metasServicios.filter(m => m.valor > 0).length;
+  }
+
+  getServicioUnidad(servicio?: string): string {
+    const s = servicio || this.selectedServicioIndustrial;
+    switch (s) {
+      case 'agua': return 'm³/Ton';
+      case 'energia': return 'kWh/Ton';
+      case 'vapor': return 'kg/Ton';
+      case 'gas': return 'm³/Ton';
+      default: return '';
+    }
+  }
+
+  getServicioNombre(servicio?: string): string {
+    const s = servicio || this.selectedServicioIndustrial;
+    switch (s) {
+      case 'agua': return 'Agua';
+      case 'energia': return 'Energía Eléctrica';
+      case 'vapor': return 'Vapor';
+      case 'gas': return 'Gas Natural';
+      default: return '';
+    }
+  }
+
+  cargarMetasServicioIndustrial() {
+    this.cargandoServicios = true;
+    this.service.getMetasServiciosIndustriales(this.selectedServicioIndustrial, this.selectedAnioServicios).subscribe({
+      next: (res: MetaResponse) => {
+        const mensuales = res?.mensuales ?? [];
+        
+        // Cargar meta diaria (Mes 0)
+        const diaria = mensuales.find(m => Number(m.mes) === 0);
+        this.metaDiariaServicio = diaria ? diaria.valor : 0;
+        this.metaDiariaServicioManual = this.metaDiariaServicio > 0;
+        this.metaDiariaServicioUser = diaria?.userName;
+        this.metaDiariaServicioDate = diaria?.dateCreate;
+
+        // Cargar meses 1 al 12
+        const nuevasMetas = Array(12).fill(0).map(() => ({ valor: 0 }));
+        mensuales.forEach(m => {
+          const mesNum = Number(m.mes);
+          if (mesNum >= 1 && mesNum <= 12) {
+            nuevasMetas[mesNum - 1] = m;
+          }
+        });
+        this.metasServicios = nuevasMetas;
+        this.cargandoServicios = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cargar metas de servicio industrial:', err);
+        this.showToast('Error al cargar metas del servicio industrial', 'error');
+        this.cargandoServicios = false;
+        this.metasServicios = Array(12).fill(0).map(() => ({ valor: 0 }));
+        this.metaDiariaServicio = 0;
+        this.metaDiariaServicioUser = undefined;
+        this.metaDiariaServicioDate = undefined;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onServicioIndustrialChange(servicio: 'agua' | 'energia' | 'vapor' | 'gas') {
+    this.selectedServicioIndustrial = servicio;
+    this.cargarMetasServicioIndustrial();
+  }
+
+  onAnioServiciosChange() {
+    this.cargarMetasServicioIndustrial();
+  }
+
+  cambiarAnioServicios(delta: number) {
+    const nuevoAnio = parseInt(this.selectedAnioServicios) + delta;
+    this.selectedAnioServicios = nuevoAnio.toString();
+    this.cargarMetasServicioIndustrial();
+  }
+
+  cambiarValorServicio(index: number, event: any) {
+    const val = parseFloat(event.target.value);
+    if (!isNaN(val)) {
+      this.metasServicios[index].valor = val;
+      this.cdr.detectChanges();
+    }
+  }
+
+  distribuirValorServicioATodos() {
+    if (this.distribuirValorServicio < 0) return;
+    this.metasServicios.forEach(m => m.valor = this.distribuirValorServicio);
+    this.showToast(`Valor ${this.distribuirValorServicio} aplicado a todos los meses`, 'success');
+  }
+
+  guardarMetasServiciosIndustriales() {
+    this.guardandoServicios = true;
+    let completados = 0;
+    const total = 13;
+    let hayError = false;
+
+    const checkFinalizado = () => {
+      completados++;
+      if (completados === total) {
+        this.guardandoServicios = false;
+        if (!hayError) {
+          this.showToast(`Metas de ${this.getServicioNombre()} (${this.selectedAnioServicios}) guardadas con éxito`, 'success');
+        }
+        this.cargarMetasServicioIndustrial();
+      }
+    };
+
+    // Guardar Mes 0 (Meta Diaria)
+    const payloadDiaria = {
+      servicioId: this.selectedServicioIndustrial,
+      anio: parseInt(this.selectedAnioServicios),
+      mes: 0,
+      valor: this.metaDiariaServicioManual ? (this.metaDiariaServicio || 0) : 0,
+      usuario: this.userEmail || 'SISTEMA'
+    };
+
+    this.service.guardarMetaServicioIndustrial(payloadDiaria).subscribe({
+      next: () => checkFinalizado(),
+      error: (err) => {
+        console.error('Error al guardar meta diaria:', err);
+        hayError = true;
+        checkFinalizado();
+      }
+    });
+
+    // Guardar Meses 1 a 12
+    for (let mes = 1; mes <= 12; mes++) {
+      const valor = this.metasServicios[mes - 1]?.valor || 0;
+      const payload = {
+        servicioId: this.selectedServicioIndustrial,
+        anio: parseInt(this.selectedAnioServicios),
+        mes,
+        valor,
+        usuario: this.userEmail || 'SISTEMA'
+      };
+
+      this.service.guardarMetaServicioIndustrial(payload).subscribe({
+        next: () => checkFinalizado(),
+        error: (err) => {
+          console.error(`Error al guardar mes ${mes}:`, err);
+          hayError = true;
+          checkFinalizado();
+        }
+      });
+    }
+  }
 }
