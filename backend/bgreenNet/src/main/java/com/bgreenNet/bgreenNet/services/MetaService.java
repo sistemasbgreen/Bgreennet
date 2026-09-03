@@ -114,4 +114,12 @@ public class MetaService {
         return map;
     }
 
+    public MetaResponseDTO getMetasServiciosIndustriales(String servicioId, int anio) {
+        return new MetaResponseDTO(repository.obtenerMetasServiciosIndustriales(servicioId, anio));
+    }
+
+    public void guardarMetaServicioIndustrial(String servicioId, int anio, int mes, double valor, String usuario) {
+        repository.guardarMetaServicioIndustrial(servicioId, anio, mes, valor, usuario);
+    }
+
 }

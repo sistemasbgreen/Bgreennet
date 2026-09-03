@@ -48,4 +48,5 @@ export interface FocoKPIs {
   totalVaporAnio: number;
   totalB100Anio: number;
   meta: number; // 730 kg/Ton
+  metaMensual?: number;
 }
