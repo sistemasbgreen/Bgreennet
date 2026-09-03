@@ -15,6 +15,12 @@ export const layoutRoutes: Routes = [
       import('../modulos/orden-produccion/orden-produccion')
         .then(o => o.OrdenProduccion)
   },
+   {
+    path: 'home/modulologistico',
+    loadComponent: () =>
+      import('../modulos/modulologistico/modulologistico')
+        .then(o => o.Modulologistico)
+  },
     {
     path: 'home/seguimiento-variable',
     loadComponent: () =>

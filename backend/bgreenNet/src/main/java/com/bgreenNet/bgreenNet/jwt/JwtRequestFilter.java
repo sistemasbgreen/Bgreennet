@@ -43,20 +43,27 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         "/api/usuarios/",
         "/usuarios/",
         "/api/sistemasinformacion/",
-        "/sistemasinformacion/"
+        "/sistemasinformacion/",
+        "/api/logistico/",
+        "/logistico/"
     );
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
+        String uri = request.getRequestURI();
+
+        if (path.contains("/logistico") || uri.contains("/logistico")) {
+            return true;
+        }
 
         for (String excluded : EXCLUDED_PATHS) {
             if (excluded.endsWith("/")) {
-                if (path.startsWith(excluded)) {
+                if (path.startsWith(excluded) || uri.startsWith(excluded)) {
                     return true;
                 }
             } else {
-                if (path.equals(excluded)) {
+                if (path.equals(excluded) || uri.equals(excluded)) {
                     return true;
                 }
             }

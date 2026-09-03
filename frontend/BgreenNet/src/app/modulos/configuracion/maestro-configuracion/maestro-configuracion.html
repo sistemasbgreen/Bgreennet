@@ -165,6 +165,26 @@
                 </label>
               </div>
 
+              <!-- BLOQUE 4 · Configuración de Módulos (Config Módulos) -->
+              <div class="section-header mt-4">
+                <div class="section-header-icon sh-blue"><i class="bi bi-box-seam"></i></div>
+                <div class="section-header-text">
+                  <h6>Config Módulos</h6>
+                  <p>Parámetros globales para servicios y módulos externos del sistema</p>
+                </div>
+              </div>
+
+              <div class="security-params-grid mb-4">
+                <div class="param-field">
+                  <label>Company ID (Módulo Logístico TBS)</label>
+                  <div class="field-group">
+                    <span class="field-group-icon"><i class="bi bi-building"></i></span>
+                    <input type="text" formControlName="companyIdLogistico" placeholder="Ej: 900715610">
+                  </div>
+                  <span class="field-hint">Identificador predeterminado de empresa para la API de transporte TBS</span>
+                </div>
+              </div>
+
               <!-- Alerta de validación -->
               <div class="validation-alert" *ngIf="!atLeastOneRequirement">
                 <i class="bi bi-exclamation-triangle-fill va-icon"></i>

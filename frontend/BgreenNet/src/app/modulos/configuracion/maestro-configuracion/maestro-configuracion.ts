@@ -103,7 +103,8 @@ export class MaestroConfiguracion implements OnInit, OnDestroy {
       minCaracteres: [8, [Validators.required, Validators.min(4), Validators.max(20)]],
       requiereLetras: [true],
       requiereNumeros: [true],
-      requiereEspeciales: [true]
+      requiereEspeciales: [true],
+      companyIdLogistico: [localStorage.getItem('LOGISTICO_COMPANY_ID') || '900715610']
     });
     this.initChartData();
   }
@@ -255,14 +256,16 @@ export class MaestroConfiguracion implements OnInit, OnDestroy {
 
   loadConfig(): void {
     this.loading = true;
+    const savedCompany = localStorage.getItem('LOGISTICO_COMPANY_ID') || '900715610';
     this.configService.getConfiguracion().subscribe({
       next: (config) => {
-        this.configForm.patchValue(config);
+        this.configForm.patchValue({ ...config, companyIdLogistico: savedCompany });
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error al cargar configuración', err);
+        this.configForm.patchValue({ companyIdLogistico: savedCompany });
         this.loading = false;
         Swal.fire('Error', 'No se pudo cargar la configuración de seguridad', 'error');
       }
@@ -277,13 +280,17 @@ export class MaestroConfiguracion implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.configForm.value.companyIdLogistico) {
+      localStorage.setItem('LOGISTICO_COMPANY_ID', String(this.configForm.value.companyIdLogistico).trim());
+    }
+
     this.loading = true;
     const config: ConfiguracionSeguridad = this.configForm.value;
 
     this.configService.updateConfiguracion(config).subscribe({
       next: () => {
         this.loading = false;
-        Swal.fire('¡Guardado!', 'Configuración de seguridad actualizada correctamente.', 'success');
+        Swal.fire('¡Guardado!', 'Configuración de seguridad y módulos actualizada correctamente.', 'success');
       },
       error: (err) => {
         console.error('Error al actualizar configuración', err);

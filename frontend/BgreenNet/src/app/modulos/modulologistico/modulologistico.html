@@ -1,1 +1,633 @@
-<p>modulologistico works!</p>
+<div class="page">
+
+  <!-- ===== PAGE HEADER ===== -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="3" width="15" height="13"></rect>
+          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+          <circle cx="5.5" cy="18.5" r="2.5"></circle>
+          <circle cx="18.5" cy="18.5" r="2.5"></circle>
+        </svg>
+      </div>
+      <div>
+        <h1 class="header-title">Módulo Logístico</h1>
+        <p class="header-subtitle">Panel de Control y Monitoreo de Transporte y Cargas - API TBS</p>
+      </div>
+    </div>
+
+    <div class="header-chips">
+      <div class="header-chip" *ngIf="ultimaActualizacion">
+        <span class="chip-dot green"></span>
+        Sincronizado: <strong>{{ ultimaActualizacion | date:'HH:mm:ss' }}</strong>
+      </div>
+      <div class="header-chip api-chip">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        API: <strong>TBS Public</strong>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== FILTER TOOLBAR CARD ===== -->
+  <div class="filter-card">
+    <div class="filter-grid">
+      <!-- Fecha Inicial -->
+      <div class="input-field-group">
+        <label class="field-label">Fecha Inicial</label>
+        <div class="input-with-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <input type="date" [(ngModel)]="startFecha" class="custom-input">
+        </div>
+      </div>
+
+      <!-- Fecha Final -->
+      <div class="input-field-group">
+        <label class="field-label">Fecha Final</label>
+        <div class="input-with-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <input type="date" [(ngModel)]="endFecha" class="custom-input">
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="filter-actions-group">
+        <button class="btn-primary" (click)="cargarTransportes()" [disabled]="loading">
+          <span *ngIf="loading" class="spinner-small"></span>
+          <svg *ngIf="!loading" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          {{ loading ? 'Consultando...' : 'Consultar Transportes' }}
+        </button>
+
+        <button class="btn-secondary" (click)="limpiarFiltros()" [disabled]="loading" title="Restablecer fechas a hoy">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          Limpiar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOADING / ERROR STATES ===== -->
+  <div class="state-container" *ngIf="loading || error">
+    <div class="loading-state" *ngIf="loading">
+      <div class="premium-loader"></div>
+      <p class="loading-text">Obteniendo datos de transporte TBS...</p>
+      <span class="loading-subtext">Company ID: {{ companyId }} | Fechas: {{ startFecha }} al {{ endFecha }}</span>
+    </div>
+
+    <div class="error-state" *ngIf="error && !loading">
+      <div class="error-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
+      <h3 class="error-title">No se pudieron obtener los datos</h3>
+      <p class="error-desc">{{ errorMessage }}</p>
+      <button class="btn-retry" (click)="cargarTransportes()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.85"></path></svg>
+        Reintentar Consulta
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="main-content" *ngIf="!loading && !error">
+
+    <!-- ===== 3 KPI EXECUTIVE CARDS ROW ===== -->
+    <div class="kpi-grid-4">
+      <!-- KPI 1: Operaciones -->
+      <div class="kpi-card-v2">
+        <div class="kpi-v2-header">
+          <span class="kpi-v2-title">OPERACIONES</span>
+          <div class="kpi-v2-icon icon-purple">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          </div>
+        </div>
+        <div class="kpi-v2-metric">{{ placasUnicas }}</div>
+        <div class="kpi-v2-sub">
+          <span class="text-muted">{{ vehiculosEntrada }} entrada · {{ vehiculosSalida }} salida</span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Materia Prima Ingresada -->
+      <div class="kpi-card-v2 accent-green">
+        <div class="kpi-v2-header">
+          <span class="kpi-v2-title">MATERIA PRIMA INGRESADA</span>
+          <div class="kpi-v2-icon icon-green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+          </div>
+        </div>
+        <div class="kpi-v2-metric green-text">{{ materiaPrimaIngresada | number:'1.1-1' }} <span class="unit">ton</span></div>
+        <div class="kpi-v2-sub">
+          <span class="text-muted">{{ vehiculosEntrada }} vehículos de entrada</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Producto Despachado -->
+      <div class="kpi-card-v2 accent-amber">
+        <div class="kpi-v2-header">
+          <span class="kpi-v2-title">PRODUCTO DESPACHADO</span>
+          <div class="kpi-v2-icon icon-amber">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </div>
+        </div>
+        <div class="kpi-v2-metric amber-text">{{ productoDespachadoTon | number:'1.1-1' }} <span class="unit">ton</span></div>
+        <div class="kpi-v2-sub">
+          <span class="text-muted">{{ vehiculosSalida }} vehículos de salida</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RESUMEN POR PRODUCTO (MOVIMIENTO DE MATERIA PRIMA) ===== -->
+    <div class="product-summary-section" *ngIf="resumenPorProducto.length > 0">
+      <div class="section-header-wrap">
+        <h3 class="section-title">Movimiento de materia prima</h3>
+        <button class="btn-empresas-modal" (click)="abrirModalEmpresas()" *ngIf="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-3"></path><path d="M9 9v.01"></path><path d="M9 12v.01"></path><path d="M9 15v.01"></path><path d="M9 18v.01"></path></svg>
+          Resumen por Proveedor / Cliente
+        </button>
+      </div>
+
+      <div class="product-cards-grid">
+        <div class="product-card-img1" *ngFor="let rp of resumenPorProducto">
+          <!-- Top Row: Badge + Operations Count -->
+          <div class="card-img1-top">
+            <span class="product-type-badge" [ngClass]="{ 'tipo-entrada': rp.tipo === 'Entrada', 'tipo-salida': rp.tipo === 'Salida' }">
+              {{ rp.tipo }}
+            </span>
+            <div class="ops-right-wrap">
+              <span class="ops-label">Operaciones</span>
+              <span class="ops-number">{{ rp.operaciones }}</span>
+            </div>
+          </div>
+
+          <!-- Product Name & Metric -->
+          <h4 class="product-name-img1">{{ rp.producto }}</h4>
+          <div class="product-metric-img1">
+            <span class="metric-val">{{ rp.pesoTon | number:'1.1-1' }}</span>
+            <span class="metric-unit">ton</span>
+          </div>
+
+          <!-- Supplier Rows List -->
+          <div class="supplier-rows-list" *ngIf="rp.proveedoresClientes.length > 0">
+            <div class="supplier-row-item" *ngFor="let e of rp.proveedoresClientes">
+              <div class="supplier-left">
+                <span class="dot-square" [ngClass]="{ 'green-dot': rp.tipo === 'Entrada', 'amber-dot': rp.tipo === 'Salida' }"></span>
+                <span class="supplier-name-text">{{ e.nombre }}</span>
+              </div>
+              <div class="supplier-right">
+                <span class="supplier-ops-ton">{{ e.pesoTon | number:'1.1-1' }} ton</span>
+                <strong class="supplier-pct">{{ e.operaciones }} {{ e.operaciones === 1 ? 'op' : 'ops' }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VEHÍCULOS EN PLANTA (ENTRADAS Y SALIDAS) - OCULTO PARA USO FUTURO ===== -->
+    <div class="vehicles-summary-section" *ngIf="false">
+      <div class="section-header-wrap">
+        <h3 class="section-title">Vehículos en planta <span class="sub-count">{{ totalRegistros }} registrados en período</span></h3>
+      </div>
+
+      <div class="vehicles-plant-card">
+        <!-- Header Split Row -->
+        <div class="plant-card-header-split">
+          <div class="header-split-col col-entrada">
+            <div class="col-title-wrap">
+              <span class="dot-circle green-circle"></span>
+              <strong>Entradas</strong>
+            </div>
+            <span class="col-count-num">{{ vehiculosEntradaFrecuencia.length }}</span>
+          </div>
+
+          <div class="header-split-col col-salida">
+            <div class="col-title-wrap">
+              <span class="dot-circle brown-circle"></span>
+              <strong>Salidas</strong>
+            </div>
+            <span class="col-count-num">{{ vehiculosSalidaFrecuencia.length }}</span>
+          </div>
+        </div>
+
+        <!-- Body Split Content -->
+        <div class="plant-card-body-split">
+          <!-- Column Entradas -->
+          <div class="plant-split-col col-entrada-body">
+            <div class="vehicle-plant-row" *ngFor="let v of vehiculosEntradaFrecuencia">
+              <div class="row-vehicle-left">
+                <span class="plate-tag-img2">{{ v.placa }}</span>
+                <div class="driver-info">
+                  <span class="driver-name-img2">{{ v.conductor }}</span>
+                  <div class="time-detail" *ngIf="v.horaInicio !== '—' || v.horaFin !== '—'">
+                    <span class="time-label">Ini: {{ v.horaInicio }}</span>
+                    <span class="time-sep">·</span>
+                    <span class="time-label">Fin: {{ v.horaFin }}</span>
+                    <span class="duration-pill" *ngIf="v.duracion !== '—'">⏱️ {{ v.duracion }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="empty-vehicle-text" *ngIf="vehiculosEntradaFrecuencia.length === 0">
+              No hay vehículos de entrada en el período
+            </div>
+          </div>
+
+          <!-- Column Salidas -->
+          <div class="plant-split-col col-salida-body">
+            <div class="vehicle-plant-row" *ngFor="let v of vehiculosSalidaFrecuencia">
+              <div class="row-vehicle-left">
+                <span class="plate-tag-img2">{{ v.placa }}</span>
+                <div class="driver-info">
+                  <span class="driver-name-img2">{{ v.conductor }}</span>
+                  <div class="time-detail" *ngIf="v.horaInicio !== '—' || v.horaFin !== '—'">
+                    <span class="time-label">Ini: {{ v.horaInicio }}</span>
+                    <span class="time-sep">·</span>
+                    <span class="time-label">Fin: {{ v.horaFin }}</span>
+                    <span class="duration-pill" *ngIf="v.duracion !== '—'">⏱️ {{ v.duracion }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="empty-vehicle-text" *ngIf="vehiculosSalidaFrecuencia.length === 0">
+              No hay vehículos de salida en el período
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR CARD -->
+    <div class="toolbar-card">
+      <div class="search-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="paginaActual = 1" placeholder="Buscar por placa, conductor, origen, destino, producto..." class="search-input">
+      </div>
+
+      <div class="filter-select-wrap" *ngIf="listaEstados.length > 0">
+        <label class="select-label">Operación:</label>
+        <select [(ngModel)]="filtroEstado" (change)="paginaActual = 1" class="custom-select">
+          <option value="TODOS">Todas las operaciones</option>
+          <option *ngFor="let est of listaEstados" [value]="est">{{ est }}</option>
+        </select>
+      </div>
+
+      <div class="toolbar-spacer"></div>
+
+      <button class="btn-export" (click)="exportarCSV()" [disabled]="transportesFiltrados.length === 0" title="Exportar resultados a CSV">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Exportar CSV
+      </button>
+    </div>
+
+    <!-- DATA TABLE CARD -->
+    <div class="table-card">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="th-fecha">Fecha / Hora</th>
+              <th class="th-placa">Placa</th>
+              <th class="th-estado">Operación</th>
+              <th class="th-ruta">Proveedor / Origen</th>
+              <th class="th-producto">Producto</th>
+              <th class="th-peso">Peso (kg)</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of transportesPaginados" class="table-row">
+              <!-- Fecha -->
+              <td class="td-fecha">
+                <div class="fecha-cell">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  {{ t['fecha'] }}
+                </div>
+              </td>
+
+              <!-- Placa -->
+              <td class="td-placa">
+                <div class="placa-cell">
+                  <span class="plate-tag">{{ t['placa'] }}</span>
+                  <span class="subtext" *ngIf="t['conductor'] && t['conductor'] !== 'N/A'">{{ t['conductor'] }}</span>
+                </div>
+              </td>
+
+              <!-- Estado / Operación -->
+              <td class="td-estado">
+                <span class="status-badge" [ngClass]="{
+                  'success': isSuccessState(t['estado']),
+                  'warning': isWarningState(t['estado']),
+                  'neutral': !isSuccessState(t['estado']) && !isWarningState(t['estado'])
+                }">
+                  <span class="badge-dot"></span>
+                  {{ t['estado'] || 'Registrado' }}
+                </span>
+              </td>
+
+              <!-- Proveedor / Origen -->
+              <td class="td-ruta">
+                <div class="ruta-cell">
+                  <span class="ruta-origin">{{ t['origen'] }}</span>
+                </div>
+              </td>
+
+              <!-- Producto -->
+              <td class="td-producto">
+                <span class="producto-tag">{{ t['producto'] }}</span>
+              </td>
+
+              <!-- Peso -->
+              <td class="td-peso">
+                <div class="peso-cell">
+                  <div class="peso-neto-main"><strong>{{ t['pesoNeto'] | number:'1.0-0' }}</strong> <span class="unit-tag">kg</span></div>
+                  <div class="peso-sub-rows">
+                    <span class="sub-peso">Ini: {{ t['pesoInicial'] | number:'1.0-0' }}</span>
+                    <span class="sub-sep">·</span>
+                    <span class="sub-peso">Fin: {{ t['pesoFinal'] | number:'1.0-0' }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Acciones -->
+              <td class="td-actions">
+                <button class="btn-action-ghost" (click)="abrirDetalle(t)" title="Ver detalle completo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  Detalle
+                </button>
+              </td>
+            </tr>
+
+            <!-- EMPTY STATE -->
+            <tr *ngIf="transportesFiltrados.length === 0">
+              <td colspan="7" class="empty-table-cell">
+                <div class="empty-state">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <p class="empty-title">No se encontraron registros de transporte</p>
+                  <p class="empty-sub">Intenta cambiar el rango de fechas o los términos de búsqueda.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINATION BAR -->
+      <div class="pagination-bar" *ngIf="transportesFiltrados.length > 0">
+        <span class="pagination-info">
+          Mostrando {{ (paginaActual - 1) * elementosPorPagina + 1 }} - {{ (paginaActual * elementosPorPagina) > transportesFiltrados.length ? transportesFiltrados.length : (paginaActual * elementosPorPagina) }} de {{ transportesFiltrados.length }} registros
+        </span>
+
+        <div class="pagination-controls">
+          <button class="btn-page" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+            Anterior
+          </button>
+          <span class="page-num">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+          <button class="btn-page" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+            Siguiente
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== MODAL DETALLE TIPO CÉDULA / TARJETA DE CONTROL ===== -->
+  <div class="modal-backdrop" *ngIf="showDetailModal && selectedTransport" (click)="cerrarDetalle()">
+    <div class="modal-container modal-cedula-wrap" (click)="$event.stopPropagation()">
+      
+      <!-- CÉDULA HEADER BAR -->
+      <div class="cedula-header">
+        <div class="cedula-brand">
+          <div class="cedula-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+          </div>
+          <div>
+            <h3 class="cedula-brand-title">BGREENNET LOGÍSTICA</h3>
+            <p class="cedula-brand-sub">Cédula Oficial de Transporte y Registro de Pesaje</p>
+          </div>
+        </div>
+
+        <div class="cedula-status-badge">
+          <span class="status-dot green" *ngIf="isSuccessState(selectedTransport['estado'])"></span>
+          <span class="status-dot warning" *ngIf="isWarningState(selectedTransport['estado'])"></span>
+          <strong>{{ selectedTransport['estado'] | uppercase }}</strong>
+        </div>
+
+        <button class="modal-close-btn light" (click)="cerrarDetalle()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="modal-body cedula-body">
+        
+        <!-- TARJETA CÉDULA DE OPERACIÓN -->
+        <div class="cedula-card-main">
+          
+          <!-- LEFT SIDE: VEHICLE & DRIVER PROFILE -->
+          <div class="cedula-left-col">
+            <div class="plate-box">
+              <div class="plate-top-bar">COLOMBIA</div>
+              <span class="plate-number">{{ selectedTransport['placa'] }}</span>
+              <div class="plate-bottom-dot">●</div>
+            </div>
+
+            <div class="driver-profile">
+              <span class="field-label-sm">CONDUCTOR ASIGNADO</span>
+              <h4 class="driver-full-name">{{ selectedTransport['conductor'] }}</h4>
+            </div>
+
+            <div class="guia-info-box">
+              <span class="field-label-sm">NÚMERO DEL FORMULARIO TBS</span>
+              <strong class="guia-code">{{ selectedTransport['guia'] }}</strong>
+            </div>
+          </div>
+
+          <!-- RIGHT SIDE: OPERATIONAL DETAILS -->
+          <div class="cedula-right-col">
+            <div class="cedula-grid">
+              
+              <!-- Producto -->
+              <div class="cedula-field span-2">
+                <span class="cedula-label">PRODUCTO / CARGA</span>
+                <span class="cedula-value-bold green-highlight">{{ selectedTransport['producto'] }}</span>
+              </div>
+
+              <!-- Origen / Proveedor -->
+              <div class="cedula-field">
+                <span class="cedula-label">ORIGEN / PROVEEDOR</span>
+                <span class="cedula-value">{{ selectedTransport['origen'] }}</span>
+              </div>
+
+              <!-- Destino / Empresa -->
+              <div class="cedula-field">
+                <span class="cedula-label">DESTINO / EMPRESA</span>
+                <span class="cedula-value">{{ selectedTransport['destino'] }}</span>
+              </div>
+
+              <!-- Fecha -->
+              <div class="cedula-field">
+                <span class="cedula-label">FECHA DE REGISTRO</span>
+                <span class="cedula-value">{{ selectedTransport['fecha'] }}</span>
+              </div>
+
+              <!-- Horario & Duración -->
+              <div class="cedula-field">
+                <span class="cedula-label">HORARIO & ESTADÍA</span>
+                <span class="cedula-value">
+                  Ini: <strong>{{ selectedTransport['horaInicio'] }}</strong> · Fin: <strong>{{ selectedTransport['horaFin'] }}</strong>
+                  <span class="duration-badge-inline" *ngIf="selectedTransport['duracion'] !== '—'">⏱️ {{ selectedTransport['duracion'] }}</span>
+                </span>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BÁSCULA & PESAJE OFICIAL BOX -->
+        <div class="weight-ticket-box">
+          <div class="weight-ticket-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"></path></svg>
+            <span>CERTIFICADO OFICIAL DE PESAJE BÁSCULA</span>
+          </div>
+
+          <div class="weight-ticket-grid">
+            <div class="weight-item">
+              <span class="weight-label">PESO INICIAL (TARA)</span>
+              <span class="weight-val">{{ selectedTransport['pesoInicial'] | number }} <small>kg</small></span>
+            </div>
+
+            <div class="weight-item">
+              <span class="weight-label">PESO FINAL (BRUTO)</span>
+              <span class="weight-val">{{ selectedTransport['pesoFinal'] | number }} <small>kg</small></span>
+            </div>
+
+            <div class="weight-item highlight-net">
+              <span class="weight-label">PESO NETO TOTAL</span>
+              <span class="weight-val-big">{{ selectedTransport['pesoNeto'] | number }} <small>kg</small></span>
+              <span class="weight-ton-sub">({{ (selectedTransport['pesoNeto'] / 1000) | number:'1.1-2' }} ton)</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer cedula-footer">
+        <button class="btn-secondary" (click)="cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL RESUMEN EMPRESAS / PROVEEDORES ===== -->
+  <div class="modal-backdrop" *ngIf="showEmpresasModal" (click)="cerrarModalEmpresas()">
+    <div class="modal-container modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-3"></path><path d="M9 9v.01"></path><path d="M9 12v.01"></path><path d="M9 15v.01"></path><path d="M9 18v.01"></path></svg>
+          </div>
+          <div>
+            <h2 class="modal-title">Resumen por Proveedor / Cliente</h2>
+            <p class="modal-sub">Gráfica y consolidado de ingresos y salidas ({{ periodoFormateado }})</p>
+          </div>
+        </div>
+
+        <button class="modal-close-btn" (click)="cerrarModalEmpresas()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="modal-toolbar">
+        <div class="view-mode-toggle">
+          <button class="toggle-btn" [ngClass]="{'active': empresasViewMode === 'chart'}" (click)="setEmpresasViewMode('chart')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            Gráfica
+          </button>
+          <button class="toggle-btn" [ngClass]="{'active': empresasViewMode === 'table'}" (click)="setEmpresasViewMode('table')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            Tabla
+          </button>
+        </div>
+
+        <div class="chart-type-selector" *ngIf="empresasViewMode === 'chart'">
+          <button class="chart-type-btn" [ngClass]="{'active': empresasChartType === 'bar'}" (click)="setEmpresasChartType('bar')">Barras</button>
+          <button class="chart-type-btn" [ngClass]="{'active': empresasChartType === 'horizontalBar'}" (click)="setEmpresasChartType('horizontalBar')">Horizontales</button>
+          <button class="chart-type-btn" [ngClass]="{'active': empresasChartType === 'doughnut'}" (click)="setEmpresasChartType('doughnut')">Dona / Torta</button>
+        </div>
+
+        <div class="toolbar-actions">
+          <button class="btn-primary btn-sm" (click)="cargarAnoActual()" title="Cargar todo el año actual">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Cargar Todo el Año
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <!-- VISTA GRÁFICA -->
+        <div class="chart-view-wrap" *ngIf="empresasViewMode === 'chart'">
+          <div class="chart-canvas-container">
+            <canvas id="empresasChartCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- VISTA TABLA -->
+        <div class="table-wrapper" *ngIf="empresasViewMode === 'table'">
+          <div class="table-search-bar">
+            <div class="search-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" [(ngModel)]="empresaSearchQuery" placeholder="Buscar por nombre de empresa o producto..." class="search-input">
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Empresa / Proveedor</th>
+                <th class="text-center">Entradas (Ingresos)</th>
+                <th class="text-center">Salidas (Despachos)</th>
+                <th class="text-right">Total Toneladas</th>
+                <th>Productos / Placas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let emp of resumenEmpresas">
+                <td>
+                  <strong class="empresa-name">{{ emp.nombre }}</strong>
+                </td>
+                <td class="text-center">
+                  <span class="badge-sub entrada" *ngIf="emp.entradasOps > 0">
+                    {{ emp.entradasOps }} ops · <strong>{{ emp.entradasTon | number:'1.1-1' }} ton</strong>
+                  </span>
+                  <span class="subtext" *ngIf="emp.entradasOps === 0">—</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge-sub salida" *ngIf="emp.salidasOps > 0">
+                    {{ emp.salidasOps }} ops · <strong>{{ emp.salidasTon | number:'1.1-1' }} ton</strong>
+                  </span>
+                  <span class="subtext" *ngIf="emp.salidasOps === 0">—</span>
+                </td>
+                <td class="text-right">
+                  <strong class="total-ton-val">{{ emp.totalTon | number:'1.1-1' }} ton</strong>
+                  <div class="subtext">{{ emp.totalOps }} ops totales</div>
+                </td>
+                <td>
+                  <div class="chips-stack">
+                    <span class="producto-mini-chip" *ngFor="let p of emp.productos">{{ p }}</span>
+                    <span class="placa-mini-chip" *ngFor="let pl of emp.placas">{{ pl }}</span>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="resumenEmpresas.length === 0">
+                <td colspan="5" class="empty-table-cell">No se encontraron empresas con los datos cargados.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="cerrarModalEmpresas()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
