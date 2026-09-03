@@ -230,4 +230,41 @@ public class MetaController {
     public void eliminarComponentes(@RequestParam String productoId) {
         service.eliminarComponentes(productoId);
     }
+
+    // =============================
+    // METAS SERVICIOS INDUSTRIALES
+    // =============================
+    @GetMapping("/metas/servicios-industriales")
+    public ResponseEntity<?> getMetasServiciosIndustriales(
+            @RequestParam String servicio,
+            @RequestParam String anio) {
+        try {
+            String cleanAnioStr = (anio != null) ? anio.replaceAll("[^0-9]", "") : "";
+            int anioClean = cleanAnioStr.isEmpty() ? 2026 : Integer.parseInt(cleanAnioStr);
+            MetaResponseDTO response = service.getMetasServiciosIndustriales(servicio, anioClean);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("[getMetasServiciosIndustriales] ERROR: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/metas/servicios-industriales/guardar")
+    public ResponseEntity<?> guardarMetaServicioIndustrial(@RequestBody Map<String, Object> body) {
+        try {
+            service.guardarMetaServicioIndustrial(
+                (String) body.get("servicioId"),
+                Integer.parseInt(body.get("anio").toString()),
+                Integer.parseInt(body.get("mes").toString()),
+                Double.parseDouble(body.get("valor").toString()),
+                (String) body.get("usuario")
+            );
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            log.error("[guardarMetaServicioIndustrial] ERROR: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
 }
