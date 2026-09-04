@@ -211,8 +211,8 @@
           </div>
 
           <!-- FOCO Mensual -->
-          <div class="stat-card" [class.success]="kpis.focoMensual !== null && kpis.focoMensual <= kpis.meta"
-                                 [class.danger]="kpis.focoMensual !== null && kpis.focoMensual > kpis.meta">
+          <div class="stat-card" [class.success]="kpis.focoMensual !== null && kpis.focoMensual <= ((kpis.metaMensual || kpis.meta)!)"
+                                 [class.danger]="kpis.focoMensual !== null && kpis.focoMensual > ((kpis.metaMensual || kpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">FOCO Mensual</span>
               <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
@@ -225,8 +225,8 @@
           </div>
 
           <!-- FOCO Anual -->
-          <div class="stat-card" [class.success]="kpis.focoAnual !== null && kpis.focoAnual <= kpis.meta"
-                                 [class.danger]="kpis.focoAnual !== null && kpis.focoAnual > kpis.meta">
+          <div class="stat-card" [class.success]="kpis.focoAnual !== null && kpis.focoAnual <= ((kpis.metaMensual || kpis.meta)!)"
+                                 [class.danger]="kpis.focoAnual !== null && kpis.focoAnual > ((kpis.metaMensual || kpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">FOCO Anual {{ selectedYear }}</span>
               <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
@@ -358,8 +358,8 @@
           </div>
 
           <!-- Consumo Mensual -->
-          <div class="stat-card" [class.success]="energiaKpis.mensual !== null && energiaKpis.mensual <= energiaKpis.meta"
-                                 [class.danger]="energiaKpis.mensual !== null && energiaKpis.mensual > energiaKpis.meta">
+          <div class="stat-card" [class.success]="energiaKpis.mensual !== null && energiaKpis.mensual <= ((energiaKpis.metaMensual || energiaKpis.meta)!)"
+                                 [class.danger]="energiaKpis.mensual !== null && energiaKpis.mensual > ((energiaKpis.metaMensual || energiaKpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">Consumo Mensual</span>
               <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
@@ -372,8 +372,8 @@
           </div>
 
           <!-- Consumo Anual -->
-          <div class="stat-card" [class.success]="energiaKpis.anual !== null && energiaKpis.anual <= energiaKpis.meta"
-                                 [class.danger]="energiaKpis.anual !== null && energiaKpis.anual > energiaKpis.meta">
+          <div class="stat-card" [class.success]="energiaKpis.anual !== null && energiaKpis.anual <= ((energiaKpis.metaMensual || energiaKpis.meta)!)"
+                                 [class.danger]="energiaKpis.anual !== null && energiaKpis.anual > ((energiaKpis.metaMensual || energiaKpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">Consumo Anual {{ selectedYear }}</span>
               <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
@@ -506,8 +506,8 @@
           </div>
 
           <!-- Consumo Mensual -->
-          <div class="stat-card" [class.success]="aguaKpis.mensual !== null && aguaKpis.mensual <= aguaKpis.meta"
-                                 [class.danger]="aguaKpis.mensual !== null && aguaKpis.mensual > aguaKpis.meta">
+          <div class="stat-card" [class.success]="aguaKpis.mensual !== null && aguaKpis.mensual <= ((aguaKpis.metaMensual || aguaKpis.meta)!)"
+                                 [class.danger]="aguaKpis.mensual !== null && aguaKpis.mensual > ((aguaKpis.metaMensual || aguaKpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">Consumo Mensual</span>
               <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
@@ -520,8 +520,8 @@
           </div>
 
           <!-- Consumo Anual -->
-          <div class="stat-card" [class.success]="aguaKpis.anual !== null && aguaKpis.anual <= aguaKpis.meta"
-                                 [class.danger]="aguaKpis.anual !== null && aguaKpis.anual > aguaKpis.meta">
+          <div class="stat-card" [class.success]="aguaKpis.anual !== null && aguaKpis.anual <= ((aguaKpis.metaMensual || aguaKpis.meta)!)"
+                                 [class.danger]="aguaKpis.anual !== null && aguaKpis.anual > ((aguaKpis.metaMensual || aguaKpis.meta)!)">
             <div class="stat-header">
               <span class="stat-title">Consumo Anual {{ selectedYear }}</span>
               <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
