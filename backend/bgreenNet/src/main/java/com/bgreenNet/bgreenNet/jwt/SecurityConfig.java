@@ -61,6 +61,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 	                .requestMatchers("/api/catalogos/**", "/catalogos/**").permitAll()
 	                .requestMatchers("/api/configuracion-seguridad/**", "/configuracion-seguridad/**").permitAll()
 	                .requestMatchers("/api/listarDocumentos/**", "/listarDocumentos/**").permitAll()
+	                .requestMatchers("/api/metrics/**", "/metrics/**").permitAll()
 	                .requestMatchers("/error").permitAll()
 	                .anyRequest().authenticated()
 	            )
