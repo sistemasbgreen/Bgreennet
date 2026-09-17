@@ -53,6 +53,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 	                .requestMatchers("/api/module-config/**", "/module-config/**").permitAll()
 	                .requestMatchers("/api/estrategicos/**", "/estrategicos/**").permitAll()
 	                .requestMatchers("/api/op-docto/**", "/op-docto/**").permitAll()
+	                .requestMatchers("/api/solicitudes-compra/**", "/solicitudes-compra/**").permitAll()
 	                .requestMatchers("/api/productos/**", "/productos/**").permitAll()
 	                .requestMatchers("/api/siesa/**", "/siesa/**").permitAll()
 	                .requestMatchers("/api/obtener_metas/**", "/obtener_metas/**").permitAll()

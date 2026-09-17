@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -46,6 +47,16 @@ public class VariablesScadaService {
 
     public VariablesScadaService(@Qualifier("plcJdbcTemplate") JdbcTemplate plcJdbcTemplate) {
         this.plcJdbcTemplate = plcJdbcTemplate;
+    }
+
+    /**
+     * Runs once at startup to ensure the DB schema is up to date.
+     * Avoids executing DDL on every HTTP request.
+     */
+    @PostConstruct
+    public void inicializarEsquema() {
+        asegurarColumnasNodeRed();
+        asegurarTablaConfigPlc();
     }
 
     /**
@@ -98,7 +109,6 @@ public class VariablesScadaService {
      * Si la tabla está vacía, la inicializa con los valores estáticos.
      */
     public List<VariableScadaConfig> obtenerTodasLasVariables() {
-        asegurarColumnasNodeRed();
         List<VariableScadaConfig> configList = variableScadaConfigRepository.findAll();
         if (configList.isEmpty()) {
             inicializarVariablesPorDefecto();
