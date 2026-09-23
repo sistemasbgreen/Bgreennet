@@ -18,42 +18,54 @@ public class PlcDbService {
     }
 
     public List<Map<String, Object>> obtenerVapor(String startDate, String endDate) {
-        if (startDate != null && endDate != null) {
-            String sql = "SELECT * FROM (" +
-                         "  SELECT FechaRegistro, [1100FTSG11], [550FT04], [1100FTSG12], " +
-                         "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
-                         "  FROM Tabla_14 " +
-                         "  WHERE FechaRegistro >= ? AND FechaRegistro <= ?" +
-                         ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
-            return plcJdbcTemplate.queryForList(sql, startDate + " 00:00:00", endDate + " 23:59:59");
-        } else {
-            String sql = "SELECT * FROM (" +
-                         "  SELECT FechaRegistro, [1100FTSG11], [550FT04], [1100FTSG12], " +
-                         "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
-                         "  FROM Tabla_14 " +
-                         "  WHERE YEAR(FechaRegistro) = YEAR(GETDATE()) AND MONTH(FechaRegistro) = MONTH(GETDATE())" +
-                         ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
-            return plcJdbcTemplate.queryForList(sql);
+        try {
+            if (startDate != null && endDate != null) {
+                String sql = "SELECT * FROM (" +
+                             "  SELECT FechaRegistro, [1100FTSG11], [550FT04], [1100FTSG12], " +
+                             "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
+                             "  FROM Tabla_14 " +
+                             "  WHERE FechaRegistro >= CONVERT(DATETIME, ?, 120) AND FechaRegistro <= CONVERT(DATETIME, ?, 120)" +
+                             ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
+                return plcJdbcTemplate.queryForList(sql, startDate + " 00:00:00", endDate + " 23:59:59");
+            } else {
+                String sql = "SELECT * FROM (" +
+                             "  SELECT FechaRegistro, [1100FTSG11], [550FT04], [1100FTSG12], " +
+                             "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
+                             "  FROM Tabla_14 " +
+                             "  WHERE YEAR(FechaRegistro) = YEAR(GETDATE()) AND MONTH(FechaRegistro) = MONTH(GETDATE())" +
+                             ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
+                return plcJdbcTemplate.queryForList(sql);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error en obtenerVapor: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 
     public List<Map<String, Object>> obtenerEnergia(String startDate, String endDate) {
-        if (startDate != null && endDate != null) {
-            String sql = "SELECT * FROM (" +
-                         "  SELECT FechaRegistro, ENERGIA, FT520129, CONTADOR_U520, CONTADOR_CCM1, CONTADOR_CCM2, CONTADOR_CCM3, CONTADOR_ADMON, POTENCIA_GEN, " +
-                         "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
-                         "  FROM Tabla_15 " +
-                         "  WHERE FechaRegistro >= ? AND FechaRegistro <= ?" +
-                         ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
-            return plcJdbcTemplate.queryForList(sql, startDate + " 00:00:00", endDate + " 23:59:59");
-        } else {
-            String sql = "SELECT * FROM (" +
-                         "  SELECT FechaRegistro, ENERGIA, FT520129, CONTADOR_U520, CONTADOR_CCM1, CONTADOR_CCM2, CONTADOR_CCM3, CONTADOR_ADMON, POTENCIA_GEN, " +
-                         "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
-                         "  FROM Tabla_15 " +
-                         "  WHERE YEAR(FechaRegistro) = YEAR(GETDATE()) AND MONTH(FechaRegistro) = MONTH(GETDATE())" +
-                         ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
-            return plcJdbcTemplate.queryForList(sql);
+        try {
+            if (startDate != null && endDate != null) {
+                String sql = "SELECT * FROM (" +
+                             "  SELECT FechaRegistro, ENERGIA, FT520129, CONTADOR_U520, CONTADOR_CCM1, CONTADOR_CCM2, CONTADOR_CCM3, CONTADOR_ADMON, POTENCIA_GEN, " +
+                             "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
+                             "  FROM Tabla_15 " +
+                             "  WHERE FechaRegistro >= CONVERT(DATETIME, ?, 120) AND FechaRegistro <= CONVERT(DATETIME, ?, 120)" +
+                             ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
+                return plcJdbcTemplate.queryForList(sql, startDate + " 00:00:00", endDate + " 23:59:59");
+            } else {
+                String sql = "SELECT * FROM (" +
+                             "  SELECT FechaRegistro, ENERGIA, FT520129, CONTADOR_U520, CONTADOR_CCM1, CONTADOR_CCM2, CONTADOR_CCM3, CONTADOR_ADMON, POTENCIA_GEN, " +
+                             "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
+                             "  FROM Tabla_15 " +
+                             "  WHERE YEAR(FechaRegistro) = YEAR(GETDATE()) AND MONTH(FechaRegistro) = MONTH(GETDATE())" +
+                             ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
+                return plcJdbcTemplate.queryForList(sql);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error en obtenerEnergia: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -62,22 +74,28 @@ public class PlcDbService {
      * Tabla_16 tiene columnas: global_Agua (flujo m³/h), Agua_total (totalizador m³), FechaRegistro.
      */
     public List<Map<String, Object>> obtenerAgua(String startDate, String endDate) {
-        if (startDate != null && endDate != null) {
-            String sql = "SELECT * FROM (" +
-                         "  SELECT FechaRegistro, global_Agua, Agua_total, " +
-                         "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
-                         "  FROM Tabla_16 " +
-                         "  WHERE FechaRegistro >= ? AND FechaRegistro <= ?" +
-                         ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
-            return plcJdbcTemplate.queryForList(sql, startDate + " 00:00:00", endDate + " 23:59:59");
-        } else {
-            String sql = "SELECT * FROM (" +
-                         "  SELECT FechaRegistro, global_Agua, Agua_total, " +
-                         "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
-                         "  FROM Tabla_16 " +
-                         "  WHERE YEAR(FechaRegistro) = YEAR(GETDATE()) AND MONTH(FechaRegistro) = MONTH(GETDATE())" +
-                         ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
-            return plcJdbcTemplate.queryForList(sql);
+        try {
+            if (startDate != null && endDate != null) {
+                String sql = "SELECT * FROM (" +
+                             "  SELECT FechaRegistro, global_Agua, Agua_total, " +
+                             "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
+                             "  FROM Tabla_16 " +
+                             "  WHERE FechaRegistro >= CONVERT(DATETIME, ?, 120) AND FechaRegistro <= CONVERT(DATETIME, ?, 120)" +
+                             ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
+                return plcJdbcTemplate.queryForList(sql, startDate + " 00:00:00", endDate + " 23:59:59");
+            } else {
+                String sql = "SELECT * FROM (" +
+                             "  SELECT FechaRegistro, global_Agua, Agua_total, " +
+                             "         ROW_NUMBER() OVER (PARTITION BY DATEDIFF(minute, 0, FechaRegistro) / 5 ORDER BY FechaRegistro ASC) as rn " +
+                             "  FROM Tabla_16 " +
+                             "  WHERE YEAR(FechaRegistro) = YEAR(GETDATE()) AND MONTH(FechaRegistro) = MONTH(GETDATE())" +
+                             ") t WHERE rn = 1 ORDER BY FechaRegistro ASC";
+                return plcJdbcTemplate.queryForList(sql);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error en obtenerAgua: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 

@@ -77,9 +77,9 @@ public class VariablesScadaService {
         try {
             if (fecha != null && !fecha.trim().isEmpty()) {
                 sql = "SELECT * FROM [DB_Process_Data_PLCs].[dbo].[Tabla_12] " +
-                      "WHERE [timestamp] >= ? AND [timestamp] < DATEADD(day, 1, CAST(? AS DATETIME)) " +
+                      "WHERE [timestamp] >= CONVERT(DATETIME, ?, 120) AND [timestamp] < DATEADD(day, 1, CONVERT(DATETIME, ?, 120)) " +
                       "ORDER BY [timestamp] ASC";
-                return plcJdbcTemplate.queryForList(sql, fecha + " 00:00:00", fecha + " 00:00:00");
+                return plcJdbcTemplate.queryForList(sql, fecha.trim() + " 00:00:00", fecha.trim() + " 00:00:00");
             } else {
                 sql = "SELECT * FROM [DB_Process_Data_PLCs].[dbo].[Tabla_12] " +
                       "WHERE [timestamp] >= CAST(GETDATE() AS DATE) " +

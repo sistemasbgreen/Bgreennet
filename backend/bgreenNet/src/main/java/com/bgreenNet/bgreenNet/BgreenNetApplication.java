@@ -41,14 +41,14 @@ public class BgreenNetApplication {
         return args -> {
             boolean conn1 = probarConexion("BASE DE DATOS PRINCIPAL", primaryJdbcTemplate, primaryDataSource);
             boolean conn2 = probarConexion("BASE DE DATOS SIESA", siesaJdbcTemplate, siesaDataSource);
-            boolean conn3 = probarConexion("BASE DE DATOS PLC", plcJdbcTemplate, plcDataSource);
+            boolean conn3 = probarConexion("BASE DE DATOS PLC (172.30.72.147)", plcJdbcTemplate, plcDataSource);
 
             System.out.println("\n========================================");
             System.out.println("    RESUMEN DE CONEXIONES A BASE DE DATOS");
             System.out.println("========================================");
             System.out.println(" CONEXIÓN 1 (Principal) : " + (conn1 ? "✅ CONECTADO" : "❌ FALLÓ"));
             System.out.println(" CONEXIÓN 2 (SIESA)     : " + (conn2 ? "✅ CONECTADO" : "❌ FALLÓ"));
-            System.out.println(" CONEXIÓN 3 (PLC)       : " + (conn3 ? "✅ CONECTADO" : "❌ FALLÓ"));
+            System.out.println(" CONEXIÓN 3 (PLC .147)  : " + (conn3 ? "✅ CONECTADO" : "❌ FALLÓ"));
             System.out.println("========================================\n");
         };
     }
@@ -81,6 +81,12 @@ public class BgreenNetApplication {
         } catch (Exception e) {
             System.err.println("❌ ERROR en " + nombreConexion);
             System.err.println("Motivo: " + e.getMessage());
+            Throwable cause = e;
+            while (cause.getCause() != null && cause.getCause() != cause) {
+                cause = cause.getCause();
+            }
+            System.err.println("Causa raíz: " + cause.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
