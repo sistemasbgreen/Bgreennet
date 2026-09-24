@@ -62,6 +62,10 @@ export class DynamicLoader implements OnInit {
         'configuracion/generales': () => import('../modulos/configuracion/maestro-configuracion/maestro-configuracion').then(m => m.MaestroConfiguracion),
         'configuracion/seguimiento-variable': () => import('../home/seguimiento-variable/seguimiento-variable').then(m => m.SeguimientoVariable),
         'configuracion/variables-plc': () => import('../modulos/configuracion/variables-plc/variables-plc').then(m => m.VariablesPlc),
+        'configuracion/logistica-config': () => import('../modulos/configuracion/logistico-config/logistico-config').then(m => m.LogisticoConfig),
+        'configuracion/logisticaconfig': () => import('../modulos/configuracion/logistico-config/logistico-config').then(m => m.LogisticoConfig),
+        'configuracion/logistica_config': () => import('../modulos/configuracion/logistico-config/logistico-config').then(m => m.LogisticoConfig),
+        'configuracion/logistico-config': () => import('../modulos/configuracion/logistico-config/logistico-config').then(m => m.LogisticoConfig),
         // Agrega más rutas según necesites
       };
 

@@ -13,7 +13,7 @@
       </div>
       <div>
         <h1 class="header-title">Módulo Logístico</h1>
-        <p class="header-subtitle">Panel de Control y Monitoreo de Transporte y Cargas - API TBS</p>
+        <p class="header-subtitle">Panel de Control y Monitoreo de Transporte</p>
       </div>
     </div>
 
@@ -21,10 +21,6 @@
       <div class="header-chip" *ngIf="ultimaActualizacion">
         <span class="chip-dot green"></span>
         Sincronizado: <strong>{{ ultimaActualizacion | date:'HH:mm:ss' }}</strong>
-      </div>
-      <div class="header-chip api-chip">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        API: <strong>TBS Public</strong>
       </div>
     </div>
   </header>
@@ -100,9 +96,9 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
           </div>
         </div>
-        <div class="kpi-v2-metric">{{ placasUnicas }}</div>
+        <div class="kpi-v2-metric">{{ totalOperacionesMostradas }}</div>
         <div class="kpi-v2-sub">
-          <span class="text-muted">{{ vehiculosEntrada }} entrada · {{ vehiculosSalida }} salida</span>
+          <span class="text-muted">{{ totalEntradas }} descargue · {{ totalSalidas }} cargue</span>
         </div>
       </div>
 
@@ -116,7 +112,7 @@
         </div>
         <div class="kpi-v2-metric green-text">{{ materiaPrimaIngresada | number:'1.1-1' }} <span class="unit">ton</span></div>
         <div class="kpi-v2-sub">
-          <span class="text-muted">{{ vehiculosEntrada }} vehículos de entrada</span>
+          <span class="text-muted">{{ vehiculosEntrada }} vehículos de descargue</span>
         </div>
       </div>
 
@@ -130,7 +126,7 @@
         </div>
         <div class="kpi-v2-metric amber-text">{{ productoDespachadoTon | number:'1.1-1' }} <span class="unit">ton</span></div>
         <div class="kpi-v2-sub">
-          <span class="text-muted">{{ vehiculosSalida }} vehículos de salida</span>
+          <span class="text-muted">{{ vehiculosSalida }} vehículos de cargue</span>
         </div>
       </div>
     </div>
@@ -138,18 +134,22 @@
     <!-- ===== RESUMEN POR PRODUCTO (MOVIMIENTO DE MATERIA PRIMA) ===== -->
     <div class="product-summary-section" *ngIf="resumenPorProducto.length > 0">
       <div class="section-header-wrap">
-        <h3 class="section-title">Movimiento de materia prima</h3>
-        <button class="btn-empresas-modal" (click)="abrirModalEmpresas()" *ngIf="false">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-3"></path><path d="M9 9v.01"></path><path d="M9 12v.01"></path><path d="M9 15v.01"></path><path d="M9 18v.01"></path></svg>
-          Resumen por Proveedor / Cliente
-        </button>
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <div style="width:32px;height:32px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;color:#166534;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          </div>
+          <div>
+            <h3 class="section-title" style="margin:0;">Movimiento de materia prima</h3>
+            <p style="margin:0;font-size:0.78rem;color:#64748b;">{{ resumenPorProducto.length }} producto(s) con actividad en el período</p>
+          </div>
+        </div>
       </div>
 
       <div class="product-cards-grid">
         <div class="product-card-img1" *ngFor="let rp of resumenPorProducto">
           <!-- Top Row: Badge + Operations Count -->
           <div class="card-img1-top">
-            <span class="product-type-badge" [ngClass]="{ 'tipo-entrada': rp.tipo === 'Entrada', 'tipo-salida': rp.tipo === 'Salida' }">
+            <span class="product-type-badge" [ngClass]="{ 'tipo-entrada': rp.tipo === 'Descargue', 'tipo-salida': rp.tipo === 'Cargue' }">
               {{ rp.tipo }}
             </span>
             <div class="ops-right-wrap">
@@ -165,16 +165,26 @@
             <span class="metric-unit">ton</span>
           </div>
 
-          <!-- Supplier Rows List -->
-          <div class="supplier-rows-list" *ngIf="rp.proveedoresClientes.length > 0">
-            <div class="supplier-row-item" *ngFor="let e of rp.proveedoresClientes">
-              <div class="supplier-left">
-                <span class="dot-square" [ngClass]="{ 'green-dot': rp.tipo === 'Entrada', 'amber-dot': rp.tipo === 'Salida' }"></span>
-                <span class="supplier-name-text">{{ e.nombre }}</span>
-              </div>
-              <div class="supplier-right">
-                <span class="supplier-ops-ton">{{ e.pesoTon | number:'1.1-1' }} ton</span>
-                <strong class="supplier-pct">{{ e.operaciones }} {{ e.operaciones === 1 ? 'op' : 'ops' }}</strong>
+          <!-- Accordion Toggle & Supplier List -->
+          <div class="supplier-accordion-wrap" *ngIf="rp.proveedoresClientes.length > 0">
+            <button class="accordion-toggle-btn" (click)="toggleAccordion(getAccordionKey(rp.producto, rp.tipo))" [class.active]="isAccordionOpen(getAccordionKey(rp.producto, rp.tipo))">
+              <span class="accordion-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                {{ rp.tipo === 'Descargue' ? 'Proveedores' : 'Clientes' }} ({{ rp.proveedoresClientes.length }})
+              </span>
+              <svg class="chevron-icon" [class.rotated]="isAccordionOpen(getAccordionKey(rp.producto, rp.tipo))" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+
+            <div class="supplier-rows-list accordion-body" *ngIf="isAccordionOpen(getAccordionKey(rp.producto, rp.tipo))">
+              <div class="supplier-row-item" *ngFor="let e of rp.proveedoresClientes">
+                <div class="supplier-left">
+                  <span class="dot-square" [ngClass]="{ 'green-dot': rp.tipo === 'Descargue', 'amber-dot': rp.tipo === 'Cargue' }"></span>
+                  <span class="supplier-name-text">{{ e.nombre }}</span>
+                </div>
+                <div class="supplier-right">
+                  <span class="supplier-ops-ton">{{ e.pesoTon | number:'1.1-1' }} ton</span>
+                  <strong class="supplier-pct">{{ e.operaciones }} {{ e.operaciones === 1 ? 'op' : 'ops' }}</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -194,7 +204,7 @@
           <div class="header-split-col col-entrada">
             <div class="col-title-wrap">
               <span class="dot-circle green-circle"></span>
-              <strong>Entradas</strong>
+              <strong>Descargues</strong>
             </div>
             <span class="col-count-num">{{ vehiculosEntradaFrecuencia.length }}</span>
           </div>
@@ -202,7 +212,7 @@
           <div class="header-split-col col-salida">
             <div class="col-title-wrap">
               <span class="dot-circle brown-circle"></span>
-              <strong>Salidas</strong>
+              <strong>Cargues</strong>
             </div>
             <span class="col-count-num">{{ vehiculosSalidaFrecuencia.length }}</span>
           </div>
@@ -227,7 +237,7 @@
               </div>
             </div>
             <div class="empty-vehicle-text" *ngIf="vehiculosEntradaFrecuencia.length === 0">
-              No hay vehículos de entrada en el período
+              No hay vehículos de descargue en el período
             </div>
           </div>
 
@@ -248,7 +258,7 @@
               </div>
             </div>
             <div class="empty-vehicle-text" *ngIf="vehiculosSalidaFrecuencia.length === 0">
-              No hay vehículos de salida en el período
+              No hay vehículos de cargue en el período
             </div>
           </div>
         </div>
@@ -301,26 +311,40 @@
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   {{ t['fecha'] }}
                 </div>
-              </td>
-
-              <!-- Placa -->
-              <td class="td-placa">
-                <div class="placa-cell">
-                  <span class="plate-tag">{{ t['placa'] }}</span>
-                  <span class="subtext" *ngIf="t['conductor'] && t['conductor'] !== 'N/A'">{{ t['conductor'] }}</span>
+                <div class="subtext-fin" *ngIf="t['end_date'] || (t['horaFin'] && t['horaFin'] !== '—')">
+                  Fin: {{ t['end_date'] || t['starting_date'] }} {{ t['horaFin'] }}
                 </div>
               </td>
 
-              <!-- Estado / Operación -->
+              <!-- Placa / Remolque & Conductor / Cédula -->
+              <td class="td-placa">
+                <div class="placa-cell">
+                  <div class="plate-row">
+                    <span class="plate-tag">{{ t['placa'] }}</span>
+                    <span class="trailer-tag" *ngIf="t['remolque'] && t['remolque'] !== 'N/A'" title="Remolque / Tráiler">Rem: {{ t['remolque'] }}</span>
+                  </div>
+                  <span class="subtext conductor-txt" *ngIf="t['conductor'] && t['conductor'] !== 'N/A'">
+                    {{ t['conductor'] }}
+                    <span class="cc-inline" *ngIf="t['cedulaConductor'] && t['cedulaConductor'] !== 'N/A'">· C.C. {{ t['cedulaConductor'] | number }}</span>
+                  </span>
+                </div>
+              </td>
+
+              <!-- Estado / Operación & Tipo Carga -->
               <td class="td-estado">
-                <span class="status-badge" [ngClass]="{
-                  'success': isSuccessState(t['estado']),
-                  'warning': isWarningState(t['estado']),
-                  'neutral': !isSuccessState(t['estado']) && !isWarningState(t['estado'])
-                }">
-                  <span class="badge-dot"></span>
-                  {{ t['estado'] || 'Registrado' }}
-                </span>
+                <div class="estado-cell">
+                  <span class="status-badge" [ngClass]="{
+                    'success': isSuccessState(t['estado']),
+                    'warning': isWarningState(t['estado']),
+                    'neutral': !isSuccessState(t['estado']) && !isWarningState(t['estado'])
+                  }">
+                    <span class="badge-dot"></span>
+                    {{ t['estado'] || 'Registrado' }}
+                  </span>
+                  <span class="badge-tipo-carga" *ngIf="t['tipoCarga'] && t['tipoCarga'] !== 'N/A'">
+                    {{ t['tipoCarga'] }}
+                  </span>
+                </div>
               </td>
 
               <!-- Proveedor / Origen -->
@@ -330,12 +354,18 @@
                 </div>
               </td>
 
-              <!-- Producto -->
+              <!-- Producto, Categoría & Código Interfaz -->
               <td class="td-producto">
-                <span class="producto-tag">{{ t['producto'] }}</span>
+                <div class="producto-cell">
+                  <span class="producto-tag">{{ t['producto'] }}</span>
+                  <div class="producto-meta" *ngIf="(t['categoria'] && t['categoria'] !== 'N/A') || (t['codigoInterfaz'] && t['codigoInterfaz'] !== 'N/A')">
+                    <span class="category-badge" *ngIf="t['categoria'] && t['categoria'] !== 'N/A'">{{ t['categoria'] }}</span>
+                    <span class="code-badge" *ngIf="t['codigoInterfaz'] && t['codigoInterfaz'] !== 'N/A'" title="Código de Interfaz">{{ t['codigoInterfaz'] }}</span>
+                  </div>
+                </div>
               </td>
 
-              <!-- Peso -->
+              <!-- Peso & Cantidades Manifestadas -->
               <td class="td-peso">
                 <div class="peso-cell">
                   <div class="peso-neto-main"><strong>{{ t['pesoNeto'] | number:'1.0-0' }}</strong> <span class="unit-tag">kg</span></div>
@@ -430,9 +460,18 @@
               <div class="plate-bottom-dot">●</div>
             </div>
 
+            <!-- Remolque / Tráiler Box -->
+            <div class="trailer-cedula-box" *ngIf="selectedTransport['remolque'] && selectedTransport['remolque'] !== 'N/A'">
+              <span class="field-label-sm">REMOLQUE / TRÁILER</span>
+              <strong class="trailer-number-txt">{{ selectedTransport['remolque'] }}</strong>
+            </div>
+
             <div class="driver-profile">
               <span class="field-label-sm">CONDUCTOR ASIGNADO</span>
               <h4 class="driver-full-name">{{ selectedTransport['conductor'] }}</h4>
+              <span class="driver-cc-badge" *ngIf="selectedTransport['cedulaConductor'] && selectedTransport['cedulaConductor'] !== 'N/A'">
+                C.C. {{ selectedTransport['cedulaConductor'] | number }}
+              </span>
             </div>
 
             <div class="guia-info-box">
@@ -445,10 +484,23 @@
           <div class="cedula-right-col">
             <div class="cedula-grid">
               
-              <!-- Producto -->
+              <!-- Producto & Tags -->
               <div class="cedula-field span-2">
                 <span class="cedula-label">PRODUCTO / CARGA</span>
-                <span class="cedula-value-bold green-highlight">{{ selectedTransport['producto'] }}</span>
+                <div class="cedula-prod-row">
+                  <span class="cedula-value-bold green-highlight">{{ selectedTransport['producto'] }}</span>
+                  <div class="cedula-tags-wrap">
+                    <span class="modal-pill category" *ngIf="selectedTransport['categoria'] && selectedTransport['categoria'] !== 'N/A'">
+                      {{ selectedTransport['categoria'] }}
+                    </span>
+                    <span class="modal-pill code" *ngIf="selectedTransport['codigoInterfaz'] && selectedTransport['codigoInterfaz'] !== 'N/A'" title="Código de Interfaz">
+                      {{ selectedTransport['codigoInterfaz'] }}
+                    </span>
+                    <span class="modal-pill charge-type" *ngIf="selectedTransport['tipoCarga'] && selectedTransport['tipoCarga'] !== 'N/A'">
+                      {{ selectedTransport['tipoCarga'] }}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <!-- Origen / Proveedor -->
@@ -463,18 +515,30 @@
                 <span class="cedula-value">{{ selectedTransport['destino'] }}</span>
               </div>
 
-              <!-- Fecha -->
+              <!-- Fecha y Hora de Entrada -->
               <div class="cedula-field">
-                <span class="cedula-label">FECHA DE REGISTRO</span>
-                <span class="cedula-value">{{ selectedTransport['fecha'] }}</span>
+                <span class="cedula-label">FECHA & HORA ENTRADA</span>
+                <span class="cedula-value">
+                  {{ selectedTransport['starting_date'] || selectedTransport['fecha'] }} 
+                  <strong *ngIf="selectedTransport['starting_time']">· {{ selectedTransport['starting_time'] }}</strong>
+                </span>
               </div>
 
-              <!-- Horario & Duración -->
+              <!-- Fecha y Hora de Salida -->
               <div class="cedula-field">
-                <span class="cedula-label">HORARIO & ESTADÍA</span>
+                <span class="cedula-label">FECHA & HORA SALIDA</span>
                 <span class="cedula-value">
-                  Ini: <strong>{{ selectedTransport['horaInicio'] }}</strong> · Fin: <strong>{{ selectedTransport['horaFin'] }}</strong>
+                  {{ selectedTransport['end_date'] || '—' }} 
+                  <strong *ngIf="selectedTransport['end_time']">· {{ selectedTransport['end_time'] }}</strong>
+                </span>
+              </div>
+
+              <!-- Estadía en Planta -->
+              <div class="cedula-field span-2">
+                <span class="cedula-label">TIEMPO DE ESTADÍA EN PLANTA</span>
+                <span class="cedula-value">
                   <span class="duration-badge-inline" *ngIf="selectedTransport['duracion'] !== '—'">⏱️ {{ selectedTransport['duracion'] }}</span>
+                  <span class="subtext-inline" *ngIf="selectedTransport['horaInicio'] !== '—'"> (Ingreso: {{ selectedTransport['horaInicio'] }} → Salida: {{ selectedTransport['horaFin'] }})</span>
                 </span>
               </div>
 
@@ -482,6 +546,7 @@
           </div>
 
         </div>
+
 
         <!-- BÁSCULA & PESAJE OFICIAL BOX -->
         <div class="weight-ticket-box">
@@ -504,7 +569,7 @@
             <div class="weight-item highlight-net">
               <span class="weight-label">PESO NETO TOTAL</span>
               <span class="weight-val-big">{{ selectedTransport['pesoNeto'] | number }} <small>kg</small></span>
-              <span class="weight-ton-sub">({{ (selectedTransport['pesoNeto'] / 1000) | number:'1.1-2' }} ton)</span>
+              <span class="weight-ton-sub">({{ ((selectedTransport['pesoNeto'] || 0) / 1000) | number:'1.1-2' }} ton)</span>
             </div>
           </div>
         </div>
@@ -527,7 +592,7 @@
           </div>
           <div>
             <h2 class="modal-title">Resumen por Proveedor / Cliente</h2>
-            <p class="modal-sub">Gráfica y consolidado de ingresos y salidas ({{ periodoFormateado }})</p>
+            <p class="modal-sub">Gráfica y consolidado de descargues y cargues ({{ periodoFormateado }})</p>
           </div>
         </div>
 
@@ -582,8 +647,8 @@
             <thead>
               <tr>
                 <th>Empresa / Proveedor</th>
-                <th class="text-center">Entradas (Ingresos)</th>
-                <th class="text-center">Salidas (Despachos)</th>
+                <th class="text-center">Descargues (Ingresos)</th>
+                <th class="text-center">Cargues (Despachos)</th>
                 <th class="text-right">Total Toneladas</th>
                 <th>Productos / Placas</th>
               </tr>
@@ -630,4 +695,112 @@
     </div>
   </div>
 
+  <!-- ===== MODAL PRODUCTOS OCULTOS ===== -->
+  <div class="modal-backdrop" *ngIf="showOcultosModal" (click)="cerrarModalOcultos()">
+    <div class="modal-container modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header amber-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon icon-amber-bg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </div>
+          <div>
+            <h2 class="modal-title" style="color: #ffffff;">Productos Ocultos</h2>
+            <p class="modal-sub" style="color: #fde68a;">Mostrando {{ resumenProductosOcultos.length }} producto(s) y {{ totalOperacionesOcultas }} operación(es) excluidas de la vista principal</p>
+          </div>
+        </div>
+
+        <button class="modal-close-btn" (click)="cerrarModalOcultos()" style="color: #ffffff;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Metric Summary Chips -->
+        <div class="ocultos-summary-bar">
+          <div class="ocultos-summary-chip">
+            <span class="chip-label">PRODUCTOS OCULTOS</span>
+            <strong class="chip-val">{{ resumenProductosOcultos.length }}</strong>
+          </div>
+          <div class="ocultos-summary-chip">
+            <span class="chip-label">OPERACIONES EXCLUIDAS</span>
+            <strong class="chip-val">{{ totalOperacionesOcultas }}</strong>
+          </div>
+          <div class="ocultos-summary-chip">
+            <span class="chip-label">TOTAL TONELADAS</span>
+            <strong class="chip-val">{{ totalToneladasOcultas | number:'1.1-2' }} ton</strong>
+          </div>
+        </div>
+
+        <!-- Product Cards Grid for Hidden Products -->
+        <div class="product-cards-grid" *ngIf="resumenProductosOcultos.length > 0" style="margin-top: 1rem;">
+          <div class="product-card-img1" *ngFor="let rp of resumenProductosOcultos">
+            <div class="card-img1-top">
+              <span class="product-type-badge" [ngClass]="{ 'tipo-entrada': rp.tipo === 'Descargue', 'tipo-salida': rp.tipo === 'Cargue' }">
+                {{ rp.tipo }}
+              </span>
+              <div class="ops-right-wrap">
+                <span class="ops-label">Operaciones</span>
+                <span class="ops-number">{{ rp.operaciones }}</span>
+              </div>
+            </div>
+
+            <h4 class="product-name-img1">{{ rp.producto }}</h4>
+            <div class="product-metric-img1">
+              <span class="metric-val">{{ rp.pesoTon | number:'1.1-1' }}</span>
+              <span class="metric-unit">ton</span>
+            </div>
+
+            <!-- Quick enable button -->
+            <div style="margin-top: 0.6rem; margin-bottom: 0.6rem;">
+              <button class="btn-primary-outline" style="width: 100%; justify-content: center; font-size: 0.75rem; padding: 0.35rem 0.6rem;" (click)="permitirProducto(rp.producto)" title="Habilitar este producto para mostrarlo en la vista principal">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Habilitar Producto
+              </button>
+            </div>
+
+            <!-- Accordion Toggle & Supplier List -->
+            <div class="supplier-accordion-wrap" *ngIf="rp.proveedoresClientes.length > 0">
+              <button class="accordion-toggle-btn" (click)="toggleAccordion(getAccordionKey(rp.producto, rp.tipo))" [class.active]="isAccordionOpen(getAccordionKey(rp.producto, rp.tipo))">
+                <span class="accordion-title">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  {{ rp.tipo === 'Descargue' ? 'Proveedores' : 'Clientes' }} ({{ rp.proveedoresClientes.length }})
+                </span>
+                <svg class="chevron-icon" [class.rotated]="isAccordionOpen(getAccordionKey(rp.producto, rp.tipo))" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+
+              <div class="supplier-rows-list accordion-body" *ngIf="isAccordionOpen(getAccordionKey(rp.producto, rp.tipo))">
+                <div class="supplier-row-item" *ngFor="let e of rp.proveedoresClientes">
+                  <div class="supplier-left">
+                    <span class="dot-square" [ngClass]="{ 'green-dot': rp.tipo === 'Descargue', 'amber-dot': rp.tipo === 'Cargue' }"></span>
+                    <span class="supplier-name-text">{{ e.nombre }}</span>
+                  </div>
+                  <div class="supplier-right">
+                    <span class="supplier-ops-ton">{{ e.pesoTon | number:'1.1-1' }} ton</span>
+                    <strong class="supplier-pct">{{ e.operaciones }} {{ e.operaciones === 1 ? 'op' : 'ops' }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State if no hidden products -->
+        <div class="empty-state" *ngIf="resumenProductosOcultos.length === 0" style="padding: 2rem 0; text-align: center;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 0.75rem auto; color: #166534;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <p class="empty-title" style="font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;">No hay productos ocultos</p>
+          <p class="empty-sub" style="color: #64748b; font-size: 0.85rem;">Todos los productos de los transportes forman parte de la lista permitida para visualización principal.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <a routerLink="/app/configuracion/logistica-config" (click)="cerrarModalOcultos()" class="btn-config-link" style="display: inline-flex; align-items: center; gap: 6px; color: #166534; font-weight: 600; text-decoration: none; font-size: 0.85rem;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Gestionar en Logística Config
+        </a>
+        <button class="btn-secondary" (click)="cerrarModalOcultos()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
 </div>
+
