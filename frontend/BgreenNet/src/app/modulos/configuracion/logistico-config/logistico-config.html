@@ -1,0 +1,204 @@
+<div class="logistico-config-container">
+  <!-- Toast Feedback -->
+  <div class="toast-notification" [ngClass]="toast.type" *ngIf="toast.visible">
+    <i class="bi" [ngClass]="toast.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'"></i>
+    <span>{{ toast.message }}</span>
+  </div>
+
+  <!-- Header Banner -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <i class="bi bi-truck"></i>
+      </div>
+      <div>
+        <nav class="breadcrumb-nav">
+          <a routerLink="/app/configuracion">Configuración</a>
+          <span class="separator">/</span>
+          <span class="current">Logística Config</span>
+        </nav>
+        <h1 class="page-title">Configuración de Productos Logísticos</h1>
+        <p class="page-sub">Define qué productos se visualizan en el resumen principal de operaciones y cuáles se ocultan, gestionado dinámicamente en base de datos.</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-sync" (click)="escanearProductosTBS(true)" [disabled]="loading || escaneandoTBS" title="Escanear operaciones de TBS para detectar productos no registrados">
+        <i class="bi bi-search" [class.spin]="escaneandoTBS"></i>
+        <span>Detectar de TBS</span>
+      </button>
+      <button class="btn-sync" (click)="cargarProductos()" [disabled]="loading" title="Sincronizar con Base de Datos">
+        <i class="bi bi-arrow-repeat" [class.spin]="loading"></i>
+        <span>Sincronizar BD</span>
+      </button>
+      <a routerLink="/home/modulologistico" class="btn-goto-module" title="Ir al Módulo Logístico TBS">
+        <i class="bi bi-box-arrow-up-right"></i>
+        <span>Ver Módulo Logístico</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI / Stats Summary Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card total-card">
+      <div class="kpi-top">
+        <span class="kpi-label">TOTAL REGISTRADOS</span>
+        <div class="kpi-icon-wrap total-icon"><i class="bi bi-database"></i></div>
+      </div>
+      <div class="kpi-value">{{ totalRegistrados }}</div>
+      <div class="kpi-foot">Reglas de producto en base de datos</div>
+    </div>
+
+    <div class="kpi-card permitted-card">
+      <div class="kpi-top">
+        <span class="kpi-label">VISIBLES EN PRINCIPAL</span>
+        <div class="kpi-icon-wrap permitted-icon"><i class="bi bi-eye"></i></div>
+      </div>
+      <div class="kpi-value">{{ totalPermitidos }}</div>
+      <div class="kpi-foot">Se computan en KPIs y materias primas</div>
+    </div>
+
+    <div class="kpi-card hidden-card">
+      <div class="kpi-top">
+        <span class="kpi-label">PRODUCTOS OCULTOS</span>
+        <div class="kpi-icon-wrap hidden-icon"><i class="bi bi-eye-slash"></i></div>
+      </div>
+      <div class="kpi-value">{{ totalOcultos }}</div>
+      <div class="kpi-foot">Excluidos de la visualización principal</div>
+    </div>
+  </div>
+
+  <!-- Add Product Section -->
+  <div class="card-section add-product-card">
+    <div class="card-header-clean">
+      <h3 class="card-section-title">
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Registrar Nuevo Producto</span>
+      </h3>
+    </div>
+    
+    <div class="add-form-row">
+      <div class="form-group flex-2">
+        <label for="prodName">Nombre del Producto (como aparece en transportes TBS):</label>
+        <input
+          id="prodName"
+          type="text"
+          class="input-control"
+          placeholder="Ej: (MP) ACEITE DE PALMA, BIODIESEL DESTILADO, (INS) METANOL..."
+          [(ngModel)]="nuevoProductoNombre"
+          (keyup.enter)="agregarProducto()"
+          [disabled]="guardando"
+        />
+      </div>
+
+      <div class="form-group flex-1">
+        <label for="prodStatus">Estado inicial:</label>
+        <select id="prodStatus" class="select-control" [(ngModel)]="nuevoProductoPermitido" [disabled]="guardando">
+          <option [ngValue]="true">Visible en principal (Permitido)</option>
+          <option [ngValue]="false">Oculto (Excluido)</option>
+        </select>
+      </div>
+
+      <div class="form-group-btn">
+        <button class="btn-save-product" (click)="agregarProducto()" [disabled]="!nuevoProductoNombre.trim() || guardando">
+          <i class="bi bi-check2" *ngIf="!guardando"></i>
+          <span class="spinner-border spinner-border-sm" *ngIf="guardando"></span>
+          <span>Guardar en BD</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Catalog / Table Section -->
+  <div class="card-section catalog-card">
+    <!-- Toolbar -->
+    <div class="table-toolbar">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          class="search-input-field"
+          placeholder="Buscar producto por nombre..."
+          [(ngModel)]="searchQuery"
+        />
+        <button class="btn-clear-search" *ngIf="searchQuery" (click)="searchQuery = ''">✕</button>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Filtrar por:</span>
+        <button class="btn-filter-pill" [class.active]="filtroEstado === 'TODOS'" (click)="filtroEstado = 'TODOS'">
+          Todos ({{ totalRegistrados }})
+        </button>
+        <button class="btn-filter-pill green-pill" [class.active]="filtroEstado === 'PERMITIDOS'" (click)="filtroEstado = 'PERMITIDOS'">
+          Visibles ({{ totalPermitidos }})
+        </button>
+        <button class="btn-filter-pill amber-pill" [class.active]="filtroEstado === 'OCULTOS'" (click)="filtroEstado = 'OCULTOS'">
+          Ocultos ({{ totalOcultos }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">#</th>
+            <th>Nombre del Producto</th>
+            <th style="width: 140px; text-align: center;">Estado</th>
+            <th style="width: 130px; text-align: center;">Visibilidad</th>
+            <th style="width: 180px;">Última Modificación</th>
+            <th style="width: 80px; text-align: center;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of productosFiltrados; let i = index" [class.row-hidden]="!item.permitido">
+            <td class="col-idx">{{ i + 1 }}</td>
+            <td class="col-name">
+              <span class="product-title">{{ item.nombreProducto }}</span>
+            </td>
+            <td style="text-align: center;">
+              <span class="badge-status" [ngClass]="item.permitido ? 'badge-visible' : 'badge-hidden'">
+                <i class="bi" [ngClass]="item.permitido ? 'bi-eye-fill' : 'bi-eye-slash-fill'"></i>
+                {{ item.permitido ? 'Visible' : 'Oculto' }}
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <label class="switch-toggle" [title]="item.permitido ? 'Clic para ocultar' : 'Clic para mostrar'">
+                <input
+                  type="checkbox"
+                  [checked]="item.permitido"
+                  (change)="toggleProducto(item)"
+                />
+                <span class="slider-round"></span>
+              </label>
+            </td>
+            <td class="col-date">
+              <span>{{ (item.fechaModificacion || item.fechaCreacion) | date:'dd/MM/yyyy HH:mm' }}</span>
+              <small *ngIf="item.usuario" class="col-user">por {{ item.usuario }}</small>
+            </td>
+            <td style="text-align: center;">
+              <button class="btn-action-delete" (click)="eliminarProducto(item)" title="Eliminar regla">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="productosFiltrados.length === 0 && !loading">
+            <td colspan="6" class="empty-cell">
+              <i class="bi bi-inbox empty-icon"></i>
+              <p>No se encontraron productos que coincidan con el filtro.</p>
+            </td>
+          </tr>
+
+          <tr *ngIf="loading">
+            <td colspan="6" class="loading-cell">
+              <div class="spinner-border text-success" role="status"></div>
+              <span>Cargando productos desde la base de datos...</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

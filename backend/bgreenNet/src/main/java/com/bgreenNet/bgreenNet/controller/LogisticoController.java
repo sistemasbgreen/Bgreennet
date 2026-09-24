@@ -14,9 +14,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,6 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import com.bgreenNet.bgreenNet.models.LogisticoProductoConfig;
+import com.bgreenNet.bgreenNet.services.LogisticoProductoService;
 
 @RestController
 @RequestMapping({"/api/logistico", "/logistico"})
@@ -34,6 +41,105 @@ public class LogisticoController {
     private static final String TBS_API_URL = "https://tbs.com.co/tbs/system/services/get_transports_public";
     private static final String API_USER = "bgreen";
     private static final String API_PASS = "cfs22.tbs24go";
+
+    @Autowired
+    private LogisticoProductoService logisticoProductoService;
+
+    // ==========================================
+    // ENDPOINTS GESTIÓN PRODUCTOS PERMITIDOS/OCULTOS
+    // ==========================================
+
+    @GetMapping("/productos-config")
+    public ResponseEntity<?> obtenerProductosConfig() {
+        try {
+            return ResponseEntity.ok(logisticoProductoService.obtenerTodos());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "Error al obtener configuración de productos");
+            err.put("detalle", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+        }
+    }
+
+    @GetMapping("/productos-permitidos")
+    public ResponseEntity<?> obtenerProductosPermitidos() {
+        try {
+            return ResponseEntity.ok(logisticoProductoService.obtenerPermitidos());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "Error al obtener productos permitidos");
+            err.put("detalle", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+        }
+    }
+
+    @PostMapping("/productos-config")
+    public ResponseEntity<?> guardarProductoConfig(@RequestBody LogisticoProductoConfig config) {
+        try {
+            LogisticoProductoConfig saved = logisticoProductoService.guardarOActualizar(config);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "Error al guardar configuración del producto");
+            err.put("detalle", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+        }
+    }
+
+    @PostMapping("/productos-config/permitir")
+    public ResponseEntity<?> permitirProductoRapido(
+            @RequestParam(required = false) String nombre,
+            @RequestBody(required = false) Map<String, String> body) {
+        try {
+            String prodName = (body != null && body.containsKey("nombreProducto")) ? body.get("nombreProducto") : nombre;
+            if (prodName == null && body != null && body.containsKey("nombre")) {
+                prodName = body.get("nombre");
+            }
+            if (prodName == null || prodName.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El parámetro 'nombre' o 'nombreProducto' es requerido."));
+            }
+            String usuario = (body != null && body.containsKey("usuario")) ? body.get("usuario") : "MODULO_LOGISTICO";
+            LogisticoProductoConfig updated = logisticoProductoService.permitirProducto(prodName, usuario);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "Error al habilitar producto en configuración");
+            err.put("detalle", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+        }
+    }
+
+    @PutMapping("/productos-config/{id}/toggle")
+    public ResponseEntity<?> toggleProductoPermitido(@PathVariable Long id) {
+        try {
+            LogisticoProductoConfig updated = logisticoProductoService.togglePermitido(id);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "Error al cambiar visibilidad del producto");
+            err.put("detalle", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+        }
+    }
+
+    @DeleteMapping("/productos-config/{id}")
+    public ResponseEntity<?> eliminarProductoConfig(@PathVariable Long id) {
+        try {
+            logisticoProductoService.eliminar(id);
+            return ResponseEntity.ok(Map.of("mensaje", "Producto eliminado de la configuración exitosamente."));
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "Error al eliminar producto");
+            err.put("detalle", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+        }
+    }
+
+    // ==========================================
+    // ENDPOINTS TRANSPORTE TBS
+    // ==========================================
 
     @GetMapping("/transports")
     public ResponseEntity<?> obtenerTransportesGet(

@@ -236,9 +236,9 @@ public class OpDoctoRepository {
                 boolean enviado = false;
                 if (d.getFecha() != null) {
                     for (java.util.Map<String, Object> log : logs) {
-                        LocalDate inicio = ((java.sql.Date) log.get("fecha_inicio")).toLocalDate();
-                        LocalDate fin    = ((java.sql.Date) log.get("fecha_fin")).toLocalDate();
-                        if (!d.getFecha().isBefore(inicio) && d.getFecha().isBefore(fin)) {
+                        LocalDate inicio = parseLocalDate(log.get("fecha_inicio"));
+                        LocalDate fin    = parseLocalDate(log.get("fecha_fin"));
+                        if (inicio != null && fin != null && !d.getFecha().isBefore(inicio) && d.getFecha().isBefore(fin)) {
                             enviado = true;
                             break;
                         }
@@ -253,6 +253,32 @@ public class OpDoctoRepository {
             return new java.util.ArrayList<>();
         }
 	}
+
+    private LocalDate parseLocalDate(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof java.sql.Date sqlDate) {
+            return sqlDate.toLocalDate();
+        }
+        if (obj instanceof java.sql.Timestamp timestamp) {
+            return timestamp.toLocalDateTime().toLocalDate();
+        }
+        if (obj instanceof java.time.LocalDate localDate) {
+            return localDate;
+        }
+        if (obj instanceof String str) {
+            String trimmed = str.trim();
+            if (trimmed.isEmpty()) return null;
+            if (trimmed.contains(" ")) {
+                trimmed = trimmed.split(" ")[0];
+            }
+            try {
+                return LocalDate.parse(trimmed);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
+    }
 
 
     public boolean existeFechaCumplidaAyer() {

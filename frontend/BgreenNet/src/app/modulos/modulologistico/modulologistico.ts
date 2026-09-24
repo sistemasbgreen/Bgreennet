@@ -1,7 +1,8 @@
 import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LogisticoService, TransporteItem } from '../../servicios/LogisticoService';
+import { RouterModule } from '@angular/router';
+import { LogisticoService, TransporteItem, ProductoConfigItem } from '../../servicios/LogisticoService';
 import { Chart, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
@@ -10,7 +11,7 @@ Chart.register(...registerables, ChartDataLabels);
 @Component({
   selector: 'app-modulologistico',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './modulologistico.html',
   styleUrl: './modulologistico.css',
 })
@@ -32,6 +33,7 @@ export class Modulologistico implements OnInit, OnDestroy {
   transportes: TransporteItem[] = [];
   selectedTransport: TransporteItem | null = null;
   showDetailModal: boolean = false;
+  showOcultosModal: boolean = false;
 
   // Paginación
   paginaActual: number = 1;
@@ -49,6 +51,7 @@ export class Modulologistico implements OnInit, OnDestroy {
     this.endFecha = hoy.toISOString().split('T')[0];
     this.startFecha = hoy.toISOString().split('T')[0];
 
+    this.cargarProductosPermitidos();
     this.cargarTransportes();
   }
 
@@ -77,6 +80,7 @@ export class Modulologistico implements OnInit, OnDestroy {
         this.ultimaActualizacion = new Date();
         this.paginaActual = 1;
         this.transportes = this.normalizarRespuesta(res);
+        this.sincronizarProductosDetectados();
         this.cdr.detectChanges();
       },
       error: (err: any) => {
@@ -109,10 +113,19 @@ export class Modulologistico implements OnInit, OnDestroy {
       const copy: TransporteItem = { ...item };
       const idVal = item.transport_id || item.id || item.code || (index + 1);
       const plateVal = item.vehicle_plate || item.placa || item.plate || 'N/A';
+      const trailerVal = item.trailer_number || item.trailer || item.remolque || null;
+      const citizenVal = item.citizen_card || item.cedula || item.identification || null;
+      const chargeTypeName = item.charge_type_name || item.tipo_carga || (item.charge_type ? `Tipo ${item.charge_type}` : null);
+      const categoryVal = item.category_name || item.categoria || null;
+      const interfaceCodeVal = item.interface_code || item.codigo_interfaz || null;
+      const qRec = (item.quantity_received !== undefined && item.quantity_received !== null && item.quantity_received !== '') ? Number(item.quantity_received) : null;
+      const qMan = (item.quantity_manifested !== undefined && item.quantity_manifested !== null && item.quantity_manifested !== '') ? Number(item.quantity_manifested) : null;
+      const diffQty = (qRec !== null && qMan !== null) ? (qRec - qMan) : null;
       const supplier = item.supplier_name || item.origen || item.origin || 'N/A';
       const company = item.company_name || item.destino || item.destination || 'BGREEN S.A.S.';
       const operacion = item.input_output || item.estado || item.status || 'Registrado';
       const dateVal = item.starting_date ? `${item.starting_date} ${item.starting_time || ''}`.trim() : (item.fecha || 'N/A');
+      const endDateVal = item.end_date ? `${item.end_date} ${item.end_time || ''}`.trim() : (item.fecha_fin || '—');
       const prodVal = item.products || item.producto || 'N/A';
 
       const pIni = Number(item.starting_weight_value) || 0;
@@ -127,13 +140,22 @@ export class Modulologistico implements OnInit, OnDestroy {
 
       copy['id'] = idVal;
       copy['placa'] = plateVal;
+      copy['remolque'] = trailerVal;
       copy['conductor'] = item.driver_name || item.conductor || item.driver || 'N/A';
+      copy['cedulaConductor'] = citizenVal;
+      copy['tipoCarga'] = chargeTypeName;
+      copy['categoria'] = categoryVal;
+      copy['codigoInterfaz'] = interfaceCodeVal;
+      copy['cantidadRecibida'] = qRec;
+      copy['cantidadManifestada'] = qMan;
+      copy['diferenciaCantidad'] = diffQty;
       copy['origen'] = supplier;
       copy['destino'] = company;
       copy['estado'] = operacion;
       copy['fecha'] = dateVal;
+      copy['fechaFin'] = endDateVal;
       copy['guia'] = item.guia || item.remision || item.document_number || `TRP-${idVal}`;
-      copy['producto'] = prodVal;
+      copy['producto'] = this.limpiarNombreProducto(prodVal);
       copy['pesoInicial'] = pIni;
       copy['pesoFinal'] = pFin;
       copy['pesoNeto'] = Math.abs(pFin - pIni);
@@ -192,11 +214,263 @@ export class Modulologistico implements OnInit, OnDestroy {
     this.cargarTransportes();
   }
 
+  // Lista de productos permitidos por defecto (fallback de seguridad)
+  private readonly PRODUCTOS_PERMITIDOS_DEFAULT: string[] = [
+    '(MP) ACEITE CRUDO DE PALMA',
+    'BIODIESEL DESTILADO',
+    'RESIDUO LIQUIDO (DESECHO SIN VALOR COMERCIAL)',
+    '(MP) METANOL',
+    '(INS) METILATO DE SODIO',
+    '(INS) ESTEARINA DE PALMA',
+    '(INS) NITROGENO LIQUIDO',
+    'GLICERINA CRUDA',
+    'FONDOS DE DESTILACION',
+    '(INS) ACIDO CLORHIDRICO',
+    'DESECHOS SIN VALOR -TIERRAS USADAS',
+    'DESECHOS SIN VALOR - TIERRAS USADAS',
+    '(INS) ACIDO FOSFORICO',
+    '(INS) SODA CAUSTICA LIQUIDA',
+    'DESECHOS DE RESINAS USADAS',
+    '(INS) RESINA DE GUARD LEWATIT MONO PLUS SP112 H',
+    '(INS) RESINA DE GUARD LEWATIT  MONO PLUS SP112 H'
+  ];
+
+  productosPermitidosList: string[] = [...this.PRODUCTOS_PERMITIDOS_DEFAULT];
+
+  private allowedProductsNormalized: Set<string> = new Set(
+    this.PRODUCTOS_PERMITIDOS_DEFAULT.map(p => this.normalizeString(p))
+  );
+
+  actualizarSetPermitidos(lista: string[]): void {
+    if (!lista || lista.length === 0) {
+      lista = this.PRODUCTOS_PERMITIDOS_DEFAULT;
+    }
+    this.productosPermitidosList = lista;
+    this.allowedProductsNormalized = new Set(
+      lista.map(p => this.normalizeString(p))
+    );
+  }
+
+  cargarProductosPermitidos(): void {
+    this.logisticoSvc.getProductosPermitidos().subscribe({
+      next: (lista: string[]) => {
+        if (Array.isArray(lista) && lista.length > 0) {
+          this.actualizarSetPermitidos(lista);
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err: any) => {
+        console.warn('No se pudo cargar la lista de productos permitidos desde BD, usando default:', err?.error?.detalle || err?.message || err);
+        this.actualizarSetPermitidos(this.PRODUCTOS_PERMITIDOS_DEFAULT);
+      }
+    });
+  }
+
+  private normalizeString(str: string | undefined | null): string {
+    if (!str) return '';
+    return str
+      .trim()
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  limpiarNombreProducto(rawProd: string | undefined | null): string {
+    if (!rawProd || rawProd === 'N/A') return 'N/A';
+
+    const parts = String(rawProd).split('-').map(p => p.trim()).filter(Boolean);
+    if (parts.length <= 1) return String(rawProd).trim();
+
+    const seen = new Set<string>();
+    const uniqueParts: string[] = [];
+
+    for (const part of parts) {
+      const norm = this.normalizeString(part);
+      if (!seen.has(norm)) {
+        seen.add(norm);
+        uniqueParts.push(part);
+      }
+    }
+
+    return uniqueParts.join(' - ');
+  }
+
+  isProductoPermitido(producto: string | undefined | null): boolean {
+    if (!producto) return false;
+
+    // Direct normalized match
+    const norm = this.normalizeString(producto);
+    if (this.allowedProductsNormalized.has(norm)) return true;
+
+    // Cleaned match
+    const cleaned = this.limpiarNombreProducto(producto);
+    const normCleaned = this.normalizeString(cleaned);
+    if (this.allowedProductsNormalized.has(normCleaned)) return true;
+
+    // Sub-parts match
+    const parts = String(producto).split('-').map(p => this.normalizeString(p)).filter(Boolean);
+    return parts.some(part => this.allowedProductsNormalized.has(part));
+  }
+
+  // Permite saber transportes permitidos
+  get transportesPermitidos(): TransporteItem[] {
+    return this.transportes.filter(t => this.isProductoPermitido(t['producto'] || t['products']));
+  }
+
+  // Permite saber transportes ocultos (excluidos por no estar permitidos en BD)
+  get transportesOcultos(): TransporteItem[] {
+    return this.transportes.filter(t => !this.isProductoPermitido(t['producto'] || t['products']));
+  }
+
+  get totalToneladasOcultas(): number {
+    return this.transportesOcultos.reduce((acc, t) => acc + (Number(t.pesoNeto) || 0), 0) / 1000;
+  }
+
+  get totalOperacionesOcultas(): number {
+    return this.transportesOcultos.length;
+  }
+
+  get totalPesoOcultoTon(): number {
+    return this.totalToneladasOcultas;
+  }
+
+  get resumenProductosOcultos(): {
+    producto: string;
+    tipo: string;
+    pesoTon: number;
+    operaciones: number;
+    proveedoresClientes: { nombre: string; operaciones: number; pesoTon: number; porcentaje: number }[];
+  }[] {
+    const map = new Map<string, {
+      tipo: string;
+      peso: number;
+      count: number;
+      entities: Map<string, { count: number; peso: number }>;
+    }>();
+
+    for (const t of this.transportesOcultos) {
+      const prod = String(t['producto'] || t['products'] || 'Sin producto').toUpperCase().trim();
+      const io = String(t['input_output'] || t['estado'] || '').toLowerCase();
+      const isEntrada = io.includes('entrada') || io.includes('input') || io.includes('in') || io.includes('descargue');
+      const tipo = isEntrada ? 'Descargue' : 'Cargue';
+      const entityName = isEntrada
+        ? String(t['supplier_name'] || t['origen'] || '').trim()
+        : String(t['company_name'] || t['destino'] || '').trim();
+
+      const key = `${prod}:::${tipo}`;
+      if (!map.has(key)) {
+        map.set(key, { tipo, peso: 0, count: 0, entities: new Map() });
+      }
+      const entry = map.get(key)!;
+      const pesoNeto = Number(t['pesoNeto']) || 0;
+      entry.peso += pesoNeto;
+      entry.count++;
+
+      if (entityName && entityName !== 'N/A' && entityName !== '') {
+        if (!entry.entities.has(entityName)) {
+          entry.entities.set(entityName, { count: 0, peso: 0 });
+        }
+        const entityData = entry.entities.get(entityName)!;
+        entityData.count++;
+        entityData.peso += pesoNeto;
+      }
+    }
+
+    return Array.from(map.entries())
+      .map(([key, data]) => {
+        const prodName = key.split(':::')[0];
+        const totalTon = data.peso / 1000;
+        return {
+          producto: prodName,
+          tipo: data.tipo,
+          pesoTon: totalTon,
+          operaciones: data.count,
+          proveedoresClientes: Array.from(data.entities.entries())
+            .map(([nombre, eData]) => {
+              const eTon = eData.peso / 1000;
+              const pct = totalTon > 0 ? Math.round((eTon / totalTon) * 100) : 0;
+              return {
+                nombre,
+                operaciones: eData.count,
+                pesoTon: eTon,
+                porcentaje: pct
+              };
+            })
+            .sort((a, b) => b.pesoTon - a.pesoTon)
+        };
+      })
+      .sort((a, b) => {
+        if (a.tipo === 'Cargue' && b.tipo !== 'Cargue') return -1;
+        if (a.tipo !== 'Cargue' && b.tipo === 'Cargue') return 1;
+        return b.pesoTon - a.pesoTon;
+      });
+  }
+
+  permitirProducto(producto: string): void {
+    if (!producto) return;
+    this.logisticoSvc.permitirProducto(producto).subscribe({
+      next: () => {
+        this.cargarProductosPermitidos();
+      },
+      error: (err: any) => {
+        console.error('Error al permitir producto:', err);
+      }
+    });
+  }
+
+  sincronizarProductosDetectados(): void {
+    const rawProds = new Set<string>();
+    for (const t of this.transportes) {
+      const p = String(t['producto'] || t['products'] || '').trim();
+      if (p && p !== 'N/A' && p !== '—') {
+        rawProds.add(p);
+      }
+    }
+
+    if (rawProds.size === 0) return;
+
+    this.logisticoSvc.getProductosConfig().subscribe({
+      next: (configList: ProductoConfigItem[]) => {
+        const existingMap = new Set(
+          (configList || []).map(c => this.normalizeString(c.nombreProducto))
+        );
+
+        for (const p of rawProds) {
+          const norm = this.normalizeString(p);
+          if (!existingMap.has(norm)) {
+            // Guardar en BD como no permitido (oculto) para que aparezca en configuración
+            this.logisticoSvc.guardarProductoConfig({
+              nombreProducto: p,
+              permitido: false,
+              usuario: 'DETECTADO_TBS'
+            }).subscribe({
+              next: () => {
+                existingMap.add(norm);
+              },
+              error: () => {}
+            });
+          }
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  abrirModalOcultos(): void {
+    this.showOcultosModal = true;
+    this.cdr.detectChanges();
+  }
+
+  cerrarModalOcultos(): void {
+    this.showOcultosModal = false;
+    this.cdr.detectChanges();
+  }
+
   // Getters para filtrado y estadísticas
   get transportesFiltrados(): TransporteItem[] {
     const q = this.searchQuery.trim().toLowerCase();
 
-    return this.transportes.filter(t => {
+    return this.transportesPermitidos.filter(t => {
       // Filtro de estado / operación
       if (this.filtroEstado !== 'TODOS') {
         const estStr = String(t.estado || '').toLowerCase();
@@ -211,12 +485,18 @@ export class Modulologistico implements OnInit, OnDestroy {
       const searchableText = [
         t.id,
         t.placa,
+        t.remolque,
         t.conductor,
+        t.cedulaConductor,
+        t.tipoCarga,
+        t.categoria,
+        t.codigoInterfaz,
         t.origen,
         t.destino,
         t.estado,
         t.guia,
         t.fecha,
+        t.fechaFin,
         t.producto
       ].filter(Boolean).join(' ').toLowerCase();
 
@@ -224,17 +504,21 @@ export class Modulologistico implements OnInit, OnDestroy {
     });
   }
 
+  get totalOperacionesMostradas(): number {
+    return this.transportesPermitidos.length;
+  }
+
   get totalRegistros(): number {
-    return this.transportes.length;
+    return this.transportesPermitidos.length;
   }
 
   get placasUnicas(): number {
-    const set = new Set(this.transportes.map(t => t.placa).filter(p => p && p !== 'N/A'));
+    const set = new Set(this.transportesPermitidos.map(t => t.placa).filter(p => p && p !== 'N/A'));
     return set.size;
   }
 
   get conductoresUnicos(): number {
-    const set = new Set(this.transportes.map(t => t.conductor).filter(c => c && c !== 'N/A'));
+    const set = new Set(this.transportesPermitidos.map(t => t.conductor).filter(c => c && c !== 'N/A'));
     return set.size;
   }
 
@@ -243,28 +527,28 @@ export class Modulologistico implements OnInit, OnDestroy {
   }
 
   get listaEstados(): string[] {
-    const set = new Set(this.transportes.map(t => String(t.estado || 'Registrado').toUpperCase()));
+    const set = new Set(this.transportesPermitidos.map(t => String(t.estado || 'Registrado').toUpperCase()));
     return Array.from(set);
   }
 
   // ===== NUEVOS INDICADORES =====
 
   get totalEntradas(): number {
-    return this.transportes.filter(t => {
+    return this.transportesPermitidos.filter(t => {
       const io = String(t.input_output || t.estado || '').toLowerCase();
       return io.includes('entrada') || io.includes('input') || io.includes('in');
     }).length;
   }
 
   get totalSalidas(): number {
-    return this.transportes.filter(t => {
+    return this.transportesPermitidos.filter(t => {
       const io = String(t.input_output || t.estado || '').toLowerCase();
       return io.includes('salida') || io.includes('output') || io.includes('out');
     }).length;
   }
 
   get materiaPrimaIngresada(): number {
-    return this.transportes
+    return this.transportesPermitidos
       .filter(t => {
         const io = String(t.input_output || t.estado || '').toLowerCase();
         return io.includes('entrada') || io.includes('input') || io.includes('in');
@@ -274,7 +558,7 @@ export class Modulologistico implements OnInit, OnDestroy {
 
   get vehiculosEntrada(): number {
     const set = new Set(
-      this.transportes
+      this.transportesPermitidos
         .filter(t => {
           const io = String(t.input_output || t.estado || '').toLowerCase();
           return io.includes('entrada') || io.includes('input') || io.includes('in');
@@ -286,7 +570,7 @@ export class Modulologistico implements OnInit, OnDestroy {
   }
 
   get productoDespachadoTon(): number {
-    return this.transportes
+    return this.transportesPermitidos
       .filter(t => {
         const io = String(t.input_output || t.estado || '').toLowerCase();
         return io.includes('salida') || io.includes('output') || io.includes('out');
@@ -296,7 +580,7 @@ export class Modulologistico implements OnInit, OnDestroy {
 
   get vehiculosSalida(): number {
     const set = new Set(
-      this.transportes
+      this.transportesPermitidos
         .filter(t => {
           const io = String(t.input_output || t.estado || '').toLowerCase();
           return io.includes('salida') || io.includes('output') || io.includes('out');
@@ -310,7 +594,7 @@ export class Modulologistico implements OnInit, OnDestroy {
   get vehiculosEntradaFrecuencia(): { placa: string; conductor: string; conteo: number; horaInicio: string; horaFin: string; duracion: string }[] {
     const map = new Map<string, { conductor: string; conteo: number; horaInicio: string; horaFin: string; duracion: string }>();
 
-    for (const t of this.transportes) {
+    for (const t of this.transportesPermitidos) {
       const io = String(t.input_output || t.estado || '').toLowerCase();
       const isEntrada = io.includes('entrada') || io.includes('input') || io.includes('in');
       if (isEntrada) {
@@ -349,7 +633,7 @@ export class Modulologistico implements OnInit, OnDestroy {
   get vehiculosSalidaFrecuencia(): { placa: string; conductor: string; conteo: number; horaInicio: string; horaFin: string; duracion: string }[] {
     const map = new Map<string, { conductor: string; conteo: number; horaInicio: string; horaFin: string; duracion: string }>();
 
-    for (const t of this.transportes) {
+    for (const t of this.transportesPermitidos) {
       const io = String(t.input_output || t.estado || '').toLowerCase();
       const isSalida = io.includes('salida') || io.includes('output') || io.includes('out');
       if (isSalida) {
@@ -399,11 +683,11 @@ export class Modulologistico implements OnInit, OnDestroy {
       entities: Map<string, { count: number; peso: number }>;
     }>();
 
-    for (const t of this.transportes) {
+    for (const t of this.transportesPermitidos) {
       const prod = String(t['producto'] || t['products'] || 'Sin producto').toUpperCase().trim();
       const io = String(t['input_output'] || t['estado'] || '').toLowerCase();
       const isEntrada = io.includes('entrada') || io.includes('input') || io.includes('in');
-      const tipo = isEntrada ? 'Entrada' : 'Salida';
+      const tipo = isEntrada ? 'Descargue' : 'Cargue';
 
       if (!map.has(prod)) {
         map.set(prod, { tipo, peso: 0, count: 0, entities: new Map() });
@@ -449,7 +733,11 @@ export class Modulologistico implements OnInit, OnDestroy {
             .sort((a, b) => b.pesoTon - a.pesoTon)
         };
       })
-      .sort((a, b) => b.pesoTon - a.pesoTon);
+      .sort((a, b) => {
+        if (a.tipo === 'Cargue' && b.tipo !== 'Cargue') return -1;
+        if (a.tipo !== 'Cargue' && b.tipo === 'Cargue') return 1;
+        return b.pesoTon - a.pesoTon;
+      });
   }
 
   get resumenEmpresas(): {
@@ -472,7 +760,7 @@ export class Modulologistico implements OnInit, OnDestroy {
       productos: Set<string>;
     }>();
 
-    for (const t of this.transportes) {
+    for (const t of this.transportesPermitidos) {
       const io = String(t['input_output'] || t['estado'] || '').toLowerCase();
       const isEntrada = io.includes('entrada') || io.includes('input') || io.includes('in');
       const pesoNeto = Number(t['pesoNeto']) || 0;
@@ -526,6 +814,21 @@ export class Modulologistico implements OnInit, OnDestroy {
       .sort((a, b) => b.totalTon - a.totalTon);
   }
 
+  // Estado acordeón proveedores en tarjetas de producto
+  acordeonAbiertoMap: Map<string, boolean> = new Map<string, boolean>();
+
+  getAccordionKey(producto: string, tipo: string): string {
+    return `${producto}_${tipo}`;
+  }
+
+  toggleAccordion(key: string): void {
+    const currentState = this.acordeonAbiertoMap.get(key) || false;
+    this.acordeonAbiertoMap.set(key, !currentState);
+  }
+
+  isAccordionOpen(key: string): boolean {
+    return this.acordeonAbiertoMap.get(key) || false;
+  }
   // Estado modal empresas y gráfica
   showEmpresasModal: boolean = false;
   empresaSearchQuery: string = '';
@@ -635,7 +938,7 @@ export class Modulologistico implements OnInit, OnDestroy {
             labels: labels,
             datasets: [
               {
-                label: 'Entradas (ton)',
+                label: 'Descargues (ton)',
                 data: entradasData,
                 backgroundColor: 'rgba(46, 125, 50, 0.85)',
                 borderColor: '#1b5e20',
@@ -643,7 +946,7 @@ export class Modulologistico implements OnInit, OnDestroy {
                 borderRadius: 5
               },
               {
-                label: 'Salidas (ton)',
+                label: 'Cargues (ton)',
                 data: salidasData,
                 backgroundColor: 'rgba(234, 179, 8, 0.85)',
                 borderColor: '#ca8a04',
@@ -764,15 +1067,53 @@ export class Modulologistico implements OnInit, OnDestroy {
       return;
     }
 
-    const headers = ['ID Transporte', 'Placa', 'Operación', 'Proveedor / Origen', 'Destino', 'Producto', 'Fecha', 'Peso Inicial (kg)', 'Peso Final (kg)', 'Peso Neto (kg)'];
+    const headers = [
+      'ID Transporte',
+      'Placa',
+      'Remolque',
+      'Conductor',
+      'Cédula Conductor',
+      'Operación',
+      'Tipo Carga',
+      'Categoría',
+      'Código Interfaz',
+      'Proveedor / Origen',
+      'Destino / Empresa',
+      'Producto',
+      'Fecha Inicio',
+      'Hora Inicio',
+      'Fecha Fin',
+      'Hora Fin',
+      'Duración',
+      'Cant. Manifestada (kg)',
+      'Cant. Recibida (kg)',
+      'Diferencia (kg)',
+      'Peso Inicial / Tara (kg)',
+      'Peso Final / Bruto (kg)',
+      'Peso Neto (kg)'
+    ];
+
     const rows = this.transportesFiltrados.map(t => [
       `"${t['id'] || ''}"`,
       `"${t['placa'] || ''}"`,
+      `"${t['remolque'] || ''}"`,
+      `"${t['conductor'] || ''}"`,
+      `"${t['cedulaConductor'] || ''}"`,
       `"${t['estado'] || ''}"`,
+      `"${t['tipoCarga'] || ''}"`,
+      `"${t['categoria'] || ''}"`,
+      `"${t['codigoInterfaz'] || ''}"`,
       `"${t['origen'] || ''}"`,
       `"${t['destino'] || ''}"`,
       `"${t['producto'] || ''}"`,
-      `"${t['fecha'] || ''}"`,
+      `"${t['starting_date'] || t['fecha'] || ''}"`,
+      `"${t['horaInicio'] || ''}"`,
+      `"${t['end_date'] || t['fechaFin'] || ''}"`,
+      `"${t['horaFin'] || ''}"`,
+      `"${t['duracion'] || ''}"`,
+      `"${t['cantidadManifestada'] !== null && t['cantidadManifestada'] !== undefined ? t['cantidadManifestada'] : ''}"`,
+      `"${t['cantidadRecibida'] !== null && t['cantidadRecibida'] !== undefined ? t['cantidadRecibida'] : ''}"`,
+      `"${t['diferenciaCantidad'] !== null && t['diferenciaCantidad'] !== undefined ? t['diferenciaCantidad'] : ''}"`,
       `"${t['pesoInicial'] || 0}"`,
       `"${t['pesoFinal'] || 0}"`,
       `"${t['pesoNeto'] || 0}"`

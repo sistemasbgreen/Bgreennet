@@ -15,6 +15,7 @@ import { ModuleConfigService } from '../../../servicios/moduleConfigService';
 import { SubModuloDTO } from '../../../models/modulos/SubModuloDTO';
 import { NgForOf, NgIf } from '@angular/common';
 import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../../servicios/configuracionSeguridadService';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-usuarios',
@@ -106,7 +107,8 @@ export class Usuarios implements OnInit {
     private perfilservices: Perfilservices,
     private cdr: ChangeDetectorRef,
     private moduleConfigService: ModuleConfigService,
-    private configSeguridadService: ConfiguracionSeguridadService
+    private configSeguridadService: ConfiguracionSeguridadService,
+    private route: ActivatedRoute
   ) {
     this.usuarioForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(4)]],

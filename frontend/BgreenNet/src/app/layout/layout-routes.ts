@@ -15,7 +15,7 @@ export const layoutRoutes: Routes = [
       import('../modulos/orden-produccion/orden-produccion')
         .then(o => o.OrdenProduccion)
   },
-   {
+    {
     path: 'home/modulologistico',
     loadComponent: () =>
       import('../modulos/modulologistico/modulologistico')
@@ -80,6 +80,22 @@ export const layoutRoutes: Routes = [
             path: 'seguimiento-variable',
             loadComponent: () => import('../modulos/configuracion/variables-plc/variables-plc').then(c => c.VariablesPlc)
           },
+          {
+            path: 'logistica-config',
+            loadComponent: () => import('../modulos/configuracion/logistico-config/logistico-config').then(c => c.LogisticoConfig)
+          },
+          {
+            path: 'logisticaconfig',
+            loadComponent: () => import('../modulos/configuracion/logistico-config/logistico-config').then(c => c.LogisticoConfig)
+          },
+          {
+            path: 'logistica_config',
+            loadComponent: () => import('../modulos/configuracion/logistico-config/logistico-config').then(c => c.LogisticoConfig)
+          },
+          {
+            path: 'logistico-config',
+            loadComponent: () => import('../modulos/configuracion/logistico-config/logistico-config').then(c => c.LogisticoConfig)
+          }
         ]
       },
       {
