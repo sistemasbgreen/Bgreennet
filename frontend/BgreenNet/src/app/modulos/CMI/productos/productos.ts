@@ -1176,23 +1176,19 @@ getSelectedProductConfig() {
       },
       scales: {
         y: {
+          beginAtZero: true,
+          min: 0,
+          suggestedMin: 0,
           afterDataLimits: (axis: any) => {
-            // Recalcular min/max ignorando ceros para que no fuerce el inicio en 0
-            let minVal = Infinity;
             let maxVal = -Infinity;
-            
             axis.chart.data.datasets.forEach((ds: any) => {
               ds.data.forEach((v: any) => {
-                if (v !== null && v > 0) {
-                  if (v < minVal) minVal = v;
-                  if (v > maxVal) maxVal = v;
-                }
+                if (v !== null && typeof v === 'number' && v > maxVal) maxVal = v;
               });
             });
-
-            if (minVal !== Infinity) {
-              axis.min = minVal * 0.95; // -5% margen inferior
-              axis.max = maxVal * 1.10; // +10% margen superior
+            axis.min = 0;
+            if (maxVal > 0) {
+              axis.max = maxVal * 1.12;
             }
           },
           title: { display: true, text: 'Consumo Específico (Kg/Ton)' },
@@ -1233,20 +1229,19 @@ getSelectedProductConfig() {
       },
       scales: {
         y: {
+          beginAtZero: true,
+          min: 0,
+          suggestedMin: 0,
           afterDataLimits: (axis: any) => {
-            let minVal = Infinity;
             let maxVal = -Infinity;
             axis.chart.data.datasets.forEach((ds: any) => {
               ds.data.forEach((v: any) => {
-                if (v !== null && v > 0) {
-                  if (v < minVal) minVal = v;
-                  if (v > maxVal) maxVal = v;
-                }
+                if (v !== null && typeof v === 'number' && v > maxVal) maxVal = v;
               });
             });
-            if (minVal !== Infinity) {
-              axis.min = minVal * 0.95; // -5% margen inferior
-              axis.max = maxVal * 1.10; // +10% margen superior
+            axis.min = 0;
+            if (maxVal > 0) {
+              axis.max = maxVal * 1.12;
             }
           },
           title: { display: true, text: '% Conversión' },
@@ -1294,20 +1289,19 @@ getSelectedProductConfig() {
       },
       scales: {
         y: {
+          beginAtZero: true,
+          min: 0,
+          suggestedMin: 0,
           afterDataLimits: (axis: any) => {
-            let minVal = Infinity;
             let maxVal = -Infinity;
             axis.chart.data.datasets.forEach((ds: any) => {
               ds.data.forEach((v: any) => {
-                if (v !== null && v > 0) {
-                  if (v < minVal) minVal = v;
-                  if (v > maxVal) maxVal = v;
-                }
+                if (v !== null && typeof v === 'number' && v > maxVal) maxVal = v;
               });
             });
-            if (minVal !== Infinity) {
-              axis.min = minVal * 0.95; // -5% margen inferior
-              axis.max = maxVal * 1.10; // +10% margen superior
+            axis.min = 0;
+            if (maxVal > 0) {
+              axis.max = maxVal * 1.12;
             }
           },
           title: {

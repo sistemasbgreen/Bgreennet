@@ -1,1 +1,302 @@
-<p>industrializacion-aceite works!</p>
+<div class="page-container">
+  <!-- Header principal -->
+  <header class="header">
+    <div class="header-left">
+      <a routerLink="/cmi/home" class="btn-back" title="Volver al CMI">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <div class="header-titles">
+        <h1>INDUSTRIALIZACIÓN DE ACEITES</h1>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <!-- Selector de Fecha / Corte -->
+      <div class="date-selector">
+        <i class="far fa-calendar-alt calendar-icon"></i>
+        <select [(ngModel)]="anioSeleccionado" (change)="onFiltroChange()" class="select-input">
+          <option *ngFor="let a of aniosDisponibles" [value]="a">{{ a }}</option>
+        </select>
+        <span class="sep">•</span>
+        <select [(ngModel)]="mesSeleccionado" (change)="onFiltroChange()" class="select-input">
+          <option *ngFor="let m of mesesDisponibles" [value]="m.num">{{ m.nombre }}</option>
+        </select>
+      </div>
+
+      <!-- Botón Parametrización (...) -->
+      <button class="btn-config" (click)="abrirParametrizacion()" title="Parametrización del indicador">
+        <i class="fas fa-ellipsis-h"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="main-content" *ngIf="detalle">
+
+    <!-- 1. Tarjeta Superior: Avance anual -->
+    <div class="card top-card">
+      <div class="card-header-simple">
+        <span class="card-title-muted">Avance anual — meta {{ detalle.metaAnual | number:'1.0-0' }} Ton</span>
+      </div>
+
+      <div class="top-card-body">
+        <!-- Columna Izquierda: Acumulado gigante -->
+        <div class="acumulado-section">
+          <div class="section-label">Ejecutado acumulado</div>
+          <div class="big-value">
+            {{ detalle.toneladasAcumuladasYTD | number:'1.0-0' }} <span class="unit">Ton</span>
+          </div>
+          <div class="sub-percentage">
+            {{ detalle.avanceAnualPorcentaje | number:'1.2-2' }}% de la meta anual
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Barra de Avance y Mini Cards -->
+        <div class="progress-section">
+          <!-- Escala de la barra -->
+          <div class="scale-labels">
+            <span>0 Ton</span>
+            <span class="logrado-label">{{ detalle.toneladasAcumuladasYTD | number:'1.0-0' }} Ton logradas</span>
+            <span>{{ detalle.metaAnual | number:'1.0-0' }} Ton</span>
+          </div>
+
+          <!-- Barra de Progreso Anual -->
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill fill-green" [style.width.%]="detalle.avanceAnualPorcentaje > 100 ? 100 : detalle.avanceAnualPorcentaje"></div>
+          </div>
+
+          <!-- Mini recuadros (Sin ritmo requerido) -->
+          <div class="mini-boxes">
+            <div class="mini-box">
+              <div class="mini-box-label">Pendiente</div>
+              <div class="mini-box-value">{{ detalle.pendienteAnual | number:'1.0-0' }} Ton</div>
+            </div>
+            <div class="mini-box">
+              <div class="mini-box-label">Meses transcurridos</div>
+              <div class="mini-box-value">{{ detalle.mesesTranscurridos }} de 12</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Fila Central: Tarjetas de Mes y YTD -->
+    <div class="middle-grid">
+      <!-- Tarjeta Mes -->
+      <div class="card metric-card border-blue">
+        <div class="card-top-row">
+          <span class="metric-title">Toneladas del mes</span>
+          <span class="badge badge-blue">{{ detalle.nombreMes }} {{ detalle.anio }}</span>
+        </div>
+        <div class="metric-big-value">
+          {{ detalle.toneladasMes | number:'1.0-0' }} <span class="unit">Ton</span>
+        </div>
+
+        <div class="metric-progress-header">
+          <span>Avance sobre meta anual</span>
+          <span class="blue-text font-bold">{{ detalle.avanceMesPorcentaje | number:'1.2-2' }}%</span>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill fill-blue" [style.width.%]="detalle.avanceMesPorcentaje > 100 ? 100 : detalle.avanceMesPorcentaje"></div>
+        </div>
+
+        <div class="card-footer-row">
+          <span>Meta anual <strong>{{ detalle.metaAnual | number:'1.0-0' }} Ton</strong></span>
+          <span>Pendiente mes <strong>{{ detalle.pendienteMes | number:'1.0-0' }} Ton</strong></span>
+        </div>
+      </div>
+
+      <!-- Tarjeta YTD -->
+      <div class="card metric-card border-green">
+        <div class="card-top-row">
+          <span class="metric-title">Toneladas acumuladas YTD</span>
+          <span class="badge badge-green">Ene – {{ detalle.nombreMes?.substring(0,3) }}</span>
+        </div>
+        <div class="metric-big-value">
+          {{ detalle.toneladasAcumuladasYTD | number:'1.0-0' }} <span class="unit">Ton</span>
+        </div>
+
+        <div class="metric-progress-header">
+          <span>Avance sobre meta anual</span>
+          <span class="green-text font-bold">{{ detalle.avanceAnualPorcentaje | number:'1.2-2' }}%</span>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill fill-green" [style.width.%]="detalle.avanceAnualPorcentaje > 100 ? 100 : detalle.avanceAnualPorcentaje"></div>
+        </div>
+
+        <div class="card-footer-row">
+          <span>Meta anual <strong>{{ detalle.metaAnual | number:'1.0-0' }} Ton</strong></span>
+          <span>Pendiente acum. <strong>{{ detalle.pendienteAnual | number:'1.0-0' }} Ton</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Fila Inferior: Tabla de Proveedores y Gráfico de Dona -->
+    <div class="bottom-grid">
+
+      <!-- Tabla de Proveedores (60%) -->
+      <div class="card table-card">
+        <div class="card-header-titles">
+          <h3>Distribución por proveedor</h3>
+          <span class="card-subtitle">Toneladas y participación — mes y acumulado</span>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Proveedor</th>
+                <th class="text-right">Ton mes</th>
+                <th class="text-right">% mes</th>
+                <th class="text-right">Ton acum.</th>
+                <th class="text-right">% acum.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of detalle.proveedores; let i = index">
+                <td class="proveedor-cell">
+                  <span class="color-indicator" [style.background-color]="getColorProveedor(i)"></span>
+                  <span class="proveedor-nombre">{{ p.nombre }}</span>
+                </td>
+                <td class="text-right font-medium">{{ p.toneladasMes | number:'1.0-0' }}</td>
+                <td class="text-right text-muted">{{ p.porcentajeMes | number:'1.2-2' }}%</td>
+                <td class="text-right font-bold">{{ p.toneladasAcumuladas | number:'1.0-0' }}</td>
+                <td class="text-right font-bold">{{ p.porcentajeAcumulado | number:'1.2-2' }}%</td>
+              </tr>
+              <tr *ngIf="!detalle.proveedores || detalle.proveedores.length === 0">
+                <td colspan="5" class="text-center text-muted">No se encontraron registros de proveedores</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="total-row">
+                <td>Total</td>
+                <td class="text-right">{{ detalle.toneladasMes | number:'1.0-0' }}</td>
+                <td class="text-right">{{ detalle.avanceMesPorcentaje | number:'1.2-2' }}%</td>
+                <td class="text-right">{{ detalle.toneladasAcumuladasYTD | number:'1.0-0' }}</td>
+                <td class="text-right">{{ detalle.avanceAnualPorcentaje | number:'1.2-2' }}%</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Gráfico de Dona (40%) -->
+      <div class="card chart-card">
+        <div class="card-header-titles">
+          <h3>Participación acumulada</h3>
+          <span class="card-subtitle">% del total ejecutado YTD por proveedor</span>
+        </div>
+
+        <div class="chart-container">
+          <canvas #donutCanvas></canvas>
+        </div>
+
+        <!-- Leyenda Personalizada -->
+        <div class="chart-legend">
+          <div *ngFor="let p of detalle.proveedores; let i = index" class="legend-item">
+            <span class="legend-dot" [style.background-color]="getColorProveedor(i)"></span>
+            <span class="legend-name">{{ p.nombre }}</span>
+            <span class="legend-pct">{{ p.participacionDonaPorcentaje | number:'1.1-1' }}%</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Loader -->
+  <div class="loading-overlay" *ngIf="cargando">
+    <div class="spinner"></div>
+    <span>Cargando datos de industrialización...</span>
+  </div>
+
+  <!-- 4. Modal Overlay de Parametrización -->
+  <div class="modal-backdrop" *ngIf="mostrarParametrizacion">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2><i class="fas fa-sliders-h"></i> Parametrización del Indicador</h2>
+        <button class="btn-close" (click)="cerrarParametrizacion()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Sección 1: Meta Constante -->
+        <div class="config-section">
+          <label class="section-title">Meta Anual Constante (Ton)</label>
+          <div class="input-group">
+            <input type="number" [(ngModel)]="tempMetaAnual" class="form-control" placeholder="150000" />
+            <button class="btn btn-primary" (click)="guardarMeta()">
+              <i class="fas fa-save"></i> Guardar Meta
+            </button>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Sección 2: Proveedores -->
+        <div class="config-section">
+          <label class="section-title">Proveedores Incluidos en el Indicador</label>
+
+          <!-- Formulario Agregar Proveedor -->
+          <div class="add-supplier-form">
+            <div class="form-row">
+              <input type="text" [(ngModel)]="nuevoNit" placeholder="NIT del proveedor (ej. 900012728)" class="form-control" />
+              <button class="btn btn-secondary" (click)="buscarProveedorSiesa()" [disabled]="buscandoSiesa">
+                <i class="fas fa-search" *ngIf="!buscandoSiesa"></i>
+                <i class="fas fa-spinner fa-spin" *ngIf="buscandoSiesa"></i> Buscar SIESA
+              </button>
+            </div>
+
+            <div class="form-row margin-top">
+              <input type="text" [(ngModel)]="nuevoNombre" placeholder="Nombre comercial / Razón social (Opcional)" class="form-control" />
+              <button class="btn btn-success" (click)="agregarProveedor()">
+                <i class="fas fa-plus"></i> Agregar
+              </button>
+            </div>
+
+            <div class="info-message" *ngIf="mensajeSiesa">{{ mensajeSiesa }}</div>
+          </div>
+
+          <!-- Tabla de Proveedores Configurados -->
+          <div class="suppliers-table-wrapper">
+            <table class="config-table">
+              <thead>
+                <tr>
+                  <th>NIT</th>
+                  <th>Nombre</th>
+                  <th class="text-center">Activo</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of proveedoresConfig">
+                  <td class="font-mono">{{ p.nit }}</td>
+                  <td>{{ p.nombre }}</td>
+                  <td class="text-center">
+                    <label class="switch">
+                      <input type="checkbox" [checked]="p.activo" (change)="toggleProveedor(p)" />
+                      <span class="slider round"></span>
+                    </label>
+                  </td>
+                  <td class="text-center">
+                    <button class="btn-icon text-red" (click)="eliminarProveedor(p.id)" title="Eliminar">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="proveedoresConfig.length === 0">
+                  <td colspan="4" class="text-center text-muted">No hay proveedores parametrizados</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="cerrarParametrizacion()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
