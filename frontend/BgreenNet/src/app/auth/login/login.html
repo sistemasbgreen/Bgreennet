@@ -73,6 +73,13 @@
           </div>
         </div>
 
+        <!-- Enlace Olvidaste tu contraseña -->
+        <div class="forgot-password-wrapper">
+          <a type="button" class="forgot-password-link" (click)="abrirModalRecuperacion()">
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
+
         <!-- Mensaje de error global -->
         <div class="alert alert-error" *ngIf="showError">
           <span class="alert-icon">⚠️</span>
@@ -92,6 +99,125 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Modal de Recuperación Dinámica de Contraseña -->
+  <div class="modal-overlay" *ngIf="showRecoverModal" (click)="cerrarModalRecuperacion()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close-btn" (click)="cerrarModalRecuperacion()">×</button>
+      
+      <div class="modal-header">
+        <div class="modal-icon">🔑</div>
+        <h2>Recuperar Contraseña</h2>
+        <p class="modal-subtitle">Restablecimiento mediante código dinámico enviado a su correo</p>
+      </div>
+
+      <!-- Indicador de Pasos -->
+      <div class="stepper">
+        <div class="step" [class.active]="recoverStep >= 1" [class.completed]="recoverStep > 1">
+          <span class="step-num">1</span>
+          <span class="step-label">Solicitud</span>
+        </div>
+        <div class="step-line" [class.active]="recoverStep > 1"></div>
+        <div class="step" [class.active]="recoverStep >= 2" [class.completed]="recoverStep > 2">
+          <span class="step-num">2</span>
+          <span class="step-label">Código OTP</span>
+        </div>
+        <div class="step-line" [class.active]="recoverStep > 2"></div>
+        <div class="step" [class.active]="recoverStep >= 3">
+          <span class="step-num">3</span>
+          <span class="step-label">Nueva Clave</span>
+        </div>
+      </div>
+
+      <!-- Mensaje de Error en Modal -->
+      <div class="alert alert-error" *ngIf="recoverError">
+        <span class="alert-icon">⚠️</span>
+        {{ recoverError }}
+      </div>
+
+      <!-- PASO 1: Solicitar Código -->
+      <div class="step-content" *ngIf="recoverStep === 1">
+        <p class="step-desc">Ingrese su usuario o correo electrónico corporativo registrado para enviarle un código de verificación de 6 dígitos.</p>
+        
+        <div class="form-group">
+          <label for="userRec">Usuario o Correo</label>
+          <div class="input-wrapper">
+            <span class="input-icon">✉️</span>
+            <input id="userRec" type="text" [(ngModel)]="usuarioRecuperacion" placeholder="Ej. jangulo o correo@bgreen.com.co" (keyup.enter)="solicitarCodigoRecuperacion()" />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="cerrarModalRecuperacion()">Cancelar</button>
+          <button type="button" class="btn-submit" (click)="solicitarCodigoRecuperacion()" [disabled]="recoverLoading">
+            <span *ngIf="!recoverLoading">Enviar Código</span>
+            <span *ngIf="recoverLoading">Enviando...</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PASO 2: Validar Código OTP -->
+      <div class="step-content" *ngIf="recoverStep === 2">
+        <p class="step-desc">Le hemos enviado un código de 6 dígitos a su correo. Ingréselo a continuación:</p>
+
+        <div class="form-group">
+          <label for="otpCode">Código de Verificación (6 dígitos)</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔢</span>
+            <input id="otpCode" type="text" maxlength="6" [(ngModel)]="codigoOtp" placeholder="123456" class="otp-input" (keyup.enter)="validarCodigoRecuperacion()" />
+          </div>
+        </div>
+
+        <div class="resend-info">
+          <span>¿No recibió el código?</span>
+          <button type="button" class="btn-resend" (click)="solicitarCodigoRecuperacion()" [disabled]="recoverLoading">Reenviar correo</button>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="recoverStep = 1">Atrás</button>
+          <button type="button" class="btn-submit" (click)="validarCodigoRecuperacion()" [disabled]="recoverLoading">
+            <span *ngIf="!recoverLoading">Verificar Código</span>
+            <span *ngIf="recoverLoading">Verificando...</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PASO 3: Restablecer Clave -->
+      <div class="step-content" *ngIf="recoverStep === 3">
+        <p class="step-desc">Ingrese su nueva contraseña y confírmela para finalizar el restablecimiento e iniciar sesión.</p>
+
+        <div class="form-group">
+          <label for="newPass">Nueva Contraseña</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input id="newPass" [type]="showNewPassword ? 'text' : 'password'" [(ngModel)]="nuevaContrasena" placeholder="Nueva contraseña" />
+            <button type="button" class="toggle-password" (click)="showNewPassword = !showNewPassword" tabindex="-1">
+              {{ showNewPassword ? '🙈': '👁️' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPass">Confirmar Nueva Contraseña</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input id="confirmPass" [type]="showConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmarContrasena" placeholder="Repite la contraseña" (keyup.enter)="restablecerContrasenaFinal()" />
+            <button type="button" class="toggle-password" (click)="showConfirmPassword = !showConfirmPassword" tabindex="-1">
+              {{ showConfirmPassword ? '🙈': '👁️' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-submit" (click)="restablecerContrasenaFinal()" [disabled]="recoverLoading">
+            <span *ngIf="!recoverLoading">Restablecer e Iniciar Sesión</span>
+            <span *ngIf="recoverLoading">Guardando...</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
   </div>
 
 </div>

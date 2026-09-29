@@ -1,15 +1,17 @@
    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-                Bienvenido a la Configuración de BGREEN
-            </h1>
-            <p>Configura tu aplicativo paso a paso para optimizar tu experiencia</p>
+        <!-- Header Verde Bgreen -->
+        <div class="card-header-custom">
+          <div class="d-flex align-items-center gap-3">
+            <div class="header-icon">
+              <i class="bi bi-grid-3x3-gap-fill"></i>
+            </div>
+            <div>
+              <h4 class="mb-0 fw-bold text-white">Configuración General</h4>
+              <p class="mb-0 text-white-50 small">Bienvenido — configura tu aplicativo paso a paso para optimizar tu experiencia</p>
+            </div>
+          </div>
         </div>
+
 
         <!-- Stats Cards -->
         <div class="stats-container">
@@ -45,11 +47,11 @@
             <!-- Configuration Modules -->
             <div class="modules-grid">
                 <!-- Usuarios Module -->
-                <div class="module-card" onclick="navigateTo('usuarios')">
+                <div class="module-card" (click)="navigateTo('usuarios')">
                     <div class="module-icon">👥</div>
                     <div class="module-title">Usuarios</div>
                     <div class="module-description">
-
+                        Gestión de accesos, roles, perfiles y catálogos de la organización (Áreas, Cargos, Empresas).
                     </div>
                     <div class="module-tip">
                         Comienza creando roles antes de asignar usuarios para una mejor organización.
@@ -57,11 +59,11 @@
                 </div>
 
                 <!-- Sistemas Información Module -->
-                <div class="module-card" onclick="navigateTo('sistemas')">
+                <div class="module-card" (click)="navigateTo('sistemas')">
                     <div class="module-icon">💻</div>
                     <div class="module-title">Sistemas de Información</div>
                     <div class="module-description">
-                    
+                        Registro de sistemas externos y plataformas integradas con el aplicativo.
                     </div>
                     <div class="module-tip">
                         Verifica las credenciales de conexión antes de activar las integraciones.
@@ -69,18 +71,52 @@
                 </div>
 
                 <!-- Pulsos Module -->
-                <div class="module-card" onclick="navigateTo('pulsos')">
-                    <div class="module-icon">📊</div>
+                <div class="module-card" (click)="navigateTo('pulsos')">
+                    <div class="module-icon">📢</div>
                     <div class="module-title">Pulsos</div>
                     <div class="module-description">
-
+                        Publicación de anuncios, noticias, novedades y avisos importantes de la empresa.
                     </div>
                     <div class="module-tip">
                         Configura alertas automáticas para los eventos futuros , puedes agregarlos y ellos van apareciendo de acuerdo a la fecha.
                     </div>
                 </div>
 
-             
+                <!-- Metas CMI Module -->
+                <div class="module-card" (click)="navigateTo('metas')">
+                    <div class="module-icon">🎯</div>
+                    <div class="module-title">Metas CMI</div>
+                    <div class="module-description">
+                        Configuración de objetivos, presupuestos y metas mensuales para indicadores clave de ventas.
+                    </div>
+                    <div class="module-tip">
+                        Define los objetivos mensuales por producto y año para el control de metas.
+                    </div>
+                </div>
+
+                <!-- Configuración de Seguridad Module -->
+                <div class="module-card" (click)="navigateTo('seguridad')">
+                    <div class="module-icon">🔐</div>
+                    <div class="module-title">Configuración de Seguridad</div>
+                    <div class="module-description">
+                        Políticas de contraseñas, control de intentos de acceso y gestión de fondos de pantalla de login.
+                    </div>
+                    <div class="module-tip">
+                        Controla el acceso, contraseñas, políticas de seguridad y fotos de fondo de login.
+                    </div>
+                </div>
+
+                <!-- Variables y Parámetros Module -->
+                <div class="module-card" (click)="navigateTo('variables')">
+                    <div class="module-icon">⚙️</div>
+                    <div class="module-title">Variables y Parámetros</div>
+                    <div class="module-description">
+                        Maestro global de variables PLC/SCADA, unidades de medida y parámetros operativos de planta.
+                    </div>
+                    <div class="module-tip">
+                        Gestión y configuración de variables de proceso, unidades de medida y alertas de correo.
+                    </div>
+                </div>
             </div>
 
  

@@ -485,3 +485,231 @@ body {
     font-size: 24px;
   }
 }
+
+/* ===== RECUPERACIÓN DE CONTRASEÑA ===== */
+.forgot-password-wrapper {
+  text-align: right;
+  margin-top: -10px;
+}
+
+.forgot-password-link {
+  color: #1a8f4e;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.forgot-password-link:hover {
+  color: #0a5c2e;
+  text-decoration: underline;
+}
+
+/* ===== MODAL DE RECUPERACIÓN ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeInOverlay 0.3s ease;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
+  padding: 30px;
+  position: relative;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  animation: modalScaleUp 0.3s ease;
+}
+
+@keyframes modalScaleUp {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 28px;
+  background: none;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.modal-close-btn:hover {
+  color: #2d3748;
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.modal-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.modal-header h2 {
+  font-size: 22px;
+  color: #1a202c;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #718096;
+}
+
+/* ===== STEPPER (PASOS) ===== */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 15px 0 25px 0;
+  padding: 0 10px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #edf2f7;
+  border: 2px solid #cbd5e0;
+  color: #718096;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 11px;
+  color: #a0aec0;
+  font-weight: 600;
+}
+
+.step.active .step-num {
+  background: #1a8f4e;
+  border-color: #1a8f4e;
+  color: white;
+}
+
+.step.active .step-label {
+  color: #1a8f4e;
+}
+
+.step.completed .step-num {
+  background: #276749;
+  border-color: #276749;
+  color: white;
+}
+
+.step-line {
+  flex: 1;
+  height: 3px;
+  background: #e2e8f0;
+  margin: 0 8px;
+  position: relative;
+  top: -10px;
+  transition: background 0.3s ease;
+}
+
+.step-line.active {
+  background: #1a8f4e;
+}
+
+/* ===== PASOS DEL MODAL ===== */
+.step-desc {
+  font-size: 14px;
+  color: #4a5568;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.otp-input {
+  letter-spacing: 8px;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  text-align: center;
+}
+
+.resend-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #718096;
+  margin-top: 10px;
+}
+
+.btn-resend {
+  background: none;
+  border: none;
+  color: #1a8f4e;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-resend:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.btn-resend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: 12px;
+  background: #edf2f7;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}

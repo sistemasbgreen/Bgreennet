@@ -25,13 +25,31 @@
            tabindex="0"
            aria-label="User menu"
            (keydown.enter)="toggleUserMenu()">
-        <i class="bi bi-person-circle icon-user"></i>
+        <button class="user-avatar" title="Menú de usuario">
+          {{ initials || (user ? user.charAt(0).toUpperCase() : 'U') }}
+        </button>
         
         <!-- Dropdown menu -->
         <div class="dropdown-menu" *ngIf="isUserMenuOpen">
+          <div class="dropdown-header-info">
+            <span class="user-name-title">{{ user }}</span>
+            <span class="user-role-sub">{{ perfil }}</span>
+          </div>
+          <div class="dropdown-divider"></div>
           <button (click)="home()" class="dropdown-item">
             <i class="bi bi-house-door"></i>
             <span>Home</span>
+          </button>
+          <button (click)="irPerfil()" class="dropdown-item dropdown-item-profile">
+            <i class="bi bi-person-circle"></i>
+            <div class="dropdown-item-content">
+              <span class="dropdown-item-title">Módulo de Perfil</span>
+              <span class="dropdown-item-desc">Información personal, equipo y organigrama</span>
+            </div>
+          </button>
+          <button (click)="abrirModalCambiarClave()" class="dropdown-item">
+            <i class="bi bi-key"></i>
+            <span>Cambiar Clave</span>
           </button>
           <button (click)="logout()" class="dropdown-item">
             <i class="bi bi-box-arrow-right"></i>

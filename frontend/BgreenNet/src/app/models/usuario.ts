@@ -1,5 +1,6 @@
 export interface Usuario {
   idUsuario: number;
+  id_usuario?: number;
   usuario: string;
   apellido: string;
   contrasena: string;
@@ -22,6 +23,10 @@ export interface Usuario {
   id_tipoidentificacion_fk: number;
   id_detalle_usuario: number;
   cargo: string;
+  descripcionCargo?: string;
+  direccion?: string;
+  descripcionDireccion?: string;
+  id_direccion_fk?: number;
   bloqueado?: boolean;
   intentosFallidos?: number;
 }

@@ -155,10 +155,125 @@ export class Login {
     });
   }
 
-obtenerImagenAleatoria(): string {
-  const indice = Math.floor(Math.random() * this.imagenes.length);
-  return this.imagenes[indice];
-}
+  obtenerImagenAleatoria(): string {
+    const indice = Math.floor(Math.random() * this.imagenes.length);
+    return this.imagenes[indice];
+  }
 
+  // --- Recuperación Dinámica de Contraseña ---
+  showRecoverModal = false;
+  recoverStep: 1 | 2 | 3 = 1;
+  recoverLoading = false;
+  recoverError = '';
 
+  usuarioRecuperacion = '';
+  codigoOtp = '';
+  nuevaContrasena = '';
+  confirmarContrasena = '';
+
+  showNewPassword = false;
+  showConfirmPassword = false;
+
+  abrirModalRecuperacion(): void {
+    this.usuarioRecuperacion = this.loginForm.get('usuario')?.value || '';
+    this.codigoOtp = '';
+    this.nuevaContrasena = '';
+    this.confirmarContrasena = '';
+    this.recoverError = '';
+    this.recoverStep = 1;
+    this.showRecoverModal = true;
+  }
+
+  cerrarModalRecuperacion(): void {
+    this.showRecoverModal = false;
+  }
+
+  solicitarCodigoRecuperacion(): void {
+    if (!this.usuarioRecuperacion || this.usuarioRecuperacion.trim().length < 3) {
+      this.recoverError = 'Por favor ingrese su usuario o correo electrónico';
+      return;
+    }
+
+    this.recoverLoading = true;
+    this.recoverError = '';
+
+    this.authService.solicitarRecuperacion(this.usuarioRecuperacion.trim()).subscribe({
+      next: (res) => {
+        this.recoverLoading = false;
+        this.recoverStep = 2;
+        Swal.fire({
+          icon: 'info',
+          title: 'Código Enviado',
+          text: res.mensaje || 'Se ha enviado un código de 6 dígitos a su correo.',
+          confirmButtonColor: '#006c2c'
+        });
+      },
+      error: (err) => {
+        this.recoverLoading = false;
+        this.recoverError = err.error?.error || 'No se pudo enviar el código. Verifique la información.';
+      }
+    });
+  }
+
+  validarCodigoRecuperacion(): void {
+    if (!this.codigoOtp || this.codigoOtp.trim().length !== 6) {
+      this.recoverError = 'Ingrese el código completo de 6 dígitos enviado a su correo';
+      return;
+    }
+
+    this.recoverLoading = true;
+    this.recoverError = '';
+
+    this.authService.validarCodigo(this.usuarioRecuperacion.trim(), this.codigoOtp.trim()).subscribe({
+      next: () => {
+        this.recoverLoading = false;
+        this.recoverStep = 3;
+      },
+      error: (err) => {
+        this.recoverLoading = false;
+        this.recoverError = err.error?.error || 'Código incorrecto o expirado.';
+      }
+    });
+  }
+
+  restablecerContrasenaFinal(): void {
+    if (!this.nuevaContrasena || !this.confirmarContrasena) {
+      this.recoverError = 'Diligencie todos los campos';
+      return;
+    }
+
+    if (this.nuevaContrasena !== this.confirmarContrasena) {
+      this.recoverError = 'Las contraseñas no coinciden';
+      return;
+    }
+
+    this.recoverLoading = true;
+    this.recoverError = '';
+
+    this.authService.restablecerClave(
+      this.usuarioRecuperacion.trim(),
+      this.codigoOtp.trim(),
+      this.nuevaContrasena
+    ).subscribe({
+      next: () => {
+        this.recoverLoading = false;
+        this.showRecoverModal = false;
+
+        Swal.fire({
+          icon: 'success',
+          title: '¡Contraseña Restablecida!',
+          text: 'Su contraseña ha sido actualizada exitosamente. Iniciando sesión...',
+          confirmButtonColor: '#006c2c',
+          timer: 2000,
+          showConfirmButton: false
+        }).then(() => {
+          this.router.navigate([this.returnUrl]);
+        });
+      },
+      error: (err) => {
+        this.recoverLoading = false;
+        this.recoverError = err.error?.error || 'Error al restablecer la contraseña.';
+      }
+    });
+  }
 }
