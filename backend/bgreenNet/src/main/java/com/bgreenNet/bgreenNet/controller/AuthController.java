@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bgreenNet.bgreenNet.dto.LoginRequestDTO;
 import com.bgreenNet.bgreenNet.dto.LoginResponseDTO;
+import com.bgreenNet.bgreenNet.dto.SolicitarRecuperacionDTO;
+import com.bgreenNet.bgreenNet.dto.ValidarCodigoDTO;
+import com.bgreenNet.bgreenNet.dto.RestablecerClaveDTO;
 import com.bgreenNet.bgreenNet.jwt.JwtUtil;
 import com.bgreenNet.bgreenNet.models.ConfiguracionSeguridad;
 import com.bgreenNet.bgreenNet.models.Usuario;
@@ -29,12 +32,16 @@ import com.bgreenNet.bgreenNet.repository.UsuarioRepository;
 import com.bgreenNet.bgreenNet.services.AuthService;
 import com.bgreenNet.bgreenNet.services.ConfiguracionSeguridadService;
 import com.bgreenNet.bgreenNet.services.CustomUserDetailsService;
+import com.bgreenNet.bgreenNet.services.PasswordResetService;
 
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
 public class AuthController {
 
 	private final AuthService authService;
+
+	@Autowired
+	private PasswordResetService passwordResetService;
 
 	@Autowired
 	private AuthenticationManager authenticationManager;
@@ -199,5 +206,65 @@ public class AuthController {
 		response.put("message", "¡JWT funcionando sin roles!");
 		response.put("status", "OK");
 		return ResponseEntity.ok(response);
+	}
+
+	@PostMapping("/recuperar-password/solicitar")
+	public ResponseEntity<?> solicitarRecuperacion(@RequestBody SolicitarRecuperacionDTO dto) {
+		try {
+			passwordResetService.solicitarCodigo(dto.getUsuarioOCorreo());
+			Map<String, String> resp = new HashMap<>();
+			resp.put("mensaje", "Se ha enviado un código de verificación de 6 dígitos a su correo electrónico.");
+			return ResponseEntity.ok(resp);
+		} catch (IllegalArgumentException e) {
+			Map<String, String> error = new HashMap<>();
+			error.put("error", e.getMessage());
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+		} catch (Exception e) {
+			System.err.println("[AuthController] Error al solicitar recuperación: " + e.getMessage());
+			e.printStackTrace();
+			Map<String, String> error = new HashMap<>();
+			error.put("error", e.getMessage() != null ? e.getMessage() : "Error al procesar la solicitud");
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+		}
+	}
+
+	@PostMapping("/recuperar-password/validar-codigo")
+	public ResponseEntity<?> validarCodigo(@RequestBody ValidarCodigoDTO dto) {
+		try {
+			boolean esValido = passwordResetService.validarCodigo(dto.getUsuario(), dto.getCodigo());
+			if (esValido) {
+				Map<String, String> resp = new HashMap<>();
+				resp.put("mensaje", "Código verificado correctamente");
+				return ResponseEntity.ok(resp);
+			} else {
+				Map<String, String> error = new HashMap<>();
+				error.put("error", "El código de verificación es inválido o ha expirado");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+			}
+		} catch (Exception e) {
+			System.err.println("[AuthController] Error al validar código: " + e.getMessage());
+			Map<String, String> error = new HashMap<>();
+			error.put("error", e.getMessage());
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+		}
+	}
+
+	@PostMapping("/recuperar-password/restablecer")
+	public ResponseEntity<?> restablecerClave(@RequestBody RestablecerClaveDTO dto) {
+		try {
+			LoginResponseDTO response = passwordResetService.restablecerClave(
+					dto.getUsuario(), dto.getCodigo(), dto.getNuevaContrasena());
+			return ResponseEntity.ok(response);
+		} catch (IllegalArgumentException e) {
+			Map<String, String> error = new HashMap<>();
+			error.put("error", e.getMessage());
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+		} catch (Exception e) {
+			System.err.println("[AuthController] Error al restablecer clave: " + e.getMessage());
+			e.printStackTrace();
+			Map<String, String> error = new HashMap<>();
+			error.put("error", e.getMessage() != null ? e.getMessage() : "Error al restablecer la contraseña");
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+		}
 	}
 }

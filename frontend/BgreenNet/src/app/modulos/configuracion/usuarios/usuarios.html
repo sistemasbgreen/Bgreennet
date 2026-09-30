@@ -1,11 +1,49 @@
+<!-- PLANTILLA HTML OPTIMIZADA -->
+
+<!-- ===== HEADER Y PESTAÑAS UNIFICADOS ===== -->
+<div class="header-tabs-container">
+  <!-- ===== HEADER VERDE BGREEN ===== -->
+  <div class="card-header-custom">
+    <div class="d-flex align-items-center gap-3">
+      <div class="header-icon">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <h4 class="mb-0 fw-bold text-white">Administración de Usuarios</h4>
+        <p class="mb-0 text-white-50 small">Gestiona usuarios, perfiles, accesos y catálogos del sistema</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NAVEGACIÓN POR PESTAÑAS ===== -->
+  <div class="tabs-nav-bar">
+    <button class="tab-btn" [class.active]="activeTab === 'usuarios'" (click)="switchTab('usuarios')">
+      <i class="bi bi-people-fill"></i> Usuarios
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'perfiles'" (click)="switchTab('perfiles')">
+      <i class="bi bi-shield-check"></i> Perfiles
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'areas'" (click)="switchTab('areas')">
+      <i class="bi bi-diagram-3"></i> Áreas
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'cargos'" (click)="switchTab('cargos')">
+      <i class="bi bi-person-badge"></i> Cargos
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'empresas'" (click)="switchTab('empresas')">
+      <i class="bi bi-building"></i> Empresas
+    </button>
+  </div>
+</div>
+
+
 <!-- ===== CONTENEDOR PRINCIPAL ===== -->
 <div class="container-main">
 
-  <!-- COLUMNA IZQUIERDA: Usuarios + Perfiles -->
+  <!-- COLUMNA IZQUIERDA: Tablas Activas -->
   <div class="column-left">
 
     <!-- TABLA DE USUARIOS -->
-    <div class="section-card">
+    <div class="section-card" *ngIf="activeTab === 'usuarios'">
       <div class="header-section">
         <h2><i class="bi bi-people-fill"></i> Gestión de Usuarios</h2>
         <button class="btn-crear" (click)="openCrearModal()">
@@ -64,6 +102,14 @@
                     <i class="bi bi-key-fill"></i>
                   </button>
 
+                  <!-- 🔐 Ver Permisos -->
+                  <button class="btn-action btn-permisos"
+                    [class.btn-permisos-activo]="usuarioSeleccionadoPermisos === u.idUsuario"
+                    (click)="seleccionarUsuarioPermisos(u)"
+                    [title]="usuarioSeleccionadoPermisos === u.idUsuario ? 'Ocultar permisos' : 'Ver permisos'">
+                    <i class="bi bi-diagram-3-fill"></i>
+                  </button>
+
                    <!-- ✅ Estado activo/inactivo -->
                   <button class="btn-action btn-estado"
                     [style.background-color]="u.estado ? '#dcfce7' : '#fef2f2'"
@@ -105,7 +151,7 @@
     </div>
 
     <!-- TABLA DE PERFILES -->
-    <div class="section-card">
+    <div class="section-card" *ngIf="activeTab === 'perfiles'">
       <div class="header-section">
         <h2><i class="bi bi-shield-check"></i> Gestión de Perfiles</h2>
         <button class="btn-crear" (click)="openCrearPerfilModal()">
@@ -185,10 +231,118 @@
       </div>
     </div>
 
+  <!-- TABLA DE ÁREAS -->
+    <div class="section-card" *ngIf="activeTab === 'areas'">
+      <div class="header-section">
+        <h2><i class="bi bi-diagram-3"></i> Gestión de Áreas</h2>
+        <button class="btn-crear" (click)="openCrearAreaModal()">
+          <i class="bi bi-plus-circle"></i> Crear Área
+        </button>
+      </div>
+      <div class="search-container">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text" class="search-input" placeholder="Buscar área..." [(ngModel)]="searchArea" (input)="filtrarAreas()">
+          <button *ngIf="searchArea" class="clear-search" (click)="limpiarBusquedaArea()"><i class="bi bi-x-circle-fill"></i></button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="table-perfil">
+          <thead><tr><th>Descripción</th><th>Acciones</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let a of areasFiltradas" class="table-row">
+              <td class="usuario-column"><i class="bi bi-diagram-3"></i> {{ a.descripcionArea }}</td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-action btn-estado" [style.background-color]="isActivo(a) ? '#dcfce7' : '#fef2f2'" [style.color]="isActivo(a) ? '#15803d' : '#b91c1c'" [style.border]="isActivo(a) ? '1.5px solid #86efac' : '1.5px solid #fecaca'" style="cursor:default;" [title]="isActivo(a) ? 'Activo' : 'Inactivo'">
+                    <i [class]="isActivo(a) ? 'bi bi-check-lg' : 'bi bi-x-lg'"></i>
+                  </button>
+                  <button class="btn-action btn-editar" (click)="abrirEditarAreaModal(a)" title="Editar área"><i class="bi bi-pencil-fill"></i></button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="areasFiltradas.length === 0"><td colspan="2" class="no-data"><p>No hay áreas</p></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TABLA DE CARGOS -->
+    <div class="section-card" *ngIf="activeTab === 'cargos'">
+      <div class="header-section">
+        <h2><i class="bi bi-person-badge"></i> Gestión de Cargos</h2>
+        <button class="btn-crear" (click)="openCrearCargoModal()">
+          <i class="bi bi-plus-circle"></i> Crear Cargo
+        </button>
+      </div>
+      <div class="search-container">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text" class="search-input" placeholder="Buscar cargo..." [(ngModel)]="searchCargo" (input)="filtrarCargos()">
+          <button *ngIf="searchCargo" class="clear-search" (click)="limpiarBusquedaCargo()"><i class="bi bi-x-circle-fill"></i></button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="table-perfil">
+          <thead><tr><th>Descripción</th><th>Acciones</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let c of cargosFiltrados" class="table-row">
+              <td class="usuario-column"><i class="bi bi-person-badge"></i> {{ c.descripcionCargo }}</td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-action btn-estado" [style.background-color]="isActivo(c) ? '#dcfce7' : '#fef2f2'" [style.color]="isActivo(c) ? '#15803d' : '#b91c1c'" [style.border]="isActivo(c) ? '1.5px solid #86efac' : '1.5px solid #fecaca'" style="cursor:default;" [title]="isActivo(c) ? 'Activo' : 'Inactivo'">
+                    <i [class]="isActivo(c) ? 'bi bi-check-lg' : 'bi bi-x-lg'"></i>
+                  </button>
+                  <button class="btn-action btn-editar" (click)="abrirEditarCargoModal(c)" title="Editar cargo"><i class="bi bi-pencil-fill"></i></button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="cargosFiltrados.length === 0"><td colspan="2" class="no-data"><p>No hay cargos</p></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TABLA DE EMPRESAS -->
+    <div class="section-card" *ngIf="activeTab === 'empresas'">
+      <div class="header-section">
+        <h2><i class="bi bi-building"></i> Gestión de Empresas</h2>
+        <button class="btn-crear" (click)="openCrearEmpresaModal()">
+          <i class="bi bi-plus-circle"></i> Crear Empresa
+        </button>
+      </div>
+      <div class="search-container">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text" class="search-input" placeholder="Buscar empresa..." [(ngModel)]="searchEmpresa" (input)="filtrarEmpresas()">
+          <button *ngIf="searchEmpresa" class="clear-search" (click)="limpiarBusquedaEmpresa()"><i class="bi bi-x-circle-fill"></i></button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="table-perfil">
+          <thead><tr><th>Descripción</th><th>Acciones</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let e of empresasFiltradas" class="table-row">
+              <td class="usuario-column"><i class="bi bi-building"></i> {{ e.descripcionEmpresa }}</td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-action btn-estado" [style.background-color]="isActivo(e) ? '#dcfce7' : '#fef2f2'" [style.color]="isActivo(e) ? '#15803d' : '#b91c1c'" [style.border]="isActivo(e) ? '1.5px solid #86efac' : '1.5px solid #fecaca'" style="cursor:default;" [title]="isActivo(e) ? 'Activo' : 'Inactivo'">
+                    <i [class]="isActivo(e) ? 'bi bi-check-lg' : 'bi bi-x-lg'"></i>
+                  </button>
+                  <button class="btn-action btn-editar" (click)="abrirEditarEmpresaModal(e)" title="Editar empresa"><i class="bi bi-pencil-fill"></i></button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="empresasFiltradas.length === 0"><td colspan="2" class="no-data"><p>No hay empresas</p></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 
   <!-- COLUMNA DERECHA: Relaciones del perfil con ACORDEÓN -->
-  <div class="column-right">
+  <div class="column-right" *ngIf="activeTab === 'usuarios' || activeTab === 'perfiles'">
     <div class="section-card">
       <div class="header-section">
         <h2><i class="bi bi-link-45deg"></i>
@@ -555,6 +709,102 @@
           <button type="submit" class="btn-guardar" [disabled]="perfilForm.invalid">
             {{ isEditModePerfil ? 'Actualizar Perfil' : 'Crear Perfil' }}
           </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE ÁREA -->
+<div class="modal-overlay" *ngIf="showModalArea" (click)="cerrarModalArea()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="bi" [class.bi-plus-circle]="!isEditModeArea" [class.bi-pencil-square]="isEditModeArea"></i> {{ isEditModeArea ? 'Editar Área' : 'Crear Nueva Área' }}</h3>
+      <button class="btn-close" (click)="cerrarModalArea()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="areaForm" (ngSubmit)="onSubmitArea()">
+        <div class="form-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label"><i class="bi bi-diagram-3"></i> Descripción del Área</label>
+            <input type="text" formControlName="descripcionArea" class="form-input" [class.input-invalid]="af['descripcionArea'].invalid && af['descripcionArea'].touched" placeholder="Ej. Ventas">
+            <span class="error-message" *ngIf="af['descripcionArea'].invalid && af['descripcionArea'].touched"><i class="bi bi-exclamation-circle"></i> Requerido (Min 3 caracteres).</span>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label"><i class="bi bi-check-circle"></i> Estado</label>
+            <select formControlName="estado" class="form-select">
+                <option [value]="1">Activo</option>
+                <option [value]="0">Inactivo</option>
+            </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" (click)="cerrarModalArea()">Cancelar</button>
+          <button type="submit" class="btn-guardar"><i class="bi bi-cloud-arrow-up"></i> {{ isEditModeArea ? 'Actualizar' : 'Guardar' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE CARGO -->
+<div class="modal-overlay" *ngIf="showModalCargo" (click)="cerrarModalCargo()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="bi" [class.bi-plus-circle]="!isEditModeCargo" [class.bi-pencil-square]="isEditModeCargo"></i> {{ isEditModeCargo ? 'Editar Cargo' : 'Crear Nuevo Cargo' }}</h3>
+      <button class="btn-close" (click)="cerrarModalCargo()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="cargoForm" (ngSubmit)="onSubmitCargo()">
+        <div class="form-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label"><i class="bi bi-person-badge"></i> Descripción del Cargo</label>
+            <input type="text" formControlName="descripcionCargo" class="form-input" [class.input-invalid]="cf['descripcionCargo'].invalid && cf['descripcionCargo'].touched" placeholder="Ej. Gerente">
+            <span class="error-message" *ngIf="cf['descripcionCargo'].invalid && cf['descripcionCargo'].touched"><i class="bi bi-exclamation-circle"></i> Requerido (Min 3 caracteres).</span>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label"><i class="bi bi-check-circle"></i> Estado</label>
+            <select formControlName="estado" class="form-select">
+                <option [value]="1">Activo</option>
+                <option [value]="0">Inactivo</option>
+            </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" (click)="cerrarModalCargo()">Cancelar</button>
+          <button type="submit" class="btn-guardar"><i class="bi bi-cloud-arrow-up"></i> {{ isEditModeCargo ? 'Actualizar' : 'Guardar' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE EMPRESA -->
+<div class="modal-overlay" *ngIf="showModalEmpresa" (click)="cerrarModalEmpresa()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="bi" [class.bi-plus-circle]="!isEditModeEmpresa" [class.bi-pencil-square]="isEditModeEmpresa"></i> {{ isEditModeEmpresa ? 'Editar Empresa' : 'Crear Nueva Empresa' }}</h3>
+      <button class="btn-close" (click)="cerrarModalEmpresa()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="empresaForm" (ngSubmit)="onSubmitEmpresa()">
+        <div class="form-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label"><i class="bi bi-building"></i> Descripción de la Empresa</label>
+            <input type="text" formControlName="descripcionEmpresa" class="form-input" [class.input-invalid]="ef['descripcionEmpresa'].invalid && ef['descripcionEmpresa'].touched" placeholder="Ej. Sede Principal">
+            <span class="error-message" *ngIf="ef['descripcionEmpresa'].invalid && ef['descripcionEmpresa'].touched"><i class="bi bi-exclamation-circle"></i> Requerido (Min 3 caracteres).</span>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label"><i class="bi bi-check-circle"></i> Estado</label>
+            <select formControlName="estado" class="form-select">
+                <option [value]="1">Activo</option>
+                <option [value]="0">Inactivo</option>
+            </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" (click)="cerrarModalEmpresa()">Cancelar</button>
+          <button type="submit" class="btn-guardar"><i class="bi bi-cloud-arrow-up"></i> {{ isEditModeEmpresa ? 'Actualizar' : 'Guardar' }}</button>
         </div>
       </form>
     </div>

@@ -119,5 +119,27 @@ export class AuthService {
   getCurrentUser$(): Observable<LoginResponse | null> {
     return this.usuarioData.asObservable();
   }
-  
+
+  // --- Recuperación Dinámica de Contraseña ---
+  solicitarRecuperacion(usuarioOCorreo: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${environment.apiUrl}/api/auth/recuperar-password/solicitar`, { usuarioOCorreo });
+  }
+
+  validarCodigo(usuario: string, codigo: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${environment.apiUrl}/api/auth/recuperar-password/validar-codigo`, { usuario, codigo });
+  }
+
+  restablecerClave(usuario: string, codigo: string, nuevaContrasena: string): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/recuperar-password/restablecer`, { usuario, codigo, nuevaContrasena }).pipe(
+      tap(response => {
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.setItem('usuario', JSON.stringify(response));
+          localStorage.setItem('token', response.token);
+        }
+        this.loggedIn.next(true);
+        this.usuarioData.next(response);
+        this.tokenSubject.next(response.token);
+      })
+    );
+  }
 }

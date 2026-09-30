@@ -20,6 +20,7 @@ export class Main implements OnInit {
   isMenuDropdownOpen = false;
   user: string = '';
   perfil: string = '';
+  initials: string = '';
   isUserMenuOpen = false;
   
   modulos: ModuloDTO[] = [];
@@ -131,6 +132,16 @@ export class Main implements OnInit {
         this.user = usuario.usuario;
         this.perfil = usuario.perfil_descripcion;
         this.usuarioId = usuario.idUsuario || usuario.id_usuario;
+
+        const name = usuario.nombre || usuario.primer_nombre || usuario.usuario || '';
+        const surname = usuario.apellido || usuario.primer_apellido || '';
+        if (name && surname) {
+          this.initials = `${name.charAt(0)}${surname.charAt(0)}`.toUpperCase();
+        } else if (name) {
+          this.initials = name.substring(0, 2).toUpperCase();
+        } else {
+          this.initials = 'U';
+        }
         
         // Verificar si la contraseña está vencida
         if (usuario.contrasenaExpirada === true || usuario.contrasenaExpirada === 'true') {
@@ -172,6 +183,16 @@ export class Main implements OnInit {
   home() {
     this.isUserMenuOpen = false;
     this.router.navigate(['/home']);
+  }
+
+  irPerfil() {
+    this.isUserMenuOpen = false;
+    this.router.navigate(['/perfil']);
+  }
+
+  irOrganigrama() {
+    this.isUserMenuOpen = false;
+    this.router.navigate(['/organigrama']);
   }
 
   // ========================================

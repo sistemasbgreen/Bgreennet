@@ -1,1 +1,251 @@
-<p>perfil works!</p>
+<div class="perfil-page-container">
+  <!-- Header de la página -->
+  <header class="perfil-header">
+    <div class="header-left">
+      <div class="logo-container" (click)="irAHome()" title="Volver al Home" style="cursor: pointer;">
+        <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo BGREEN" class="header-logo-img" />
+      </div>
+    </div>
+    <div class="header-title">
+      <h1>BGREEN<span>NET</span></h1>
+    </div>
+  </header>
+
+
+
+  <!-- Contenido principal del perfil -->
+  <main class="perfil-content">
+
+    <!-- ==================== PESTAÑA 1: INFORMACIÓN Y MI EQUIPO ==================== -->
+    <div *ngIf="activeTab === 'perfil'" class="tab-fade-in">
+      <!-- Card principal / Hero del usuario -->
+      <div class="user-hero-card">
+        <div class="hero-avatar">
+          {{ initials }}
+        </div>
+        <div class="hero-details">
+          <h2 class="user-display-name">{{ fullName }}</h2>
+          <p class="user-display-email">
+            <i class="bi bi-envelope"></i> {{ userEmail || 'Sin correo registrado' }}
+          </p>
+          <div class="badges-row">
+            <span class="badge badge-nivel" [ngClass]="'nivel-' + miNivelJerarquico">
+              <i class="bi bi-award-fill"></i> Nivel {{ miNivelJerarquico }}: {{ nombreMiNivel }}
+            </span>
+            <span class="badge badge-role" *ngIf="userRole">
+              <i class="bi bi-shield-check"></i> {{ userRole }}
+            </span>
+            <span class="badge badge-empresa" *ngIf="nameempresa">
+              <i class="bi bi-building"></i> {{ nameempresa }}
+            </span>
+            <span class="badge badge-cargo" *ngIf="cargo">
+              <i class="bi bi-briefcase"></i> {{ cargo }}
+            </span>
+            <span class="badge" [ngClass]="estadoUsuario ? 'badge-activo' : 'badge-inactivo'">
+              <i class="bi" [class.bi-check-circle-fill]="estadoUsuario" [class.bi-x-circle-fill]="!estadoUsuario"></i>
+              {{ estadoUsuario ? 'Cuenta Activa' : 'Cuenta Inactiva' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Botón editar (solo en modo lectura) -->
+        <button class="btn-editar-perfil" (click)="activarEdicion()" *ngIf="!modoEdicion" title="Editar mis datos">
+          <i class="bi bi-pencil-square"></i>
+          Editar Perfil
+        </button>
+      </div>
+
+      <!-- ── Panel de edición ── -->
+      <div class="edit-perfil-panel" *ngIf="modoEdicion">
+        <div class="edit-panel-header">
+          <i class="bi bi-pencil-square"></i>
+          <h3>Editar Datos Personales</h3>
+        </div>
+
+        <div class="edit-panel-body">
+          <div class="edit-fields-grid">
+            <div class="edit-field">
+              <label>Nombres <span class="req">*</span></label>
+              <input type="text" [(ngModel)]="editNombre" placeholder="Tu nombre" class="edit-input" />
+            </div>
+            <div class="edit-field">
+              <label>Apellidos <span class="req">*</span></label>
+              <input type="text" [(ngModel)]="editApellido" placeholder="Tu apellido" class="edit-input" />
+            </div>
+            <div class="edit-field">
+              <label>Documento de Identificación</label>
+              <input type="text" [(ngModel)]="editIdentificacion" placeholder="N.º de documento" class="edit-input" />
+            </div>
+            <div class="edit-field">
+              <label>Correo Electrónico</label>
+              <input type="email" [(ngModel)]="editCorreo" placeholder="correo@ejemplo.com" class="edit-input" />
+            </div>
+            <div class="edit-field">
+              <label>Celular / Extensión</label>
+              <input type="text" [(ngModel)]="editCelular" placeholder="Número de celular" class="edit-input" />
+            </div>
+            <div class="edit-field">
+              <label>Fecha de Nacimiento</label>
+              <input type="date" [(ngModel)]="editFechaNacimiento" class="edit-input" />
+            </div>
+          </div>
+
+          <!-- Mensajes -->
+          <div class="edit-msg-error" *ngIf="errorGuardado">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ errorGuardado }}
+          </div>
+          <div class="edit-msg-ok" *ngIf="mensajeGuardado">
+            {{ mensajeGuardado }}
+          </div>
+        </div>
+
+        <div class="edit-panel-footer">
+          <button class="btn-cancelar-edit" (click)="cancelarEdicion()" [disabled]="guardandoPerfil">
+            Cancelar
+          </button>
+          <button class="btn-guardar-edit" (click)="guardarPerfil()" [disabled]="guardandoPerfil">
+            <i class="bi" [class.bi-save]="!guardandoPerfil" [class.bi-arrow-repeat]="guardandoPerfil"></i>
+            {{ guardandoPerfil ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Mensaje de éxito fuera del panel (cuando ya cerró el modo edición) -->
+      <div class="edit-msg-ok edit-msg-float" *ngIf="mensajeGuardado && !modoEdicion">
+        {{ mensajeGuardado }}
+      </div>
+
+      <!-- Rejilla de información detallada -->
+      <div class="info-grid-full">
+
+        <!-- Tarjeta 1: Datos de Cuenta y Sistema -->
+        <div class="info-card">
+          <div class="card-header">
+            <i class="bi bi-person-badge-fill card-icon"></i>
+            <h3>Cuenta & Sistema</h3>
+          </div>
+          <div class="card-body">
+            <div class="info-item">
+              <span class="item-label">Nombre de Usuario</span>
+              <span class="item-value font-highlight">{{ usuarioNombre || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Perfil de Sistema</span>
+              <span class="item-value">{{ userRole || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Estado de la Cuenta</span>
+              <span class="item-value">
+                <span class="status-pill" [class.active]="estadoUsuario" [class.inactive]="!estadoUsuario">
+                  <i class="bi" [class.bi-check-circle-fill]="estadoUsuario" [class.bi-x-circle-fill]="!estadoUsuario"></i>
+                  {{ estadoUsuario ? 'Activo' : 'Inactivo' }}
+                </span>
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Estado de Bloqueo</span>
+              <span class="item-value">
+                <span class="status-pill" [class.active]="!bloqueadoUsuario" [class.blocked]="bloqueadoUsuario">
+                  <i class="bi" [class.bi-unlock-fill]="!bloqueadoUsuario" [class.bi-lock-fill]="bloqueadoUsuario"></i>
+                  {{ bloqueadoUsuario ? 'Cuenta Bloqueada' : 'Sin Bloqueos' }}
+                </span>
+              </span>
+            </div>
+            <div class="info-item" *ngIf="ultimaConexion">
+              <span class="item-label">Última Conexión</span>
+              <span class="item-value">{{ ultimaConexion | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta 2: Datos Personales -->
+        <div class="info-card" [class.info-card-editing]="modoEdicion">
+          <div class="card-header">
+            <i class="bi bi-person-lines-fill card-icon"></i>
+            <h3>Datos Personales</h3>
+            <span class="card-edit-tag" *ngIf="modoEdicion"><i class="bi bi-pencil"></i> editando</span>
+          </div>
+          <div class="card-body">
+            <div class="info-item">
+              <span class="item-label">Nombres</span>
+              <span class="item-value">{{ primerNombre || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Apellidos</span>
+              <span class="item-value">{{ primerApellido || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Documento de Identificación</span>
+              <span class="item-value">{{ identificacion || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Tipo de Documento</span>
+              <span class="item-value">{{ tipoIdentificacion || 'Cédula de Ciudadanía' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Fecha de Nacimiento</span>
+              <span class="item-value">{{ fechaNacimiento ? (fechaNacimiento | date:'dd/MM/yyyy') : '-' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta 3: Datos de Contacto -->
+        <div class="info-card" [class.info-card-editing]="modoEdicion">
+          <div class="card-header">
+            <i class="bi bi-telephone-fill card-icon"></i>
+            <h3>Contacto</h3>
+            <span class="card-edit-tag" *ngIf="modoEdicion"><i class="bi bi-pencil"></i> editando</span>
+          </div>
+          <div class="card-body">
+            <div class="info-item">
+              <span class="item-label">Correo Electrónico</span>
+              <span class="item-value">
+                <a [href]="'mailto:' + userEmail" class="link-contact" *ngIf="userEmail">
+                  <i class="bi bi-envelope"></i> {{ userEmail }}
+                </a>
+                <span *ngIf="!userEmail">-</span>
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Celular / Extensión</span>
+              <span class="item-value">
+                <i class="bi bi-telephone" *ngIf="celular"></i> {{ celular || '-' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta 4: Datos Organizacionales -->
+        <div class="info-card">
+          <div class="card-header">
+            <i class="bi bi-building card-icon"></i>
+            <h3>Organización & Empresa</h3>
+          </div>
+          <div class="card-body">
+            <div class="info-item">
+              <span class="item-label">Empresa</span>
+              <span class="item-value">{{ nameempresa || '-' }}</span>
+            </div>
+            <div class="info-item" *ngIf="razonSocial">
+              <span class="item-label">Razón Social</span>
+              <span class="item-value">{{ razonSocial }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Área / Departamento</span>
+              <span class="item-value">{{ area || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Cargo</span>
+              <span class="item-value">{{ cargo || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="item-label">Nivel Jerárquico</span>
+              <span class="item-value">Nivel {{ miNivelJerarquico }} - {{ nombreMiNivel }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>

@@ -213,6 +213,11 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   subscription: any;
   perfil_Fk: any;
   contactoSearchQuery: string = '';
+  contactoCargoFiltro: string = 'TODOS';
+  contactosViewMode: 'cards' | 'list' = 'cards';
+  formatoSearchQuery: string = '';
+  formatoCategoriaFiltro: string = 'TODOS';
+  formatosViewMode: 'cards' | 'list' = 'cards';
   contactosFiltrados: any;
   usuariosList: any[] = []; // Lista oficial de usuarios para asignación
   areasList: any[] = []; // Lista de áreas para determinar direcciones
@@ -836,33 +841,51 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   cargarFormatos(): void {
     this.formatosData = [
       {
+        id: 1,
         nombre: 'Solicitud de Vacaciones',
-        descripcion: 'Formato para solicitar días de vacaciones',
+        descripcion: 'Formato oficial para solicitar días de vacaciones y permisos laborales.',
+        categoria: 'Gestión Humana',
+        extension: 'XLSX',
         url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/GGH-F-17%20FORMATO%20SOLICITUD%20DE%20VACACIONES%20(1).xlsx'
       },
       {
+        id: 2,
         nombre: 'Formato de comidas y taxis',
-        descripcion: 'Formato para reportar gastos de viaje y comida',
+        descripcion: 'Formato para legalización y reporte de gastos de viaje, taxis y alimentación.',
+        categoria: 'Finanzas y Gastos',
+        extension: 'XLSX',
         url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/FORMATO%20DE%20SOLICITUDES%20DE%20ALIMENTACION%20Y%20TAXIS.xlsx'
       },
       {
+        id: 3,
         nombre: 'Ingreso y salida de herramientas',
-        descripcion: 'Solicitud Ingreso y salida de herramientas',
+        descripcion: 'Registro y control de solicitud para el ingreso y salida de herramientas de la planta.',
+        categoria: 'Operaciones',
+        extension: 'XLSX',
         url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/Formato%20Ingreso%20y%20salida%20de%20herramientas.xlsx'
       },
       {
+        id: 4,
         nombre: 'Solicitud Ingreso a TBS',
-        descripcion: 'Reporte Solicitud Ingreso a TBS',
+        descripcion: 'Reporte y solicitud de autorización para el ingreso a instalaciones TBS.',
+        categoria: 'Operaciones',
+        extension: 'XLSX',
         url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/Solicitud%20de%20ingreso%20TBS.xlsx'
       },
       {
+        id: 5,
         nombre: 'Lista Asistencia',
-        descripcion: 'Control de asistencia',
+        descripcion: 'Control formal de asistencia a capacitaciones, reuniones y comités corporativos.',
+        categoria: 'Gestión Humana',
+        extension: 'XLSX',
         url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/GGH_F_07%20Lista_asistencia_%20V10%20(1).xlsx'
       },
       {
+        id: 6,
         nombre: 'Solicitud de compra o servicio',
-        descripcion: 'Solicitud de compra o servicio',
+        descripcion: 'Formato para requerimiento formal de adquisiciones de bienes o contratación de servicios.',
+        categoria: 'Finanzas y Gastos',
+        extension: 'XLSX',
         url: 'https://bgreennet.bgreen.com.co/Imagenes/Documentos/GABT-PR-01-F-01%20Formato%20solicitud%20de%20Compra%20o%20Servicio%20(2).xlsx'
       }
     ];
@@ -885,7 +908,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
         this.contactos();
       }
     } else if (type === 'formatos') {
-      this.modalTitle = 'Lista de Formatos';
+      this.modalTitle = 'Centro de Formatos y Documentos';
       this.cargarFormatos();
     }
 
@@ -1485,11 +1508,18 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   }
 
   irAConfiguracion(): void {
+    this.closeUserMenu();
     this.router.navigate(['app/configuracion']);
   }
 
   irAPerfil(): void {
-    this.router.navigate(['app/perfil']);
+    this.closeUserMenu();
+    this.router.navigate(['/perfil']);
+  }
+
+  irAOrganigrama(): void {
+    this.closeUserMenu();
+    this.router.navigate(['/organigrama']);
   }
 
 cargarPulsos(): void {
@@ -1517,6 +1547,14 @@ cargarPulsos(): void {
 
 
 
+  get cargosContactos(): string[] {
+    if (!this.sistemacontactosData) return [];
+    const cargos = this.sistemacontactosData
+      .map(c => c.cargo?.trim())
+      .filter((cargo): cargo is string => !!cargo);
+    return Array.from(new Set(cargos)).sort();
+  }
+
   get filteredContactos(): any[] {
     let contactos = [...this.sistemacontactosData];
     const q = this.contactoSearchQuery?.toLowerCase().trim();
@@ -1525,15 +1563,66 @@ cargarPulsos(): void {
       contactos = contactos.filter(c =>
         c.nombre?.toLowerCase().includes(q) ||
         c.cargo?.toLowerCase().includes(q) ||
-        c.correo?.toLowerCase().includes(q)
+        c.correo?.toLowerCase().includes(q) ||
+        c.ext?.toString().includes(q)
       );
     }
 
-    // Ordenar por extensión de menor a mayor
+    if (this.contactoCargoFiltro && this.contactoCargoFiltro !== 'TODOS') {
+      contactos = contactos.filter(c => c.cargo?.trim() === this.contactoCargoFiltro);
+    }
+
+    // Ordenar por extensión de menor a mayor (los sin ext al final)
     return contactos.sort((a, b) => {
-      const extA = parseInt(a.ext) || 0;
-      const extB = parseInt(b.ext) || 0;
-      return extA - extB;
+      const extA = parseInt(a.ext) || 999999;
+      const extB = parseInt(b.ext) || 999999;
+      if (extA !== extB) return extA - extB;
+      return (a.nombre || '').localeCompare(b.nombre || '');
+    });
+  }
+
+  get categoriasFormatos(): string[] {
+    if (!this.formatosData || !Array.isArray(this.formatosData)) return [];
+    const cats = this.formatosData
+      .map((f: any) => f.categoria?.trim())
+      .filter((cat: any): cat is string => !!cat);
+    return Array.from(new Set(cats)).sort();
+  }
+
+  get filteredFormatos(): any[] {
+    if (!this.formatosData || !Array.isArray(this.formatosData)) return [];
+    let formatos = [...this.formatosData];
+    const q = this.formatoSearchQuery?.toLowerCase().trim();
+
+    if (q) {
+      formatos = formatos.filter(f =>
+        f.nombre?.toLowerCase().includes(q) ||
+        f.descripcion?.toLowerCase().includes(q) ||
+        f.categoria?.toLowerCase().includes(q)
+      );
+    }
+
+    if (this.formatoCategoriaFiltro && this.formatoCategoriaFiltro !== 'TODOS') {
+      formatos = formatos.filter(f => f.categoria?.trim() === this.formatoCategoriaFiltro);
+    }
+
+    return formatos;
+  }
+
+  copiarTexto(texto: string, mensaje: string): void {
+    if (!texto) return;
+    navigator.clipboard.writeText(texto).then(() => {
+      Swal.fire({
+        icon: 'success',
+        title: mensaje,
+        text: texto,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000
+      });
+    }).catch(err => {
+      console.error('Error al copiar texto: ', err);
     });
   }
 

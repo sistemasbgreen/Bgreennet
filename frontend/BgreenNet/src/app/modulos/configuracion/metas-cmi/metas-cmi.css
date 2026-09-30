@@ -10,6 +10,78 @@
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* ===== HEADER VERDE BGREEN (Estándar) ===== */
+.header-tabs-container {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+.card-header-custom {
+  background: linear-gradient(135deg, #1a8f4e 0%, #0a5c2e 100%);
+  padding: 22px 28px;
+  position: relative;
+  overflow: hidden;
+}
+.card-header-custom::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 85% 20%, rgba(244,208,63,0.12) 0%, transparent 50%);
+}
+.header-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  color: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* ===== BARRA DE NAVEGACIÓN POR PESTAÑAS ===== */
+.tabs-nav-bar {
+  display: flex;
+  gap: 4px;
+  background: #ffffff;
+  padding: 8px 24px 0;
+  border-bottom: 2px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s ease;
+  border-radius: 8px 8px 0 0;
+}
+
+.tab-btn:hover {
+  color: #1e293b;
+  background-color: #f1f5f9;
+}
+
+.tab-btn.active {
+  color: #1a8f4e;
+  border-bottom-color: #1a8f4e;
+  background-color: #f0faf5;
+}
+
 /* ----------------------------------------------------------
    PAGE LAYOUT
    ---------------------------------------------------------- */
