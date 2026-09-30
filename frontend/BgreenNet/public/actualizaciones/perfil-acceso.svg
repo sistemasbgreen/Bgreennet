@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 540" width="100%" height="100%">
+  <defs>
+    <filter id="dropdownShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+    <filter id="glowPerfil" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#16a34a" flood-opacity="0.75"/>
+    </filter>
+    <linearGradient id="avatarGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#0a5c2e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="540" fill="#f8fafc"/>
+
+  <!-- Top Navbar Mockup -->
+  <rect x="0" y="0" width="800" height="60" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+  <text x="30" y="38" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="900" fill="#0f172a">BGREEN<tspan fill="#16a34a">NET</tspan></text>
+  
+  <rect x="520" y="15" width="36" height="32" rx="8" fill="#f1f5f9"/>
+  <text x="538" y="36" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">🔔</text>
+
+  <rect x="565" y="15" width="40" height="32" rx="8" fill="#16a34a"/>
+  <text x="585" y="36" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">IA</text>
+
+  <rect x="615" y="15" width="55" height="32" rx="8" fill="#0a5c2e"/>
+  <text x="642" y="36" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">🚀 2027</text>
+
+  <!-- User Avatar in Navbar (Clicked / Active) -->
+  <circle cx="720" cy="30" r="19" fill="#15803d" stroke="#16a34a" stroke-width="3"/>
+  <text x="720" y="36" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">JA</text>
+
+  <!-- Step 1 Callout: Click on avatar -->
+  <g transform="translate(620, 72)">
+    <rect x="0" y="0" width="150" height="26" rx="13" fill="#0f172a"/>
+    <text x="75" y="17" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">1. Clic en tu Avatar 👆</text>
+  </g>
+
+  <!-- ============================================== -->
+  <!-- USER DROPDOWN / MENU MODAL                     -->
+  <!-- ============================================== -->
+  <g filter="url(#dropdownShadow)" transform="translate(420, 110)">
+    <!-- Container Card -->
+    <rect width="350" height="390" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+    <!-- ============================================ -->
+    <!-- HIGHLIGHTED HEADER: VER MI PERFIL             -->
+    <!-- ============================================ -->
+    <g filter="url(#glowPerfil)" transform="translate(14, 14)">
+      <rect width="322" height="110" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.5" stroke-dasharray="6,3"/>
+    </g>
+
+    <!-- User Header Content -->
+    <g transform="translate(24, 24)">
+      <!-- Large Avatar -->
+      <circle cx="34" cy="34" r="28" fill="url(#avatarGrad)"/>
+      <text x="34" y="42" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800" fill="#ffffff" text-anchor="middle">JA</text>
+
+      <!-- User Info Texts -->
+      <text x="74" y="24" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" fill="#0f172a">José Angulo</text>
+      <text x="74" y="42" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">asistentetic@bgreen.com.co</text>
+      <text x="74" y="58" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="600" fill="#15803d">Analista TIC • BGREEN S.A.S</text>
+
+      <!-- "Ver Mi Perfil" Highlight Badge -->
+      <rect x="0" y="70" width="302" height="28" rx="8" fill="#15803d"/>
+      <text x="151" y="88" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="800" fill="#ffffff" text-anchor="middle">
+        👉 VER MI PERFIL (CLIC AQUÍ) ↗
+      </text>
+    </g>
+
+    <!-- Divider line -->
+    <line x1="20" y1="140" x2="330" y2="140" stroke="#e2e8f0" stroke-width="1.5"/>
+
+    <!-- Menu Options -->
+    <!-- Option 1: Configuración -->
+    <g transform="translate(24, 155)">
+      <rect width="302" height="42" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="16" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="14">⚙️</text>
+      <text x="44" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="600" fill="#334155">Configuración</text>
+    </g>
+
+    <!-- Option 2: Cambiar Clave -->
+    <g transform="translate(24, 207)">
+      <rect width="302" height="42" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="16" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="14">🔑</text>
+      <text x="44" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="600" fill="#334155">Cambiar Contraseña</text>
+    </g>
+
+    <!-- Option 3: Notificaciones -->
+    <g transform="translate(24, 259)">
+      <rect width="302" height="42" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="16" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="14">🔔</text>
+      <text x="44" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="600" fill="#334155">Notificaciones</text>
+    </g>
+
+    <!-- Divider -->
+    <line x1="20" y1="318" x2="330" y2="318" stroke="#e2e8f0" stroke-width="1.5"/>
+
+    <!-- Option 4: Cerrar Sesión -->
+    <g transform="translate(24, 330)">
+      <rect width="302" height="42" rx="8" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+      <text x="16" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="14">🚪</text>
+      <text x="44" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="700" fill="#dc2626">Cerrar Sesión</text>
+    </g>
+  </g>
+
+  <!-- Left Side Explanatory Card -->
+  <g filter="url(#dropdownShadow)" transform="translate(30, 140)">
+    <rect width="360" height="220" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <rect x="20" y="20" width="34" height="34" rx="8" fill="#dcfce7"/>
+    <text x="37" y="43" font-family="system-ui, -apple-system, sans-serif" font-size="16" text-anchor="middle">👤</text>
+    <text x="68" y="38" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" fill="#0f172a">¿Cómo entrar a tu Perfil?</text>
+    <text x="68" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">Pasos guiados de acceso rápido</text>
+
+    <line x1="20" y1="70" x2="340" y2="70" stroke="#f1f5f9" stroke-width="1.5"/>
+
+    <circle cx="34" cy="100" r="12" fill="#16a34a"/>
+    <text x="34" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">1</text>
+    <text x="56" y="104" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#334155">Haz clic en tu <tspan font-weight="700" fill="#15803d">círculo de Avatar</tspan> en el header.</text>
+
+    <circle cx="34" cy="145" r="12" fill="#16a34a"/>
+    <text x="34" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">2</text>
+    <text x="56" y="142" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#334155">Se abrirá el menú desplegable.</text>
+    <text x="56" y="158" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="700" fill="#15803d">Presiona en "Ver Mi Perfil".</text>
+
+    <circle cx="34" cy="190" r="12" fill="#16a34a"/>
+    <text x="34" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">3</text>
+    <text x="56" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#334155">Consulta y actualiza tus datos institucionales.</text>
+  </g>
+</svg>

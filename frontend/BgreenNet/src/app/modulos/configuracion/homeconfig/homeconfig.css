@@ -1,3 +1,33 @@
+/* ===== HEADER VERDE BGREEN (Estándar) ===== */
+.card-header-custom {
+  background: linear-gradient(135deg, #1a8f4e 0%, #0a5c2e 100%);
+  padding: 22px 28px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+}
+.card-header-custom::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 85% 20%, rgba(244,208,63,0.12) 0%, transparent 50%);
+}
+.header-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
 * {
   margin: 0;
   padding: 0;

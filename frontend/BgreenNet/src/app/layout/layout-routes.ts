@@ -37,6 +37,10 @@ export const layoutRoutes: Routes = [
     component: Cmiplanta
   },
   {
+    path: 'perfil',
+    loadComponent: () => import('../modulos/perfil/perfil').then(m => m.Perfil)
+  },
+  {
     path: 'app',
     component: Main,
     children: [
@@ -111,6 +115,10 @@ export const layoutRoutes: Routes = [
             pathMatch: 'full'
           }
         ]
+      },
+      {
+        path: 'perfil',
+        loadComponent: () => import('../modulos/perfil/perfil').then(c => c.Perfil)
       },
       // 👇 NUEVA: Ruta comodín para cargar componentes dinámicamente
       {

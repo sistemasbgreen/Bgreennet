@@ -1,16 +1,22 @@
 <div class="metas-page">
 
-  <!-- Page Header -->
-  <div class="page-header" style="margin-bottom: 1.5rem; display: flex; flex-direction: column; align-items: flex-start; gap: 1rem;">
-    <div class="header-left">
-      <h1 class="page-title">
-        Configuración de CMI
-      </h1>
-      <p class="page-subtitle">Define los objetivos mensuales por producto y año</p>
+  <!-- ===== HEADER Y PESTAÑAS UNIFICADOS ===== -->
+  <div class="header-tabs-container">
+    <!-- ===== HEADER VERDE BGREEN ===== -->
+    <div class="card-header-custom">
+      <div class="d-flex align-items-center gap-3">
+        <div class="header-icon">
+          <i class="bi bi-bullseye"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold text-white">Configuración de CMI</h4>
+          <p class="mb-0 text-white-50 small">Define los objetivos mensuales por producto y año</p>
+        </div>
+      </div>
     </div>
-    
-    <!-- Pestañas -->
-    <div class="tabs-container">
+
+    <!-- ===== NAVEGACIÓN POR PESTAÑAS ===== -->
+    <div class="tabs-nav-bar">
       <button class="tab-btn" [class.active]="activeTab === 'productos'" (click)="switchTab('productos')">
         <i class="bi bi-box-seam"></i> Productos Configurables
       </button>
@@ -25,6 +31,7 @@
       </button>
     </div>
   </div>
+
 
 
   <!-- Products Detail Card -->

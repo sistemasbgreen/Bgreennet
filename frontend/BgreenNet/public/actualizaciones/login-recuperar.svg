@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 540" width="100%" height="100%">
+  <defs>
+    <filter id="loginShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000000" flood-opacity="0.12"/>
+    </filter>
+    <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#16a34a" flood-opacity="0.6"/>
+    </filter>
+    <linearGradient id="loginBtnGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#15803d"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="540" fill="#f8fafc"/>
+
+  <!-- Top Mock Navbar -->
+  <rect x="0" y="0" width="800" height="48" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="30" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="900" fill="#15803d">BGREEN</text>
+  <rect x="520" y="14" width="110" height="20" rx="4" fill="#f1f5f9"/>
+  <text x="530" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#64748b">📊 TRM: $ 3,877</text>
+  <rect x="640" y="14" width="125" height="20" rx="4" fill="#f1f5f9"/>
+  <text x="650" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#64748b">💰 CPD: $ 4,929</text>
+
+  <!-- Main Login Card Container -->
+  <g filter="url(#loginShadow)">
+    <rect x="110" y="75" width="580" height="425" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+  </g>
+
+  <!-- Left Side: Building / Graphic Banner -->
+  <rect x="110" y="75" width="250" height="425" rx="16" fill="#1e293b"/>
+  <!-- Clipped corner fix for left side -->
+  <rect x="340" y="75" width="20" height="425" fill="#1e293b"/>
+  
+  <!-- Architectural building graphic -->
+  <polygon points="130,460 210,130 330,130 330,460" fill="#334155" opacity="0.6"/>
+  <polygon points="150,460 220,170 290,170 240,460" fill="#475569" opacity="0.7"/>
+  <line x1="160" y1="220" x2="280" y2="220" stroke="#64748b" stroke-width="2"/>
+  <line x1="170" y1="260" x2="290" y2="260" stroke="#64748b" stroke-width="2"/>
+  <line x1="180" y1="300" x2="300" y2="300" stroke="#64748b" stroke-width="2"/>
+  <line x1="190" y1="340" x2="310" y2="340" stroke="#64748b" stroke-width="2"/>
+  <text x="140" y="475" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#94a3b8">Bgreennet Portal</text>
+
+  <!-- Right Side: Login Form -->
+  <g transform="translate(390, 95)">
+    <!-- Brand Title -->
+    <text x="0" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="900" fill="#0f172a">BGREEN<tspan fill="#16a34a">NET</tspan></text>
+    <text x="0" y="46" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">Iniciar sesión en la plataforma institucional</text>
+
+    <!-- Field 1: Usuario -->
+    <text x="0" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="700" fill="#334155">Usuario</text>
+    <rect x="0" y="90" width="270" height="36" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="12" y="113" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">👤  Ingresa tu usuario</text>
+
+    <!-- Field 2: Contraseña -->
+    <text x="0" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="700" fill="#334155">Contraseña</text>
+    <rect x="0" y="160" width="270" height="36" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="12" y="183" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">🔒  ••••••••••••</text>
+    <text x="242" y="183" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">👁️</text>
+
+    <!-- ============================================== -->
+    <!-- BOTÓN / ENLACE MARCADO: ¿Olvidaste tu contraseña? -->
+    <!-- ============================================== -->
+    <!-- Marcador / Callout Box con brillo verde -->
+    <g transform="translate(-10, 210)" filter="url(#glowEffect)">
+      <rect x="0" y="0" width="290" height="42" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.5" stroke-dasharray="6,3"/>
+    </g>
+    
+    <!-- Badge llamativo -->
+    <rect x="150" y="200" width="135" height="18" rx="9" fill="#15803d"/>
+    <text x="217" y="213" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">★ CLIC AQUÍ PARA CAMBIAR</text>
+
+    <!-- Flecha apuntadora -->
+    <g transform="translate(6, 222)">
+      <circle cx="10" cy="10" r="10" fill="#16a34a"/>
+      <path d="M7 10h6m-3-3l3 3-3 3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+
+    <!-- Texto del enlace ¿Olvidaste tu contraseña? -->
+    <text x="36" y="236" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" fill="#15803d" text-decoration="underline" cursor="pointer">
+      ¿Olvidaste tu contraseña?
+    </text>
+
+    <!-- Botón Iniciar Sesión -->
+    <rect x="0" y="272" width="270" height="40" rx="8" fill="url(#loginBtnGrad)"/>
+    <text x="135" y="297" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Iniciar Sesión</text>
+
+    <!-- Footer -->
+    <text x="135" y="345" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#94a3b8" text-anchor="middle">Sistemas &amp; TIC BGREEN</text>
+  </g>
+</svg>

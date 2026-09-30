@@ -3,22 +3,25 @@
   <!-- ========== VISTA LISTA ========== -->
   <div class="vista-lista" *ngIf="vistaActual === 'lista'">
 
-    <!-- Header -->
-    <div class="admin-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h2>
+    <!-- Header Verde Bgreen -->
+    <div class="card-header-custom">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <div class="header-icon">
             <i class="bi bi-lightning-charge-fill"></i>
-            Administración de Pulsos
-          </h2>
-          <p class="text-muted">Gestiona los anuncios y novedades de la plataforma</p>
+          </div>
+          <div>
+            <h4 class="mb-0 fw-bold text-white">Administración de Pulsos</h4>
+            <p class="mb-0 text-white-50 small">Gestiona los anuncios y novedades de la plataforma</p>
+          </div>
         </div>
-        <button class="btn btn-primary" (click)="mostrarFormularioCrear()">
-          <i class="bi bi-plus-lg"></i>
-          Crear Pulso
+        <button class="btn-bgreen-header" (click)="mostrarFormularioCrear()">
+          <i class="bi bi-plus-lg"></i> Crear Pulso
         </button>
       </div>
     </div>
+
+
 
     <!-- Filtros y búsqueda -->
     <div class="filters-section">

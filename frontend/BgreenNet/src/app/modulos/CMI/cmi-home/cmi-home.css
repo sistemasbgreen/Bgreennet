@@ -297,6 +297,22 @@ body {
   background: #ffffff;
 }
 
+.indicator.disabled-indicator {
+  cursor: not-allowed !important;
+  opacity: 0.85;
+  background: #f1f3f5 !important;
+}
+
+.indicator.disabled-indicator:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  background: #f1f3f5 !important;
+}
+
+.indicator.disabled-indicator::before {
+  display: none !important;
+}
+
 .indicator-title {
   font-size: 0.9rem;
   font-weight: 600;

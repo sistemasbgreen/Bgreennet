@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../authservices';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -36,7 +36,8 @@ export class Login {
     private route: ActivatedRoute,
     private listasService: ListasService,
     private configSeguridadService: ConfiguracionSeguridadService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {
     this.loginForm = this.fb.group({
       usuario: ['', [Validators.required, Validators.minLength(3)]],
@@ -155,10 +156,161 @@ export class Login {
     });
   }
 
-obtenerImagenAleatoria(): string {
-  const indice = Math.floor(Math.random() * this.imagenes.length);
-  return this.imagenes[indice];
-}
+  obtenerImagenAleatoria(): string {
+    const indice = Math.floor(Math.random() * this.imagenes.length);
+    return this.imagenes[indice];
+  }
 
+  // --- Recuperación Dinámica de Contraseña ---
+  showRecoverModal = false;
+  recoverStep: 1 | 2 | 3 = 1;
+  recoverLoading = false;
+  recoverError = '';
 
+  usuarioRecuperacion = '';
+  codigoOtp = '';
+  nuevaContrasena = '';
+  confirmarContrasena = '';
+
+  showNewPassword = false;
+  showConfirmPassword = false;
+
+  abrirModalRecuperacion(): void {
+    this.usuarioRecuperacion = this.loginForm.get('usuario')?.value || '';
+    this.codigoOtp = '';
+    this.nuevaContrasena = '';
+    this.confirmarContrasena = '';
+    this.recoverError = '';
+    this.recoverStep = 1;
+    this.showRecoverModal = true;
+  }
+
+  cerrarModalRecuperacion(): void {
+    this.showRecoverModal = false;
+  }
+
+  solicitarCodigoRecuperacion(): void {
+    if (!this.usuarioRecuperacion || this.usuarioRecuperacion.trim().length < 3) {
+      this.recoverError = 'Por favor ingrese su usuario o correo electrónico';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.recoverLoading = true;
+    this.recoverError = '';
+    this.cdr.detectChanges();
+
+    this.authService.solicitarRecuperacion(this.usuarioRecuperacion.trim()).subscribe({
+      next: (res) => {
+        this.ngZone.run(() => {
+          this.recoverLoading = false;
+          this.recoverStep = 2;
+          this.cdr.detectChanges();
+        });
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Código Enviado',
+          text: res.mensaje || 'Se ha enviado un código de 6 dígitos a su correo.',
+          confirmButtonColor: '#006c2c',
+          timer: 2500,
+          timerProgressBar: true
+        }).then(() => {
+          this.ngZone.run(() => {
+            this.cdr.detectChanges();
+            const otpInput = document.getElementById('otpCode') as HTMLInputElement;
+            otpInput?.focus();
+          });
+        });
+      },
+      error: (err) => {
+        this.ngZone.run(() => {
+          this.recoverLoading = false;
+          this.recoverError = err.error?.error || 'No se pudo enviar el código. Verifique la información.';
+          this.cdr.detectChanges();
+        });
+      }
+    });
+  }
+
+  validarCodigoRecuperacion(): void {
+    if (!this.codigoOtp || this.codigoOtp.trim().length !== 6) {
+      this.recoverError = 'Ingrese el código completo de 6 dígitos enviado a su correo';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.recoverLoading = true;
+    this.recoverError = '';
+    this.cdr.detectChanges();
+
+    this.authService.validarCodigo(this.usuarioRecuperacion.trim(), this.codigoOtp.trim()).subscribe({
+      next: () => {
+        this.ngZone.run(() => {
+          this.recoverLoading = false;
+          this.recoverStep = 3;
+          this.cdr.detectChanges();
+          const newPassInput = document.getElementById('newPass') as HTMLInputElement;
+          newPassInput?.focus();
+        });
+      },
+      error: (err) => {
+        this.ngZone.run(() => {
+          this.recoverLoading = false;
+          this.recoverError = err.error?.error || 'Código incorrecto o expirado.';
+          this.cdr.detectChanges();
+        });
+      }
+    });
+  }
+
+  restablecerContrasenaFinal(): void {
+    if (!this.nuevaContrasena || !this.confirmarContrasena) {
+      this.recoverError = 'Diligencie todos los campos';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (this.nuevaContrasena !== this.confirmarContrasena) {
+      this.recoverError = 'Las contraseñas no coinciden';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.recoverLoading = true;
+    this.recoverError = '';
+    this.cdr.detectChanges();
+
+    this.authService.restablecerClave(
+      this.usuarioRecuperacion.trim(),
+      this.codigoOtp.trim(),
+      this.nuevaContrasena
+    ).subscribe({
+      next: () => {
+        this.ngZone.run(() => {
+          this.recoverLoading = false;
+          this.showRecoverModal = false;
+          this.cdr.detectChanges();
+        });
+
+        Swal.fire({
+          icon: 'success',
+          title: '¡Contraseña Restablecida!',
+          text: 'Su contraseña ha sido actualizada exitosamente. Iniciando sesión...',
+          confirmButtonColor: '#006c2c',
+          timer: 2000,
+          showConfirmButton: false
+        }).then(() => {
+          this.router.navigate([this.returnUrl]);
+        });
+      },
+      error: (err) => {
+        this.ngZone.run(() => {
+          this.recoverLoading = false;
+          this.recoverError = err.error?.error || 'Error al restablecer la contraseña.';
+          this.cdr.detectChanges();
+        });
+      }
+    });
+  }
 }

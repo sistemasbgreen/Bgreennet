@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 540" width="100%" height="100%">
+  <defs>
+    <filter id="shadow3" x="-2%" y="-2%" width="104%" height="106%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="540" fill="#f1f5f9"/>
+
+  <!-- Profile Top Header Card -->
+  <g filter="url(#shadow3)">
+    <rect x="40" y="30" width="720" height="150" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+  </g>
+
+  <!-- Avatar Circle: JA -->
+  <circle cx="95" cy="88" r="32" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/>
+  <text x="95" y="97" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="800" fill="#15803d" text-anchor="middle">JA</text>
+
+  <!-- Name & Email -->
+  <text x="145" y="75" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800" fill="#0f172a">José Angulo</text>
+  
+  <g transform="translate(145, 84)">
+    <rect width="14" height="10" rx="1.5" fill="none" stroke="#64748b" stroke-width="1.2"/>
+    <path d="M0 1l7 4 7-4" fill="none" stroke="#64748b" stroke-width="1.2"/>
+  </g>
+  <text x="165" y="93" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" fill="#64748b">asistentetic@bgreen.com.co</text>
+
+  <!-- Badges Row (Sin Nivel Jerárquico) -->
+  <!-- Badge 1: Analista TIC -->
+  <rect x="145" y="112" width="105" height="24" rx="6" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1"/>
+  <text x="197" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="600" fill="#059669" text-anchor="middle">🛡️ Analista TIC</text>
+
+  <!-- Badge 2: BGREEN S.A.S -->
+  <rect x="258" y="112" width="115" height="24" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="315" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="600" fill="#2563eb" text-anchor="middle">🏢 BGREEN S.A.S</text>
+
+  <!-- Badge 3: Asistente -->
+  <rect x="381" y="112" width="90" height="24" rx="6" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1"/>
+  <text x="426" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="600" fill="#9333ea" text-anchor="middle">💼 Asistente</text>
+
+  <!-- Badge 4: Cuenta Activa -->
+  <rect x="479" y="112" width="105" height="24" rx="6" fill="#dcfce7" stroke="#86efac" stroke-width="1"/>
+  <circle cx="493" cy="124" r="3.5" fill="#16a34a"/>
+  <text x="541" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="700" fill="#15803d" text-anchor="middle">Cuenta Activa</text>
+
+  <!-- Edit Profile Button -->
+  <rect x="645" y="58" width="95" height="34" rx="8" fill="#15803d"/>
+  <text x="692" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">✎ Editar Perfil</text>
+
+  <!-- Grid of 4 Detail Cards -->
+
+  <!-- Card 1: Cuenta & Sistema -->
+  <g transform="translate(40, 200)">
+    <rect width="170" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+    <text x="16" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="800" fill="#0f172a">👤 Cuenta &amp; Sistema</text>
+    <line x1="16" y1="38" x2="154" y2="38" stroke="#f1f5f9" stroke-width="1.5"/>
+
+    <text x="16" y="62" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">NOMBRE DE USUARIO</text>
+    <text x="16" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#0f172a">admin</text>
+
+    <text x="16" y="118" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">PERFIL DE SISTEMA</text>
+    <text x="16" y="136" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="600" fill="#334155">Analista TIC</text>
+
+    <text x="16" y="174" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">ESTADO DE CUENTA</text>
+    <rect x="16" y="184" width="60" height="18" rx="4" fill="#dcfce7"/>
+    <text x="46" y="196" font-family="system-ui, -apple-system, sans-serif" font-size="9.5" font-weight="700" fill="#15803d" text-anchor="middle">✓ Activo</text>
+
+    <text x="16" y="234" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">BLOQUEO</text>
+    <rect x="16" y="244" width="85" height="18" rx="4" fill="#ecfdf5"/>
+    <text x="58" y="256" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#059669" text-anchor="middle">🔒 Sin Bloqueos</text>
+  </g>
+
+  <!-- Card 2: Datos Personales -->
+  <g transform="translate(222, 200)">
+    <rect width="170" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+    <text x="16" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="800" fill="#0f172a">👥 Datos Personales</text>
+    <line x1="16" y1="38" x2="154" y2="38" stroke="#f1f5f9" stroke-width="1.5"/>
+
+    <text x="16" y="62" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">NOMBRES</text>
+    <text x="16" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">José</text>
+
+    <text x="16" y="118" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">APELLIDOS</text>
+    <text x="16" y="136" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Angulo</text>
+
+    <text x="16" y="174" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">IDENTIFICACIÓN</text>
+    <text x="16" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="600" fill="#334155">1082886807</text>
+
+    <text x="16" y="234" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">TIPO DOCUMENTO</text>
+    <text x="16" y="254" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#64748b">Cédula</text>
+  </g>
+
+  <!-- Card 3: Contacto -->
+  <g transform="translate(404, 200)">
+    <rect width="170" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+    <text x="16" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="800" fill="#0f172a">📞 Contacto</text>
+    <line x1="16" y1="38" x2="154" y2="38" stroke="#f1f5f9" stroke-width="1.5"/>
+
+    <text x="16" y="62" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">CORREO ELECTRÓNICO</text>
+    <text x="16" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="600" fill="#059669">asistentetic@...</text>
+
+    <text x="16" y="118" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">CELULAR / EXTENSIÓN</text>
+    <text x="16" y="136" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#64748b">-</text>
+
+    <text x="16" y="174" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">SEDE PRINCIPAL</text>
+    <text x="16" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#334155">Santa Marta, Magdalena</text>
+  </g>
+
+  <!-- Card 4: Organización & Empresa -->
+  <g transform="translate(586, 200)">
+    <rect width="174" height="300" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2"/>
+    <text x="16" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="800" fill="#0f172a">🏛️ Organización</text>
+    <line x1="16" y1="38" x2="158" y2="38" stroke="#f1f5f9" stroke-width="1.5"/>
+
+    <text x="16" y="62" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">EMPRESA</text>
+    <text x="16" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="700" fill="#0f172a">BGREEN S.A.S</text>
+
+    <text x="16" y="118" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">ÁREA / DEPARTAMENTO</text>
+    <text x="16" y="136" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#334155">Gestión Humana</text>
+
+    <text x="16" y="174" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">CARGO</text>
+    <text x="16" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="600" fill="#334155">Asistente</text>
+
+    <text x="16" y="234" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">ESTADO</text>
+    <rect x="16" y="244" width="70" height="18" rx="4" fill="#dcfce7"/>
+    <text x="51" y="256" font-family="system-ui, -apple-system, sans-serif" font-size="9.5" font-weight="700" fill="#15803d" text-anchor="middle">Vinculado</text>
+  </g>
+</svg>

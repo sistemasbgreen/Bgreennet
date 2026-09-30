@@ -68,7 +68,8 @@ export class CmiHome implements OnInit {
   }
 
   irindustrializacion() {
-    this.router.navigate(['/cmi/industrializacion-aceite']);
+    // Módulo inhabilitado: no permitir navegación
+    return;
   }
 
   onCategoriaChange(event: Event): void {

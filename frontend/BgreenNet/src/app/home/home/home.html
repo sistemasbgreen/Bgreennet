@@ -1,13 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BGREENNET - Sistema Completo</title>
-</head>
-
-<body [class.dark-mode]="darkMode">
+<div class="home-container" [class.dark-mode]="darkMode">
 
   <header class="header">
     <div class="logo-section">
@@ -70,6 +61,11 @@
         <i class="bi bi-calendar3"></i>
       </button>
 
+      <!-- Botón Herramientas de IA -->
+      <button class="ia-btn" (click)="openIaModal()" title="Herramientas de IA">
+        <span>IA</span>
+      </button>
+
       <!-- Dropdown de Notificaciones -->
       <div class="notifications-dropdown" *ngIf="isNotificationMenuOpen" (click)="$event.stopPropagation()">
         <div class="notifications-header">
@@ -78,7 +74,7 @@
         </div>
         <div class="notifications-list">
           <div *ngFor="let n of notificaciones" class="notification-item" (click)="irANotificacion(n)">
-            <div class="notification-icon" [ngClass]="n.tipo.toLowerCase()">
+            <div class="notification-icon" [ngClass]="n.tipo?.toLowerCase() || ''">
               <i class="bi" [class.bi-plus-circle]="n.tipo === 'NUEVA_TAREA'" [class.bi-chat-left-dots]="n.tipo === 'NUEVO_MENSAJE'"></i>
             </div>
             <div class="notification-content">
@@ -96,19 +92,32 @@
         </div>
       </div>
 
-      <a (click)="openModalformatos('contactos')">Contactos</a>
-      <a (click)="openModalformatos('formatos')">Formatos</a>
+      <button class="nav-module-btn" (click)="openModalformatos('contactos')" title="Directorio de contactos">
+        <i class="bi bi-person-lines-fill"></i>
+        <span>Contactos</span>
+      </button>
+      <button class="nav-module-btn" (click)="openModalformatos('formatos')" title="Centro de formatos">
+        <i class="bi bi-file-earmark-arrow-down-fill"></i>
+        <span>Formatos</span>
+      </button>
 
       <!-- Menú de usuario  -->
       <div class="user-menu-container">
-        <button class="user-avatar" (click)="toggleUserMenu()">
+        <button class="user-avatar" (click)="toggleUserMenu()" title="Menú de usuario">
           {{ initials }}
         </button>
 
         <!-- Dropdown del usuario -->
         <div class="user-dropdown" *ngIf="isUserMenuOpen">
-          <div class="user-dropdown-header">
-            <div class="user-avatar-large">{{ initials }}</div>
+
+          <!-- ── Header ── -->
+          <div class="user-dropdown-header" (click)="irAPerfil()" title="Ver Mi Perfil">
+            <div class="user-avatar-col">
+              <div class="user-avatar-large">{{ initials }}</div>
+              <span class="user-profile-badge">
+                Ver Mi Perfil <i class="bi bi-chevron-right"></i>
+              </span>
+            </div>
             <div class="user-info">
               <p class="user-name">{{ fullName }}</p>
               <p class="user-email">{{ userEmail }}</p>
@@ -116,41 +125,13 @@
             </div>
           </div>
 
-          <div class="user-dropdown-menu">
-            <div class="dropdown-section-title">Personalización</div>
-
-            <!-- Eliminado Ver Gráfico TRM por solicitud del usuario -->
-
-
-            <button class="dropdown-item" (click)="toggleWidget('tasks'); $event.stopPropagation()">
-              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.tasks"
-                [class.bi-circle]="!dashboardWidgets.tasks"
-                [style.color]="dashboardWidgets.tasks ? 'var(--green-secondary)' : ''"></i>
-              <span>Ver Mis Tareas</span>
-            </button>
-            <button class="dropdown-item" (click)="toggleWidget('quickAccess'); $event.stopPropagation()">
-              <i class="bi" [class.bi-check-circle-fill]="dashboardWidgets.quickAccess"
-                [class.bi-circle]="!dashboardWidgets.quickAccess"
-                [style.color]="dashboardWidgets.quickAccess ? 'var(--green-secondary)' : ''"></i>
-              <span>Ver Acceso Rápido</span>
-            </button>
-
-
-            <div class="dropdown-divider"></div>
-
-            <button class="dropdown-item" (click)="toggleAllWidgets(); $event.stopPropagation()">
-              <i class="bi bi-layout-sidebar"></i>
-              <span>Mostrar/Ocultar Todo</span>
-            </button>
-          </div>
-
           <div class="dropdown-divider"></div>
 
+          <!-- ── Acciones ── -->
           <button class="dropdown-item" (click)="irAConfiguracion(); closeUserMenu()" *ngIf="tienePermisoConfiguracion">
             <i class="bi bi-gear"></i>
             <span>Configuración</span>
           </button>
-
 
           <button class="dropdown-item" (click)="abrirModalCambiarClave()">
             <i class="bi bi-key"></i>
@@ -161,6 +142,7 @@
             <i class="bi bi-box-arrow-left"></i>
             <span>Cerrar Sesión</span>
           </button>
+
         </div>
       </div>
     </div>
@@ -169,123 +151,265 @@
 
   <!-- Modal de Contactos/Formatos -->
   <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModalformatos()">
-    <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-container modal-modulo-redisenado" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-left">
-          <div class="modal-icon">
-            <span *ngIf="modalType === 'contactos'">📧</span>
-            <span *ngIf="modalType === 'formatos'">📋</span>
+          <div class="modal-icon modal-icon-modern">
+            <i class="bi bi-person-lines-fill" *ngIf="modalType === 'contactos'"></i>
+            <i class="bi bi-folder-symlink-fill" *ngIf="modalType === 'formatos'"></i>
           </div>
-          <h2 class="modal-title">{{ modalTitle }}</h2>
+          <div>
+            <h2 class="modal-title">{{ modalTitle }}</h2>
+            <p class="modal-subtitle">
+              {{ modalType === 'contactos' ? 'Encuentra y conecta rápidamente con el equipo empresarial' : 'Accede a las plantillas y formatos corporativos oficiales' }}
+            </p>
+          </div>
         </div>
         <button class="btn-close" (click)="closeModalformatos()">×</button>
       </div>
 
-      <div class="modal-body">
-        <!-- Tabla de Contactos -->
-        <div *ngIf="modalType === 'contactos'">
-          <!-- Buscador de contactos -->
-          <div class="contacto-search-wrapper">
-            <div class="contacto-search-container">
+      <div class="modal-body modal-body-redisenado">
+        <!-- ==================== MODULO CONTACTOS ==================== -->
+        <div *ngIf="modalType === 'contactos'" class="modulo-container">
+          <!-- Barra de controles (Buscador, filtro y vista) -->
+          <div class="modulo-controls-bar">
+            <div class="modulo-search-box">
               <i class="bi bi-search search-icon"></i>
-              <input type="text" class="contacto-search-input"
-                placeholder="Buscar contacto por nombre, cargo o correo..." [(ngModel)]="contactoSearchQuery" />
+              <input type="text" class="modulo-search-input"
+                placeholder="Buscar contacto por nombre, cargo, correo o ext..." [(ngModel)]="contactoSearchQuery" />
               <button *ngIf="contactoSearchQuery" class="contacto-clear-btn" (click)="contactoSearchQuery = ''">
                 <i class="bi bi-x"></i>
               </button>
             </div>
+
+            <div class="modulo-filter-actions">
+              <!-- Filtro de Cargo/Área -->
+              <select class="modulo-select-filter" [(ngModel)]="contactoCargoFiltro" *ngIf="cargosContactos.length > 0">
+                <option value="TODOS">Todos los cargos ({{ sistemacontactosData.length }})</option>
+                <option *ngFor="let cargo of cargosContactos" [value]="cargo">{{ cargo }}</option>
+              </select>
+
+              <!-- Switch de Vista (Cards / Table) -->
+              <div class="view-toggle">
+                <button class="btn-toggle" [class.active]="contactosViewMode === 'cards'" (click)="contactosViewMode = 'cards'" title="Vista Tarjetas">
+                  <i class="bi bi-grid-3x3-gap-fill"></i>
+                </button>
+                <button class="btn-toggle" [class.active]="contactosViewMode === 'list'" (click)="contactosViewMode = 'list'" title="Vista Lista">
+                  <i class="bi bi-list-ul"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <table class="tabla-contactos" *ngIf="filteredContactos.length > 0">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Cargo</th>
-                <th>Correo</th>
-                <th>Extensión</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let contacto of filteredContactos; let i = index">
-                <td>
-                  <div class="nombre-cell">
-                    <div class="avatar avatar-{{(i % 5) + 1}}">
-                      {{ contacto.nombre?.charAt(0) || '?' }}
-                    </div>
-                    <div class="nombre-info">
-                      <strong>{{ contacto.nombre }}</strong>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span class="cargo-badge">{{ contacto.cargo }}</span>
-                </td>
-                <td>
-                  <a [href]="'mailto:' + contacto.correo" class="correo-link">
-                    <span>✉</span>
+          <!-- Vista Tarjetas de Contactos -->
+          <div class="contactos-cards-grid" *ngIf="contactosViewMode === 'cards' && filteredContactos.length > 0">
+            <div *ngFor="let contacto of filteredContactos; let i = index" class="contacto-card">
+              <div class="contacto-card-header">
+                <div class="avatar avatar-large avatar-gradient-{{(i % 5) + 1}}">
+                  {{ contacto.nombre?.charAt(0) || '?' }}
+                </div>
+                <div class="contacto-card-names">
+                  <h4 class="contacto-nombre" [title]="contacto.nombre">{{ contacto.nombre }}</h4>
+                  <span class="cargo-badge">{{ contacto.cargo || 'Colaborador' }}</span>
+                </div>
+              </div>
+
+              <div class="contacto-card-body">
+                <div class="contacto-info-item" *ngIf="contacto.correo">
+                  <i class="bi bi-envelope-at-fill"></i>
+                  <a [href]="'mailto:' + contacto.correo" class="correo-link" [title]="contacto.correo">
                     {{ contacto.correo }}
                   </a>
-                </td>
-                <td>
-                  <span class="ext-badge">
-                    <span>📞</span>
-                    {{ contacto.ext }}
+                  <button class="btn-copy-mini" (click)="copiarTexto(contacto.correo, 'Correo copiado')" title="Copiar correo">
+                    <i class="bi bi-copy"></i>
+                  </button>
+                </div>
+                <div class="contacto-info-item" *ngIf="contacto.ext">
+                  <i class="bi bi-telephone-fill"></i>
+                  <span class="ext-badge-card">
+                    Ext: <strong>{{ contacto.ext }}</strong>
                   </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <button class="btn-copy-mini" (click)="copiarTexto(contacto.ext, 'Extensión copiada')" title="Copiar extensión">
+                    <i class="bi bi-copy"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista Tabla de Contactos -->
+          <div class="modulo-table-wrapper" *ngIf="contactosViewMode === 'list' && filteredContactos.length > 0">
+            <table class="tabla-contactos">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Cargo</th>
+                  <th>Correo Electrónico</th>
+                  <th>Extensión</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let contacto of filteredContactos; let i = index">
+                  <td>
+                    <div class="nombre-cell">
+                      <div class="avatar avatar-gradient-{{(i % 5) + 1}}">
+                        {{ contacto.nombre?.charAt(0) || '?' }}
+                      </div>
+                      <div class="nombre-info">
+                        <strong>{{ contacto.nombre }}</strong>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="cargo-badge">{{ contacto.cargo || 'Sin especificación' }}</span>
+                  </td>
+                  <td>
+                    <a [href]="'mailto:' + contacto.correo" class="correo-link">
+                      <i class="bi bi-envelope"></i>
+                      {{ contacto.correo }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="ext-badge" *ngIf="contacto.ext">
+                      <i class="bi bi-telephone"></i>
+                      {{ contacto.ext }}
+                    </span>
+                    <span class="text-muted-sm" *ngIf="!contacto.ext">N/A</span>
+                  </td>
+                  <td>
+                    <div class="actions-cell">
+                      <a [href]="'mailto:' + contacto.correo" class="btn-action-icon btn-mail" title="Enviar correo">
+                        <i class="bi bi-envelope-paper"></i>
+                      </a>
+                      <button class="btn-action-icon btn-copy" (click)="copiarTexto(contacto.correo, 'Correo copiado')" title="Copiar Correo">
+                        <i class="bi bi-copy"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Estado Vacío Contactos -->
           <div class="empty-state" *ngIf="filteredContactos.length === 0">
             <div class="empty-state-icon">📭</div>
-            <p>{{ contactoSearchQuery ? 'No se encontraron contactos que coincidan con "' + contactoSearchQuery + '"' :
-              'No hay contactos disponibles en este momento' }}</p>
-            <button *ngIf="contactoSearchQuery" class="btn-cerrar" style="margin-top: 10px;"
-              (click)="contactoSearchQuery = ''">Limpiar búsqueda</button>
+            <p>{{ contactoSearchQuery || contactoCargoFiltro !== 'TODOS' ? 'No se encontraron contactos que coincidan con los filtros' : 'No hay contactos disponibles en este momento' }}</p>
+            <button *ngIf="contactoSearchQuery || contactoCargoFiltro !== 'TODOS'" class="btn-cerrar" style="margin-top: 10px;"
+              (click)="contactoSearchQuery = ''; contactoCargoFiltro = 'TODOS'">Restablecer Filtros</button>
           </div>
         </div>
 
-        <!-- Tabla de Formatos -->
-        <div *ngIf="modalType === 'formatos'">
-          <table class="tabla-contactos" *ngIf="formatosData.length > 0">
-            <thead>
-              <tr>
-                <th>Formato</th>
-                <th>Descripción</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let formato of formatosData; let i = index">
-                <td>
-                  <div class="nombre-cell">
-                    <div class="avatar avatar-{{(i % 5) + 1}}">📄</div>
-                    <div class="nombre-info">
-                      <strong>{{ formato.nombre }}</strong>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ formato.descripcion || 'Documento descargable' }}</td>
-                <td>
-                  <a [href]="formato.url" target="_blank" class="formato-link">
-                    <span>⬇</span>
+        <!-- ==================== MODULO FORMATOS ==================== -->
+        <div *ngIf="modalType === 'formatos'" class="modulo-container">
+          <!-- Barra de controles Formatos -->
+          <div class="modulo-controls-bar">
+            <div class="modulo-search-box">
+              <i class="bi bi-search search-icon"></i>
+              <input type="text" class="modulo-search-input"
+                placeholder="Buscar formato por nombre o descripción..." [(ngModel)]="formatoSearchQuery" />
+              <button *ngIf="formatoSearchQuery" class="contacto-clear-btn" (click)="formatoSearchQuery = ''">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+
+            <div class="modulo-filter-actions">
+              <!-- Switch de Vista -->
+              <div class="view-toggle">
+                <button class="btn-toggle" [class.active]="formatosViewMode === 'cards'" (click)="formatosViewMode = 'cards'" title="Vista Tarjetas">
+                  <i class="bi bi-grid-3x3-gap-fill"></i>
+                </button>
+                <button class="btn-toggle" [class.active]="formatosViewMode === 'list'" (click)="formatosViewMode = 'list'" title="Vista Lista">
+                  <i class="bi bi-list-ul"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chips de Categoría de Formatos -->
+          <div class="formatos-category-chips" *ngIf="categoriasFormatos.length > 0">
+            <button class="chip-btn" [class.active]="formatoCategoriaFiltro === 'TODOS'" (click)="formatoCategoriaFiltro = 'TODOS'">
+              Todos ({{ formatosData.length }})
+            </button>
+            <button *ngFor="let cat of categoriasFormatos" class="chip-btn" [class.active]="formatoCategoriaFiltro === cat" (click)="formatoCategoriaFiltro = cat">
+              {{ cat }}
+            </button>
+          </div>
+
+          <!-- Vista Tarjetas de Formatos -->
+          <div class="formatos-cards-grid" *ngIf="formatosViewMode === 'cards' && filteredFormatos.length > 0">
+            <div *ngFor="let formato of filteredFormatos" class="formato-card">
+              <div class="formato-card-icon excel-icon">
+                <i class="bi bi-file-earmark-excel-fill"></i>
+              </div>
+              <div class="formato-card-content">
+                <span class="formato-cat-badge">{{ formato.categoria || 'General' }}</span>
+                <h4 class="formato-card-title">{{ formato.nombre }}</h4>
+                <p class="formato-card-desc">{{ formato.descripcion || 'Documento oficial descargable' }}</p>
+                <div class="formato-card-footer">
+                  <span class="file-ext-pill"><i class="bi bi-file-earmark-code"></i> {{ formato.extension || 'XLSX' }}</span>
+                  <a [href]="formato.url" target="_blank" download class="btn-descargar-card">
+                    <i class="bi bi-download"></i>
                     Descargar
                   </a>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="empty-state" *ngIf="formatosData.length === 0">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista Tabla de Formatos -->
+          <div class="modulo-table-wrapper" *ngIf="formatosViewMode === 'list' && filteredFormatos.length > 0">
+            <table class="tabla-contactos">
+              <thead>
+                <tr>
+                  <th>Formato / Documento</th>
+                  <th>Categoría</th>
+                  <th>Descripción</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let formato of filteredFormatos">
+                  <td>
+                    <div class="nombre-cell">
+                      <div class="avatar file-avatar-excel">
+                        <i class="bi bi-file-earmark-excel"></i>
+                      </div>
+                      <div class="nombre-info">
+                        <strong>{{ formato.nombre }}</strong>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="cargo-badge">{{ formato.categoria || 'General' }}</span>
+                  </td>
+                  <td>{{ formato.descripcion || 'Documento descargable' }}</td>
+                  <td>
+                    <a [href]="formato.url" target="_blank" download class="btn-action-icon btn-download" title="Descargar formato">
+                      <i class="bi bi-download"></i>
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Estado Vacío Formatos -->
+          <div class="empty-state" *ngIf="filteredFormatos.length === 0">
             <div class="empty-state-icon">📂</div>
-            <p>No hay formatos disponibles en este momento</p>
+            <p>{{ formatoSearchQuery || formatoCategoriaFiltro !== 'TODOS' ? 'No se encontraron formatos con los criterios de búsqueda' : 'No hay formatos disponibles en este momento' }}</p>
+            <button *ngIf="formatoSearchQuery || formatoCategoriaFiltro !== 'TODOS'" class="btn-cerrar" style="margin-top: 10px;"
+              (click)="formatoSearchQuery = ''; formatoCategoriaFiltro = 'TODOS'">Restablecer Filtros</button>
           </div>
         </div>
       </div>
 
       <div class="modal-footer">
         <span class="footer-info">
-          <strong *ngIf="modalType === 'contactos'">{{ filteredContactos.length }}</strong>
-          <strong *ngIf="modalType === 'formatos'">{{ formatosData.length }}</strong>
-          {{ modalType === 'contactos' ? 'contacto(s)' : 'formato(s)' }} disponible(s)
+          <strong *ngIf="modalType === 'contactos'">{{ filteredContactos.length }} de {{ sistemacontactosData.length }}</strong>
+          <strong *ngIf="modalType === 'formatos'">{{ filteredFormatos.length }} de {{ formatosData.length }}</strong>
+          {{ modalType === 'contactos' ? 'contacto(s) encontrado(s)' : 'formato(s) disponible(s)' }}
         </span>
         <button class="btn-cerrar" (click)="closeModalformatos()">Cerrar</button>
       </div>
@@ -510,7 +634,7 @@
             <div class="tarea-card__footer">
               <div class="tarea-card__acciones-row">
                 <button class="btn-card-icon btn-iniciar"
-                  *ngIf="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                  *ngIf="tarea.estado?.nombre?.toUpperCase() === 'CREADA' || tarea.estado?.nombre?.toUpperCase() === 'PENDIENTE'"
                   (click)="cambiarEstado(tarea, 2)" title="Iniciar tarea">
                   <i class="bi bi-play-fill"></i>
                 </button>
@@ -599,7 +723,7 @@
                 <td>
                   <div class="list-acciones">
                     <button class="btn-list-accion btn-iniciar"
-                      *ngIf="tarea.estado.nombre.toUpperCase() === 'CREADA' || tarea.estado.nombre.toUpperCase() === 'PENDIENTE'"
+                      *ngIf="tarea.estado?.nombre?.toUpperCase() === 'CREADA' || tarea.estado?.nombre?.toUpperCase() === 'PENDIENTE'"
                       (click)="cambiarEstado(tarea, 2)" title="Iniciar">
                       <i class="bi bi-play-fill"></i>
                     </button>
@@ -623,7 +747,7 @@
                     </button>
                     <!-- Botón Cancelar -->
                     <button class="btn-list-accion btn-cancelar-tarea"
-                      *ngIf="tarea.idUsuarioCreador === id_usuario && tarea.estado.nombre.toUpperCase() !== 'FINALIZADA'"
+                      *ngIf="tarea.idUsuarioCreador === id_usuario && tarea.estado?.nombre?.toUpperCase() !== 'FINALIZADA'"
                       (click)="cambiarEstado(tarea, 4)" title="Cancelar">
                       <i class="bi bi-trash"></i>
                     </button>
@@ -654,7 +778,7 @@
 
 
 
-    <section class="activity-sectio-notice tareas-section-" *ngIf="!focusTasksMode">
+    <section class="activity-section-notice tareas-section" *ngIf="!focusTasksMode">
       <div class="section-header">
         <div class="section-title-with-badge">
           <h3>Descubre todo lo que está pasando</h3>
@@ -1195,8 +1319,6 @@
     </div>
   </div>
 
-</body>
-
 <!-- Modal Cambiar Clave -->
 <div class="modal-overlay clave-modal-overlay" *ngIf="isModalCambiarClaveOpen" (click)="cerrarModalCambiarClave()">
   <div class="modal-tarea-container clave-modal-container" (click)="$event.stopPropagation()">
@@ -1347,4 +1469,198 @@
   </div>
 </div>
 
-</html>
+  <!-- Modal Herramientas de IA -->
+  <div class="ia-modal-overlay" *ngIf="isIaModalOpen" (click)="closeIaModal()">
+    <div class="ia-modal-container" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="ia-modal-header">
+        <div class="ia-modal-title-group">
+          <div class="ia-modal-icon">
+            <i class="bi bi-stars"></i>
+          </div>
+          <div>
+            <h2 class="ia-modal-title">Herramientas de IA</h2>
+            <p class="ia-modal-subtitle">Directorio de soluciones de Inteligencia Artificial para el trabajo diario</p>
+          </div>
+        </div>
+        <button class="ia-modal-close-btn" (click)="closeIaModal()" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <!-- Barra de Filtros y Búsqueda -->
+      <div class="ia-modal-toolbar">
+        <div class="ia-search-box">
+          <i class="bi bi-search"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="iaSearchQuery" 
+            placeholder="Buscar herramienta (ej. ChatGPT, Gamma, Canva...)" 
+            class="ia-search-input"
+          />
+          <button *ngIf="iaSearchQuery" class="ia-search-clear" (click)="iaSearchQuery = ''">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <div class="ia-categories-pills">
+          <button 
+            class="ia-category-pill" 
+            [class.active]="iaSelectedCategory === 'TODAS'" 
+            (click)="iaSelectedCategory = 'TODAS'">
+            <span>Todas</span>
+          </button>
+          <button 
+            *ngFor="let cat of iaCategories" 
+            class="ia-category-pill" 
+            [class.active]="iaSelectedCategory === cat.categoria" 
+            (click)="iaSelectedCategory = cat.categoria">
+            <i class="bi" [ngClass]="cat.icono"></i>
+            <span>{{ cat.categoria }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Cuadrícula) -->
+      <div class="ia-modal-body">
+        
+        <!-- Mensaje si no hay resultados -->
+        <div *ngIf="filteredIaCategories.length === 0" class="ia-no-results">
+          <i class="bi bi-search-heart"></i>
+          <h4>No se encontraron herramientas</h4>
+          <p>Intenta con otro término de búsqueda o selecciona otra categoría.</p>
+          <button class="ia-btn-reset" (click)="iaSearchQuery = ''; iaSelectedCategory = 'TODAS'">Ver todas</button>
+        </div>
+
+        <div class="ia-sections-stack" *ngIf="filteredIaCategories.length > 0">
+          <div *ngFor="let cat of filteredIaCategories" class="ia-category-section">
+            
+            <!-- Encabezado de la categoría -->
+            <div class="ia-section-header">
+              <div class="ia-section-title-wrap">
+                <span class="ia-section-icon-badge">
+                  <i class="bi" [ngClass]="cat.icono"></i>
+                </span>
+                <h3 class="ia-section-title">{{ cat.categoria }}</h3>
+              </div>
+              <span class="ia-section-counter">{{ getHerramientasFiltradas(cat).length }} {{ getHerramientasFiltradas(cat).length === 1 ? 'herramienta' : 'herramientas' }}</span>
+            </div>
+
+            <!-- Cuadrícula de tarjetas -->
+            <div class="ia-cards-grid">
+              <div *ngFor="let tool of getHerramientasFiltradas(cat)" class="ia-tool-card-modern">
+                <div class="ia-card-header">
+                  <div class="ia-tool-logo-box">
+                    <img [src]="tool.logo" [alt]="tool.nombre" (error)="onLogoError($event, tool.nombre)" class="ia-tool-logo-img" />
+                  </div>
+                  <div class="ia-tool-titles">
+                    <h4 class="ia-tool-name">{{ tool.nombre }}</h4>
+                    <span class="ia-tool-category-badge">{{ cat.categoria }}</span>
+                  </div>
+                </div>
+
+                <p class="ia-tool-description" [title]="tool.descripcion">{{ tool.descripcion }}</p>
+
+                <div class="ia-card-action">
+                  <a [href]="tool.url" target="_blank" rel="noopener noreferrer" class="ia-tool-link-btn">
+                    <span>Abrir herramienta</span>
+                    <i class="bi bi-box-arrow-up-right"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal Transformación Digital 2027 (Novedades y Actualizaciones) -->
+  <div class="act-modal-overlay" *ngIf="isActualizacionesModalOpen" (click)="puedeCerrarModalActualizaciones && cerrarModalActualizaciones()">
+    <div class="act-modal-container" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="act-modal-header">
+        <div class="act-modal-title-group">
+          <div class="act-modal-badge-icon">
+            <i class="bi bi-rocket-takeoff-fill"></i>
+          </div>
+          <div>
+            <div class="act-modal-tag">NOVEDADES DE LA PLATAFORMA</div>
+            <h2 class="act-modal-title">Transformación Digital 2027</h2>
+          </div>
+        </div>
+        <div class="act-header-actions">
+          <div class="act-lock-timer" *ngIf="!puedeCerrarModalActualizaciones" title="Podrás cerrar el mensaje en {{ segundosRestantesActualizaciones }} segundos">
+            <i class="bi bi-clock-history"></i>
+            <span>{{ segundosRestantesActualizaciones }}s</span>
+          </div>
+          <button class="act-modal-close-btn" *ngIf="puedeCerrarModalActualizaciones" (click)="cerrarModalActualizaciones()" aria-label="Cerrar modal" title="Cerrar">&times;</button>
+        </div>
+      </div>
+
+      <!-- Cuerpo del Modal: Item Actual -->
+      <div class="act-modal-body" *ngIf="actualizacionesList && actualizacionesList.length > 0"
+           (mouseenter)="sliderPausado = true"
+           (mouseleave)="sliderPausado = false">
+        
+        <!-- Encabezado con información del paso actual -->
+        <div class="act-info-banner">
+          <div class="act-info-main">
+            <div class="act-badges-row">
+              <span class="act-info-badge"><i class="bi bi-check-circle-fill"></i> {{ actualizacionesList[actualizacionIndex].categoria }}</span>
+              <span class="act-step-badge">Actualización {{ actualizacionIndex + 1 }} de {{ actualizacionesList.length }}</span>
+            </div>
+            <h3 class="act-info-title">{{ actualizacionesList[actualizacionIndex].titulo }}</h3>
+            <p class="act-info-desc">{{ actualizacionesList[actualizacionIndex].descripcion }}</p>
+          </div>
+
+          <div class="act-details-card">
+            <h4 class="act-details-heading"><i class="bi bi-stars"></i> Aspectos destacados:</h4>
+            <ul class="act-details-list">
+              <li *ngFor="let detalle of actualizacionesList[actualizacionIndex].detalles">
+                <i class="bi bi-check2"></i>
+                <span>{{ detalle }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Visualización simultánea de ambas imágenes -->
+        <div class="act-dual-images-grid">
+          <div 
+            class="act-image-box" 
+            *ngFor="let imgItem of (actualizacionesList[actualizacionIndex]?.imagenes || [{ label: 'Vista', url: actualizacionesList[actualizacionIndex]?.imagen }])">
+            <div class="act-image-box-header">
+              <span class="act-image-box-label">
+                <i class="bi bi-image"></i> {{ imgItem.label }}
+              </span>
+            </div>
+            <div class="act-screenshot-container">
+              <img 
+                [src]="imgItem.url" 
+                [alt]="imgItem.label" 
+                (error)="onActualizacionImgError($event, actualizacionesList[actualizacionIndex])"
+                class="act-screenshot-img" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="act-modal-footer">
+        <div class="act-footer-period">
+          <span>Vigencia: 8 al 16 de octubre</span>
+        </div>
+        <div class="act-footer-phrase">
+          la transformacion tecnologica 2027 empieza Hoy.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
