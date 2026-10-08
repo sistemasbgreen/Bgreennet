@@ -19,6 +19,8 @@ import { ConfiguracionSeguridadService, ConfiguracionSeguridad } from '../../ser
 import Swal from 'sweetalert2';
 import { AuthService } from '../../auth/authservices';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { IA_CATEGORIES, IaCategory, IaTool } from '../../data/ia-tools.data';
+import { ACTUALIZACIONES_2027, ActualizacionItem } from '../../data/actualizaciones.data';
 
 // Registrar componentes de Chart.js
 Chart.register(...registerables);
@@ -48,6 +50,21 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   isUserMenuOpen = false;
   isModalOpen = false;
   isTrmModalOpen = false;
+  isIaModalOpen = false;
+  iaCategories: IaCategory[] = IA_CATEGORIES;
+  iaSearchQuery: string = '';
+  iaSelectedCategory: string = 'TODAS';
+
+  // Modal Actualizaciones 2027
+  isActualizacionesModalOpen = false;
+  actualizacionesList: ActualizacionItem[] = ACTUALIZACIONES_2027;
+  actualizacionIndex = 0;
+  subImagenActualUrl: string | null = null;
+  puedeCerrarModalActualizaciones = false;
+  segundosRestantesActualizaciones = 5;
+  actualizacionesTimerInterval: any = null;
+  sliderActualizacionesInterval: any = null;
+  sliderPausado = false;
   showModal = false;
   darkMode = false;
   isModalHistorialOpen = false; //  Modal de historial
@@ -262,6 +279,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
       // Inicializar contexto de audio
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.solicitarPermisoNotificaciones();
+      this.verificarModalActualizaciones();
     }
   }
 
@@ -296,6 +314,12 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     }
     if (this.notificationInterval) {
       clearInterval(this.notificationInterval);
+    }
+    if (this.actualizacionesTimerInterval) {
+      clearInterval(this.actualizacionesTimerInterval);
+    }
+    if (this.sliderActualizacionesInterval) {
+      clearInterval(this.sliderActualizacionesInterval);
     }
   }
 
@@ -489,6 +513,213 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     const userMenu = document.querySelector('.user-menu-container');
     if (userMenu && !userMenu.contains(target)) {
       this.isUserMenuOpen = false;
+    }
+  }
+
+  // ========================================
+  // MODAL HERRAMIENTAS IA
+  // ========================================
+  openIaModal(): void {
+    this.isIaModalOpen = true;
+  }
+
+  closeIaModal(): void {
+    this.isIaModalOpen = false;
+  }
+
+  @HostListener('window:keydown.escape')
+  onKeydownEscape(): void {
+    if (this.isActualizacionesModalOpen) {
+      if (this.puedeCerrarModalActualizaciones) {
+        this.cerrarModalActualizaciones();
+      }
+      return;
+    }
+    if (this.isIaModalOpen) {
+      this.closeIaModal();
+    }
+  }
+
+  // ========================================
+  // MODAL ACTUALIZACIONES 2027
+  // ========================================
+  iniciarTemporizadorCierreActualizaciones(): void {
+    if (this.actualizacionesTimerInterval) {
+      clearInterval(this.actualizacionesTimerInterval);
+      this.actualizacionesTimerInterval = null;
+    }
+    this.puedeCerrarModalActualizaciones = false;
+    this.segundosRestantesActualizaciones = 5;
+
+    if (isPlatformBrowser(this.platformId)) {
+      this.actualizacionesTimerInterval = setInterval(() => {
+        if (this.segundosRestantesActualizaciones > 1) {
+          this.segundosRestantesActualizaciones--;
+          this.cdr.detectChanges();
+        } else {
+          this.segundosRestantesActualizaciones = 0;
+          this.puedeCerrarModalActualizaciones = true;
+          clearInterval(this.actualizacionesTimerInterval);
+          this.actualizacionesTimerInterval = null;
+          this.cdr.detectChanges();
+        }
+      }, 1000);
+    }
+  }
+
+  iniciarSliderActualizaciones(): void {
+    this.detenerSliderActualizaciones();
+    if (isPlatformBrowser(this.platformId)) {
+      this.sliderActualizacionesInterval = setInterval(() => {
+        if (!this.sliderPausado && this.isActualizacionesModalOpen) {
+          this.siguienteSlideAutomatico();
+        }
+      }, 5000);
+    }
+  }
+
+  detenerSliderActualizaciones(): void {
+    if (this.sliderActualizacionesInterval) {
+      clearInterval(this.sliderActualizacionesInterval);
+      this.sliderActualizacionesInterval = null;
+    }
+  }
+
+  siguienteSlideAutomatico(): void {
+    if (this.actualizacionesList && this.actualizacionesList.length > 0) {
+      this.actualizacionIndex = (this.actualizacionIndex + 1) % this.actualizacionesList.length;
+      this.subImagenActualUrl = null;
+      this.cdr.detectChanges();
+    }
+  }
+
+  verificarModalActualizaciones(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      const hoy = new Date();
+      const anio = hoy.getFullYear();
+      // Válido únicamente entre el 8 y el 16 de octubre inclusive. Después del 16 de octubre ya no debe salir más.
+      const fechaInicio = new Date(anio, 9, 8, 0, 0, 0);
+      const fechaFin = new Date(anio, 9, 16, 23, 59, 59);
+      const dentroDeRangoFechas = hoy >= fechaInicio && hoy <= fechaFin;
+
+      if (dentroDeRangoFechas) {
+        setTimeout(() => {
+          this.isActualizacionesModalOpen = true;
+          this.actualizacionIndex = 0;
+          this.subImagenActualUrl = null;
+          this.iniciarTemporizadorCierreActualizaciones();
+          this.iniciarSliderActualizaciones();
+          this.cdr.detectChanges();
+        }, 700);
+      }
+    }
+  }
+
+  abrirModalActualizaciones(): void {
+    const hoy = new Date();
+    const anio = hoy.getFullYear();
+    const fechaInicio = new Date(anio, 9, 8, 0, 0, 0);
+    const fechaFin = new Date(anio, 9, 16, 23, 59, 59);
+    if (hoy < fechaInicio || hoy > fechaFin) {
+      return;
+    }
+    this.isActualizacionesModalOpen = true;
+    this.actualizacionIndex = 0;
+    this.subImagenActualUrl = null;
+    this.iniciarTemporizadorCierreActualizaciones();
+    this.iniciarSliderActualizaciones();
+  }
+
+  cerrarModalActualizaciones(): void {
+    if (!this.puedeCerrarModalActualizaciones) {
+      return;
+    }
+    this.isActualizacionesModalOpen = false;
+    this.detenerSliderActualizaciones();
+    if (this.actualizacionesTimerInterval) {
+      clearInterval(this.actualizacionesTimerInterval);
+      this.actualizacionesTimerInterval = null;
+    }
+  }
+
+  setActualizacionIndex(idx: number): void {
+    if (idx >= 0 && idx < this.actualizacionesList.length) {
+      this.actualizacionIndex = idx;
+      this.subImagenActualUrl = null;
+      this.iniciarSliderActualizaciones();
+    }
+  }
+
+  getSubImagenUrl(): string {
+    const item = this.actualizacionesList[this.actualizacionIndex];
+    if (this.subImagenActualUrl && item?.imagenes?.some(i => i.url === this.subImagenActualUrl)) {
+      return this.subImagenActualUrl;
+    }
+    return item?.imagen || '';
+  }
+
+  setSubImagenUrl(url: string): void {
+    this.subImagenActualUrl = url;
+  }
+
+  siguienteActualizacion(): void {
+    if (this.actualizacionesList && this.actualizacionesList.length > 0) {
+      this.actualizacionIndex = (this.actualizacionIndex + 1) % this.actualizacionesList.length;
+      this.subImagenActualUrl = null;
+      this.iniciarSliderActualizaciones();
+    }
+  }
+
+  anteriorActualizacion(): void {
+    if (this.actualizacionesList && this.actualizacionesList.length > 0) {
+      this.actualizacionIndex = (this.actualizacionIndex - 1 + this.actualizacionesList.length) % this.actualizacionesList.length;
+      this.subImagenActualUrl = null;
+      this.iniciarSliderActualizaciones();
+    }
+  }
+
+  onActualizacionImgError(event: Event, item: ActualizacionItem): void {
+    const img = event.target as HTMLImageElement;
+    if (img && item.imagenFallback && !img.src.includes(item.imagenFallback)) {
+      img.src = item.imagenFallback;
+    }
+  }
+
+  get filteredIaCategories(): IaCategory[] {
+    let categories = this.iaCategories;
+
+    if (this.iaSelectedCategory !== 'TODAS') {
+      categories = categories.filter(c => c.categoria === this.iaSelectedCategory);
+    }
+
+    if (this.iaSearchQuery.trim()) {
+      const q = this.iaSearchQuery.toLowerCase().trim();
+      categories = categories.filter(c => 
+        c.herramientas.some(h => 
+          h.nombre.toLowerCase().includes(q) || 
+          h.descripcion.toLowerCase().includes(q)
+        )
+      );
+    }
+
+    return categories;
+  }
+
+  getHerramientasFiltradas(categoria: IaCategory): IaTool[] {
+    if (!this.iaSearchQuery.trim()) {
+      return categoria.herramientas;
+    }
+    const q = this.iaSearchQuery.toLowerCase().trim();
+    return categoria.herramientas.filter(h => 
+      h.nombre.toLowerCase().includes(q) || 
+      h.descripcion.toLowerCase().includes(q)
+    );
+  }
+
+  onLogoError(event: Event, name: string): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=16a34a&color=fff&rounded=true&bold=true`;
     }
   }
 

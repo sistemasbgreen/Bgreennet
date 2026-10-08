@@ -88,7 +88,7 @@
           <div class="category-title">Estrategia</div>
         </div>
         <div class="indicators-grid">
-          <div class="indicator" style="border-left: 4px solid #2c5f2d; cursor: pointer;" (click)="irindustrializacion()">
+          <div class="indicator disabled-indicator" style="border-left: 4px solid #9ca3af; cursor: not-allowed;" title="Módulo inhabilitado">
             <div class="indicator-title">Industrialización del Aceite</div>
             <div *ngIf="industrializacionAceite_number !== 0">
               {{ industrializacionAceite_number | number:'1.2-2' }} %

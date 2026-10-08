@@ -61,6 +61,11 @@
         <i class="bi bi-calendar3"></i>
       </button>
 
+      <!-- Botón Herramientas de IA -->
+      <button class="ia-btn" (click)="openIaModal()" title="Herramientas de IA">
+        <span>IA</span>
+      </button>
+
       <!-- Dropdown de Notificaciones -->
       <div class="notifications-dropdown" *ngIf="isNotificationMenuOpen" (click)="$event.stopPropagation()">
         <div class="notifications-header">
@@ -1463,5 +1468,199 @@
 
   </div>
 </div>
+
+  <!-- Modal Herramientas de IA -->
+  <div class="ia-modal-overlay" *ngIf="isIaModalOpen" (click)="closeIaModal()">
+    <div class="ia-modal-container" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="ia-modal-header">
+        <div class="ia-modal-title-group">
+          <div class="ia-modal-icon">
+            <i class="bi bi-stars"></i>
+          </div>
+          <div>
+            <h2 class="ia-modal-title">Herramientas de IA</h2>
+            <p class="ia-modal-subtitle">Directorio de soluciones de Inteligencia Artificial para el trabajo diario</p>
+          </div>
+        </div>
+        <button class="ia-modal-close-btn" (click)="closeIaModal()" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <!-- Barra de Filtros y Búsqueda -->
+      <div class="ia-modal-toolbar">
+        <div class="ia-search-box">
+          <i class="bi bi-search"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="iaSearchQuery" 
+            placeholder="Buscar herramienta (ej. ChatGPT, Gamma, Canva...)" 
+            class="ia-search-input"
+          />
+          <button *ngIf="iaSearchQuery" class="ia-search-clear" (click)="iaSearchQuery = ''">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <div class="ia-categories-pills">
+          <button 
+            class="ia-category-pill" 
+            [class.active]="iaSelectedCategory === 'TODAS'" 
+            (click)="iaSelectedCategory = 'TODAS'">
+            <span>Todas</span>
+          </button>
+          <button 
+            *ngFor="let cat of iaCategories" 
+            class="ia-category-pill" 
+            [class.active]="iaSelectedCategory === cat.categoria" 
+            (click)="iaSelectedCategory = cat.categoria">
+            <i class="bi" [ngClass]="cat.icono"></i>
+            <span>{{ cat.categoria }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Cuadrícula) -->
+      <div class="ia-modal-body">
+        
+        <!-- Mensaje si no hay resultados -->
+        <div *ngIf="filteredIaCategories.length === 0" class="ia-no-results">
+          <i class="bi bi-search-heart"></i>
+          <h4>No se encontraron herramientas</h4>
+          <p>Intenta con otro término de búsqueda o selecciona otra categoría.</p>
+          <button class="ia-btn-reset" (click)="iaSearchQuery = ''; iaSelectedCategory = 'TODAS'">Ver todas</button>
+        </div>
+
+        <div class="ia-sections-stack" *ngIf="filteredIaCategories.length > 0">
+          <div *ngFor="let cat of filteredIaCategories" class="ia-category-section">
+            
+            <!-- Encabezado de la categoría -->
+            <div class="ia-section-header">
+              <div class="ia-section-title-wrap">
+                <span class="ia-section-icon-badge">
+                  <i class="bi" [ngClass]="cat.icono"></i>
+                </span>
+                <h3 class="ia-section-title">{{ cat.categoria }}</h3>
+              </div>
+              <span class="ia-section-counter">{{ getHerramientasFiltradas(cat).length }} {{ getHerramientasFiltradas(cat).length === 1 ? 'herramienta' : 'herramientas' }}</span>
+            </div>
+
+            <!-- Cuadrícula de tarjetas -->
+            <div class="ia-cards-grid">
+              <div *ngFor="let tool of getHerramientasFiltradas(cat)" class="ia-tool-card-modern">
+                <div class="ia-card-header">
+                  <div class="ia-tool-logo-box">
+                    <img [src]="tool.logo" [alt]="tool.nombre" (error)="onLogoError($event, tool.nombre)" class="ia-tool-logo-img" />
+                  </div>
+                  <div class="ia-tool-titles">
+                    <h4 class="ia-tool-name">{{ tool.nombre }}</h4>
+                    <span class="ia-tool-category-badge">{{ cat.categoria }}</span>
+                  </div>
+                </div>
+
+                <p class="ia-tool-description" [title]="tool.descripcion">{{ tool.descripcion }}</p>
+
+                <div class="ia-card-action">
+                  <a [href]="tool.url" target="_blank" rel="noopener noreferrer" class="ia-tool-link-btn">
+                    <span>Abrir herramienta</span>
+                    <i class="bi bi-box-arrow-up-right"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal Transformación Digital 2027 (Novedades y Actualizaciones) -->
+  <div class="act-modal-overlay" *ngIf="isActualizacionesModalOpen" (click)="puedeCerrarModalActualizaciones && cerrarModalActualizaciones()">
+    <div class="act-modal-container" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="act-modal-header">
+        <div class="act-modal-title-group">
+          <div class="act-modal-badge-icon">
+            <i class="bi bi-rocket-takeoff-fill"></i>
+          </div>
+          <div>
+            <div class="act-modal-tag">NOVEDADES DE LA PLATAFORMA</div>
+            <h2 class="act-modal-title">Transformación Digital 2027</h2>
+          </div>
+        </div>
+        <div class="act-header-actions">
+          <div class="act-lock-timer" *ngIf="!puedeCerrarModalActualizaciones" title="Podrás cerrar el mensaje en {{ segundosRestantesActualizaciones }} segundos">
+            <i class="bi bi-clock-history"></i>
+            <span>{{ segundosRestantesActualizaciones }}s</span>
+          </div>
+          <button class="act-modal-close-btn" *ngIf="puedeCerrarModalActualizaciones" (click)="cerrarModalActualizaciones()" aria-label="Cerrar modal" title="Cerrar">&times;</button>
+        </div>
+      </div>
+
+      <!-- Cuerpo del Modal: Item Actual -->
+      <div class="act-modal-body" *ngIf="actualizacionesList && actualizacionesList.length > 0"
+           (mouseenter)="sliderPausado = true"
+           (mouseleave)="sliderPausado = false">
+        
+        <!-- Encabezado con información del paso actual -->
+        <div class="act-info-banner">
+          <div class="act-info-main">
+            <div class="act-badges-row">
+              <span class="act-info-badge"><i class="bi bi-check-circle-fill"></i> {{ actualizacionesList[actualizacionIndex].categoria }}</span>
+              <span class="act-step-badge">Actualización {{ actualizacionIndex + 1 }} de {{ actualizacionesList.length }}</span>
+            </div>
+            <h3 class="act-info-title">{{ actualizacionesList[actualizacionIndex].titulo }}</h3>
+            <p class="act-info-desc">{{ actualizacionesList[actualizacionIndex].descripcion }}</p>
+          </div>
+
+          <div class="act-details-card">
+            <h4 class="act-details-heading"><i class="bi bi-stars"></i> Aspectos destacados:</h4>
+            <ul class="act-details-list">
+              <li *ngFor="let detalle of actualizacionesList[actualizacionIndex].detalles">
+                <i class="bi bi-check2"></i>
+                <span>{{ detalle }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Visualización simultánea de ambas imágenes -->
+        <div class="act-dual-images-grid">
+          <div 
+            class="act-image-box" 
+            *ngFor="let imgItem of (actualizacionesList[actualizacionIndex]?.imagenes || [{ label: 'Vista', url: actualizacionesList[actualizacionIndex]?.imagen }])">
+            <div class="act-image-box-header">
+              <span class="act-image-box-label">
+                <i class="bi bi-image"></i> {{ imgItem.label }}
+              </span>
+            </div>
+            <div class="act-screenshot-container">
+              <img 
+                [src]="imgItem.url" 
+                [alt]="imgItem.label" 
+                (error)="onActualizacionImgError($event, actualizacionesList[actualizacionIndex])"
+                class="act-screenshot-img" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="act-modal-footer">
+        <div class="act-footer-period">
+          <span>Vigencia: 8 al 16 de octubre</span>
+        </div>
+        <div class="act-footer-phrase">
+          la transformacion tecnologica 2027 empieza Hoy.
+        </div>
+      </div>
+
+    </div>
+  </div>
 
 </div>
