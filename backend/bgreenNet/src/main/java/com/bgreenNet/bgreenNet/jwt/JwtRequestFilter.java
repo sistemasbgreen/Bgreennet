@@ -45,7 +45,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         "/api/sistemasinformacion/",
         "/sistemasinformacion/",
         "/api/logistico/",
-        "/logistico/"
+        "/logistico/",
+        "/api/presentismo/",
+        "/presentismo/"
     );
 
     @Override

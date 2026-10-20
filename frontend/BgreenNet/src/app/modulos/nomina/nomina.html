@@ -1,0 +1,1634 @@
+<div class="nomina-container" [class.densidad-compacta]="densidadCompacta">
+
+  <!-- ==================== TOP NAVIGATION / HEADER ==================== -->
+  <header class="nomina-header">
+    <div class="header-left">
+      <nav class="breadcrumb-nav">
+        <a (click)="volverAHome()" class="breadcrumb-link"><i class="bi bi-house-door-fill"></i> Home</a>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Nómina</span>
+      </nav>
+      <div class="header-title-row">
+        <div class="header-icon-box">
+          <i class="bi bi-cash-stack"></i>
+        </div>
+        <div>
+          <h1 class="header-title">Módulo de Nómina</h1>
+          <p class="header-subtitle">
+            Liquidación de horas, turnos de trabajo, novedades contables y programación de personal (Siesa Access)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-action btn-refresh"
+              (click)="pestanaActiva === 'llegadas_tarde' ? cargarDatosLlegadasTarde() : cargarDatosResumenSemanal()"
+              [disabled]="cargando || cargandoLT || cargandoSemanal"
+              title="Recargar registros">
+        <i class="bi bi-arrow-clockwise" [class.spin]="cargando || cargandoLT || cargandoSemanal"></i>
+        <span>Sincronizar</span>
+      </button>
+
+      <button class="btn-action btn-send-report"
+              *ngIf="pestanaActiva === 'llegadas_tarde'"
+              (click)="abrirModalReporteCorreosLT()"
+              title="Enviar reportes de llegadas tarde por correo (.NET)">
+        <i class="bi bi-envelope-paper-heart-fill"></i>
+        <span>Enviar Correos</span>
+      </button>
+
+      <button class="btn-action btn-export"
+              (click)="pestanaActiva === 'llegadas_tarde' ? exportarCsvLT() : exportarCsvSemanal()"
+              title="Exportar reporte CSV a Excel">
+        <i class="bi bi-file-earmark-excel-fill"></i>
+        <span>Exportar CSV</span>
+      </button>
+
+      <button class="btn-action btn-home" (click)="volverAHome()" title="Regresar al inicio">
+        <i class="bi bi-arrow-left"></i>
+        <span>Regresar</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== SELECTOR DE PESTAÑAS ==================== -->
+  <div class="tabs-nav-container">
+    <button class="tab-nav-btn tab-nav-btn--alert"
+            [class.tab-nav-btn--active]="pestanaActiva === 'llegadas_tarde'"
+            (click)="cambiarPestana('llegadas_tarde')">
+      <div class="tab-btn-content">
+        <i class="bi bi-alarm-fill"></i>
+        <div class="tab-btn-texts">
+          <span class="tab-btn-title">Llegadas Tarde</span>
+          <span class="tab-btn-sub">Control de Horarios y Biométrico</span>
+        </div>
+      </div>
+      <span class="tab-badge tab-badge--danger" *ngIf="dataLlegadasTarde?.resumen">
+        {{ (dataLlegadasTarde?.resumen?.totalLlegadasTarde || 0) + (dataLlegadasTarde?.resumen?.totalNoMarcaron || 0) }}
+      </span>
+    </button>
+
+    <button class="tab-nav-btn tab-nav-btn--prueba"
+            [class.tab-nav-btn--active]="pestanaActiva === 'prueba'"
+            (click)="cambiarPestana('prueba')">
+      <div class="tab-btn-content">
+        <i class="bi bi-calculator-fill"></i>
+        <div class="tab-btn-texts">
+          <span class="tab-btn-title">Liquidación de Horas y Turnos</span>
+          <span class="tab-btn-sub">Programadas (42h) vs Ejecutadas Semanales</span>
+        </div>
+      </div>
+      <span class="tab-badge tab-badge--info" *ngIf="dataResumenSemanal?.colaboradores">
+        {{ dataResumenSemanal?.colaboradores?.length || 0 }}
+      </span>
+    </button>
+  </div>
+
+  <!-- ################################################################ -->
+  <!-- ######### TAB 3: LLEGADAS TARDE & CONTROL DE HORARIOS ########## -->
+  <!-- ################################################################ -->
+  <ng-container *ngIf="pestanaActiva === 'llegadas_tarde'">
+
+    <!-- KPIS CONTROL DE HORARIOS (REDISEÑADAS) -->
+    <section class="kpi-grid kpi-grid--4col">
+      <!-- 1. Llegadas Tarde -->
+      <div class="kpi-card kpi-card--warning"
+           [class.kpi-card--active]="subseccionLT === 'LLEGADAS_TARDE'"
+           (click)="cambiarSubseccionLT('LLEGADAS_TARDE')"
+           style="cursor: pointer;">
+        <div class="kpi-card__top">
+          <span class="kpi-card__label">Llegadas Tarde</span>
+          <div class="kpi-card__icon"><i class="bi bi-alarm-fill"></i></div>
+        </div>
+        <div class="kpi-card__main">
+          <span class="kpi-card__value">{{ kpiLlegadasTarde }}</span>
+        </div>
+        <div class="kpi-card__footer">
+          <span class="kpi-badge-pill kpi-badge-pill--warning">
+            <i class="bi bi-clock"></i> Tolerancia > 6 min
+          </span>
+        </div>
+      </div>
+
+      <!-- 2. Aplica Memorando -->
+      <div class="kpi-card kpi-card--danger"
+           [class.kpi-card--active]="subseccionLT === 'MEMORANDOS'"
+           (click)="cambiarSubseccionLT('MEMORANDOS')"
+           style="cursor: pointer;">
+        <div class="kpi-card__top">
+          <span class="kpi-card__label">Aplica Memorando</span>
+          <div class="kpi-card__icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+        </div>
+        <div class="kpi-card__main">
+          <span class="kpi-card__value">{{ kpiAplicaMemorando }}</span>
+        </div>
+        <div class="kpi-card__footer kpi-card__footer--split">
+          <span class="kpi-badge-pill kpi-badge-pill--danger" title="Llegadas tarde con más de 15 minutos de retraso">
+            <i class="bi bi-alarm-fill"></i> > 15m: <strong>{{ kpiMemoLlegadasTarde }}</strong>
+          </span>
+          <span class="kpi-badge-pill kpi-badge-pill--neutral" title="Colaboradores que no registraron marcación">
+            <i class="bi bi-fingerprint"></i> No marcaron: <strong>{{ kpiMemoNoMarcaron }}</strong>
+          </span>
+        </div>
+      </div>
+
+      <!-- 3. Salidas Tarde -->
+      <div class="kpi-card kpi-card--info"
+           [class.kpi-card--active]="subseccionLT === 'SALIDAS_TARDE'"
+           (click)="cambiarSubseccionLT('SALIDAS_TARDE')"
+           style="cursor: pointer;">
+        <div class="kpi-card__top">
+          <span class="kpi-card__label">Salidas Tarde</span>
+          <div class="kpi-card__icon"><i class="bi bi-box-arrow-right"></i></div>
+        </div>
+        <div class="kpi-card__main">
+          <span class="kpi-card__value">{{ kpiSalidasTarde }}</span>
+        </div>
+        <div class="kpi-card__footer">
+          <span class="kpi-badge-pill kpi-badge-pill--info">
+            <i class="bi bi-clock-history"></i> > 11 min fin turno
+          </span>
+        </div>
+      </div>
+
+      <!-- 4. Marcaciones Inválidas -->
+      <div class="kpi-card kpi-card--purple"
+           [class.kpi-card--active]="subseccionLT === 'INVALIDOS'"
+           (click)="cambiarSubseccionLT('INVALIDOS')"
+           style="cursor: pointer;">
+        <div class="kpi-card__top">
+          <span class="kpi-card__label">Marcaciones Inválidas</span>
+          <div class="kpi-card__icon"><i class="bi bi-shield-x"></i></div>
+        </div>
+        <div class="kpi-card__main">
+          <span class="kpi-card__value">{{ kpiInvalidos }}</span>
+        </div>
+        <div class="kpi-card__footer kpi-card__footer--split">
+          <span class="kpi-badge-pill kpi-badge-pill--purple" title="Marcaciones rechazadas por falta de turno">
+            <i class="bi bi-calendar-x-fill"></i> Sin turno: <strong>{{ kpiInvalidosSinTurno }}</strong>
+          </span>
+          <span class="kpi-badge-pill kpi-badge-pill--neutral" title="Marcaciones repetidas o duplicadas">
+            <i class="bi bi-files"></i> Duplicadas: <strong>{{ kpiInvalidosDuplicadas }}</strong>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- BARRA DE FILTROS LLEGADAS TARDE -->
+    <section class="filters-card">
+      <div class="periodo-shortcuts">
+        <span class="shortcuts-label"><i class="bi bi-calendar3"></i> Período Rápido:</span>
+        <button class="btn-chip" [class.active]="periodoRapidoLT === 'hoy'" (click)="establecerRangoPeriodoLT('hoy'); cargarDatosLlegadasTarde()">
+          Hoy
+        </button>
+        <button class="btn-chip" [class.active]="periodoRapidoLT === 'ayer'" (click)="establecerRangoPeriodoLT('ayer'); cargarDatosLlegadasTarde()">
+          Ayer
+        </button>
+        <button class="btn-chip" [class.active]="periodoRapidoLT === 'ultima_semana'" (click)="establecerRangoPeriodoLT('ultima_semana'); cargarDatosLlegadasTarde()">
+          Última Semana (7 Días)
+        </button>
+        <button class="btn-chip" [class.active]="periodoRapidoLT === 'mes_actual'" (click)="establecerRangoPeriodoLT('mes_actual'); cargarDatosLlegadasTarde()">
+          Este Mes
+        </button>
+        <button class="btn-chip" [class.active]="periodoRapidoLT === 'mes_anterior'" (click)="establecerRangoPeriodoLT('mes_anterior'); cargarDatosLlegadasTarde()">
+          Mes Anterior
+        </button>
+      </div>
+
+      <div class="filters-row filters-row--4col">
+        <div class="filter-group search-group">
+          <label><i class="bi bi-search"></i> Buscar Colaborador o Cédula</label>
+          <div class="input-with-icon">
+            <i class="bi bi-search input-icon"></i>
+            <input type="text"
+                   class="form-control"
+                   placeholder="Nombre, documento, grupo..."
+                   [(ngModel)]="busquedaLT"
+                   (input)="aplicarFiltrosLT()" />
+            <button *ngIf="busquedaLT" class="clear-input-btn" (click)="busquedaLT = ''; aplicarFiltrosLT()">
+              <i class="bi bi-x-circle-fill"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label><i class="bi bi-people-fill"></i> Cuadrilla / Grupo</label>
+          <select class="form-control" [(ngModel)]="grupoLT" (change)="aplicarFiltrosLT()">
+            <option value="TODOS">Todos los Grupos ({{ gruposLTDisponibles.length }})</option>
+            <option *ngFor="let g of gruposLTDisponibles" [value]="g">{{ g }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label><i class="bi bi-calendar-event"></i> Fecha Inicio</label>
+          <input type="date" class="form-control" [(ngModel)]="fechaInicioLT" (change)="onFechaFiltroChangeLT()" />
+        </div>
+
+        <div class="filter-group">
+          <label><i class="bi bi-calendar-event-fill"></i> Fecha Fin</label>
+          <input type="date" class="form-control" [(ngModel)]="fechaFinLT" (change)="onFechaFiltroChangeLT()" />
+        </div>
+      </div>
+
+      <div class="filters-actions-bar">
+        <div class="filters-actions-left">
+          <span class="active-filters-info">
+            <i class="bi bi-funnel-fill"></i>
+            Rango: <strong>{{ fechaInicioLT || 'Inicio' }}</strong> al <strong>{{ fechaFinLT || 'Hoy' }}</strong>
+          </span>
+        </div>
+        <div class="filters-actions-right">
+          <button class="btn-toggle-critico" [class.active]="soloCriticos" (click)="toggleSoloCriticos()" title="Mostrar solo memorandos (>15 min) y omisiones de marcación">
+            <i class="bi bi-lightning-charge-fill"></i> Solo casos críticos
+          </button>
+          <div class="density-switch" title="Densidad de la tabla">
+            <button [class.active]="!densidadCompacta" (click)="densidadCompacta = false"><i class="bi bi-list"></i> Cómodo</button>
+            <button [class.active]="densidadCompacta" (click)="densidadCompacta = true"><i class="bi bi-justify"></i> Compacto</button>
+          </div>
+          <button class="btn-filter-action btn-filter-email" (click)="abrirModalReporteCorreosLT()" title="Despachar reportes por correo institucional">
+            <i class="bi bi-envelope-paper-fill"></i> Enviar Correos
+          </button>
+          <button class="btn-filter-action btn-filter-reset" (click)="limpiarFiltrosLT()" title="Restablecer filtros">
+            <i class="bi bi-arrow-counterclockwise"></i> Limpiar
+          </button>
+          <button class="btn-filter-action btn-filter-apply" (click)="cargarDatosLlegadasTarde()" [disabled]="cargandoLT">
+            <i class="bi bi-search" [class.spin]="cargandoLT"></i> Consultar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN DE GRÁFICAS DE CONTROL BIOMÉTRICO -->
+    <section class="charts-grid-nomina" *ngIf="!cargandoLT">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">
+            <i class="bi bi-bar-chart-fill"></i>
+            <span>Novedades por Cuadrilla / Grupo</span>
+          </div>
+          <span class="chart-badge">{{ gruposChartDataCount }} grupos</span>
+        </div>
+        <div class="chart-canvas-box">
+          <canvas id="chartGruposLT"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">
+            <i class="bi bi-pie-chart-fill"></i>
+            <span>Distribución por Severidad y Novedad</span>
+          </div>
+          <span class="chart-badge">Total: {{ totalNovedadesChart }}</span>
+        </div>
+        <div class="chart-canvas-box">
+          <canvas id="chartTiposLT"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUB-PESTAÑAS DE NOVEDADES -->
+    <section class="subtabs-bar">
+      <button class="subtab-pill" [class.active]="subseccionLT === 'TODOS'" (click)="cambiarSubseccionLT('TODOS')">
+        <i class="bi bi-grid-fill"></i> Todas las Novedades
+      </button>
+      <button class="subtab-pill subtab-pill--warning" [class.active]="subseccionLT === 'LLEGADAS_TARDE'" (click)="cambiarSubseccionLT('LLEGADAS_TARDE')">
+        <i class="bi bi-alarm-fill"></i> Llegadas Tarde
+        <span class="subtab-count">{{ llegadasTardeFiltradas.length }}</span>
+      </button>
+      <button class="subtab-pill subtab-pill--memo" [class.active]="subseccionLT === 'MEMORANDOS'" (click)="cambiarSubseccionLT('MEMORANDOS')">
+        <i class="bi bi-exclamation-octagon-fill"></i> Aplica Memorando
+        <span class="subtab-count">{{ kpiAplicaMemorando }}</span>
+      </button>
+      <button class="subtab-pill subtab-pill--danger" [class.active]="subseccionLT === 'NO_MARCARON'" (click)="cambiarSubseccionLT('NO_MARCARON')">
+        <i class="bi bi-person-x-fill"></i> No Marcaron
+        <span class="subtab-count">{{ noMarcaronFiltrados.length }}</span>
+      </button>
+      <button class="subtab-pill subtab-pill--info" [class.active]="subseccionLT === 'SALIDAS_TARDE'" (click)="cambiarSubseccionLT('SALIDAS_TARDE')">
+        <i class="bi bi-box-arrow-right"></i> Salidas Tarde
+        <span class="subtab-count">{{ salidasTardeFiltradas.length }}</span>
+      </button>
+      <button class="subtab-pill subtab-pill--purple" [class.active]="subseccionLT === 'INVALIDOS'" (click)="cambiarSubseccionLT('INVALIDOS')">
+        <i class="bi bi-shield-x"></i> Inválidos
+        <span class="subtab-count">{{ invalidosFiltrados.length }}</span>
+      </button>
+    </section>
+
+    <!-- HINT CUANDO NO HAY NOVEDADES ABIERTAS -->
+    <div class="empty-selection-hint" *ngIf="!cargandoLT && subseccionLT === null">
+      <i class="bi bi-hand-index-thumb"></i>
+      <h4>Novedades Ocultas</h4>
+      <p>Haz clic en cualquiera de los indicadores superiores o en una pestaña de novedades para ver el detalle de los registros. Haz clic nuevamente para ocultarlos.</p>
+    </div>
+
+    <!-- SPINNER CARGANDO -->
+    <div *ngIf="cargandoLT" class="loading-state">
+      <div class="spinner-circle"></div>
+      <p class="loading-text">Consultando marcaciones del biométrico e información de turnos...</p>
+    </div>
+
+    <!-- SECCIÓN 1: LLEGADAS TARDE -->
+    <section class="section-card" *ngIf="!cargandoLT && (subseccionLT === 'TODOS' || subseccionLT === 'LLEGADAS_TARDE' || subseccionLT === 'MEMORANDOS')">
+      <div class="section-header section-header--warning">
+        <div class="section-header-title">
+          <i class="bi bi-alarm-fill"></i>
+          <div>
+            <h3>Llegadas Tarde (Tolerancia > 6 minutos)</h3>
+            <span class="section-subtitle">Retraso computado entre la hora real de marcación en biométrico y el inicio del turno asignado</span>
+          </div>
+        </div>
+        <span class="badge-counter badge-counter--warning">{{ llegadasTardeParaMostrar.length }} registros</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="nomina-table">
+          <thead>
+            <tr>
+              <th>Colaborador</th>
+              <th>Documento</th>
+              <th>Grupo / Cuadrilla</th>
+              <th>Centro de Costo</th>
+              <th>Turno Asignado</th>
+              <th>Fecha</th>
+              <th>Horario Esperado</th>
+              <th>Retraso</th>
+              <th>Sanción / Memorando</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reg of llegadasTardeParaMostrar" class="row-clickable" [class.row-highlight-memo]="reg.aplicaMemorando" (click)="abrirDrawer('LLEGADA', reg)">
+              <td>
+                <div class="colab-cell">
+                  <div class="colab-avatar">
+                    {{ reg.colaborador ? reg.colaborador.charAt(0) : 'C' }}
+                  </div>
+                  <div class="colab-meta">
+                    <span class="colab-name">{{ reg.colaborador }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="colab-doc" (click)="$event.stopPropagation(); copiarTexto(reg.documento, 'Cédula')" title="Copiar documento">
+                  CC {{ reg.documento }} <i class="bi bi-copy copy-icon"></i>
+                </span>
+              </td>
+              <td><span class="badge-group">{{ reg.grupo || 'General' }}</span></td>
+              <td class="text-muted">{{ reg.centroCosto || 'Operaciones' }}</td>
+              <td><span class="badge-turno">{{ reg.turno }}</span></td>
+              <td class="font-mono">{{ reg.fecha }}</td>
+              <td>
+                <div class="horario-esperado-cell">
+                  <div class="time-row time-row--esperado" title="Horario esperado de inicio de turno">
+                    <span class="time-sublabel">Esperado:</span>
+                    <span class="font-mono">{{ reg.horaInicioTurno }}</span>
+                  </div>
+                  <div class="time-row time-row--marcado" title="Horario en el que marcó">
+                    <span class="time-sublabel">Marcó:</span>
+                    <span class="font-mono font-bold">{{ reg.horaEntrada }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge-retraso" [class.badge-retraso--alto]="reg.minutosRetraso > 15">
+                  <i class="bi bi-stopwatch"></i> +{{ reg.minutosRetraso }} min
+                </span>
+              </td>
+              <td>
+                <span *ngIf="reg.aplicaMemorando" class="badge-memorando">
+                  <i class="bi bi-exclamation-triangle-fill"></i> Aplica Memorando (>15 min)
+                </span>
+                <span *ngIf="!reg.aplicaMemorando" class="badge-tolerancia">
+                  <i class="bi bi-info-circle"></i> Leve (6 a 15 min)
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="llegadasTardeParaMostrar.length === 0">
+              <td colspan="9" class="empty-row">
+                <i class="bi bi-info-circle text-muted"></i> Sin registros de llegadas tarde en el período y filtros seleccionados.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 2: NO MARCARON BIOMÉTRICO -->
+    <section class="section-card" *ngIf="!cargandoLT && (subseccionLT === 'TODOS' || subseccionLT === 'NO_MARCARON' || subseccionLT === 'MEMORANDOS')">
+      <div class="section-header section-header--danger">
+        <div class="section-header-title">
+          <i class="bi bi-person-x-fill"></i>
+          <div>
+            <h3>Colaboradores que No Marcaron en Biométrico</h3>
+            <span class="section-subtitle">Tienen turno laboral programado pero no registraron marcación de entrada o salida</span>
+          </div>
+        </div>
+        <span class="badge-counter badge-counter--danger">{{ noMarcaronFiltrados.length }} colaboradores</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="nomina-table">
+          <thead>
+            <tr>
+              <th>Colaborador</th>
+              <th>Documento</th>
+              <th>Grupo / Cuadrilla</th>
+              <th>Centro de Costo</th>
+              <th>Fecha</th>
+              <th>Turno Programado</th>
+              <th>Horario Esperado</th>
+              <th>Tipo de Omisión</th>
+              <th>Acción Requerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reg of noMarcaronFiltrados" class="row-highlight-danger row-clickable" (click)="abrirDrawer('NO_MARCO', reg)">
+              <td>
+                <div class="colab-cell">
+                  <div class="colab-avatar">
+                    {{ reg.colaborador ? reg.colaborador.charAt(0) : 'C' }}
+                  </div>
+                  <div class="colab-meta">
+                    <span class="colab-name">{{ reg.colaborador }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="colab-doc" (click)="$event.stopPropagation(); copiarTexto(reg.documento, 'Cédula')" title="Copiar documento">
+                  CC {{ reg.documento }} <i class="bi bi-copy copy-icon"></i>
+                </span>
+              </td>
+              <td><span class="badge-group">{{ reg.grupo || 'General' }}</span></td>
+              <td class="text-muted">{{ reg.centroCosto || 'Operaciones' }}</td>
+              <td class="font-mono">{{ reg.fecha }}</td>
+              <td><span class="badge-turno">{{ reg.turno }}</span></td>
+              <td class="font-mono text-muted">{{ reg.horaInicio || '00:00' }} - {{ reg.horaFin || '00:00' }}</td>
+              <td>
+                <span class="badge-omision" [class.badge-omision--ambas]="reg.tipoOmision.includes('AMBAS') || reg.tipoOmision.includes('NINGUNA')">
+                  <i class="bi bi-fingerprint"></i> {{ reg.tipoOmision }}
+                </span>
+              </td>
+              <td>
+                <span class="badge-memorando">
+                  <i class="bi bi-exclamation-octagon-fill"></i> Aplica Memorando
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="noMarcaronFiltrados.length === 0">
+              <td colspan="9" class="empty-row">
+                <i class="bi bi-info-circle text-muted"></i> Sin registros de omisión de marcación biométrica.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 3: SALIDAS TARDE -->
+    <section class="section-card" *ngIf="!cargandoLT && (subseccionLT === 'TODOS' || subseccionLT === 'SALIDAS_TARDE')">
+      <div class="section-header section-header--info">
+        <div class="section-header-title">
+          <i class="bi bi-box-arrow-right"></i>
+          <div>
+            <h3>Salidas Tarde (Tolerancia > 11 minutos fin de turno)</h3>
+            <span class="section-subtitle">Colaboradores que marcaron su salida significativamente después de la hora oficial fin de turno</span>
+          </div>
+        </div>
+        <span class="badge-counter badge-counter--info">{{ salidasTardeFiltradas.length }} registros</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="nomina-table">
+          <thead>
+            <tr>
+              <th>Colaborador</th>
+              <th>Documento</th>
+              <th>Grupo / Cuadrilla</th>
+              <th>Centro de Costo</th>
+              <th>Turno Asignado</th>
+              <th>Fecha</th>
+              <th>Horario Fin Turno</th>
+              <th>Tiempo Posterior</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reg of salidasTardeFiltradas" class="row-clickable" (click)="abrirDrawer('SALIDA', reg)">
+              <td>
+                <div class="colab-cell">
+                  <div class="colab-avatar">
+                    {{ reg.colaborador ? reg.colaborador.charAt(0) : 'C' }}
+                  </div>
+                  <div class="colab-meta">
+                    <span class="colab-name">{{ reg.colaborador }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="colab-doc" (click)="$event.stopPropagation(); copiarTexto(reg.documento, 'Cédula')" title="Copiar documento">
+                  CC {{ reg.documento }} <i class="bi bi-copy copy-icon"></i>
+                </span>
+              </td>
+              <td><span class="badge-group">{{ reg.grupo || 'General' }}</span></td>
+              <td class="text-muted">{{ reg.centroCosto || 'Operaciones' }}</td>
+              <td><span class="badge-turno">{{ reg.turno }}</span></td>
+              <td class="font-mono">{{ reg.fecha }}</td>
+              <td>
+                <div class="horario-esperado-cell">
+                  <div class="time-row time-row--esperado" title="Horario esperado de fin de turno">
+                    <span class="time-sublabel">Esperado:</span>
+                    <span class="font-mono">{{ reg.horaFinTurno }}</span>
+                  </div>
+                  <div class="time-row time-row--marcado-info" title="Horario en el que marcó salida">
+                    <span class="time-sublabel">Marcó:</span>
+                    <span class="font-mono font-bold">{{ reg.horaSalida }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge-retraso badge-retraso--info">
+                  <i class="bi bi-clock"></i> +{{ reg.minutosRetraso }} min
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="salidasTardeFiltradas.length === 0">
+              <td colspan="8" class="empty-row">
+                <i class="bi bi-info-circle text-muted"></i> Sin registros de salidas fuera de tolerancia.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 4: MARCACIONES INVÁLIDAS -->
+    <section class="section-card" *ngIf="!cargandoLT && (subseccionLT === 'TODOS' || subseccionLT === 'INVALIDOS')">
+      <div class="section-header section-header--purple">
+        <div class="section-header-title">
+          <i class="bi bi-shield-x"></i>
+          <div>
+            <h3>Marcaciones Inválidas en Biométrico</h3>
+            <span class="section-subtitle">Eventos rechazados registrados en CIOEVENTINVALID (excluyendo duplicados de la misma hora)</span>
+          </div>
+        </div>
+        <span class="badge-counter badge-counter--purple">{{ invalidosFiltrados.length }} eventos</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="nomina-table">
+          <thead>
+            <tr>
+              <th>Colaborador</th>
+              <th>Documento</th>
+              <th>Grupo / Cuadrilla</th>
+              <th>Centro de Costo</th>
+              <th>Fecha del Evento</th>
+              <th>Hora Intento</th>
+              <th>Motivo de Invalidez</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reg of invalidosFiltrados" class="row-clickable" (click)="abrirDrawer('INVALIDO', reg)">
+              <td>
+                <div class="colab-cell">
+                  <div class="colab-avatar">
+                    {{ reg.colaborador ? reg.colaborador.charAt(0) : 'C' }}
+                  </div>
+                  <div class="colab-meta">
+                    <span class="colab-name">{{ reg.colaborador }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="colab-doc" (click)="$event.stopPropagation(); copiarTexto(reg.documento, 'Cédula')" title="Copiar documento">
+                  CC {{ reg.documento }} <i class="bi bi-copy copy-icon"></i>
+                </span>
+              </td>
+              <td><span class="badge-group">{{ reg.grupo || 'General' }}</span></td>
+              <td class="text-muted">{{ reg.centroCosto || 'Operaciones' }}</td>
+              <td class="font-mono">{{ reg.fecha }}</td>
+              <td class="font-mono font-bold">{{ reg.hora }}</td>
+              <td>
+                <span class="badge-invalido">
+                  <i class="bi bi-exclamation-triangle"></i> {{ reg.motivo }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="invalidosFiltrados.length === 0">
+              <td colspan="7" class="empty-row">
+                <i class="bi bi-info-circle text-muted"></i> Sin registros de marcaciones inválidas en el período seleccionado.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ DRAWER LATERAL DE DETALLE ============ -->
+    <div class="drawer-backdrop" *ngIf="drawerAbierto" (click)="cerrarDrawer()"></div>
+    <aside class="drawer-panel" [class.open]="drawerAbierto" *ngIf="drawerAbierto && drawerReg">
+      <header class="drawer-header">
+        <div class="drawer-nav">
+          <button class="drawer-nav-btn" (click)="navegarDrawer(-1)" [disabled]="drawerIndice <= 0" title="Anterior"><i class="bi bi-chevron-up"></i></button>
+          <button class="drawer-nav-btn" (click)="navegarDrawer(1)" [disabled]="drawerIndice >= totalDrawer - 1" title="Siguiente"><i class="bi bi-chevron-down"></i></button>
+          <span class="drawer-counter">{{ drawerIndice + 1 }} / {{ totalDrawer }}</span>
+        </div>
+        <button class="drawer-close" (click)="cerrarDrawer()" title="Cerrar"><i class="bi bi-x-lg"></i></button>
+      </header>
+
+      <div class="drawer-body">
+        <div class="drawer-profile">
+          <div class="colab-avatar drawer-avatar">{{ drawerReg.colaborador ? drawerReg.colaborador.charAt(0) : 'C' }}</div>
+          <div>
+            <h3 class="drawer-name">{{ drawerReg.colaborador }}</h3>
+            <span class="colab-doc" (click)="copiarTexto(drawerReg.documento, 'Cédula')">CC {{ drawerReg.documento }} <i class="bi bi-copy copy-icon"></i></span>
+          </div>
+        </div>
+
+        <div class="drawer-tags">
+          <span class="badge-group">{{ drawerReg.grupo || 'General' }}</span>
+          <span class="text-muted">{{ drawerReg.centroCosto || 'Operaciones' }}</span>
+          <span class="badge-memorando" *ngIf="drawerReg.aplicaMemorando || drawerTipo === 'NO_MARCO'">
+            <i class="bi bi-exclamation-octagon-fill"></i> Aplica Memorando
+          </span>
+          <span class="badge-reincidente" *ngIf="historialDrawer.length >= 3">
+            <i class="bi bi-arrow-repeat"></i> Reincidente ({{ historialDrawer.length }} novedades)
+          </span>
+        </div>
+
+        <h4 class="drawer-section-title">Novedad seleccionada</h4>
+        <div class="drawer-grid">
+          <div class="drawer-field"><span>Fecha</span><strong>{{ drawerReg.fecha }}</strong></div>
+          <div class="drawer-field" *ngIf="drawerReg.turno"><span>Turno</span><strong>{{ drawerReg.turno }}</strong></div>
+
+          <ng-container *ngIf="drawerTipo === 'LLEGADA'">
+            <div class="drawer-field"><span>Inicio de turno</span><strong>{{ drawerReg.horaInicioTurno }}</strong></div>
+            <div class="drawer-field"><span>Hora de marcación</span><strong>{{ drawerReg.horaEntrada }}</strong></div>
+            <div class="drawer-field drawer-field--full">
+              <span>Retraso</span>
+              <div class="delay-bar"><div class="delay-bar__fill" [class.delay-bar__fill--alto]="drawerReg.minutosRetraso > 15" [style.width.%]="(drawerReg.minutosRetraso / 30 * 100) > 100 ? 100 : (drawerReg.minutosRetraso / 30 * 100)"></div></div>
+              <strong>+{{ drawerReg.minutosRetraso }} min</strong>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="drawerTipo === 'NO_MARCO'">
+            <div class="drawer-field"><span>Horario esperado</span><strong>{{ drawerReg.horaInicio || '--' }} - {{ drawerReg.horaFin || '--' }}</strong></div>
+            <div class="drawer-field"><span>Tipo de omisión</span><strong>{{ drawerReg.tipoOmision }}</strong></div>
+          </ng-container>
+
+          <ng-container *ngIf="drawerTipo === 'SALIDA'">
+            <div class="drawer-field"><span>Fin de turno</span><strong>{{ drawerReg.horaFinTurno }}</strong></div>
+            <div class="drawer-field"><span>Hora de salida</span><strong>{{ drawerReg.horaSalida }}</strong></div>
+            <div class="drawer-field"><span>Tiempo posterior</span><strong>+{{ drawerReg.minutosRetraso }} min</strong></div>
+          </ng-container>
+
+          <ng-container *ngIf="drawerTipo === 'INVALIDO'">
+            <div class="drawer-field"><span>Hora del intento</span><strong>{{ drawerReg.hora }}</strong></div>
+            <div class="drawer-field drawer-field--full"><span>Motivo</span><strong>{{ drawerReg.motivo }}</strong></div>
+          </ng-container>
+        </div>
+
+        <!-- HISTORIAL BIOMÉTRICO: 2 GRÁFICAS DE PUNTOS (ENTRADAS Y SALIDAS DEL MES ACTUAL) -->
+        <h4 class="drawer-section-title">
+          <i class="bi bi-clock-history"></i> Historial de Marcaciones del Mes Actual (Puntos)
+        </h4>
+
+        <!-- Gráfica 1: Historial de Entradas -->
+        <div class="drawer-chart-card">
+          <div class="drawer-chart-header">
+            <span class="drawer-chart-title">
+              <i class="bi bi-box-arrow-in-right text-teal"></i> Historial de Entradas (Ingresos)
+            </span>
+            <span class="chart-badge-count">{{ puntosEntradasCount }} marcaciones</span>
+          </div>
+          <div class="drawer-chart-canvas-box">
+            <div *ngIf="cargandoHistorialColab" class="drawer-chart-loading">
+              <div class="spinner-sm"></div>
+              <span>Sincronizando marcaciones del mes...</span>
+            </div>
+            <canvas id="chartDrawerEntradas"></canvas>
+          </div>
+          <div *ngIf="puntosEntradasCount === 0 && !cargandoHistorialColab" class="drawer-empty-chart">
+            <i class="bi bi-info-circle"></i> Sin marcaciones de entrada registradas en el mes actual.
+          </div>
+          <div class="drawer-chart-legend">
+            <span class="legend-item"><span class="legend-dot dot-green"></span> Puntual (&le;6m)</span>
+            <span class="legend-item"><span class="legend-dot dot-amber"></span> Leve (7-15m)</span>
+            <span class="legend-item"><span class="legend-dot dot-red"></span> Memorando (&gt;15m)</span>
+            <span class="legend-item"><span class="legend-line line-teal"></span> Turno</span>
+          </div>
+        </div>
+
+        <!-- Gráfica 2: Historial de Salidas -->
+        <div class="drawer-chart-card">
+          <div class="drawer-chart-header">
+            <span class="drawer-chart-title">
+              <i class="bi bi-box-arrow-right text-blue"></i> Historial de Salidas (Egresos)
+            </span>
+            <span class="chart-badge-count">{{ puntosSalidasCount }} marcaciones</span>
+          </div>
+          <div class="drawer-chart-canvas-box">
+            <div *ngIf="cargandoHistorialColab" class="drawer-chart-loading">
+              <div class="spinner-sm"></div>
+              <span>Sincronizando marcaciones del mes...</span>
+            </div>
+            <canvas id="chartDrawerSalidas"></canvas>
+          </div>
+          <div *ngIf="puntosSalidasCount === 0 && !cargandoHistorialColab" class="drawer-empty-chart">
+            <i class="bi bi-info-circle"></i> Sin marcaciones de salida registradas en el mes actual.
+          </div>
+          <div class="drawer-chart-legend">
+            <span class="legend-item"><span class="legend-dot dot-blue"></span> Normal</span>
+            <span class="legend-item"><span class="legend-dot dot-orange"></span> Salida Tarde (&gt;11m)</span>
+            <span class="legend-item"><span class="legend-line line-gray"></span> Fin Turno</span>
+          </div>
+        </div>
+      </div>
+
+      <footer class="drawer-footer">
+        <button class="btn-filter-action btn-filter-memo" (click)="descargarMemorando()" title="Generar memorando disciplinario oficial en PDF">
+          <i class="bi bi-file-earmark-pdf-fill"></i> Descargar Memorando
+        </button>
+        <button class="btn-drawer-copy" (click)="copiarNotificacionDrawer()" title="Copiar notificación para WhatsApp / Teams">
+          <i class="bi bi-clipboard-check"></i>
+        </button>
+      </footer>
+    </aside>
+
+  </ng-container>
+
+  <!-- ################################################################ -->
+  <!-- ######### TAB 2: LIQUIDACIÓN DE HORAS Y TURNOS ######### -->
+  <!-- ################################################################ -->
+  <ng-container *ngIf="pestanaActiva === 'prueba'">
+
+    <!-- BARRA SUPERIOR DE NAVEGACIÓN SEMANAL -->
+    <section class="week-nav-card">
+      <div class="week-nav-left">
+        <button class="btn-week-step" (click)="semanaAnterior()" title="Ir a la semana anterior">
+          <i class="bi bi-chevron-left"></i> Semana Anterior
+        </button>
+
+        <div class="week-title-display">
+          <div class="week-title-icon"><i class="bi bi-calendar3-range-fill"></i></div>
+          <div class="week-title-text">
+            <span class="week-title-main">{{ semanaTextoFormateada }}</span>
+            <span class="week-title-sub">
+              Rango: {{ dataResumenSemanal?.semanaInicio }} al {{ dataResumenSemanal?.semanaFin }}
+            </span>
+          </div>
+        </div>
+
+        <button class="btn-week-step" (click)="semanaSiguiente()" title="Ir a la semana siguiente">
+          Semana Siguiente <i class="bi bi-chevron-right"></i>
+        </button>
+
+        <button class="btn-week-current" (click)="semanaActual()" title="Volver a la semana en curso">
+          <i class="bi bi-calendar-event"></i> Esta Semana
+        </button>
+      </div>
+
+      <div class="week-nav-right">
+        <div class="week-picker-group">
+          <label class="week-picker-label"><i class="bi bi-calendar-date"></i> Saltar a Fecha:</label>
+          <input type="date"
+                 class="week-picker-input"
+                 [(ngModel)]="fechaReferenciaSemana"
+                 (change)="onFechaSemanalChange()"
+                 title="Selecciona cualquier día para ver su semana correspondiente">
+        </div>
+      </div>
+    </section>
+
+    <!-- KPIS RESUMEN SEMANAL -->
+    <section class="kpi-grid kpi-grid--3col">
+      <div class="kpi-card kpi-card--primary">
+        <div class="kpi-card__top">
+          <span class="kpi-card__label">Total Colaboradores</span>
+          <div class="kpi-card__icon"><i class="bi bi-people-fill"></i></div>
+        </div>
+        <div class="kpi-card__main">
+          <span class="kpi-card__value">{{ dataResumenSemanal?.resumen?.totalColaboradores || 0 }}</span>
+        </div>
+        <div class="kpi-card__footer">
+          <span class="kpi-pill"><i class="bi bi-person-check"></i> Activos en nómina</span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-card--warning" [class.kpi-card--active]="filtroEstadoSemanal === 'CON_INTERRUPCION'" (click)="cambiarFiltroEstadoSemanal('CON_INTERRUPCION')" style="cursor: pointer;">
+        <div class="kpi-card__top">
+          <span class="kpi-card__label">Con Interrupciones</span>
+          <div class="kpi-card__icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        </div>
+        <div class="kpi-card__main">
+          <span class="kpi-card__value">{{ dataResumenSemanal?.resumen?.totalConInterrupciones || 0 }}</span>
+        </div>
+        <div class="kpi-card__footer">
+          <span class="kpi-pill"><i class="bi bi-slash-circle"></i> {{ dataResumenSemanal?.resumen?.totalHorasInterrupciones || 0 }} hrs afectadas</span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-card--purple">
+        <div class="kpi-card__top">
+          <span class="kpi-card__label">Cumplimiento Global</span>
+          <div class="kpi-card__icon"><i class="bi bi-percent"></i></div>
+        </div>
+        <div class="kpi-card__main">
+          <span class="kpi-card__value">{{ dataResumenSemanal?.resumen?.porcentajeCumplimientoGlobal || 0 }}%</span>
+        </div>
+        <div class="kpi-card__footer">
+          <span class="kpi-pill"><i class="bi bi-graph-up-arrow"></i> Programado vs Ejecutado</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CUMPLIMIENTO POR GRUPO / CUADRILLA ==================== -->
+    <section class="grupos-section-card" *ngIf="!cargandoSemanal && resumenGrupos.length > 0">
+      <div class="grupos-section-header">
+        <div class="grupos-header-left">
+          <div class="grupos-header-icon"><i class="bi bi-pie-chart-fill"></i></div>
+          <div>
+            <h3 class="grupos-header-title">Cumplimiento por Área</h3>
+            <p class="grupos-header-sub">Porcentaje de cumplimiento de cada área. Haz clic en un área para ver sus colaboradores.</p>
+          </div>
+        </div>
+
+        <div class="grupos-header-right">
+          <!-- Filtro rápido de turnos por área -->
+          <div class="turnos-subfilter-tabs">
+            <button type="button" class="btn-subfilter-tab"
+                    [class.active]="filtroTurnosGrupos === 'TODOS'"
+                    (click)="filtroTurnosGrupos = 'TODOS'"
+                    title="Mostrar todas las áreas">
+              <span>Todas ({{ resumenGrupos.length }})</span>
+            </button>
+            <button type="button" class="btn-subfilter-tab btn-subfilter-tab--sin-turno"
+                    [class.active]="filtroTurnosGrupos === 'SIN_TURNO'"
+                    (click)="filtroTurnosGrupos = 'SIN_TURNO'"
+                    *ngIf="totalAreasConTurnosPendientes > 0"
+                    title="Filtrar áreas a las que les falta programar turnos">
+              <i class="bi bi-calendar-x-fill text-warning"></i>
+              <span>Falta Turno ({{ totalAreasConTurnosPendientes }})</span>
+            </button>
+            <button type="button" class="btn-subfilter-tab btn-subfilter-tab--con-turno"
+                    [class.active]="filtroTurnosGrupos === 'CON_TURNO'"
+                    (click)="filtroTurnosGrupos = 'CON_TURNO'"
+                    title="Filtrar áreas que ya tienen turnos programados">
+              <i class="bi bi-calendar-check-fill text-success"></i>
+              <span>Con Turno ({{ totalAreasConTurnosAsignados }})</span>
+            </button>
+          </div>
+
+          <div *ngIf="grupoSemanal !== 'TODOS'" style="display: inline-flex; align-items: center; gap: 8px;">
+            <span class="filtro-activo-chip">
+              <i class="bi bi-funnel-fill"></i> Área: <strong>{{ grupoSemanal }}</strong>
+            </span>
+            <button class="btn-clear-grupo" (click)="seleccionarGrupoCard('TODOS')" title="Restablecer filtro a todas las áreas">
+              <i class="bi bi-x-circle-fill"></i> Ver Todas
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grupos-cards-grid">
+        <div *ngFor="let g of resumenGruposFiltrados"
+             class="grupo-compliance-card"
+             [class.grupo-card--selected]="grupoSemanal === g.grupo"
+             (click)="seleccionarGrupoCard(g.grupo)"
+             [title]="'Clic para filtrar y ver los ' + g.totalColaboradores + ' colaboradores de ' + g.grupo">
+
+          <div class="grupo-card__top">
+            <div class="grupo-card__title-box">
+              <span class="grupo-card__name" [title]="g.grupo">{{ g.grupo }}</span>
+              <span class="grupo-card__badge-colab">
+                <i class="bi bi-people-fill"></i> {{ g.totalColaboradores }} colab.
+              </span>
+            </div>
+            <span class="grupo-card__pct-badge"
+                  [ngClass]="{
+                    'pct--high': g.porcentajeCumplimiento >= 100,
+                    'pct--good': g.porcentajeCumplimiento >= 85 && g.porcentajeCumplimiento < 100,
+                    'pct--warn': g.porcentajeCumplimiento < 85
+                  }">
+              {{ g.porcentajeCumplimiento }}%
+            </span>
+          </div>
+
+          <!-- Barra de Progreso del Grupo -->
+          <div class="grupo-card__progress">
+            <div class="grupo-progress-bar">
+              <div class="grupo-progress-fill"
+                   [style.width.%]="g.porcentajeCumplimiento > 100 ? 100 : g.porcentajeCumplimiento"
+                   [ngClass]="{
+                     'bar--high': g.porcentajeCumplimiento >= 100,
+                     'bar--good': g.porcentajeCumplimiento >= 85 && g.porcentajeCumplimiento < 100,
+                     'bar--warn': g.porcentajeCumplimiento < 85
+                   }">
+              </div>
+            </div>
+          </div>
+
+          <!-- Horas Programadas vs Ejecutadas -->
+          <div class="grupo-card__hours-row">
+            <span class="grupo-hour-tag grupo-hour--prog" title="Total horas programadas del grupo">
+              Prog: <strong>{{ g.totalHorasProgramadas }}h</strong>
+            </span>
+            <span class="grupo-hour-tag grupo-hour--ejec" title="Total horas ejecutadas del grupo">
+              Ejec: <strong>{{ g.totalHorasEjecutadas }}h</strong>
+            </span>
+            <span class="grupo-hour-diff"
+                  [class.diff--pos]="g.diferenciaHoras > 0"
+                  [class.diff--neg]="g.diferenciaHoras < 0">
+              {{ g.diferenciaHoras > 0 ? '+' : '' }}{{ g.diferenciaHoras }}h
+            </span>
+          </div>
+
+          <!-- Footer con alertas y estado -->
+          <div class="grupo-card__footer">
+            <div class="grupo-tags-left">
+              <span class="grupo-alert-pill grupo-alert-pill--pasados" *ngIf="g.pasadosHoras > 0" title="Colaboradores que superan sus horas programadas">
+                <i class="bi bi-clock-history"></i> {{ g.pasadosHoras }} pasado{{ g.pasadosHoras > 1 ? 's' : '' }}
+              </span>
+              <span class="grupo-alert-pill grupo-alert-pill--interrup" *ngIf="g.conInterrupciones > 0" title="Colaboradores con interrupciones">
+                <i class="bi bi-exclamation-triangle"></i> {{ g.conInterrupciones }}
+              </span>
+              <span class="grupo-ok-pill" *ngIf="g.pasadosHoras === 0 && g.conInterrupciones === 0">
+                <i class="bi bi-check2"></i> Normal
+              </span>
+            </div>
+
+            <div class="grupo-tags-right">
+              <span class="badge-turno-mini turno-mini--cero" *ngIf="(g.colaboradoresConTurno || 0) === 0" title="Ningún colaborador tiene turno asignado aún en esta área">
+                <i class="bi bi-calendar-x"></i> Sin turnos (0/{{ g.totalColaboradores }})
+              </span>
+              <span class="badge-turno-mini turno-mini--parcial" *ngIf="(g.colaboradoresConTurno || 0) > 0 && (g.colaboradoresSinTurno || 0) > 0" title="Turnos asignados parcialmente: {{ g.colaboradoresConTurno }} de {{ g.totalColaboradores }} colaboradores">
+                <i class="bi bi-clock-history"></i> {{ g.colaboradoresConTurno }}/{{ g.totalColaboradores }}
+              </span>
+              <span class="badge-turno-mini turno-mini--ok" *ngIf="g.turnosCompletos" title="100% de los colaboradores de esta área tienen turno programado">
+                <i class="bi bi-check-circle-fill"></i> Turnos OK
+              </span>
+              <span class="grupo-active-badge" *ngIf="grupoSemanal === g.grupo">
+                <i class="bi bi-check-circle-fill"></i> Activo
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+    <section class="filters-card">
+      <div class="filters-grid filters-grid--semanal">
+        <!-- Buscador -->
+        <div class="filter-group">
+          <label class="filter-label"><i class="bi bi-search"></i> Buscar Colaborador o Cédula</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-search input-icon"></i>
+            <input type="text"
+                   class="filter-input"
+                   placeholder="Ej: Pérez, 1082..., Grupo / Área..."
+                   [(ngModel)]="busquedaSemanal"
+                   (input)="aplicarFiltrosSemanal()">
+            <button *ngIf="busquedaSemanal" class="btn-clear-search" (click)="busquedaSemanal = ''; aplicarFiltrosSemanal()">
+              <i class="bi bi-x-circle-fill"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Cuadrilla / Grupo -->
+        <div class="filter-group">
+          <label class="filter-label"><i class="bi bi-people"></i> Grupo / Area</label>
+          <select class="filter-select" [(ngModel)]="grupoSemanal" (change)="aplicarFiltrosSemanal()">
+            <option value="TODOS">Todos los grupos ({{ gruposSemanalDisponibles.length }})</option>
+            <option *ngFor="let g of gruposSemanalDisponibles" [value]="g">{{ g }}</option>
+          </select>
+        </div>
+
+        <!-- Filtro Rápido de Estado -->
+        <div class="filter-group filter-group--chips">
+          <label class="filter-label"><i class="bi bi-funnel-fill"></i> Estado de Cumplimiento</label>
+          <div class="chips-row">
+            <button type="button" class="btn-chip" [class.btn-chip--active]="filtroEstadoSemanal === 'TODOS'" (click)="cambiarFiltroEstadoSemanal('TODOS')">
+              Todos ({{ dataResumenSemanal?.colaboradores?.length || 0 }})
+            </button>
+            <button type="button" class="btn-chip btn-chip--danger"
+                    [class.btn-chip--active]="filtroEstadoSemanal === 'SIN_TURNO'"
+                    (click)="cambiarFiltroEstadoSemanal('SIN_TURNO')"
+                    *ngIf="totalColaboradoresSinTurno > 0"
+                    title="Filtrar colaboradores que no tienen turnos asignados esta semana">
+              <i class="bi bi-calendar-x-fill"></i> Falta Turno ({{ totalColaboradoresSinTurno }})
+            </button>
+            <button type="button" class="btn-chip btn-chip--warn" [class.btn-chip--active]="filtroEstadoSemanal === 'CON_INTERRUPCION'" (click)="cambiarFiltroEstadoSemanal('CON_INTERRUPCION')">
+              <i class="bi bi-exclamation-triangle"></i> Con Interrupción ({{ dataResumenSemanal?.resumen?.totalConInterrupciones || 0 }})
+            </button>
+            <button type="button" class="btn-chip btn-chip--danger" [class.btn-chip--active]="filtroEstadoSemanal === 'INCOMPLETO'" (click)="cambiarFiltroEstadoSemanal('INCOMPLETO')">
+              <i class="bi bi-dash-circle"></i> Horas Incompletas
+            </button>
+            <button type="button" class="btn-chip btn-chip--purple" [class.btn-chip--active]="filtroEstadoSemanal === 'CON_HORAS_EXTRA'" (click)="cambiarFiltroEstadoSemanal('CON_HORAS_EXTRA')">
+              <i class="bi bi-plus-circle"></i> Con Horas Extra
+            </button>
+            <button type="button" class="btn-chip btn-chip--success" [class.btn-chip--active]="filtroEstadoSemanal === 'CUMPLIDO'" (click)="cambiarFiltroEstadoSemanal('CUMPLIDO')">
+              <i class="bi bi-check2-circle"></i> 100% Cumplido
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESTADO DE CARGA -->
+    <div class="loading-state-card" *ngIf="cargandoSemanal">
+      <div class="spinner-main"></div>
+      <h4>Sincronizando resumen semanal de horas...</h4>
+      <p>Calculando turnos programados, marcaciones biométricas e interrupciones de la semana.</p>
+    </div>
+
+    <!-- TABLA MATRIZ SEMANAL -->
+    <section class="table-card" *ngIf="!cargandoSemanal">
+      <div class="table-card__header">
+        <div class="table-card__title-row">
+          <i class="bi bi-calendar-week text-success"></i>
+          <div>
+            <h3 class="table-card__title">Planilla: Liquidación de Horas y Turnos</h3>
+            <p class="table-card__subtitle">
+              Mostrando {{ colaboradoresSemanalFiltrados.length }} colaborador(es) para {{ semanaTextoFormateada }}
+            </p>
+
+            <!-- CONVENCIONES Y REFERENCIA DE BORDES (BORDE IZQUIERDO) -->
+            <div class="table-color-legend">
+              <span class="legend-title"><i class="bi bi-border-left"></i> Referencia de Estados (Borde Izquierdo):</span>
+              <div class="legend-items">
+                <span class="legend-chip">
+                  <span class="chip-color chip-color--cumplido"></span>
+                  <strong>Borde Izq. Verde:</strong> Cumplido / En Curso
+                </span>
+                <span class="legend-chip">
+                  <span class="chip-color chip-color--extra"></span>
+                  <strong>Borde Izq. Amarillo:</strong> Horas Extras
+                </span>
+                <span class="legend-chip">
+                  <span class="chip-color chip-color--no-asistio"></span>
+                  <strong>Borde Izq. Rojo:</strong> No Asistió (Sin marcación)
+                </span>
+                <span class="legend-chip">
+                  <span class="chip-color chip-color--descanso"></span>
+                  <strong>Borde Izq. Gris:</strong> Día de Descanso
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card__actions">
+          <span class="badge-legend badge-legend--prog"><span class="dot dot-gray"></span> Prog: Programadas</span>
+          <span class="badge-legend badge-legend--ejec"><span class="dot dot-green"></span> Ejec: Ejecutadas</span>
+          <button class="btn-export-sm" (click)="exportarCsvSemanal()" title="Descargar CSV">
+            <i class="bi bi-download"></i> CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive-wrapper">
+        <table class="table-semanal">
+          <thead>
+            <tr>
+              <th class="th-colab">Colaborador</th>
+              <th class="th-totales">Total Semana</th>
+              <th class="th-interrup">Interrupciones</th>
+              <th *ngFor="let dm of dataResumenSemanal?.diasMeta" class="th-dia" [class.th-dia--hoy]="dm.esHoy">
+                <div class="th-dia-content">
+                  <span class="th-dia-name">{{ dm.nombre }}</span>
+                  <span class="th-dia-fecha">{{ dm.fecha | date:'dd MMM' }}</span>
+                  <span class="th-dia-badge" *ngIf="dm.esHoy">HOY</span>
+                </div>
+              </th>
+              <th class="th-action">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of colaboradoresSemanalPaginados" class="tr-colab-row" [class.tr-colab--has-interrup]="c.tieneInterrupciones">
+              <!-- Colaborador -->
+              <td class="td-colab">
+                <div class="colab-info-box">
+                  <div class="colab-avatar">
+                    {{ c.colaborador.charAt(0) || 'C' }}
+                  </div>
+                  <div class="colab-texts">
+                    <div class="colab-header-row">
+                      <span class="colab-name" [title]="c.colaborador">{{ c.colaborador }}</span>
+                      <span class="badge-status-activo" title="Colaborador activo">
+                        <span class="pulse-dot"></span> Activo
+                      </span>
+                      <span class="badge-sin-turno-tag" *ngIf="c.totalHorasProgramadas === 0" title="A este colaborador le falta asignar turno esta semana">
+                        <i class="bi bi-calendar-x"></i> Sin Turno
+                      </span>
+                    </div>
+                    <span class="colab-doc"><i class="bi bi-card-text"></i> {{ c.documento }}</span>
+                    <span class="colab-group"><i class="bi bi-people"></i> {{ c.grupo }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Total Semana -->
+              <td class="td-totales">
+                <div class="totales-summary-box">
+                  <div class="totales-prog-ejec">
+                    <span class="total-tag total-tag--prog" title="Total horas programadas en la semana">
+                      <strong>Prog:</strong> {{ c.totalHorasProgramadas }}h
+                    </span>
+                    <span class="total-tag total-tag--ejec" title="Total horas ejecutadas llevadas">
+                      <strong>Ejec:</strong> {{ c.totalHorasEjecutadas }}h
+                    </span>
+                  </div>
+
+                  <!-- Barra de progreso -->
+                  <div class="progress-bar-container" title="Cumplimiento semanal: {{ c.porcentajeCumplimiento }}%">
+                    <div class="progress-bar-fill"
+                         [style.width.%]="c.porcentajeCumplimiento > 100 ? 100 : c.porcentajeCumplimiento"
+                         [ngClass]="{
+                           'bar-fill--success': c.porcentajeCumplimiento >= 100,
+                           'bar-fill--info': c.porcentajeCumplimiento >= 70 && c.porcentajeCumplimiento < 100,
+                           'bar-fill--warning': c.porcentajeCumplimiento >= 40 && c.porcentajeCumplimiento < 70,
+                           'bar-fill--danger': c.porcentajeCumplimiento < 40
+                         }">
+                    </div>
+                  </div>
+
+                  <div class="totales-diff-row">
+                    <span class="totales-pct">{{ c.porcentajeCumplimiento }}%</span>
+                    <span class="totales-diff"
+                          [class.diff--pos]="c.diferenciaHoras > 0"
+                          [class.diff--neg]="c.diferenciaHoras < 0"
+                          [class.diff--zero]="c.diferenciaHoras === 0">
+                      {{ c.diferenciaHoras > 0 ? '+' : '' }}{{ c.diferenciaHoras }}h
+                    </span>
+                  </div>
+
+                  <!-- Botón Notificar por Correo si está pasada -->
+                  <button *ngIf="c.diferenciaHoras > 0"
+                          type="button"
+                          class="btn-notif-email"
+                          (click)="notificarHorasExcedidas(c, $event)"
+                          title="Enviar notificación por correo por horas excedidas (+{{ c.diferenciaHoras }}h)">
+                    <i class="bi bi-envelope-at-fill"></i>
+                    <span>Notificar (+{{ c.diferenciaHoras }}h)</span>
+                  </button>
+                </div>
+              </td>
+
+              <!-- Interrupciones -->
+              <td class="td-interrup">
+                <div *ngIf="c.tieneInterrupciones" class="interrup-badge-box" title="Interrupciones: {{ c.novedadesSemana.join(', ') }}">
+                  <span class="interrup-pill interrup-pill--warn">
+                    <i class="bi bi-exclamation-triangle-fill"></i> {{ c.totalHorasInterrupciones }} hrs
+                  </span>
+                  <span class="interrup-novedades-text">
+                    {{ c.novedadesSemana.join(', ') }}
+                  </span>
+                </div>
+                <div *ngIf="!c.tieneInterrupciones" class="interrup-none">
+                  <span class="interrup-pill interrup-pill--ok">
+                    <i class="bi bi-check-circle"></i> Sin novedad
+                  </span>
+                </div>
+              </td>
+
+              <!-- Días Lunes a Domingo -->
+              <td *ngFor="let d of c.dias" class="td-dia-cell" [class.td-dia-cell--hoy]="d.esHoy">
+                <div class="dia-cell-card" [class.dia-cell--doble-entrada]="d.tieneDobleEntrada"
+                     [ngClass]="{
+                       'dia-cell--cumplido': d.estado === 'CUMPLIDO',
+                       'dia-cell--en-curso': d.estado === 'EN_CURSO',
+                       'dia-cell--incompleto': d.estado === 'INCOMPLETO',
+                       'dia-cell--extra': d.estado === 'CON_HORAS_EXTRA' || d.estado === 'EXTRA_DESCANSO',
+                       'dia-cell--descanso': d.estado === 'DESCANSO',
+                       'dia-cell--no-asistio': d.estado === 'NO_ASISTIO',
+                       'dia-cell--interrup': d.estado === 'CON_INTERRUPCION',
+                       'dia-cell--futuro': d.estado === 'FUTURO'
+                     }">
+
+                  <!-- Encabezado de la celda de día -->
+                  <div class="dia-cell-top">
+                    <span class="dia-cell-prog" title="Horas Programadas">
+                      <i class="bi bi-calendar2"></i> {{ d.horasProgramadas }}h
+                    </span>
+                    <span class="dia-cell-ejec" [class.dia-cell-ejec--zero]="d.horasEjecutadas === 0" [title]="'Horas Ejecutadas: ' + d.horasEjecutadas + 'h' + (d.almuerzoDescontado ? ' (1h almuerzo descontada)' : '')">
+                      <i class="bi bi-stopwatch"></i> {{ d.horasEjecutadas }}h
+                    </span>
+                  </div>
+
+                  <!-- Turno / Horario -->
+                  <div class="dia-cell-turno" [title]="'Turno: ' + d.turno + (d.inicioTurno ? ' (' + d.inicioTurno + ' - ' + d.finTurno + ')' : '')">
+                    <i class="bi bi-clock"></i>
+                    <span>{{ d.turno }}</span>
+                  </div>
+
+                  <!-- Marcación real -->
+                  <div class="dia-cell-punch" *ngIf="d.horaEntrada || d.horaSalida" [title]="'Entrada: ' + (d.horaEntrada || '--') + ' | Salida: ' + (d.horaSalida || '--')">
+                    <span class="punch-in">{{ d.horaEntrada ? d.horaEntrada.substring(0, 5) : '--' }}</span>
+                    <span class="punch-sep">/</span>
+                    <span class="punch-out">{{ d.horaSalida ? d.horaSalida.substring(0, 5) : (d.enCurso ? 'Laborando...' : '--') }}</span>
+                  </div>
+
+                                    <!-- Badge de Doble Entrada si existe en este día -->
+                  <div class="dia-cell-doble-entrada-tag" *ngIf="d.tieneDobleEntrada" [title]="'Doble entrada: ' + (d.cantidadEntradas || 2) + ' registros detectados'">
+                    <i class="bi bi-exclamation-diamond-fill"></i> Doble Entrada
+                  </div>
+
+                  <!-- Indicador de En Curso hoy -->
+                  <div class="dia-cell-live" *ngIf="d.enCurso">
+                    <span class="live-pulse"></span>
+                    <span>En turno</span>
+                  </div>
+
+                  <!-- Badge de Interrupción si existe en este día -->
+                  <div class="dia-cell-interrup-flag" *ngIf="d.tieneInterrupcion" [title]="d.interrupcion">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    <span>{{ d.interrupcion }}</span>
+                  </div>
+
+                  <!-- Badge Descanso -->
+                  <div class="dia-cell-descanso" *ngIf="d.estado === 'DESCANSO'">
+                    <span>Descanso</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Botón Detalle -->
+              <td class="td-action">
+                <button class="btn-view-colab" (click)="abrirDetalleColaboradorSemanal(c)" title="Ver desglose detallado">
+                  <i class="bi bi-eye-fill"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Sin resultados -->
+            <tr *ngIf="colaboradoresSemanalPaginados.length === 0">
+              <td colspan="11" class="td-empty-table">
+                <div class="empty-state-box">
+                  <i class="bi bi-inbox"></i>
+                  <h4>No se encontraron colaboradores</h4>
+                  <p>Intenta cambiar los filtros de búsqueda, cuadrilla o fecha de la semana.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINADOR SEMANAL -->
+      <div class="table-pagination-footer" *ngIf="colaboradoresSemanalFiltrados.length > 0">
+        <div class="pagination-info">
+          Mostrando {{ (paginaActualSemanal - 1) * elementosPorPaginaSemanal + 1 }} a
+          {{ (paginaActualSemanal * elementosPorPaginaSemanal) > colaboradoresSemanalFiltrados.length ? colaboradoresSemanalFiltrados.length : (paginaActualSemanal * elementosPorPaginaSemanal) }}
+          de {{ colaboradoresSemanalFiltrados.length }} colaboradores
+        </div>
+
+        <div class="pagination-controls">
+          <button class="btn-page" [disabled]="paginaActualSemanal === 1" (click)="cambiarPaginaSemanal(paginaActualSemanal - 1)">
+            <i class="bi bi-chevron-left"></i> Anterior
+          </button>
+          <span class="page-badge">Página {{ paginaActualSemanal }} de {{ totalPaginasSemanal }}</span>
+          <button class="btn-page" [disabled]="paginaActualSemanal === totalPaginasSemanal" (click)="cambiarPaginaSemanal(paginaActualSemanal + 1)">
+            Siguiente <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL DETALLE EXTENDIDO POR COLABORADOR -->
+    <div class="modal-overlay" *ngIf="modalDetalleColaboradorSemanal && colaboradorSeleccionadoSemanal" (click)="cerrarDetalleColaboradorSemanal()">
+      <div class="modal-container modal-container--wide" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-box">
+            <div class="modal-icon modal-icon--success"><i class="bi bi-person-lines-fill"></i></div>
+            <div>
+              <div class="colab-modal-header-name">
+                <h3 class="modal-title">{{ colaboradorSeleccionadoSemanal.colaborador }}</h3>
+                <span class="badge-status-activo"><span class="pulse-dot"></span> Activo</span>
+              </div>
+              <p class="modal-sub">
+                Cédula: {{ colaboradorSeleccionadoSemanal.documento }} | Grupo: {{ colaboradorSeleccionadoSemanal.grupo }} | Área: {{ colaboradorSeleccionadoSemanal.area || 'Planta' }}
+              </p>
+            </div>
+          </div>
+          <button class="btn-close-x" (click)="cerrarDetalleColaboradorSemanal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Alerta de Horas Pasadas -->
+          <div class="modal-pasado-alert" *ngIf="colaboradorSeleccionadoSemanal.diferenciaHoras > 0">
+            <div class="modal-pasado-left">
+              <i class="bi bi-exclamation-octagon-fill"></i>
+              <div>
+                <h4>Colaborador con Horas Excedidas (+{{ colaboradorSeleccionadoSemanal.diferenciaHoras }} hrs)</h4>
+                <p>Ha sobrepasado las horas programadas de la semana. Puedes emitir una notificación formal al supervisor.</p>
+              </div>
+            </div>
+            <button class="btn-notif-email-modal" (click)="notificarHorasExcedidas(colaboradorSeleccionadoSemanal)">
+              <i class="bi bi-envelope-arrow-up-fill"></i> Notificar por Correo
+            </button>
+          </div>
+
+          <!-- Tarjetas KPI del Colaborador -->
+          <div class="colab-modal-kpis">
+            <div class="colab-kpi-item">
+              <span class="colab-kpi-label">Horas Programadas</span>
+              <span class="colab-kpi-val text-primary">{{ colaboradorSeleccionadoSemanal.totalHorasProgramadas }} hrs</span>
+            </div>
+            <div class="colab-kpi-item">
+              <span class="colab-kpi-label">Horas Llevadas (Ejecutadas)</span>
+              <span class="colab-kpi-val text-success">{{ colaboradorSeleccionadoSemanal.totalHorasEjecutadas }} hrs</span>
+            </div>
+            <div class="colab-kpi-item">
+              <span class="colab-kpi-label">Diferencia Horaria</span>
+              <span class="colab-kpi-val" [class.text-danger]="colaboradorSeleccionadoSemanal.diferenciaHoras < 0" [class.text-success]="colaboradorSeleccionadoSemanal.diferenciaHoras > 0">
+                {{ colaboradorSeleccionadoSemanal.diferenciaHoras > 0 ? '+' : '' }}{{ colaboradorSeleccionadoSemanal.diferenciaHoras }} hrs
+              </span>
+            </div>
+            <div class="colab-kpi-item">
+              <span class="colab-kpi-label">Cumplimiento</span>
+              <span class="colab-kpi-val font-bold">{{ colaboradorSeleccionadoSemanal.porcentajeCumplimiento }}%</span>
+            </div>
+            <div class="colab-kpi-item">
+              <span class="colab-kpi-label">Interrupciones</span>
+              <span class="colab-kpi-val" [class.text-warning]="colaboradorSeleccionadoSemanal.tieneInterrupciones">
+                {{ colaboradorSeleccionadoSemanal.tieneInterrupciones ? (colaboradorSeleccionadoSemanal.totalHorasInterrupciones + ' hrs') : 'Ninguna' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Tabla Día por Día de la Semana -->
+          <div class="modal-table-header-row">
+            <h4 class="modal-table-title"><i class="bi bi-calendar3"></i> Desglose Diario de la Semana ({{ semanaTextoFormateada }})</h4>
+            <div class="modal-color-legend">
+              <span class="modal-legend-chip"><span class="chip-color chip-color--cumplido"></span> Cumplido</span>
+              <span class="modal-legend-chip"><span class="chip-color chip-color--extra"></span> Horas Extras</span>
+              <span class="modal-legend-chip"><span class="chip-color chip-color--doble-entrada"></span> Doble Entrada</span>
+              <span class="modal-legend-chip"><span class="chip-color chip-color--no-asistio"></span> No Asistió</span>
+              <span class="modal-legend-chip"><span class="chip-color chip-color--descanso"></span> Descanso</span>
+            </div>
+          </div>
+          <div class="modal-table-responsive">
+            <table class="table-modal-dias">
+              <thead>
+                <tr>
+                  <th>Día</th>
+                  <th>Fecha</th>
+                  <th>Turno Programado</th>
+                  <th>Horario Esperado</th>
+                  <th>Horas Prog.</th>
+                  <th>1ra Entrada</th>
+                  <th>1ra Salida</th>
+                  <th>Horas Ejec.</th>
+                  <th>Interrupción / Novedad</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of colaboradorSeleccionadoSemanal.dias" [class.tr-highlight-today]="d.esHoy" [ngClass]="'tr-dia--' + d.estado.toLowerCase()">
+                  <td><strong>{{ d.nombreDia }}</strong> <span class="badge-today" *ngIf="d.esHoy">HOY</span></td>
+                  <td>{{ d.fecha }}</td>
+                  <td><span class="pill-shift">{{ d.turno }}</span></td>
+                  <td>{{ d.inicioTurno ? (d.inicioTurno + ' - ' + d.finTurno) : '--' }}</td>
+                  <td><strong>{{ d.horasProgramadas }} hrs</strong></td>
+                  <td class="text-success font-bold">
+                    {{ d.horaEntrada || '--' }}
+                    <span *ngIf="d.tieneDobleEntrada" class="badge-doble-entrada-modal" [title]="'Marcación errónea: ' + (d.cantidadEntradas || 2) + ' entradas detectadas'">
+                      <i class="bi bi-exclamation-triangle-fill"></i> Doble ({{ d.cantidadEntradas || 2 }})
+                    </span>
+                  </td>
+                  <td class="text-blue font-bold">{{ d.horaSalida || (d.enCurso ? 'Laborando...' : '--') }}</td>
+                  <td><strong>{{ d.horasEjecutadas }} hrs</strong> <span *ngIf="d.almuerzoDescontado" class="badge-almuerzo-tag" title="Se descontó 1 hora de almuerzo diaria"><i class="bi bi-cup-hot-fill"></i> -1h almuerzo</span></td>
+                  <td>
+                    <span *ngIf="d.tieneInterrupcion" class="badge-interrup-flag">
+                      <i class="bi bi-exclamation-triangle"></i> {{ d.interrupcion }}
+                    </span>
+                    <span *ngIf="!d.tieneInterrupcion" class="text-muted">--</span>
+                  </td>
+                  <td>
+                    <span class="dia-estado-pill" [ngClass]="'pill--' + d.estado.toLowerCase()">
+                      {{ d.estado.replace('_', ' ') }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-modal-action btn-close-modal" (click)="cerrarDetalleColaboradorSemanal()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+
+  <!-- ==================== MODAL DE ENVÍO DE REPORTES POR CORREO (LLEGADAS TARDE - .NET) ==================== -->
+  <div class="modal-overlay modal-overlay--email-report" *ngIf="modalReporteCorreosLT" (click)="cerrarModalReporteCorreosLT()">
+    <div class="modal-card modal-card--email-report" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="modal-header modal-header--email">
+        <div class="modal-header-icon modal-header-icon--email">
+          <i class="bi bi-envelope-paper-heart-fill"></i>
+        </div>
+        <div class="modal-header-texts">
+          <h2 class="modal-title">Despacho de Reportes por Correo</h2>
+          <p class="modal-sub">
+            Módulo de Llegadas Tarde y Omisiones Biométricas (.NET) &bull; Período: <strong>{{ fechaInicioLT }} al {{ fechaFinLT }}</strong>
+          </p>
+        </div>
+        <button class="modal-btn-close" (click)="cerrarModalReporteCorreosLT()" title="Cerrar modal">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body modal-body--email">
+        <!-- Selector de Modo de Envío -->
+        <label class="section-badge-label"><i class="bi bi-gear-fill"></i> Selecciona el tipo de informe a despachar:</label>
+        <div class="report-modes-grid">
+          <button type="button" class="report-mode-card" [class.active]="modoEnvioReporteLT === 'GENERAL'" (click)="cambiarModoEnvioReporteLT('GENERAL')">
+            <div class="mode-icon"><i class="bi bi-file-earmark-text-fill"></i></div>
+            <div class="mode-info">
+              <span class="mode-title">1. Reporte General 1</span>
+              <span class="mode-sub">Gestión Humana y TIC (Único con Memorandos)</span>
+            </div>
+            <span class="mode-badge mode-badge--memo">⚠️ Con Memorandos</span>
+          </button>
+
+          <button type="button" class="report-mode-card" [class.active]="modoEnvioReporteLT === 'GENERAL_2'" (click)="cambiarModoEnvioReporteLT('GENERAL_2')">
+            <div class="mode-icon"><i class="bi bi-bar-chart-fill"></i></div>
+            <div class="mode-info">
+              <span class="mode-title">2. Reporte General 2</span>
+              <span class="mode-sub">Dirección Financiera (Sin Memorandos)</span>
+            </div>
+            <span class="mode-badge">Sin Memorandos</span>
+          </button>
+
+          <button type="button" class="report-mode-card" [class.active]="modoEnvioReporteLT === 'DIRECTIVO'" (click)="cambiarModoEnvioReporteLT('DIRECTIVO')">
+            <div class="mode-icon"><i class="bi bi-buildings-fill"></i></div>
+            <div class="mode-info">
+              <span class="mode-title">3. Consolidado Directivo</span>
+              <span class="mode-sub">Por Director de Área (Sin Memorandos)</span>
+            </div>
+            <span class="mode-badge">Sin Memorandos</span>
+          </button>
+
+          <button type="button" class="report-mode-card" [class.active]="modoEnvioReporteLT === 'GRUPO'" (click)="cambiarModoEnvioReporteLT('GRUPO')">
+            <div class="mode-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="mode-info">
+              <span class="mode-title">4. Por Jefe de Grupo</span>
+              <span class="mode-sub">Reporte individual por cuadrilla (Sin Memorandos)</span>
+            </div>
+            <span class="mode-badge">Sin Memorandos</span>
+          </button>
+
+          <button type="button" class="report-mode-card report-mode-card--masivo" [class.active]="modoEnvioReporteLT === 'MASIVO'" (click)="cambiarModoEnvioReporteLT('MASIVO')">
+            <div class="mode-icon"><i class="bi bi-send-check-fill"></i></div>
+            <div class="mode-info">
+              <span class="mode-title">5. Despacho Masivo Global</span>
+              <span class="mode-sub">Envía a todos (Generales, Directivos y Jefes con novedades)</span>
+            </div>
+            <span class="mode-badge mode-badge--masivo">⚡ Automático</span>
+          </button>
+        </div>
+
+        <!-- Panel de configuración dinámico según el modo seleccionado -->
+        <div class="report-config-panel">
+          <!-- Si es DIRECTIVO -->
+          <div class="config-row" *ngIf="modoEnvioReporteLT === 'DIRECTIVO'">
+            <label class="config-label"><i class="bi bi-person-badge-fill"></i> Seleccionar Directivo Destinatario:</label>
+            <select class="form-control config-select" [(ngModel)]="directivoReporteSeleccionado" (change)="actualizarDestinatariosPorModo()">
+              <option value="TODOS">-- Todos los Directivos (Despachar a los 5 simultáneamente) --</option>
+              <option *ngFor="let dir of listaDirectivosDisponibles" [value]="dir.correo">
+                {{ dir.cargo }} ({{ dir.correo }}) - {{ dir.grupos.length }} grupos
+              </option>
+            </select>
+
+            <div class="grupos-chips-container" *ngIf="directivoReporteSeleccionado !== 'TODOS'">
+              <span class="chips-label">Grupos incluidos en este consolidado:</span>
+              <div class="chips-wrap">
+                <span class="chip-item" *ngFor="let g of obtenerGruposDeDirectivo(directivoReporteSeleccionado)">
+                  <i class="bi bi-check-circle-fill"></i> {{ g }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Si es GRUPO -->
+          <div class="config-row" *ngIf="modoEnvioReporteLT === 'GRUPO'">
+            <label class="config-label"><i class="bi bi-diagram-3-fill"></i> Seleccionar Grupo / Cuadrilla:</label>
+            <select class="form-control config-select" [(ngModel)]="grupoReporteSeleccionado" (change)="actualizarDestinatariosPorModo()">
+              <option value="TODOS">-- Todos los Jefes de Grupo (Enviar a cada jefe que tenga novedades) --</option>
+              <option *ngFor="let j of listaJefesGrupoDisponibles" [value]="j.grupo">
+                {{ j.grupo }} &rarr; {{ j.correo }}
+              </option>
+            </select>
+
+            <div class="grupo-jefe-card" *ngIf="grupoReporteSeleccionado !== 'TODOS'">
+              <i class="bi bi-person-check-fill"></i>
+              <span>El reporte de <strong>{{ grupoReporteSeleccionado }}</strong> se enviará a: <code>{{ obtenerCorreoJefeGrupo(grupoReporteSeleccionado) }}</code></span>
+            </div>
+          </div>
+
+          <!-- Resumen y Gestión Dinámica de Destinatarios -->
+          <div class="destinatarios-box">
+            <div class="destinatarios-box__header">
+              <div class="dest-title-wrap">
+                <span class="dest-title"><i class="bi bi-mailbox2"></i> Destinatarios Principales:</span>
+                <span class="dest-count">{{ obtenerDestinatariosArray().length }} correo(s)</span>
+                <span class="dest-hint" *ngIf="modoEnvioReporteLT !== 'MASIVO'">(Haz clic en la ✕ de un correo para quitarlo)</span>
+              </div>
+              <button *ngIf="destinatariosModificados()"
+                      type="button"
+                      class="btn-reset-dest"
+                      (click)="restablecerDestinatarios()"
+                      title="Restablecer la lista predeterminada de correos">
+                <i class="bi bi-arrow-counterclockwise"></i> Restablecer originales
+              </button>
+            </div>
+
+            <!-- Chips de Destinatarios con botón para quitar -->
+            <div class="destinatarios-pills">
+              <span class="dest-pill" *ngFor="let dest of obtenerDestinatariosArray()">
+                <i class="bi bi-envelope-at-fill dest-mail-icon"></i>
+                <span class="dest-pill-text">{{ dest }}</span>
+                <button *ngIf="modoEnvioReporteLT !== 'MASIVO'"
+                        type="button"
+                        class="btn-remove-dest"
+                        (click)="quitarDestinatario(dest)"
+                        title="Quitar {{ dest }} de este despacho">
+                  <i class="bi bi-x"></i>
+                </button>
+              </span>
+
+              <div *ngIf="obtenerDestinatariosArray().length === 0" class="dest-empty-alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> Has quitado todos los destinatarios principales. Agrega un correo abajo o restablece los originales.
+              </div>
+            </div>
+
+            <!-- Campo ágil para agregar otro destinatario directo -->
+            <div class="add-dest-row" *ngIf="modoEnvioReporteLT !== 'MASIVO'">
+              <div class="input-with-action">
+                <i class="bi bi-person-plus-fill input-icon"></i>
+                <input type="email"
+                       class="form-control form-control-sm add-dest-input"
+                       placeholder="Agregar correo a la lista principal (ej: jefe@bgreen.com.co)..."
+                       [(ngModel)]="nuevoDestinatarioInput"
+                       (keyup.enter)="agregarDestinatario()" />
+                <button type="button" class="btn-add-dest" (click)="agregarDestinatario()" [disabled]="!nuevoDestinatarioInput">
+                  <i class="bi bi-plus-lg"></i> Agregar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Correos en Copia (CC) -->
+          <div class="config-row mt-3">
+            <label class="config-label"><i class="bi bi-people"></i> Correos adicionales en copia (CC - opcional):</label>
+            <input type="text" class="form-control" [(ngModel)]="ccReporteLT" placeholder="ejemplo: supervisor@bgreen.com.co, auditoria@bgreen.com.co" />
+            <small class="text-muted">Separa múltiples correos con comas o punto y coma.</small>
+          </div>
+
+          <!-- Observaciones opcionales -->
+          <div class="config-row mt-3">
+            <label class="config-label"><i class="bi bi-chat-left-text"></i> Observación o Justificación en el cuerpo del correo (opcional):</label>
+            <textarea class="form-control" rows="2" [(ngModel)]="observacionesReporteLT" placeholder="Detalles o comentarios a incluir en el encabezado del informe..."></textarea>
+          </div>
+
+          <!-- Resumen de contenido a enviar -->
+          <div class="resumen-envio-alert">
+            <div class="resumen-envio-left">
+              <i class="bi bi-info-circle-fill"></i>
+              <div>
+                <strong>Resumen de Datos a Despachar:</strong>
+                <span>Rango {{ fechaInicioLT }} al {{ fechaFinLT }} &bull; {{ obtenerTotalNovedadesAEnviar().llegadas }} llegadas tarde &bull; {{ obtenerTotalNovedadesAEnviar().omisiones }} omisiones de biométrico.</span>
+              </div>
+            </div>
+            <div class="resumen-envio-right">
+              <span class="badge-memo-status" [class.badge-memo--si]="modoEnvioReporteLT === 'GENERAL'" [class.badge-memo--no]="modoEnvioReporteLT !== 'GENERAL'">
+                {{ modoEnvioReporteLT === 'GENERAL' ? '⚠️ Incluye columna de Memorandos' : 'Sin columna de Memorandos (No aplica)' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer modal-footer--email">
+        <button type="button" class="btn-modal-cancel" (click)="cerrarModalReporteCorreosLT()" [disabled]="enviandoReporteLT">
+          Cancelar
+        </button>
+        <button type="button" class="btn-modal-send" (click)="enviarReporteCorreosLT()" [disabled]="enviandoReporteLT">
+          <i class="bi bi-send-fill" [class.spin]="enviandoReporteLT"></i>
+          <span>{{ enviandoReporteLT ? 'Despachando correos...' : 'Enviar Reporte Ahora' }}</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+ 

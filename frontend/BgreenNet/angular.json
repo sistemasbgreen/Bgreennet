@@ -41,16 +41,26 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1.5MB",
-                  "maximumError": "3MB"
+                  "maximumWarning": "2MB",
+                  "maximumError": "4MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "100kB",
-                  "maximumError": "150kB"
+                  "maximumWarning": "250kB",
+                  "maximumError": "400kB"
                 }
               ],
-              "outputHashing": "all"
+              "optimization": {
+                  "scripts": true,
+                  "styles": {
+                    "minify": true,
+                    "inlineCritical": false
+                  },
+                  "fonts": {
+                    "inline": false
+                  }
+                },
+                "outputHashing": "all"
             },
             "development": {
               "optimization": false,

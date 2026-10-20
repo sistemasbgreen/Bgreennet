@@ -102,4 +102,25 @@ export class homeservices {
     return this.http.put<any>(`${environment.apiUrl}/${endpoint}`, body, { headers: this.getHeaders() });
   }
 
-}
+  // Presentismo & Control de Acceso (Siesa Access)
+  getEventosPresentismo(documento: string, fechaInicio?: string, fechaFin?: string): Observable<any[]> {
+    const params: string[] = [];
+    if (documento) params.push(`documento=${encodeURIComponent(documento)}`);
+    if (fechaInicio) params.push(`fechaInicio=${encodeURIComponent(fechaInicio)}`);
+    if (fechaFin) params.push(`fechaFin=${encodeURIComponent(fechaFin)}`);
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
+
+    return this.http.get<any[]>(`${environment.apiUrl}/api/presentismo/eventos${query}`, { headers: this.getHeaders() });
+  }
+
+  getMarcacionesErroneas(documento?: string, fechaInicio?: string, fechaFin?: string): Observable<any[]> {
+    const params: string[] = [];
+    if (documento) params.push(`documento=${encodeURIComponent(documento)}`);
+    if (fechaInicio) params.push(`fechaInicio=${encodeURIComponent(fechaInicio)}`);
+    if (fechaFin) params.push(`fechaFin=${encodeURIComponent(fechaFin)}`);
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
+
+    return this.http.get<any[]>(`${environment.apiUrl}/api/presentismo/marcaciones-erroneas${query}`, { headers: this.getHeaders() });
+  }
+
+}

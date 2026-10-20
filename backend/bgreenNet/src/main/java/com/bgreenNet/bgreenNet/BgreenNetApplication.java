@@ -36,12 +36,15 @@ public class BgreenNetApplication {
             @Qualifier("siesaJdbcTemplate") JdbcTemplate siesaJdbcTemplate,
             @Qualifier("siesaDataSource") DataSource siesaDataSource,
             @Qualifier("plcJdbcTemplate") JdbcTemplate plcJdbcTemplate,
-            @Qualifier("plcDataSource") DataSource plcDataSource
+            @Qualifier("plcDataSource") DataSource plcDataSource,
+            @Qualifier("siesaAccessJdbcTemplate") JdbcTemplate siesaAccessJdbcTemplate,
+            @Qualifier("siesaAccessDataSource") DataSource siesaAccessDataSource
     ) {
         return args -> {
             boolean conn1 = probarConexion("BASE DE DATOS PRINCIPAL", primaryJdbcTemplate, primaryDataSource);
             boolean conn2 = probarConexion("BASE DE DATOS SIESA", siesaJdbcTemplate, siesaDataSource);
             boolean conn3 = probarConexion("BASE DE DATOS PLC (172.30.72.147)", plcJdbcTemplate, plcDataSource);
+            boolean conn4 = probarConexion("BASE DE DATOS SIESA ACCESS BIOCOSTA (172.30.72.47)", siesaAccessJdbcTemplate, siesaAccessDataSource);
 
             System.out.println("\n========================================");
             System.out.println("    RESUMEN DE CONEXIONES A BASE DE DATOS");
@@ -49,6 +52,7 @@ public class BgreenNetApplication {
             System.out.println(" CONEXIÓN 1 (Principal) : " + (conn1 ? "✅ CONECTADO" : "❌ FALLÓ"));
             System.out.println(" CONEXIÓN 2 (SIESA)     : " + (conn2 ? "✅ CONECTADO" : "❌ FALLÓ"));
             System.out.println(" CONEXIÓN 3 (PLC .147)  : " + (conn3 ? "✅ CONECTADO" : "❌ FALLÓ"));
+            System.out.println(" CONEXIÓN 4 (SIESA ACCESS): " + (conn4 ? "✅ CONECTADO" : "❌ FALLÓ"));
             System.out.println("========================================\n");
         };
     }

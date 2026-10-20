@@ -164,14 +164,13 @@ public class PasswordResetService {
         // Generar nuevo código de 6 dígitos
         String codigoOtp = String.format("%06d", random.nextInt(1000000));
 
-        PasswordResetToken token = PasswordResetToken.builder()
-                .usuario(usuario)
-                .codigoOtp(codigoOtp)
-                .fechaExpiracion(LocalDateTime.now().plusMinutes(15))
-                .usado(false)
-                .intentos(0)
-                .fechaCreacion(LocalDateTime.now())
-                .build();
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUsuario(usuario);
+        token.setCodigoOtp(codigoOtp);
+        token.setFechaExpiracion(LocalDateTime.now().plusMinutes(15));
+        token.setUsado(false);
+        token.setIntentos(0);
+        token.setFechaCreacion(LocalDateTime.now());
 
         resetTokenRepository.save(token);
         return codigoOtp;

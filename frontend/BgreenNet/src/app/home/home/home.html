@@ -61,11 +61,6 @@
         <i class="bi bi-calendar3"></i>
       </button>
 
-      <!-- Botón Herramientas de IA -->
-      <button class="ia-btn" (click)="openIaModal()" title="Herramientas de IA">
-        <span>IA</span>
-      </button>
-
       <!-- Dropdown de Notificaciones -->
       <div class="notifications-dropdown" *ngIf="isNotificationMenuOpen" (click)="$event.stopPropagation()">
         <div class="notifications-header">
@@ -103,7 +98,7 @@
 
       <!-- Menú de usuario  -->
       <div class="user-menu-container">
-        <button class="user-avatar" (click)="toggleUserMenu()" title="Menú de usuario">
+        <button class="user-avatar" (click)="toggleUserMenu()" title="Menú de usuario" aria-label="Menú de usuario">
           {{ initials }}
         </button>
 
@@ -113,7 +108,9 @@
           <!-- ── Header ── -->
           <div class="user-dropdown-header" (click)="irAPerfil()" title="Ver Mi Perfil">
             <div class="user-avatar-col">
-              <div class="user-avatar-large">{{ initials }}</div>
+              <div class="user-avatar-large">
+                {{ initials }}
+              </div>
               <span class="user-profile-badge">
                 Ver Mi Perfil <i class="bi bi-chevron-right"></i>
               </span>
@@ -128,6 +125,16 @@
           <div class="dropdown-divider"></div>
 
           <!-- ── Acciones ── -->
+          <button class="dropdown-item dropdown-item-presentismo" (click)="irAPerfilAsistencia()" title="Ir a control de asistencia y presentismo">
+            <div class="di-pres-left">
+              <i class="bi bi-calendar2-week"></i>
+              <span>Control de Presentismo</span>
+            </div>
+            <span class="badge-cumplimiento-dropdown" [class.badge-cump-alta]="porcentajeCumplimientoMes >= 80" [class.badge-cump-baja]="porcentajeCumplimientoMes < 80" title="Porcentaje de cumplimiento de todo el mes">
+              <i class="bi bi-shield-check"></i> {{ porcentajeCumplimientoMes }}%
+            </span>
+          </button>
+
           <button class="dropdown-item" (click)="irAConfiguracion(); closeUserMenu()" *ngIf="tienePermisoConfiguracion">
             <i class="bi bi-gear"></i>
             <span>Configuración</span>
@@ -418,51 +425,69 @@
 
   <!-- Contenido Principal -->
   <main class="main-content" [class.focus-mode-active]="focusTasksMode">
-    <!-- Hero Section -->
+    <!-- Hero Section con Calendario Semanal de Asistencia (Alineado a la derecha) -->
     <section class="hero-section" *ngIf="!focusTasksMode">
       <div class="hero-content">
         <div class="hero-text">
           <h2 class="hero-greeting">{{ greeting }}, {{ fullName.split(' ')[0] }}</h2>
           <p class="hero-subtitle">Bienvenido a tu centro de mando empresarial</p>
         </div>
-        <button class="customize-btn" (click)="toggleAllWidgets()">
-          <i class="bi bi-gear"></i>
-          Personalizar Vista
-        </button>
-      </div>
 
-      <div class="hero-stats">
-        <div class="hero-stat-card">
-          <i class="bi bi-calendar-check"></i>
-          <div>
-            <p class="stat-value">{{ tareasHoy }}</p>
-            <p class="stat-label">Tareas hoy</p>
+        <!-- Calendario semanal de asistencia (Lunes a Domingo): triángulo superior = entrada, inferior = salida -->
+        <div class="hero-weekly-attendance cal-semana">
+          <div class="cal-semana-header">
+            <div class="cal-semana-title-group">
+              <h4 class="cal-semana-title"><i class="bi bi-calendar3-week"></i> {{ tituloSemanaCalendario }}</h4>
+              <div class="cal-semana-nav-actions">
+                <button class="cal-semana-nav-btn" (click)="desplazarSemanaCalendario(-1)" title="Semana anterior (Semana pasada)">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <button class="cal-semana-today-btn" *ngIf="offsetSemanasCalendario !== 0" (click)="irASemanaActual()" title="Volver a esta semana">
+                  Hoy
+                </button>
+                <button class="cal-semana-nav-btn" (click)="desplazarSemanaCalendario(1)" [disabled]="offsetSemanasCalendario >= 0" title="Semana siguiente">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+            <div class="cal-semana-header-right">
+              <span class="cal-semana-range" *ngIf="rangoSemanaActualTexto">{{ rangoSemanaActualTexto }}</span>
+              <span class="cal-semana-pct" [ngClass]="clasePorcentajePresentismo" [title]="'Presentismo de la semana: ' + porcentajePresentismoSemanaActual + '%'">
+                <i class="bi bi-shield-check" *ngIf="porcentajePresentismoSemanaActual >= 80"></i>
+                <i class="bi bi-exclamation-triangle-fill" *ngIf="porcentajePresentismoSemanaActual < 80"></i>
+                {{ porcentajePresentismoSemanaActual }}%
+              </span>
+            </div>
+          </div>
+
+          <div class="cal-semana-weekdays">
+            <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+          </div>
+
+          <div class="cal-semana-grid">
+            <div *ngFor="let dia of diasSemanaActualPresentismo"
+                 class="cal-cell"
+                 [class.cal-today]="dia.esHoy"
+                 [class.cal-festivo]="esFestivo(dia)"
+                 [class.cal-weekend]="dia.esFinDeSemana"
+                 [ngClass]="claseCeldaDia(dia)"
+                 [title]="tituloDia(dia)"
+                 (click)="seleccionarDiaPresentismo(dia)">
+              <span class="cal-num">{{ dia.diaNumero }}</span>
+              <span class="cal-extra-indicator extra-aprobado" *ngIf="!esFestivo(dia) && obtenerTiempoExtraDia(dia)?.estado === 'APROBADO'" [title]="'Tiempo extra aprobado: +' + obtenerTiempoExtraDia(dia)?.horas + 'h'"></span>
+              <span class="cal-extra-indicator extra-pendiente" *ngIf="!esFestivo(dia) && obtenerTiempoExtraDia(dia)?.estado === 'PENDIENTE'" [title]="'Tiempo extra pendiente: +' + obtenerTiempoExtraDia(dia)?.horas + 'h'"></span>
+            </div>
+          </div>
+
+          <div class="cal-legend">
+            <span class="lg-item"><span class="lg-split"></span> ▲ Ent. / ▼ Sal.</span>
+            <span class="lg-item"><span class="lg-box lg-ok"></span> Puntual</span>
+            <span class="lg-item"><span class="lg-box lg-warn"></span> Tolerancia</span>
+            <span class="lg-item"><span class="lg-box lg-bad"></span> Tarde</span>
+            <span class="lg-item"><span class="lg-box lg-festivo"></span> Festivo</span>
+            <span class="lg-item"><span class="lg-dot lg-extra"></span> Solicitar</span>`r`n            <span class="lg-item"><span class="lg-box lg-doble-entrada"></span> Marcación errónea</span>
           </div>
         </div>
-
-        <div class="hero-stat-card">
-          <i class="bi bi-people"></i>
-          <div>
-            <p class="stat-value">0</p>
-            <p class="stat-label">Usuarios activos</p>
-          </div>
-        </div>
-        <div class="hero-stat-card">
-          <i class="bi bi-file-text"></i>
-          <div>
-            <p class="stat-value">0</p>
-            <p class="stat-label">Documentos</p>
-          </div>
-        </div>
-        <div class="hero-stat-card">
-          <i class="bi bi-activity"></i>
-          <div>
-            <p class="stat-value">0</p>
-            <p class="stat-label">Uptime</p>
-          </div>
-        </div>
-
-
       </div>
     </section>
 
@@ -482,7 +507,12 @@
             <button class="favorite-btn" (click)="toggleFavorite(s.id)">
               <i class="bi" [class.bi-star]="!isFavorite(s.id)" [class.bi-star-fill]="isFavorite(s.id)"></i>
             </button>
-            <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="app-link">
+            <a *ngIf="s.url && s.url.startsWith('/')" [routerLink]="s.url" class="app-link">
+              <img [src]="s.imagenUrl" [alt]="s.nombre" width="100" height="100" />
+              <span class="app-name">{{ s.nombre }}</span>
+              <span class="app-category" *ngIf="s.category">{{ s.category }}</span>
+            </a>
+            <a *ngIf="!s.url || !s.url.startsWith('/')" [href]="s.url" target="_blank" rel="noopener noreferrer" class="app-link">
               <img [src]="s.imagenUrl" [alt]="s.nombre" width="100" height="100" />
               <span class="app-name">{{ s.nombre }}</span>
               <span class="app-category" *ngIf="s.category">{{ s.category }}</span>
@@ -775,6 +805,125 @@
         </div>
       </div>
     </section>
+
+    <!-- MODAL DETALLE DE MARCACIONES DEL DÍA -->
+    <div class="presentismo-modal-backdrop" *ngIf="isModalDiaPresentismoOpen && diaSeleccionadoPresentismo" (click)="cerrarModalDiaPresentismo()">
+      <div class="presentismo-modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-card-header">
+          <div class="modal-card-title-group">
+            <i class="bi bi-clock-history modal-header-icon"></i>
+            <div>
+              <h3>Detalle de Marcaciones Biométricas</h3>
+              <p class="modal-card-date">
+                {{ diaSeleccionadoPresentismo.fechaDate | date: 'EEEE, d \'de\' MMMM \'de\' yyyy' }}
+              </p>
+            </div>
+          </div>
+          <button class="btn-close-modal" (click)="cerrarModalDiaPresentismo()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="modal-card-body">
+        <!-- Alerta de Inconsistencia / Marcación Errónea (Doble Entrada) -->
+        <div class="alert-doble-entrada" *ngIf="diaSeleccionadoPresentismo.tieneDobleEntrada">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <div>
+            <strong>Marcación errónea detectada:</strong> Se registraron {{ diaSeleccionadoPresentismo.entradasMultiples?.length }} entradas en el sistema biométrico en este día ({{ diaSeleccionadoPresentismo.entradasMultiples?.join(' y ') }}).
+          </div>
+        </div>
+          <!-- Resumen del día -->
+          <div class="modal-summary-box">
+            <div class="summary-col">
+              <span class="lbl">Primera Entrada:</span>
+              <strong [ngClass]="{
+                'text-success': estadoEntrada(diaSeleccionadoPresentismo) === 'ok',
+                'text-warning': estadoEntrada(diaSeleccionadoPresentismo) === 'warning',
+                'text-danger': estadoEntrada(diaSeleccionadoPresentismo) === 'late',
+                'text-muted': !diaSeleccionadoPresentismo.primeraEntrada
+              }">
+                {{ diaSeleccionadoPresentismo.primeraEntrada || 'No registrada' }}
+                <small *ngIf="diaSeleccionadoPresentismo.primeraEntrada">({{ textoEntrada(diaSeleccionadoPresentismo) }})</small>
+              </strong>
+            </div>
+            <div class="summary-col">
+              <span class="lbl">Última Salida:</span>
+              <strong [ngClass]="{
+                'text-success': estadoSalida(diaSeleccionadoPresentismo) === 'ok',
+                'text-warning': estadoSalida(diaSeleccionadoPresentismo) === 'warning',
+                'text-danger': estadoSalida(diaSeleccionadoPresentismo) === 'late',
+                'text-muted': !diaSeleccionadoPresentismo.ultimaSalida
+              }">
+                {{ diaSeleccionadoPresentismo.ultimaSalida || 'No registrada' }}
+                <small *ngIf="diaSeleccionadoPresentismo.ultimaSalida">({{ textoSalida(diaSeleccionadoPresentismo) }})</small>
+              </strong>
+            </div>
+            <div class="summary-col">
+              <span class="lbl">Tiempo en Sede:</span>
+              <strong class="highlight">{{ diaSeleccionadoPresentismo.totalHorasTexto || '0h 0m' }}</strong>
+            </div>
+          </div>
+
+          <!-- Línea de tiempo de eventos -->
+          <div class="timeline-container">
+            <h4 class="timeline-heading">Registros de Control de Acceso ({{ diaSeleccionadoPresentismo.eventos.length || 0 }})</h4>
+
+            <div class="empty-events" *ngIf="!diaSeleccionadoPresentismo?.eventos?.length">
+              <i class="bi bi-info-circle"></i>
+              <p>No se registraron marcaciones biométricas en este día.</p>
+            </div>
+
+            <div class="timeline-items" *ngIf="(diaSeleccionadoPresentismo?.eventos?.length || 0) > 0">
+              <div 
+                *ngFor="let ev of diaSeleccionadoPresentismo?.eventos || []; let i = index" 
+                class="timeline-item"
+                [class.item-entrada]="ev.EVENTO === 'ENTRADA'"
+                [class.item-salida]="ev.EVENTO === 'SALIDA'"
+                [class.is-late]="ev.EVENTO === 'SALIDA' && esSalidaTardeEvento(ev)"
+                [class.item-invalido]="ev.EVENTO === 'INVÁLIDO'">
+                
+                <div class="timeline-bullet">
+                  <i class="bi" [ngClass]="{
+                    'bi-box-arrow-in-right': ev.EVENTO === 'ENTRADA',
+                    'bi-box-arrow-right': ev.EVENTO === 'SALIDA',
+                    'bi-shield-x': ev.EVENTO === 'INVÁLIDO'
+                  }"></i>
+                </div>
+
+                <div class="timeline-content">
+                  <div class="content-header">
+                    <span class="event-type-badge" [ngClass]="{
+                      'badge-ent': ev.EVENTO === 'ENTRADA',
+                      'badge-sal': ev.EVENTO === 'SALIDA',
+                      'badge-inv': ev.EVENTO === 'INVÁLIDO'
+                    }">{{ ev.EVENTO }}</span>
+                    <span class="event-time">
+                      <i class="bi bi-clock"></i> {{ ev.Fecha_hora | date: 'hh:mm:ss a' }}
+                    </span>
+                  </div>
+
+                  <div class="content-details">
+                    <p *ngIf="ev.UBCTIDENTIFICATION" class="detail-ubicacion">
+                      <i class="bi bi-geo-alt"></i> Ubicación / Dispositivo: <strong>{{ ev.UBCTIDENTIFICATION }}</strong>
+                    </p>
+                    <p *ngIf="ev.Motivo_invalidez" class="detail-motivo">
+                      <i class="bi bi-exclamation-triangle"></i> Observación: <strong>{{ ev.Motivo_invalidez }}</strong>
+                    </p>
+                    <p *ngIf="ev.EVENISMANUAL" class="detail-manual">
+                      <i class="bi bi-pencil-square"></i> Registro manual
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-card-footer">
+          <button class="btn-modal-close" (click)="cerrarModalDiaPresentismo()">Cerrar</button>
+        </div>
+      </div>
+    </div>
 
 
 
@@ -1522,7 +1671,107 @@
 
       <!-- Modal Body (Cuadrícula) -->
       <div class="ia-modal-body">
-        
+
+        <!-- ==================== NOTA DE SEGURIDAD Y CONFIDENCIALIDAD IA ==================== -->
+        <div class="ia-security-card" [class.is-collapsed]="!mostrarDetalleSeguridadIa">
+          <div class="ia-security-header">
+            <div class="ia-security-title-wrap">
+              <span class="ia-security-badge-icon">
+                <i class="bi bi-shield-lock-fill"></i>
+              </span>
+              <div>
+                <div class="ia-security-tag">POLÍTICA DE SEGURIDAD Y PRIVACIDAD CORPORATIVA</div>
+                <h3 class="ia-security-title">Nota de seguridad y confidencialidad</h3>
+              </div>
+            </div>
+            <button type="button" class="btn-toggle-security" (click)="toggleDetalleSeguridadIa()" [title]="mostrarDetalleSeguridadIa ? 'Contraer nota' : 'Expandir nota'">
+              <span>{{ mostrarDetalleSeguridadIa ? 'Ocultar detalles' : 'Ver recomendaciones' }}</span>
+              <i class="bi" [class.bi-chevron-up]="mostrarDetalleSeguridadIa" [class.bi-chevron-down]="!mostrarDetalleSeguridadIa"></i>
+            </button>
+          </div>
+
+          <!-- Directriz Principal -->
+          <div class="ia-security-statement">
+            <i class="bi bi-exclamation-triangle-fill ia-stmt-icon"></i>
+            <p class="ia-stmt-text">
+              <strong>No compartir información sensible o confidencial de la empresa</strong> en herramientas de inteligencia artificial o plataformas no autorizadas.
+            </p>
+          </div>
+
+          <!-- Bloques expandibles -->
+          <div class="ia-security-expandable" *ngIf="mostrarDetalleSeguridadIa">
+            <div class="ia-security-grid">
+              <!-- Columna 1: Información a proteger -->
+              <div class="ia-security-col ia-security-col-proteger">
+                <div class="ia-col-header">
+                  <span class="ia-col-icon"><i class="bi bi-shield-x"></i></span>
+                  <h4>Ejemplos de información que se debe proteger:</h4>
+                </div>
+                <ul class="ia-security-list">
+                  <li>
+                    <i class="bi bi-key-fill"></i>
+                    <span>Contraseñas, usuarios, códigos de acceso y claves de API.</span>
+                  </li>
+                  <li>
+                    <i class="bi bi-people-fill"></i>
+                    <span>Datos personales de empleados, clientes y proveedores.</span>
+                  </li>
+                  <li>
+                    <i class="bi bi-cash-stack"></i>
+                    <span>Información financiera, bancaria, contratos y presupuestos internos.</span>
+                  </li>
+                  <li>
+                    <i class="bi bi-hdd-network-fill"></i>
+                    <span>Direcciones IP, configuraciones de servidores, VPN y bases de datos.</span>
+                  </li>
+                  <li>
+                    <i class="bi bi-file-earmark-code-fill"></i>
+                    <span>Código fuente privado y documentos corporativos confidenciales.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Columna 2: Recomendaciones -->
+              <div class="ia-security-col ia-security-col-recomendaciones">
+                <div class="ia-col-header">
+                  <span class="ia-col-icon"><i class="bi bi-shield-check"></i></span>
+                  <h4>Recomendaciones:</h4>
+                </div>
+                <ul class="ia-security-list">
+                  <li>
+                    <i class="bi bi-check2-circle"></i>
+                    <span>Utilizar únicamente herramientas autorizadas por la empresa.</span>
+                  </li>
+                  <li>
+                    <i class="bi bi-incognito"></i>
+                    <span>Anonimizar los datos antes de realizar consultas.</span>
+                  </li>
+                  <li>
+                    <i class="bi bi-file-earmark-image"></i>
+                    <span>Revisar archivos y capturas de pantalla antes de compartirlos.</span>
+                  </li>
+                  <li>
+                    <i class="bi bi-check2-all"></i>
+                    <span>Verificar las respuestas y revisar el código generado antes de implementarlo.</span>
+                  </li>
+                  <li>
+                    <i class="bi bi-megaphone-fill"></i>
+                    <span>Reportar al área de TIC cualquier divulgación accidental de información.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Footer Importante -->
+            <div class="ia-security-footer">
+              <span class="ia-sec-footer-badge"><i class="bi bi-info-circle-fill"></i> Importante:</span>
+              <span class="ia-sec-footer-text">
+                Ante cualquier duda sobre la confidencialidad de la información, consulta con el <strong>área de TIC</strong> antes de compartirla.
+              </span>
+            </div>
+          </div>
+        </div>
+
         <!-- Mensaje si no hay resultados -->
         <div *ngIf="filteredIaCategories.length === 0" class="ia-no-results">
           <i class="bi bi-search-heart"></i>
@@ -1658,6 +1907,327 @@
         <div class="act-footer-phrase">
           la transformacion tecnologica 2027 empieza Hoy.
         </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DETALLE DE MARCACIONES BIOMÉTRICAS EN HOME ==================== -->
+  <div class="presentismo-modal-backdrop" *ngIf="isModalDiaPresentismoOpen && diaSeleccionadoPresentismo" (click)="cerrarModalDiaPresentismo()">
+    <div class="presentismo-modal-card" (click)="$event.stopPropagation()">
+      
+      <!-- Header Principal del Modal -->
+      <div class="modal-card-header">
+        <div class="modal-card-title-group">
+          <div class="modal-icon-badge">
+            <i class="bi bi-fingerprint"></i>
+          </div>
+          <div class="modal-title-texts">
+            <div class="modal-badge-subtitle">CONTROL DE ACCESO BIOMÉTRICO · SIESA ACCESS</div>
+            <h3 class="modal-main-title">Detalle de Marcaciones Biométricas</h3>
+            <p class="modal-card-date">
+              <i class="bi bi-calendar3"></i>
+              <span>{{ diaSeleccionadoPresentismo.fechaDate | date: 'EEEE, d \'de\' MMMM \'de\' yyyy' }}</span>
+              <span class="badge-mini-today ms-2" *ngIf="diaSeleccionadoPresentismo.esHoy">Hoy</span>
+            </p>
+          </div>
+        </div>
+        <button class="btn-close-modal" (click)="cerrarModalDiaPresentismo()" title="Cerrar ventana" aria-label="Cerrar">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-card-body">
+        <!-- Alerta de Inconsistencia / Marcación Errónea (Doble Entrada) -->
+        <div class="alert-doble-entrada" *ngIf="diaSeleccionadoPresentismo.tieneDobleEntrada">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <div>
+            <strong>Marcación errónea detectada:</strong> Se registraron {{ diaSeleccionadoPresentismo.entradasMultiples?.length }} entradas en el sistema biométrico en este día ({{ diaSeleccionadoPresentismo.entradasMultiples?.join(' y ') }}).
+          </div>
+        </div>
+
+
+        <!-- Bloque de Turno Asignado ese Día -->
+        <div class="modal-turno-card" [ngClass]="{
+          'turno-card-ordinario': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'ordinario',
+          'turno-card-descanso': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'descanso',
+          'turno-card-festivo': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'festivo'
+        }">
+          <div class="turno-card-header">
+            <div class="turno-header-left">
+              <span class="turno-icon-badge">
+                <i class="bi" [ngClass]="{
+                  'bi-calendar-event': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'ordinario',
+                  'bi-cup-hot-fill': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'descanso',
+                  'bi-flag-fill': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'festivo'
+                }"></i>
+              </span>
+              <div>
+                <div class="turno-tag-label">TURNO ASIGNADO DEL DÍA</div>
+                <h4 class="turno-nombre">{{ obtenerTurnoDia(diaSeleccionadoPresentismo).nombre }}</h4>
+              </div>
+            </div>
+            <div class="turno-code-pill">
+              {{ obtenerTurnoDia(diaSeleccionadoPresentismo).codigo }}
+            </div>
+          </div>
+
+          <div class="turno-details-grid">
+            <div class="turno-detail-item">
+              <span class="td-lbl"><i class="bi bi-clock"></i> Horario de Turno:</span>
+              <strong class="td-val">{{ obtenerTurnoDia(diaSeleccionadoPresentismo).horario }}</strong>
+            </div>
+
+            <div class="turno-detail-item" *ngIf="obtenerTurnoDia(diaSeleccionadoPresentismo).esLaborable">
+              <span class="td-lbl"><i class="bi bi-box-arrow-in-right"></i> Entrada Programada:</span>
+              <strong class="td-val">
+                {{ obtenerTurnoDia(diaSeleccionadoPresentismo).horaEntrada }}
+                <small class="turno-gabela-text ms-1">(Gabela: {{ obtenerTurnoDia(diaSeleccionadoPresentismo).toleranciaEntrada }})</small>
+              </strong>
+            </div>
+
+            <div class="turno-detail-item" *ngIf="obtenerTurnoDia(diaSeleccionadoPresentismo).esLaborable">
+              <span class="td-lbl"><i class="bi bi-box-arrow-right"></i> Salida Programada:</span>
+              <strong class="td-val">
+                {{ obtenerTurnoDia(diaSeleccionadoPresentismo).horaSalida }}
+                <small class="turno-gabela-text ms-1">(Gabela: {{ obtenerTurnoDia(diaSeleccionadoPresentismo).toleranciaSalida }})</small>
+              </strong>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Trío de Tarjetas de Resumen Ejecutivo -->
+        <div class="modal-summary-trio">
+          
+          <!-- Entrada -->
+          <div class="summary-card card-entrada">
+            <div class="card-icon-wrap icon-entrada">
+              <i class="bi bi-box-arrow-in-right"></i>
+            </div>
+            <div class="card-info">
+              <span class="card-sub">Primer Ingreso</span>
+              <span class="card-val" [class.text-muted]="!diaSeleccionadoPresentismo.primeraEntrada">
+                {{ diaSeleccionadoPresentismo.primeraEntrada || '--:--' }}
+              </span>
+              <div class="card-badge-wrap" *ngIf="diaSeleccionadoPresentismo.primeraEntrada">
+                <span class="eval-badge"
+                      [class.eval-ok]="estadoEntrada(diaSeleccionadoPresentismo) === 'ok'"
+                      [class.eval-warn]="estadoEntrada(diaSeleccionadoPresentismo) === 'warning'"
+                      [class.eval-bad]="estadoEntrada(diaSeleccionadoPresentismo) === 'late'">
+                  <i class="bi" [ngClass]="{
+                    'bi-check2': estadoEntrada(diaSeleccionadoPresentismo) === 'ok',
+                    'bi-clock': estadoEntrada(diaSeleccionadoPresentismo) === 'warning',
+                    'bi-exclamation-octagon': estadoEntrada(diaSeleccionadoPresentismo) === 'late'
+                  }"></i>
+                  {{ textoEntrada(diaSeleccionadoPresentismo) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Salida -->
+          <div class="summary-card card-salida">
+            <div class="card-icon-wrap icon-salida">
+              <i class="bi bi-box-arrow-right"></i>
+            </div>
+            <div class="card-info">
+              <span class="card-sub">Última Salida</span>
+              <span class="card-val" [class.text-muted]="!diaSeleccionadoPresentismo.ultimaSalida">
+                {{ diaSeleccionadoPresentismo.ultimaSalida || (diaSeleccionadoPresentismo.esHoy && diaSeleccionadoPresentismo.primeraEntrada ? 'En Curso' : '--:--') }}
+              </span>
+              <div class="card-badge-wrap" *ngIf="diaSeleccionadoPresentismo.ultimaSalida">
+                <span class="eval-badge"
+                      [class.eval-ok]="estadoSalida(diaSeleccionadoPresentismo) === 'ok'"
+                      [class.eval-warn]="estadoSalida(diaSeleccionadoPresentismo) === 'warning'"
+                      [class.eval-bad]="estadoSalida(diaSeleccionadoPresentismo) === 'late'">
+                  <i class="bi" [ngClass]="{
+                    'bi-check2': estadoSalida(diaSeleccionadoPresentismo) === 'ok',
+                    'bi-clock': estadoSalida(diaSeleccionadoPresentismo) === 'warning',
+                    'bi-exclamation-octagon': estadoSalida(diaSeleccionadoPresentismo) === 'late'
+                  }"></i>
+                  {{ textoSalida(diaSeleccionadoPresentismo) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ==================== SECCIÓN DE TIEMPO EXTRA / HORAS ADICIONALES ==================== -->
+        <div class="modal-tiempo-extra-section">
+          <div class="te-header-row">
+            <div class="te-title-group">
+              <span class="te-icon-badge"><i class="bi bi-clock-history"></i></span>
+              <div>
+                <h4 class="te-heading">Tiempo Extra / Permanencia Adicional</h4>
+                <p class="te-subheading">Registra solicitudes de tiempo adicional para este día sujetas a aprobación.</p>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              class="btn-te-toggle" 
+              (click)="toggleFormularioTiempoExtra()"
+              [class.btn-te-active]="mostrarFormularioTiempoExtra">
+              <i class="bi" [class.bi-plus-lg]="!mostrarFormularioTiempoExtra" [class.bi-dash-lg]="mostrarFormularioTiempoExtra"></i>
+              <span>{{ mostrarFormularioTiempoExtra ? 'Cerrar Formulario' : '+ Solicitar Tiempo Extra' }}</span>
+            </button>
+          </div>
+
+          <!-- Formulario para agregar tiempo extra -->
+          <div class="te-form-card" *ngIf="mostrarFormularioTiempoExtra">
+            <h5 class="te-form-title"><i class="bi bi-stopwatch"></i> Nueva Solicitud de Tiempo Adicional</h5>
+            
+            <div class="te-form-grid">
+              <!-- Selector rápido de horas -->
+              <div class="te-field-group">
+                <label class="te-label">Cantidad de tiempo extra <span class="req">*</span></label>
+                <div class="te-presets-row">
+                  <button type="button" class="btn-preset-chip" [class.active]="nuevaHoraExtra === 1" (click)="setHorasExtraRapidas(1)">+1 hora</button>
+                  <button type="button" class="btn-preset-chip" [class.active]="nuevaHoraExtra === 2" (click)="setHorasExtraRapidas(2)">+2 horas</button>
+                  <button type="button" class="btn-preset-chip" [class.active]="nuevaHoraExtra === 3" (click)="setHorasExtraRapidas(3)">+3 horas</button>
+                  <button type="button" class="btn-preset-chip" [class.active]="nuevaHoraExtra === 4" (click)="setHorasExtraRapidas(4)">+4 horas</button>
+                </div>
+                <div class="te-custom-hours">
+                  <span class="te-custom-txt">O escribe la cantidad:</span>
+                  <input type="number" [(ngModel)]="nuevaHoraExtra" min="0.5" max="12" step="0.5" class="te-input-hours" />
+                  <span class="te-unit">horas</span>
+                </div>
+              </div>
+
+              <!-- Descripción / Motivo -->
+              <div class="te-field-group">
+                <label class="te-label">Descripción / Motivo del tiempo extra <span class="req">*</span></label>
+                <textarea 
+                  [(ngModel)]="nuevaDescripcionExtra" 
+                  placeholder="Explica el motivo (ej. Me demoro 2 horas más para finalizar el cierre contable, reunión con clientes, soporte en planta...)"
+                  rows="3" 
+                  class="te-textarea"></textarea>
+              </div>
+                <!-- Selector del Usuario que va a Aprobar -->
+                <div class="te-field-group">
+                  <label class="te-label" for="selectAprobadorHome">
+                    <i class="bi bi-person-check-fill text-success"></i> Escoger usuario que va a aprobar <span class="req">*</span>
+                  </label>
+                  <div class="te-select-wrap">
+                    <select 
+                      id="selectAprobadorHome"
+                      [(ngModel)]="aprobadorSeleccionadoIdHome" 
+                      class="te-select-aprobador">
+                      <option *ngFor="let ap of aprobadoresDisponiblesHome" [value]="ap.id">
+                        {{ ap.nombre }} — {{ ap.cargo }} ({{ ap.area }}) {{ ap.esLiderDirecto ? '★ Líder Directo' : '' }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="te-approver-note">
+                    <i class="bi bi-envelope-check-fill text-success"></i>
+                    <span>Se notificará a <strong>{{ aprobadorSeleccionadoActualHome.nombre }}</strong> (<em>{{ aprobadorSeleccionadoActualHome.correo || 'correo institucional' }}</em>) para su revisión y aprobación.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="te-form-actions">
+                <button type="button" class="btn-te-cancel" (click)="toggleFormularioTiempoExtra()">Cancelar</button>
+                <button type="button" class="btn-te-submit" (click)="solicitarTiempoExtra()" [disabled]="!nuevaDescripcionExtra.trim() || nuevaHoraExtra <= 0">
+                  <i class="bi bi-send-check"></i>
+                  <span>Enviar Solicitud y Notificar</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista de Solicitudes de Tiempo Extra de ese Día -->
+            <div class="te-list-container" *ngIf="solicitudesDiaSeleccionado.length > 0">
+              <h5 class="te-list-title"><i class="bi bi-list-check"></i> Solicitudes Registradas para este Día</h5>
+              <div class="te-cards-stack">
+                <div *ngFor="let sol of solicitudesDiaSeleccionado" class="te-solicitud-card" [ngClass]="'te-status-' + sol.estado.toLowerCase()">
+                  <div class="te-card-top">
+                    <div class="te-card-left">
+                      <span class="te-hours-badge">
+                        <i class="bi bi-stopwatch-fill"></i> +{{ sol.horas }} {{ sol.horas === 1 ? 'hora' : 'horas' }}
+                      </span>
+                      <span class="te-status-badge" [ngClass]="'badge-' + sol.estado.toLowerCase()">
+                        <i class="bi" [ngClass]="{
+                          'bi-hourglass-split': sol.estado === 'PENDIENTE',
+                          'bi-check-circle-fill': sol.estado === 'APROBADO',
+                          'bi-x-circle-fill': sol.estado === 'RECHAZADO'
+                        }"></i>
+                        {{ sol.estado === 'PENDIENTE' ? 'Pendiente de Aprobación' : sol.estado === 'APROBADO' ? 'Aprobado' : 'Rechazado' }}
+                      </span>
+                    </div>
+
+                    <div class="te-card-right">
+                      <span class="te-timestamp">{{ sol.fechaSolicitud | date:'dd/MM/yyyy HH:mm' }}</span>
+                    </div>
+                  </div>
+
+                  <p class="te-desc-text"><strong>Motivo:</strong> {{ sol.descripcion }}</p>
+
+                  <div class="te-card-meta-row">
+                    <span class="te-colab-name"><i class="bi bi-person-fill"></i> Solicitado por: <strong>{{ sol.nombreColaborador }}</strong></span>
+                    
+                    <span class="te-approver-info te-status-pending-text" *ngIf="sol.estado === 'PENDIENTE'">
+                      <i class="bi bi-person-badge-fill text-warning"></i> Debe aprobar: <strong>{{ sol.aprobadorAsignado || 'Líder / Jefe de Área' }}</strong>
+                    </span>
+
+                    <span class="te-approver-info text-success" *ngIf="sol.estado === 'APROBADO'">
+                      <i class="bi bi-shield-check text-success"></i> Aprobado por: <strong>{{ sol.aprobadoPor || sol.aprobadorAsignado || 'Líder / Jefe de Área' }}</strong>
+                      <small *ngIf="sol.fechaRespuesta">({{ sol.fechaRespuesta | date:'dd/MM/yyyy HH:mm' }})</small>
+                    </span>
+
+                    <span class="te-approver-info text-danger" *ngIf="sol.estado === 'RECHAZADO'">
+                      <i class="bi bi-x-circle-fill text-danger"></i> Rechazado por: <strong>{{ sol.aprobadoPor || sol.aprobadorAsignado || 'Líder / Jefe de Área' }}</strong>
+                      <small *ngIf="sol.fechaRespuesta">({{ sol.fechaRespuesta | date:'dd/MM/yyyy HH:mm' }})</small>
+                      <span *ngIf="sol.motivoRespuesta" class="te-reject-reason"> · Motivo: {{ sol.motivoRespuesta }}</span>
+                    </span>
+                  </div>
+
+                <!-- Botones de Aprobación para Líderes / Supervisores Asignados (NUNCA para quien lo solicitó) -->
+                <div class="te-card-actions-bar">
+                  <!-- Si puede aprobar y está pendiente (quien solicitó NO le sale) -->
+                  <div class="te-leader-actions" *ngIf="puedeAprobarSolicitudHome(sol) && sol.estado === 'PENDIENTE'">
+                    <button type="button" class="btn-te-approve" (click)="aprobarTiempoExtra(sol)" title="Aprobar tiempo extra">
+                      <i class="bi bi-check-lg"></i> Aprobar
+                    </button>
+                    <button type="button" class="btn-te-reject" (click)="rechazarTiempoExtra(sol)" title="Rechazar tiempo extra">
+                      <i class="bi bi-x-lg"></i> Rechazar
+                    </button>
+                  </div>
+
+                  <!-- Si puede aprobar y ya está aprobada: revocar (quien solicitó NO le sale) -->
+                  <div class="te-leader-actions" *ngIf="puedeRevocarSolicitudHome(sol) && sol.estado === 'APROBADO'">
+                    <button type="button" class="btn-te-revoke" (click)="rechazarTiempoExtra(sol)" title="Revocar aprobación">
+                      <i class="bi bi-arrow-counterclockwise"></i> Cambiar a Rechazado
+                    </button>
+                  </div>
+
+                  <!-- Eliminar solicitud si aún está pendiente y tiene permiso -->
+                  <button type="button" class="btn-te-delete" *ngIf="puedeEliminarSolicitudHome(sol)" (click)="eliminarTiempoExtra(sol)" title="Eliminar solicitud">
+                    <i class="bi bi-trash"></i> Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Estado cuando no hay solicitudes -->
+          <div class="te-empty-note" *ngIf="solicitudesDiaSeleccionado.length === 0 && !mostrarFormularioTiempoExtra">
+            <i class="bi bi-info-circle"></i>
+            <span>No se han registrado solicitudes de tiempo extra para este día. Si necesitas quedarte horas adicionales, haz clic en <strong>"+ Solicitar Tiempo Extra"</strong>.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer del Modal -->
+      <div class="modal-card-footer">
+        <div class="modal-footer-info">
+          <span class="biometric-sync-pill">
+            <span class="sync-dot"></span> Sincronizado con Siesa Biométrico
+          </span>
+        </div>
+        <button class="btn-modal-close" (click)="cerrarModalDiaPresentismo()">
+          <i class="bi bi-check-lg"></i>
+          <span>Cerrar</span>
+        </button>
       </div>
 
     </div>
