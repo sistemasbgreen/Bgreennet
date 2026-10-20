@@ -66,6 +66,9 @@ export class DynamicLoader implements OnInit {
         'configuracion/logisticaconfig': () => import('../modulos/configuracion/logistico-config/logistico-config').then(m => m.LogisticoConfig),
         'configuracion/logistica_config': () => import('../modulos/configuracion/logistico-config/logistico-config').then(m => m.LogisticoConfig),
         'configuracion/logistico-config': () => import('../modulos/configuracion/logistico-config/logistico-config').then(m => m.LogisticoConfig),
+        'nomina/interrupciones': () => import('../modulos/nomina/nomina').then(m => m.Nomina),
+        'nomina/programacion': () => import('../modulos/nomina/nomina').then(m => m.Nomina),
+        'nomina/general': () => import('../modulos/nomina/nomina').then(m => m.Nomina),
         // Agrega más rutas según necesites
       };
 

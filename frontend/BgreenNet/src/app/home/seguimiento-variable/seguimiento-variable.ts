@@ -624,7 +624,9 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
   }
 
   dispararAlertaEspecial(sensor: Sensor, valor: number, tipo: 'fuera' | 'dentro') {
-    // 1. Enviar el correo siempre (independientemente de si hay sonido reproduciéndose)
+    // 1. Las alertas por correo se consolidan en el Reporte Diario de las 6:00 AM (24 horas)
+    // para evitar saturación de la bandeja por cada fluctuación momentánea.
+    /*
     const canvas = document.getElementById('chart_' + sensor.tag) as HTMLCanvasElement;
     const chartImage = canvas ? canvas.toDataURL('image/png') : null;
 
@@ -632,6 +634,7 @@ export class SeguimientoVariable implements OnInit, OnDestroy {
       next: () => console.log(`[AlertaScada] Solicitud de correo con gráfico procesada para ${sensor.tag}`),
       error: (err) => console.error('[AlertaScada] Error en envío de correo para ' + sensor.tag, err)
     });
+    */
 
     // 2. Reproducir sonido y habla si no hay otro sonido en reproducción
     if (this.isSoundPlaying) {

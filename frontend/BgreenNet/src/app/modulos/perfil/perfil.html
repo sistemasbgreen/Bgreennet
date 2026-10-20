@@ -2,91 +2,252 @@
   <!-- Header de la página -->
   <header class="perfil-header">
     <div class="header-left">
+      <button type="button" class="btn-back" (click)="irAHome()" title="Volver al menú principal">
+        <i class="bi bi-arrow-left"></i>
+        <span class="btn-back-text">Inicio</span>
+      </button>
+      <div class="header-divider"></div>
       <div class="logo-container" (click)="irAHome()" title="Volver al Home" style="cursor: pointer;">
         <img src="https://bgreen.com.co/Img/bgreen_Logo.png" alt="Logo BGREEN" class="header-logo-img" />
       </div>
     </div>
+
     <div class="header-title">
       <h1>BGREEN<span>NET</span></h1>
     </div>
   </header>
 
-
-
   <!-- Contenido principal del perfil -->
   <main class="perfil-content">
 
-    <!-- ==================== PESTAÑA 1: INFORMACIÓN Y MI EQUIPO ==================== -->
-    <div *ngIf="activeTab === 'perfil'" class="tab-fade-in">
-      <!-- Card principal / Hero del usuario -->
-      <div class="user-hero-card">
-        <div class="hero-avatar">
-          {{ initials }}
-        </div>
-        <div class="hero-details">
-          <h2 class="user-display-name">{{ fullName }}</h2>
-          <p class="user-display-email">
-            <i class="bi bi-envelope"></i> {{ userEmail || 'Sin correo registrado' }}
-          </p>
-          <div class="badges-row">
-            <span class="badge badge-nivel" [ngClass]="'nivel-' + miNivelJerarquico">
-              <i class="bi bi-award-fill"></i> Nivel {{ miNivelJerarquico }}: {{ nombreMiNivel }}
+    <!-- ==================== PERFIL: INFORMACIÓN Y CONTROL DE ASISTENCIA ==================== -->
+    <div class="tab-fade-in">
+      <!-- Card principal / Hero del usuario rediseñada -->
+      <div class="user-hero-card" [class.hero-is-editing]="modoEdicion">
+        <!-- Portada decorativa superior -->
+        <div class="hero-cover-banner">
+          <div class="hero-cover-pattern"></div>
+          <div class="hero-cover-left">
+            <span class="hero-corp-pill">
+              <i class="bi bi-patch-check-fill"></i> PORTAL DEL COLABORADOR
             </span>
-            <span class="badge badge-role" *ngIf="userRole">
-              <i class="bi bi-shield-check"></i> {{ userRole }}
-            </span>
-            <span class="badge badge-empresa" *ngIf="nameempresa">
+            <span class="hero-company-pill" *ngIf="nameempresa">
               <i class="bi bi-building"></i> {{ nameempresa }}
-            </span>
-            <span class="badge badge-cargo" *ngIf="cargo">
-              <i class="bi bi-briefcase"></i> {{ cargo }}
-            </span>
-            <span class="badge" [ngClass]="estadoUsuario ? 'badge-activo' : 'badge-inactivo'">
-              <i class="bi" [class.bi-check-circle-fill]="estadoUsuario" [class.bi-x-circle-fill]="!estadoUsuario"></i>
-              {{ estadoUsuario ? 'Cuenta Activa' : 'Cuenta Inactiva' }}
             </span>
           </div>
         </div>
 
-        <!-- Botón editar (solo en modo lectura) -->
-        <button class="btn-editar-perfil" (click)="activarEdicion()" *ngIf="!modoEdicion" title="Editar mis datos">
-          <i class="bi bi-pencil-square"></i>
-          Editar Perfil
-        </button>
+        <!-- Cuerpo principal del Hero -->
+        <div class="hero-main-row">
+          <div class="hero-avatar-wrap">
+            <div class="hero-avatar">
+              {{ initials }}
+              <span class="hero-status-dot" [class.is-online]="estadoUsuario" [title]="estadoUsuario ? 'Cuenta Activa' : 'Cuenta Inactiva'"></span>
+            </div>
+            <span class="hero-avatar-level-tag" [ngClass]="'nivel-' + miNivelJerarquico">
+              <i class="bi bi-award-fill"></i> N{{ miNivelJerarquico }}
+            </span>
+          </div>
+
+          <div class="hero-details">
+            <div class="hero-name-row">
+              <h2 class="user-display-name">{{ fullName }}</h2>
+              <span class="hero-username-chip" *ngIf="usuarioNombre" (click)="copiarDato(usuarioNombre, 'usuario')" title="Clic para copiar usuario">
+                @{{ usuarioNombre }}
+                <i class="bi" [ngClass]="campoCopiado === 'usuario' ? 'bi-check2 text-success' : 'bi-copy'"></i>
+              </span>
+              <span class="badge" [ngClass]="estadoUsuario ? 'badge-activo' : 'badge-inactivo'">
+                <i class="bi" [class.bi-check-circle-fill]="estadoUsuario" [class.bi-x-circle-fill]="!estadoUsuario"></i>
+                {{ estadoUsuario ? 'Cuenta Activa' : 'Cuenta Inactiva' }}
+              </span>
+            </div>
+
+            <p class="hero-role-headline">
+              <strong>{{ cargo || 'Colaborador Corporativo' }}</strong>
+              <span class="headline-sep" *ngIf="area">&bull;</span>
+              <span *ngIf="area">{{ area }}</span>
+            </p>
+
+            <!-- Chips de contacto e identificación con copia rápida -->
+            <div class="hero-contact-pills">
+              <div class="contact-quick-pill">
+                <i class="bi bi-envelope-at-fill pill-icon"></i>
+                <span>{{ userEmail || 'Sin correo registrado' }}</span>
+                <button type="button" class="btn-copy-inline" *ngIf="userEmail" (click)="copiarDato(userEmail, 'correo')" title="Copiar correo">
+                  <i class="bi" [ngClass]="campoCopiado === 'correo' ? 'bi-check-lg text-success' : 'bi-copy'"></i>
+                </button>
+              </div>
+
+              <div class="contact-quick-pill" *ngIf="identificacion">
+                <i class="bi bi-person-vcard-fill pill-icon"></i>
+                <span>{{ tipoIdentificacion }}: <strong>{{ identificacion }}</strong></span>
+                <button type="button" class="btn-copy-inline" (click)="copiarDato(identificacion, 'identificacion')" title="Copiar documento">
+                  <i class="bi" [ngClass]="campoCopiado === 'identificacion' ? 'bi-check-lg text-success' : 'bi-copy'"></i>
+                </button>
+              </div>
+
+              <div class="contact-quick-pill" *ngIf="celular">
+                <i class="bi bi-telephone-fill pill-icon"></i>
+                <span>{{ celular }}</span>
+                <button type="button" class="btn-copy-inline" (click)="copiarDato(celular, 'celular')" title="Copiar celular">
+                  <i class="bi" [ngClass]="campoCopiado === 'celular' ? 'bi-check-lg text-success' : 'bi-copy'"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Insignias organizacionales -->
+            <div class="badges-row">
+              <span class="badge badge-nivel" [ngClass]="'nivel-' + miNivelJerarquico">
+                <i class="bi bi-award-fill"></i> Nivel {{ miNivelJerarquico }}: {{ nombreMiNivel }}
+              </span>
+              <span class="badge badge-role" *ngIf="userRole">
+                <i class="bi bi-shield-check"></i> {{ userRole }}
+              </span>
+              <span class="badge badge-empresa" *ngIf="nameempresa">
+                <i class="bi bi-building"></i> {{ nameempresa }}
+              </span>
+              <span class="badge badge-cargo" *ngIf="cargo">
+                <i class="bi bi-briefcase"></i> {{ cargo }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Acciones del Hero -->
+          <div class="hero-actions-group">
+            <button type="button" class="btn-editar-perfil" (click)="activarEdicion()" *ngIf="!modoEdicion" title="Actualizar mis datos personales">
+              <i class="bi bi-pencil-square"></i>
+              <span>Editar Perfil</span>
+            </button>
+            <button type="button" class="btn-hero-secondary" (click)="abrirModalPresentismo()" *ngIf="!modoEdicion" title="Ver calendario y marcaciones">
+              <i class="bi bi-calendar2-check"></i>
+              <span>Control de Asistencia</span>
+            </button>
+            <button type="button" class="btn-hero-cancel-edit" (click)="cancelarEdicion()" *ngIf="modoEdicion">
+              <i class="bi bi-x-circle"></i>
+              <span>Cancelar Edición</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Franja rápida de indicadores en el Hero -->
+        <div class="hero-summary-strip">
+          <div class="hss-item" (click)="abrirModalPresentismo()" style="cursor: pointer;" title="Ver detalle de hoy">
+            <div class="hss-icon" [ngClass]="{
+              'hss-green': estadoBiometricoHoy === 'PRESENTE',
+              'hss-blue': estadoBiometricoHoy === 'SALIDA',
+              'hss-slate': estadoBiometricoHoy === 'SIN_REGISTRO'
+            }">
+              <i class="bi bi-fingerprint"></i>
+            </div>
+            <div class="hss-info">
+              <span class="hss-label">Estado Biométrico Hoy</span>
+              <strong class="hss-val">
+                {{ estadoBiometricoHoy === 'PRESENTE' ? 'En Sede Hoy' : (estadoBiometricoHoy === 'SALIDA' ? 'Jornada Finalizada' : 'Sin Marcación Hoy') }}
+              </strong>
+              <small class="hss-sub">Ingreso: {{ estadisticasPresentismo.primerIngresoHoy || '--:--' }} &bull; Salida: {{ estadisticasPresentismo.ultimaSalidaHoy || '--:--' }}</small>
+            </div>
+          </div>
+
+          <div class="hss-item" (click)="abrirModalPresentismo()" style="cursor: pointer;" title="Ver asistencia mensual">
+            <div class="hss-icon hss-green">
+              <i class="bi bi-calendar-check-fill"></i>
+            </div>
+            <div class="hss-info">
+              <span class="hss-label">Asistencia del Mes</span>
+              <strong class="hss-val">{{ diasAsistidosCount }} / {{ diasHabilesMesTotal }} días</strong>
+              <small class="hss-sub">{{ porcentajeCumplimientoMes }}% cumplimiento en {{ nombreMesPresentismo }}</small>
+            </div>
+          </div>
+
+          <div class="hss-item" (click)="abrirModalPresentismo()" style="cursor: pointer;" title="Ver puntualidad mensual">
+            <div class="hss-icon hss-amber">
+              <i class="bi bi-clock-history"></i>
+            </div>
+            <div class="hss-info">
+              <span class="hss-label">Índice de Puntualidad</span>
+              <strong class="hss-val">{{ porcentajePuntualidadEntrada }}% puntual</strong>
+              <small class="hss-sub">{{ diasPuntualesCount }} días a tiempo &bull; {{ ingresosTarde }} tarde</small>
+            </div>
+          </div>
+
+          <div class="hss-item">
+            <div class="hss-icon hss-purple">
+              <i class="bi bi-diagram-3-fill"></i>
+            </div>
+            <div class="hss-info">
+              <span class="hss-label">{{ miJefe ? 'Líder / Jefe Directo' : 'Nivel Organizacional' }}</span>
+              <strong class="hss-val">{{ miJefe ? (miJefe.nombre + ' ' + miJefe.apellido) : ('Nivel ' + miNivelJerarquico + ' · ' + nombreMiNivel) }}</strong>
+              <small class="hss-sub">{{ miJefe ? (miJefe.cargo || miJefe.area || 'Líder de Área') : (area || nameempresa || 'BGreen') }}</small>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- ── Panel de edición ── -->
+      <!-- ── Panel de edición mejorado ── -->
       <div class="edit-perfil-panel" *ngIf="modoEdicion">
         <div class="edit-panel-header">
-          <i class="bi bi-pencil-square"></i>
-          <h3>Editar Datos Personales</h3>
+          <div class="eph-left">
+            <div class="eph-icon-box">
+              <i class="bi bi-pencil-square"></i>
+            </div>
+            <div>
+              <h3>Actualizar Información Personal y de Contacto</h3>
+              <p>Mantén tus datos al día para notificaciones corporativas y gestión de talento humano.</p>
+            </div>
+          </div>
+          <button type="button" class="btn-close-edit-panel" (click)="cancelarEdicion()" title="Cerrar panel de edición">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
 
         <div class="edit-panel-body">
           <div class="edit-fields-grid">
             <div class="edit-field">
               <label>Nombres <span class="req">*</span></label>
-              <input type="text" [(ngModel)]="editNombre" placeholder="Tu nombre" class="edit-input" />
+              <div class="input-icon-wrap">
+                <i class="bi bi-person input-lead-icon"></i>
+                <input type="text" [(ngModel)]="editNombre" placeholder="Ingresa tus nombres" class="edit-input with-icon" />
+              </div>
             </div>
+
             <div class="edit-field">
               <label>Apellidos <span class="req">*</span></label>
-              <input type="text" [(ngModel)]="editApellido" placeholder="Tu apellido" class="edit-input" />
+              <div class="input-icon-wrap">
+                <i class="bi bi-person-badge input-lead-icon"></i>
+                <input type="text" [(ngModel)]="editApellido" placeholder="Ingresa tus apellidos" class="edit-input with-icon" />
+              </div>
             </div>
+
             <div class="edit-field">
               <label>Documento de Identificación</label>
-              <input type="text" [(ngModel)]="editIdentificacion" placeholder="N.º de documento" class="edit-input" />
+              <div class="input-icon-wrap">
+                <i class="bi bi-person-vcard input-lead-icon"></i>
+                <input type="text" [(ngModel)]="editIdentificacion" placeholder="Número de documento" class="edit-input with-icon" />
+              </div>
             </div>
+
             <div class="edit-field">
-              <label>Correo Electrónico</label>
-              <input type="email" [(ngModel)]="editCorreo" placeholder="correo@ejemplo.com" class="edit-input" />
+              <label>Correo Electrónico Corporativo</label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-envelope-at input-lead-icon"></i>
+                <input type="email" [(ngModel)]="editCorreo" placeholder="usuario@bgreen.com.co" class="edit-input with-icon" />
+              </div>
             </div>
+
             <div class="edit-field">
-              <label>Celular / Extensión</label>
-              <input type="text" [(ngModel)]="editCelular" placeholder="Número de celular" class="edit-input" />
+              <label>Celular / Extensión Telefónica</label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-telephone input-lead-icon"></i>
+                <input type="text" [(ngModel)]="editCelular" placeholder="Ej. 300 123 4567" class="edit-input with-icon" />
+              </div>
             </div>
+
             <div class="edit-field">
               <label>Fecha de Nacimiento</label>
-              <input type="date" [(ngModel)]="editFechaNacimiento" class="edit-input" />
+              <div class="input-icon-wrap">
+                <i class="bi bi-calendar-event input-lead-icon"></i>
+                <input type="date" [(ngModel)]="editFechaNacimiento" class="edit-input with-icon" />
+              </div>
             </div>
           </div>
 
@@ -100,13 +261,18 @@
         </div>
 
         <div class="edit-panel-footer">
-          <button class="btn-cancelar-edit" (click)="cancelarEdicion()" [disabled]="guardandoPerfil">
-            Cancelar
-          </button>
-          <button class="btn-guardar-edit" (click)="guardarPerfil()" [disabled]="guardandoPerfil">
-            <i class="bi" [class.bi-save]="!guardandoPerfil" [class.bi-arrow-repeat]="guardandoPerfil"></i>
-            {{ guardandoPerfil ? 'Guardando...' : 'Guardar Cambios' }}
-          </button>
+          <span class="epf-hint">
+            <i class="bi bi-shield-lock"></i> Los campos con <span class="req">*</span> son obligatorios.
+          </span>
+          <div class="epf-actions">
+            <button type="button" class="btn-cancelar-edit" (click)="cancelarEdicion()" [disabled]="guardandoPerfil">
+              Cancelar
+            </button>
+            <button type="button" class="btn-guardar-edit" (click)="guardarPerfil()" [disabled]="guardandoPerfil">
+              <i class="bi" [class.bi-check2-circle]="!guardandoPerfil" [class.bi-arrow-repeat]="guardandoPerfil"></i>
+              {{ guardandoPerfil ? 'Guardando cambios...' : 'Guardar Cambios' }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -115,26 +281,36 @@
         {{ mensajeGuardado }}
       </div>
 
-      <!-- Rejilla de información detallada -->
+      <!-- Rejilla de información detallada en 4 tarjetas ejecutivas -->
       <div class="info-grid-full">
 
         <!-- Tarjeta 1: Datos de Cuenta y Sistema -->
         <div class="info-card">
           <div class="card-header">
-            <i class="bi bi-person-badge-fill card-icon"></i>
-            <h3>Cuenta & Sistema</h3>
+            <div class="card-icon-box icon-box-emerald">
+              <i class="bi bi-shield-lock-fill card-icon"></i>
+            </div>
+            <div class="card-header-titles">
+              <h3>Cuenta & Seguridad</h3>
+              <span class="card-subtitle">Credenciales y estado de acceso</span>
+            </div>
           </div>
           <div class="card-body">
             <div class="info-item">
-              <span class="item-label">Nombre de Usuario</span>
-              <span class="item-value font-highlight">{{ usuarioNombre || '-' }}</span>
+              <span class="item-label"><i class="bi bi-person-circle"></i> Nombre de Usuario</span>
+              <div class="item-value-with-action">
+                <span class="item-value font-highlight">@{{ usuarioNombre || '-' }}</span>
+                <button type="button" class="btn-mini-copy" *ngIf="usuarioNombre" (click)="copiarDato(usuarioNombre, 'card_user')" title="Copiar usuario">
+                  <i class="bi" [ngClass]="campoCopiado === 'card_user' ? 'bi-check2 text-success' : 'bi-copy'"></i>
+                </button>
+              </div>
             </div>
             <div class="info-item">
-              <span class="item-label">Perfil de Sistema</span>
+              <span class="item-label"><i class="bi bi-key"></i> Perfil de Sistema</span>
               <span class="item-value">{{ userRole || '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="item-label">Estado de la Cuenta</span>
+              <span class="item-label"><i class="bi bi-activity"></i> Estado de la Cuenta</span>
               <span class="item-value">
                 <span class="status-pill" [class.active]="estadoUsuario" [class.inactive]="!estadoUsuario">
                   <i class="bi" [class.bi-check-circle-fill]="estadoUsuario" [class.bi-x-circle-fill]="!estadoUsuario"></i>
@@ -143,7 +319,7 @@
               </span>
             </div>
             <div class="info-item">
-              <span class="item-label">Estado de Bloqueo</span>
+              <span class="item-label"><i class="bi bi-shield-check"></i> Estado de Bloqueo</span>
               <span class="item-value">
                 <span class="status-pill" [class.active]="!bloqueadoUsuario" [class.blocked]="bloqueadoUsuario">
                   <i class="bi" [class.bi-unlock-fill]="!bloqueadoUsuario" [class.bi-lock-fill]="bloqueadoUsuario"></i>
@@ -152,7 +328,7 @@
               </span>
             </div>
             <div class="info-item" *ngIf="ultimaConexion">
-              <span class="item-label">Última Conexión</span>
+              <span class="item-label"><i class="bi bi-clock-history"></i> Última Conexión</span>
               <span class="item-value">{{ ultimaConexion | date:'dd/MM/yyyy HH:mm' }}</span>
             </div>
           </div>
@@ -161,30 +337,43 @@
         <!-- Tarjeta 2: Datos Personales -->
         <div class="info-card" [class.info-card-editing]="modoEdicion">
           <div class="card-header">
-            <i class="bi bi-person-lines-fill card-icon"></i>
-            <h3>Datos Personales</h3>
+            <div class="card-icon-box icon-box-blue">
+              <i class="bi bi-person-lines-fill card-icon"></i>
+            </div>
+            <div class="card-header-titles">
+              <h3>Datos Personales</h3>
+              <span class="card-subtitle">Identidad y registro personal</span>
+            </div>
+            <button type="button" class="btn-card-quick-edit" *ngIf="!modoEdicion" (click)="activarEdicion()" title="Editar datos personales">
+              <i class="bi bi-pencil"></i>
+            </button>
             <span class="card-edit-tag" *ngIf="modoEdicion"><i class="bi bi-pencil"></i> editando</span>
           </div>
           <div class="card-body">
             <div class="info-item">
-              <span class="item-label">Nombres</span>
+              <span class="item-label"><i class="bi bi-person"></i> Nombres</span>
               <span class="item-value">{{ primerNombre || '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="item-label">Apellidos</span>
+              <span class="item-label"><i class="bi bi-person-check"></i> Apellidos</span>
               <span class="item-value">{{ primerApellido || '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="item-label">Documento de Identificación</span>
-              <span class="item-value">{{ identificacion || '-' }}</span>
+              <span class="item-label"><i class="bi bi-card-heading"></i> Documento de Identificación</span>
+              <div class="item-value-with-action">
+                <span class="item-value">{{ identificacion || '-' }}</span>
+                <button type="button" class="btn-mini-copy" *ngIf="identificacion" (click)="copiarDato(identificacion, 'card_id')" title="Copiar documento">
+                  <i class="bi" [ngClass]="campoCopiado === 'card_id' ? 'bi-check2 text-success' : 'bi-copy'"></i>
+                </button>
+              </div>
             </div>
             <div class="info-item">
-              <span class="item-label">Tipo de Documento</span>
+              <span class="item-label"><i class="bi bi-person-vcard"></i> Tipo de Documento</span>
               <span class="item-value">{{ tipoIdentificacion || 'Cédula de Ciudadanía' }}</span>
             </div>
             <div class="info-item">
-              <span class="item-label">Fecha de Nacimiento</span>
-              <span class="item-value">{{ fechaNacimiento ? (fechaNacimiento | date:'dd/MM/yyyy') : '-' }}</span>
+              <span class="item-label"><i class="bi bi-cake2"></i> Fecha de Nacimiento</span>
+              <span class="item-value">{{ fechaNacimiento ? (fechaNacimiento | date:'dd/MM/yyyy') : 'Sin registrar' }}</span>
             </div>
           </div>
         </div>
@@ -192,24 +381,48 @@
         <!-- Tarjeta 3: Datos de Contacto -->
         <div class="info-card" [class.info-card-editing]="modoEdicion">
           <div class="card-header">
-            <i class="bi bi-telephone-fill card-icon"></i>
-            <h3>Contacto</h3>
+            <div class="card-icon-box icon-box-amber">
+              <i class="bi bi-telephone-outbound-fill card-icon"></i>
+            </div>
+            <div class="card-header-titles">
+              <h3>Canales de Contacto</h3>
+              <span class="card-subtitle">Comunicación directa y notificaciones</span>
+            </div>
+            <button type="button" class="btn-card-quick-edit" *ngIf="!modoEdicion" (click)="activarEdicion()" title="Editar datos de contacto">
+              <i class="bi bi-pencil"></i>
+            </button>
             <span class="card-edit-tag" *ngIf="modoEdicion"><i class="bi bi-pencil"></i> editando</span>
           </div>
           <div class="card-body">
             <div class="info-item">
-              <span class="item-label">Correo Electrónico</span>
-              <span class="item-value">
+              <span class="item-label"><i class="bi bi-envelope-at"></i> Correo Electrónico</span>
+              <div class="item-value-with-action">
                 <a [href]="'mailto:' + userEmail" class="link-contact" *ngIf="userEmail">
                   <i class="bi bi-envelope"></i> {{ userEmail }}
                 </a>
-                <span *ngIf="!userEmail">-</span>
-              </span>
+                <span class="item-value text-muted" *ngIf="!userEmail">Sin registrar</span>
+                <button type="button" class="btn-mini-copy" *ngIf="userEmail" (click)="copiarDato(userEmail, 'card_mail')" title="Copiar correo">
+                  <i class="bi" [ngClass]="campoCopiado === 'card_mail' ? 'bi-check2 text-success' : 'bi-copy'"></i>
+                </button>
+              </div>
             </div>
             <div class="info-item">
-              <span class="item-label">Celular / Extensión</span>
+              <span class="item-label"><i class="bi bi-phone"></i> Celular / Extensión</span>
+              <div class="item-value-with-action">
+                <span class="item-value">
+                  <i class="bi bi-telephone text-success" *ngIf="celular"></i> {{ celular || 'Sin registrar' }}
+                </span>
+                <button type="button" class="btn-mini-copy" *ngIf="celular" (click)="copiarDato(celular, 'card_cel')" title="Copiar celular">
+                  <i class="bi" [ngClass]="campoCopiado === 'card_cel' ? 'bi-check2 text-success' : 'bi-copy'"></i>
+                </button>
+              </div>
+            </div>
+            <div class="info-item">
+              <span class="item-label"><i class="bi bi-bell"></i> Notificaciones de Sistema</span>
               <span class="item-value">
-                <i class="bi bi-telephone" *ngIf="celular"></i> {{ celular || '-' }}
+                <span class="status-pill active">
+                  <i class="bi bi-check2-circle"></i> Habilitadas por Correo
+                </span>
               </span>
             </div>
           </div>
@@ -218,34 +431,1328 @@
         <!-- Tarjeta 4: Datos Organizacionales -->
         <div class="info-card">
           <div class="card-header">
-            <i class="bi bi-building card-icon"></i>
-            <h3>Organización & Empresa</h3>
+            <div class="card-icon-box icon-box-purple">
+              <i class="bi bi-building-fill-check card-icon"></i>
+            </div>
+            <div class="card-header-titles">
+              <h3>Organización & Empresa</h3>
+              <span class="card-subtitle">Ubicación y estructura corporativa</span>
+            </div>
           </div>
           <div class="card-body">
             <div class="info-item">
-              <span class="item-label">Empresa</span>
+              <span class="item-label"><i class="bi bi-building"></i> Empresa</span>
               <span class="item-value">{{ nameempresa || '-' }}</span>
             </div>
             <div class="info-item" *ngIf="razonSocial">
-              <span class="item-label">Razón Social</span>
+              <span class="item-label"><i class="bi bi-bank"></i> Razón Social</span>
               <span class="item-value">{{ razonSocial }}</span>
             </div>
             <div class="info-item">
-              <span class="item-label">Área / Departamento</span>
+              <span class="item-label"><i class="bi bi-diagram-2"></i> Área / Departamento</span>
               <span class="item-value">{{ area || '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="item-label">Cargo</span>
-              <span class="item-value">{{ cargo || '-' }}</span>
+              <span class="item-label"><i class="bi bi-briefcase"></i> Cargo Actual</span>
+              <span class="item-value font-highlight">{{ cargo || '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="item-label">Nivel Jerárquico</span>
-              <span class="item-value">Nivel {{ miNivelJerarquico }} - {{ nombreMiNivel }}</span>
+              <span class="item-label"><i class="bi bi-layers"></i> Nivel Jerárquico</span>
+              <span class="item-value">Nivel {{ miNivelJerarquico }} &mdash; {{ nombreMiNivel }}</span>
             </div>
           </div>
         </div>
 
       </div>
+
+      <!-- ==================== SECCIÓN COMPACTA: MI ENTORNO ORGANIZACIONAL ==================== -->
+      <div class="entorno-equipo-card" *ngIf="miJefe || misCompanerosArea.length > 0">
+        <div class="eec-header" (click)="mostrarEquipoCompacto = !mostrarEquipoCompacto" style="cursor: pointer;">
+          <div class="eec-header-left">
+            <span class="eec-icon-badge"><i class="bi bi-people-fill"></i></span>
+            <div>
+              <h3 class="eec-title">Mi Entorno de Equipo &bull; {{ area || 'Área Corporativa' }}</h3>
+              <p class="eec-subtitle">Liderazgo directo y compañeros de tu misma unidad organizacional</p>
+            </div>
+          </div>
+          <div class="eec-header-right">
+            <span class="eec-count-chip">
+              <i class="bi bi-person-check-fill"></i> {{ misCompanerosArea.length + 1 }} integrantes en el área
+            </span>
+            <button type="button" class="btn-eec-toggle" [title]="mostrarEquipoCompacto ? 'Ocultar equipo' : 'Mostrar equipo'">
+              <i class="bi" [ngClass]="mostrarEquipoCompacto ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="eec-body" *ngIf="mostrarEquipoCompacto">
+          <!-- Tarjeta Destacada del Jefe Directo -->
+          <div class="eec-jefe-box" *ngIf="miJefe">
+            <div class="eec-box-tag">
+              <i class="bi bi-star-fill"></i> Líder / Jefe Inmediato
+            </div>
+            <div class="eec-person-row">
+              <div class="eec-avatar" [ngClass]="miJefe.badgeClass || 'nivel-2'">{{ miJefe.initials }}</div>
+              <div class="eec-person-info">
+                <strong>{{ miJefe.nombre }} {{ miJefe.apellido }}</strong>
+                <span class="eec-person-role">{{ miJefe.cargo || miJefe.nombreNivel }}</span>
+                <small class="eec-person-mail" *ngIf="miJefe.correo">
+                  <i class="bi bi-envelope"></i> {{ miJefe.correo }}
+                </small>
+              </div>
+              <a *ngIf="miJefe.correo" [href]="'mailto:' + miJefe.correo" class="btn-eec-mail" title="Enviar correo al líder">
+                <i class="bi bi-send-fill"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Lista Horizontal de Compañeros de Área -->
+          <div class="eec-peers-wrap" *ngIf="misCompanerosArea.length > 0">
+            <div class="eec-peers-label">
+              <span>Compañeros de Área ({{ misCompanerosArea.length }})</span>
+            </div>
+            <div class="eec-peers-grid">
+              <div class="eec-peer-chip" *ngFor="let comp of misCompanerosArea.slice(0, 8)" [title]="comp.nombre + ' ' + comp.apellido + ' — ' + (comp.cargo || comp.nombreNivel)">
+                <div class="eec-peer-avatar" [ngClass]="comp.badgeClass || 'nivel-6'">{{ comp.initials }}</div>
+                <div class="eec-peer-meta">
+                  <strong class="eec-peer-name">{{ comp.nombre }} {{ comp.apellido }}</strong>
+                  <span class="eec-peer-cargo">{{ comp.cargo || comp.nombreNivel }}</span>
+                </div>
+              </div>
+              <div class="eec-peer-more" *ngIf="misCompanerosArea.length > 8">
+                +{{ misCompanerosArea.length - 8 }} más
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TARJETAS DE PRESENTISMO POR ÁREAS (LÍDERES) ==================== -->
+      <div class="lider-areas-cuadritos-container" *ngIf="esLiderPresentismo && areasPresentismo.length > 0">
+        <!-- Encabezado Ejecutivo de Supervisión -->
+        <div class="lider-areas-header">
+          <div class="lider-areas-title">
+            <div class="lider-icon-badge">
+              <i class="bi bi-diagram-3-fill"></i>
+            </div>
+            <div class="lider-title-texts">
+              <div class="lider-title-row">
+                <h4 class="lider-title-main">Presentismo por Áreas Supervisadas</h4>
+                <span class="lider-live-chip">
+                  <span class="lider-live-dot"></span> Siesa Biométrico
+                </span>
+              </div>
+              <p class="lider-subtitle-main">Monitoreo de asistencia, puntualidad y marcaciones del personal a cargo</p>
+            </div>
+          </div>
+
+          <div class="lider-areas-actions-top">
+            <!-- Buscador rápido de área o colaborador -->
+            <div class="la-search-box" *ngIf="areasPresentismo.length > 1">
+              <i class="bi bi-search la-search-icon"></i>
+              <input
+                type="text"
+                class="la-search-input"
+                [(ngModel)]="filtroAreaSupervisada"
+                placeholder="Filtrar área o colaborador..." />
+              <button type="button" class="la-search-clear" *ngIf="filtroAreaSupervisada" (click)="filtroAreaSupervisada = ''" title="Limpiar filtro">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <!-- Selector rápido desplegable -->
+            <div class="la-select-wrap" *ngIf="areasPresentismo.length > 0">
+              <i class="bi bi-building-gear la-select-icon"></i>
+              <select class="la-select-control" (change)="abrirModalPresentismoPorSelect($event)">
+                <option value="" disabled selected>Ir directo a un área...</option>
+                <option *ngFor="let a of areasPresentismo" [value]="a.idArea">
+                  {{ a.nombreArea }} ({{ a.totalColaboradores }} colab.)
+                </option>
+              </select>
+              <i class="bi bi-chevron-down la-caret"></i>
+            </div>
+
+            <!-- Resumen de áreas y colaboradores -->
+            <div class="lider-summary-pills">
+              <span class="lider-areas-counter-chip">
+                <i class="bi bi-building-check"></i>
+                <strong>{{ areasPresentismo.length }}</strong> {{ areasPresentismo.length === 1 ? 'área' : 'áreas' }}
+              </span>
+              <span class="lider-colabs-counter-chip">
+                <i class="bi bi-people-fill"></i>
+                <strong>{{ totalColaboradoresSupervisados }}</strong> colaboradores
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grilla de Tarjetas de Áreas Supervisadas -->
+        <div class="cuadritos-areas-grid">
+          <div 
+            *ngFor="let areaItem of areasPresentismoFiltradas; let idx = index" 
+            class="cuadrito-area-card"
+            [class.active]="areaSeleccionadaPresentismo?.idArea === areaItem.idArea"
+            (click)="abrirModalPresentismo(areaItem)">
+            
+            <!-- Fila Superior: Insignias de Estado y Conteo -->
+            <div class="cuadrito-top-row">
+              <span class="cuadrito-tag-presentismo">
+                <span class="tag-dot"></span> Supervisión Activa
+              </span>
+              <span class="cuadrito-count-pill" title="Colaboradores asignados al área">
+                <i class="bi bi-people-fill"></i> {{ areaItem.totalColaboradores }} {{ areaItem.totalColaboradores === 1 ? 'integrante' : 'integrantes' }}
+              </span>
+            </div>
+            
+            <!-- Bloque de Identidad del Área -->
+            <div class="cuadrito-title-block">
+              <div class="cuadrito-area-avatar">
+                <i class="bi bi-building-fill-check"></i>
+              </div>
+              <div class="cuadrito-name-wrap">
+                <h5 class="cuadrito-area-title" [title]="areaItem.nombreArea">{{ areaItem.nombreArea }}</h5>
+                <span class="cuadrito-dir-sub" *ngIf="areaItem.direccion">
+                  <i class="bi bi-geo-alt-fill"></i> Dirección {{ areaItem.direccion }}
+                </span>
+                <span class="cuadrito-dir-sub" *ngIf="!areaItem.direccion">
+                  <i class="bi bi-layers-half"></i> Unidad Organizacional BGreen
+                </span>
+              </div>
+            </div>
+
+            <!-- Vista Previa del Equipo (Stack de Avatares + Responsable) -->
+            <div class="cuadrito-team-preview" *ngIf="areaItem.colaboradores && areaItem.colaboradores.length > 0">
+              <div class="ctp-avatars-stack">
+                <div 
+                  class="ctp-avatar-item" 
+                  *ngFor="let colab of areaItem.colaboradores.slice(0, 5)"
+                  [ngClass]="colab.badgeClass || 'nivel-6'"
+                  [title]="colab.nombre + ' ' + colab.apellido + ' — ' + (colab.cargo || colab.nombreNivel)">
+                  {{ colab.initials }}
+                </div>
+                <div class="ctp-avatar-more" *ngIf="areaItem.colaboradores.length > 5" [title]="(areaItem.colaboradores.length - 5) + ' colaboradores adicionales'">
+                  +{{ areaItem.colaboradores.length - 5 }}
+                </div>
+              </div>
+              <div class="ctp-leader-info">
+                <span class="ctp-leader-label">Referente / Equipo</span>
+                <strong class="ctp-leader-name" [title]="obtenerLiderArea(areaItem)">{{ obtenerLiderArea(areaItem) }}</strong>
+              </div>
+            </div>
+
+            <!-- Bloque de Cumplimiento y Sincronización -->
+            <div class="cuadrito-compliance-box">
+              <div class="ccb-header">
+                <span class="ccb-label">
+                  <i class="bi bi-shield-check"></i> Monitoreo de Asistencia
+                </span>
+                <span class="ccb-badge">
+                  <i class="bi bi-check-circle-fill"></i> En línea
+                </span>
+              </div>
+              <div class="ccb-progress-track">
+                <div class="ccb-progress-fill" style="width: 96%"></div>
+              </div>
+              <div class="ccb-footer-stats">
+                <span class="ccb-stat-sub"><i class="bi bi-clock-history"></i> Calendario y puntualidad</span>
+                <span class="ccb-status-pill">Siesa Sync</span>
+              </div>
+            </div>
+
+            <!-- Pie de Tarjeta con Acción Interactiva -->
+            <div class="cuadrito-card-footer">
+              <div class="ccf-left">
+                <i class="bi bi-calendar2-week"></i>
+                <span class="cuadrito-action-text">Inspeccionar calendario y equipo</span>
+              </div>
+              <span class="cuadrito-action-arrow">
+                <i class="bi bi-arrow-right"></i>
+              </span>
+            </div>
+          </div>
+
+          <!-- Estado vacío si el filtro de búsqueda no coincide -->
+          <div class="cuadritos-empty-search" *ngIf="areasPresentismoFiltradas.length === 0">
+            <i class="bi bi-search"></i>
+            <p>No se encontraron áreas o colaboradores que coincidan con <strong>"{{ filtroAreaSupervisada }}"</strong>.</p>
+            <button type="button" class="btn-reset-area-search" (click)="filtroAreaSupervisada = ''">Ver todas las áreas</button>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- ==================== MODAL DE CONTROL DE ASISTENCIA & PRESENTISMO ==================== -->
+    <div class="presentismo-full-view-backdrop" *ngIf="isModalPresentismoOpen" (click)="cerrarModalPresentismo()">
+      <div class="presentismo-full-view-panel" (click)="$event.stopPropagation()">
+
+        <!-- ── HEADER PRINCIPAL DEL PANEL ── -->
+        <header class="pfv-header">
+          <div class="pfv-header-brand">
+            <div class="pfv-brand-icon">
+              <i class="bi bi-fingerprint"></i>
+            </div>
+            <div class="pfv-brand-info">
+              <div class="pfv-brand-badge-row">
+                <span class="pfv-badge-pill"><i class="bi bi-shield-check"></i> SIESA ACCESS BIOMÉTRICO</span>
+                <span class="pfv-live-badge"><span class="pfv-live-dot"></span> EN VIVO</span>
+              </div>
+              <h2 class="pfv-brand-title">Control de Asistencia & Presentismo</h2>
+            </div>
+          </div>
+
+          <!-- Navegación de Mes Central -->
+          <div class="pfv-month-navigator">
+            <button type="button" class="btn-nav-arrow" (click)="cambiarMesPresentismo(-1)" title="Mes anterior">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <div class="pfv-current-month-display">
+              <i class="bi bi-calendar3"></i>
+              <span>{{ nombreMesPresentismo }}</span>
+            </div>
+            <button type="button" class="btn-nav-arrow" (click)="cambiarMesPresentismo(1)" [disabled]="!puedeAvanzarMes" [class.is-disabled]="!puedeAvanzarMes" title="Mes siguiente">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+            <button type="button" class="btn-nav-today" (click)="irAMesActualPresentismo()" title="Ir al mes actual">
+              Hoy
+            </button>
+          </div>
+
+          <!-- Pestañas de Vista y Cerrar -->
+          <div class="pfv-header-actions">
+            <nav class="pfv-nav-tabs">
+              <button 
+                type="button" 
+                class="pfv-tab-btn" 
+                [class.is-active]="activePresentismoTab === 'calendario'"
+                (click)="activePresentismoTab = 'calendario'">
+                <i class="bi bi-calendar-week"></i>
+                <span>Calendario</span>
+              </button>
+              <button 
+                type="button" 
+                class="pfv-tab-btn" 
+                *ngIf="false"
+                 [class.is-active]="activePresentismoTab === 'detalle'"
+                (click)="activePresentismoTab = 'detalle'">
+                <i class="bi bi-table"></i>
+                <span>Detalle</span>
+              </button>
+              <button 
+                type="button" 
+                class="pfv-tab-btn" 
+                [class.is-active]="activePresentismoTab === 'estadisticas'"
+                (click)="activePresentismoTab = 'estadisticas'; cargarDatosAreaBiometrico()">
+                <i class="bi bi-bar-chart-line-fill"></i>
+                <span>Estadísticas</span>
+              </button>
+            </nav>
+
+            <button type="button" class="btn-close-pfv" (click)="cerrarModalPresentismo()" title="Cerrar panel">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- ── CUERPO PRINCIPAL EN 2 COLUMNAS ── -->
+        <div class="pfv-layout-container" [class.sidebar-hidden]="sidebarPresentismoColapsado || (!esLiderPresentismo && areasPresentismo.length === 0)">
+          
+          <!-- COLUMNA 1: PANEL LATERAL IZQUIERDO -->
+          <aside class="pfv-sidebar" *ngIf="esLiderPresentismo || areasPresentismo.length > 0">
+            <div class="pfv-sidebar-header">
+              <span class="pfv-sidebar-title">EQUIPO Y ACCESO</span>
+            </div>
+
+            <!-- "Mi Asistencia" fijada arriba -->
+            <div 
+              class="pfv-sidebar-pinned-card"
+              [class.is-selected]="modoVistaSupervisor === 'mi_calendario' && !colaboradorSeleccionadoPresentismo"
+              (click)="volverAMiPresentismo()">
+              <div class="pinned-avatar">{{ initials }}</div>
+              <div class="pinned-info">
+                <div class="pinned-badge-row">
+                  <span class="pinned-tag">Mi Asistencia</span>
+                  <span class="pinned-active-chip" *ngIf="modoVistaSupervisor === 'mi_calendario' && !colaboradorSeleccionadoPresentismo">
+                    <i class="bi bi-check2-circle"></i> Activo
+                  </span>
+                </div>
+                <strong class="pinned-name">{{ fullName }}</strong>
+                <span class="pinned-role">{{ cargo || 'Colaborador' }}</span>
+              </div>
+              <div class="pinned-kpi-ring">
+                <span class="pkr-val">{{ porcentajeCumplimientoMes }}%</span>
+                <span class="pkr-lbl">mes</span>
+              </div>
+            </div>
+
+            <!-- Sección de Áreas Supervisadas (Para Líderes) -->
+            <div class="pfv-areas-section" *ngIf="esLiderPresentismo && areasPresentismo.length > 0">
+              <div class="pfv-areas-sec-title">
+                <span>ÁREAS SUPERVISADAS</span>
+                <span class="badge-areas-count">{{ areasPresentismo.length }}</span>
+              </div>
+
+              <!-- Selector de Área como Lista Desplegable -->
+              <div class="pfv-area-dropdown-wrap">
+                <div class="pfv-select-custom-box">
+                  <i class="bi bi-diagram-3 pfv-select-icon"></i>
+                  <select 
+                    class="pfv-area-dropdown-select"
+                    [ngModel]="areaSeleccionadaPresentismo?.idArea"
+                    (ngModelChange)="onAreaSeleccionadaChange($event)">
+                    <option [ngValue]="null" disabled [selected]="!areaSeleccionadaPresentismo">-- Selecciona un área --</option>
+                    <option *ngFor="let areaItem of areasPresentismo" [value]="areaItem.idArea">
+                      {{ areaItem.nombreArea }} ({{ areaItem.totalColaboradores }} colaboradores)
+                    </option>
+                  </select>
+                  <i class="bi bi-chevron-down pfv-select-caret"></i>
+                </div>
+              </div>
+
+              <!-- Buscador de colaboradores en tiempo real -->
+              <div class="pfv-colabs-search-wrap" *ngIf="areaSeleccionadaPresentismo">
+                <i class="bi bi-search"></i>
+                <input 
+                  type="text" 
+                  class="pfv-search-input" 
+                  [(ngModel)]="busquedaColaboradorSupervisor" 
+                  placeholder="Buscar colaborador..." />
+                <button *ngIf="busquedaColaboradorSupervisor" class="btn-clear-search" (click)="busquedaColaboradorSupervisor = ''">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </div>
+
+              <!-- Lista de Colaboradores del Área -->
+              <div class="pfv-colabs-list-scroll" *ngIf="areaSeleccionadaPresentismo">
+                <div 
+                  *ngFor="let colab of colaboradoresAreaFiltrados"
+                  class="pfv-colab-item"
+                  [class.is-selected]="colaboradorSeleccionadoPresentismo?.identificacion === colab.identificacion"
+                  (click)="seleccionarColaboradorPresentismo(colab)">
+                  <div class="pci-avatar" [ngClass]="colab.badgeClass || 'nivel-6'">{{ colab.initials }}</div>
+                  <div class="pci-info">
+                    <strong class="pci-name">{{ colab.nombre }} {{ colab.apellido }}</strong>
+                    <span class="pci-cargo">{{ colab.cargo || colab.descripcionCargo || 'Colaborador' }}</span>
+                    <small class="pci-id">C.C. {{ colab.identificacion }}</small>
+                  </div>
+                  <div class="pci-action">
+                    <span *ngIf="colaboradorSeleccionadoPresentismo?.identificacion === colab.identificacion" class="pci-active-pill">
+                      <i class="bi bi-eye-fill"></i>
+                    </span>
+                    <i *ngIf="colaboradorSeleccionadoPresentismo?.identificacion !== colab.identificacion" class="bi bi-chevron-right text-muted"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- COLUMNA 2: ESPACIO DE TRABAJO PRINCIPAL -->
+          <main class="pfv-workspace">
+
+            <!-- ── ENCABEZADO DE LA PERSONA ACTIVA ── -->
+            <section class="pfv-persona-strip">
+              <div class="pfv-persona-left">
+                <div class="persona-avatar-lg">{{ inicialesColaboradorActivo }}</div>
+                <div class="persona-details">
+                  <div class="persona-badge-row">
+                    <span class="persona-area-badge"><i class="bi bi-building"></i> {{ areaColaboradorActivo }}</span>
+                    <span class="persona-id-badge"><i class="bi bi-person-badge"></i> C.C. {{ cedulaColaboradorActual }}</span>
+                    
+                    <!-- Estado Biométrico en tiempo real -->
+                    <span class="persona-status-pill status-presente" *ngIf="estadoBiometricoHoy === 'PRESENTE'">
+                      <span class="pulse-dot-green"></span> En Sede Hoy
+                    </span>
+                    <span class="persona-status-pill status-salida" *ngIf="estadoBiometricoHoy === 'SALIDA'">
+                      <i class="bi bi-box-arrow-right"></i> Jornada Finalizada
+                    </span>
+                    <span class="persona-status-pill status-sin-registro" *ngIf="estadoBiometricoHoy === 'SIN_REGISTRO'">
+                      <i class="bi bi-clock"></i> Sin Marcación Hoy
+                    </span>
+                  </div>
+                  <h3 class="persona-name-title">{{ nombreColaboradorActivo }}</h3>
+                  <p class="persona-cargo-subtitle">{{ cargoColaboradorActivo }}</p>
+                </div>
+              </div>
+
+              <div class="pfv-persona-right" *ngIf="colaboradorSeleccionadoPresentismo">
+                <button type="button" class="btn-return-personal" (click)="volverAMiPresentismo()">
+                  <i class="bi bi-arrow-return-left"></i>
+                  <span>Volver a Mi Asistencia</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- ── FRANJA DE KPIS CLAVE DEL MES CON COMPARATIVO HISTÓRICO ── -->
+            <section class="pfv-kpis-grid">
+              <!-- KPI 1: Días Puntuales -->
+              <div class="pfv-kpi-card">
+                <div class="kpi-icon-wrap icon-puntualidad"><i class="bi bi-calendar-check-fill"></i></div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Días Puntuales</span>
+                  <div class="kpi-val-group">
+                    <strong class="kpi-value text-success">{{ diasPuntualesCount }}</strong>
+                    <span class="kpi-denominador">/ {{ diasAsistidosCount }} asistidos</span>
+                  </div>
+                  <span class="kpi-subtext" [ngClass]="comparativoMesAnterior.subioPuntuales ? 'text-success' : 'text-danger'">
+                    <i class="bi" [ngClass]="comparativoMesAnterior.subioPuntuales ? 'bi-arrow-up-right' : 'bi-arrow-down-right'"></i>
+                    {{ comparativoMesAnterior.subioPuntuales ? 'Subió +' : 'Bajó ' }}{{ comparativoMesAnterior.diferenciaPuntuales }} vs mes anterior
+                  </span>
+                </div>
+              </div>
+
+              <!-- KPI 2: Llegadas Tarde -->
+              <div class="pfv-kpi-card" [class.kpi-alert]="ingresosTarde > 0">
+                <div class="kpi-icon-wrap icon-tardes"><i class="bi bi-box-arrow-in-right"></i></div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Llegadas Tarde</span>
+                  <div class="kpi-val-group">
+                    <strong class="kpi-value text-danger">{{ ingresosTarde }}</strong>
+                    <span class="kpi-denominador">veces</span>
+                  </div>
+                  <span class="kpi-subtext" [ngClass]="comparativoMesAnterior.subioTardes ? 'text-danger' : 'text-success'">
+                    <i class="bi" [ngClass]="comparativoMesAnterior.subioTardes ? 'bi-arrow-up-right' : 'bi-arrow-down-right'"></i>
+                    {{ comparativoMesAnterior.subioTardes ? 'Subió +' : 'Bajó ' }}{{ Math.abs(comparativoMesAnterior.diferenciaTardes) }} vs mes anterior
+                  </span>
+                </div>
+              </div>
+
+              <!-- KPI 3: Salidas Tardes (> 5:40 PM) -->
+              <div class="pfv-kpi-card" [class.kpi-critical]="salidasTardesCount > 0">
+                <div class="kpi-icon-wrap icon-anticipadas"><i class="bi bi-box-arrow-right"></i></div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Salidas Tardes</span>
+                  <div class="kpi-val-group">
+                    <strong class="kpi-value" [class.text-danger]="salidasTardesCount > 0">{{ salidasTardesCount }}</strong>
+                    <span class="kpi-denominador">> 05:40 PM</span>
+                  </div>
+                  <span class="kpi-subtext" [ngClass]="comparativoMesAnterior.subioSalidasTardes ? 'text-danger' : 'text-success'">
+                    <i class="bi" [ngClass]="comparativoMesAnterior.subioSalidasTardes ? 'bi-arrow-up-right' : 'bi-arrow-down-right'"></i>
+                    {{ comparativoMesAnterior.subioSalidasTardes ? 'Subió +' : 'Bajó ' }}{{ Math.abs(comparativoMesAnterior.diferenciaSalidasTardes) }} vs mes anterior
+                  </span>
+                </div>
+              </div>
+
+              <!-- KPI 4: Comparativo vs Mes Anterior (Muestra % del Mes y Tendencia) -->
+              <div class="pfv-kpi-card kpi-comparativo" [ngClass]="'kpi-cmp-' + comparativoMesAnterior.estadoGlobal">
+                <div class="kpi-icon-wrap" [ngClass]="comparativoMesAnterior.estadoGlobal === 'subio' ? 'icon-puntualidad' : (comparativoMesAnterior.estadoGlobal === 'bajo' ? 'icon-tardes' : 'icon-asistidos')">
+                  <i class="bi" [ngClass]="comparativoMesAnterior.estadoGlobal === 'subio' ? 'bi-graph-up-arrow' : (comparativoMesAnterior.estadoGlobal === 'bajo' ? 'bi-graph-down-arrow' : 'bi-dash-lg')"></i>
+                </div>
+                <div class="kpi-content">
+                  <span class="kpi-label">Puntualidad vs Mes Anterior</span>
+                  <div class="kpi-val-group">
+                    <strong class="kpi-value" [ngClass]="comparativoMesAnterior.estadoGlobal === 'subio' ? 'text-success' : (comparativoMesAnterior.estadoGlobal === 'bajo' ? 'text-danger' : 'text-muted')">
+                      {{ comparativoMesAnterior.porcentajeGlobalActual }}%
+                    </strong>
+                    <span class="cmp-arrow-pill" [class.cmp-subio]="comparativoMesAnterior.estadoGlobal === 'subio'" [class.cmp-bajo]="comparativoMesAnterior.estadoGlobal === 'bajo'">
+                      {{ comparativoMesAnterior.estadoGlobal === 'subio' ? '▲ SUBIÓ' : (comparativoMesAnterior.estadoGlobal === 'bajo' ? '▼ BAJÓ' : '= IGUAL') }}
+                      {{ comparativoMesAnterior.diferenciaGlobal > 0 ? '+' : '' }}{{ comparativoMesAnterior.diferenciaGlobal }}%
+                    </span>
+                  </div>
+                  <span class="kpi-subtext">Mes actual (vs {{ comparativoMesAnterior.porcentajeGlobalAnterior }}% en {{ comparativoMesAnterior.nombreMesAnterior }})</span>
+                </div>
+              </div>
+            </section>
+
+          <!-- Spinner cargando -->
+          <div class="presentismo-loading" *ngIf="cargandoPresentismo">
+            <div class="spinner-border text-success" role="status">
+              <span class="visually-hidden">Cargando marcaciones...</span>
+            </div>
+            <p>Consultando registros de acceso biométrico...</p>
+          </div>
+
+          <!-- ==================== PESTAÑA 1: VISTA CALENDARIO ==================== -->
+          <div class="pfv-tab-content" *ngIf="!cargandoPresentismo && activePresentismoTab === 'calendario'">
+            <!-- Grilla Semanal Lunes a Viernes -->
+            <div class="pfv-cal-container">
+              <div class="pfv-cal-weekdays">
+                <div class="cal-col-header">Lunes</div>
+                <div class="cal-col-header">Martes</div>
+                <div class="cal-col-header">Miércoles</div>
+                <div class="cal-col-header">Jueves</div>
+                <div class="cal-col-header">Viernes</div>
+              </div>
+
+              <div class="pfv-cal-grid-5">
+                <div 
+                  *ngFor="let dia of diasMesPresentismo"
+                  [class.is-weekend]="dia.esFinDeSemana" 
+                  class="pfv-day-card"
+                  [class.is-other-month]="!dia.esMesActual"
+                  [class.is-today]="dia.esHoy"
+                  [class.has-events]="dia.eventos.length > 0"
+                  [class.is-selected]="diaSeleccionadoPresentismo?.fechaKey === dia.fechaKey"
+                  (click)="abrirDetalleDiaSlideOver(dia)">
+                  
+                  <div class="day-card-top">
+                    <span class="day-num">{{ dia.diaNumero }}</span>
+                    <span class="badge-today-chip" *ngIf="dia.esHoy">Hoy</span>
+
+                    <!-- Badge de Marcación Errónea (Doble entrada) -->
+                    <span class="badge-double-entry" *ngIf="dia.tieneDobleEntrada" [title]="'Marcación errónea: ' + dia.entradasMultiples?.join(', ')">
+                      <i class="bi bi-exclamation-triangle-fill"></i> Doble entrada
+                    </span>
+
+                    <!-- Badge de Tiempo Extra Solicitado / Aprobado -->
+                    <span class="te-cal-chip chip-aprobado" *ngIf="obtenerTiempoExtraDia(dia)?.estado === 'APROBADO'" [title]="'Tiempo extra aprobado: +' + obtenerTiempoExtraDia(dia)?.horas + 'h'">
+                      <i class="bi bi-clock-history"></i> +{{ obtenerTiempoExtraDia(dia)?.horas }}h
+                    </span>
+                    <span class="te-cal-chip chip-pendiente" *ngIf="obtenerTiempoExtraDia(dia)?.estado === 'PENDIENTE'" title="Tiempo extra pendiente de aprobación">
+                      <i class="bi bi-hourglass-split"></i> +{{ obtenerTiempoExtraDia(dia)?.horas }}h
+                    </span>
+                  </div>
+
+                  <!-- Marcaciones del día -->
+                  <div class="day-card-body" *ngIf="dia.esMesActual">
+                    <!-- Marcación Errónea (Doble Entrada) -->
+                    <div class="pfv-event-pill error-entry-pill" *ngIf="dia.tieneDobleEntrada" [title]="'Entradas registradas: ' + dia.entradasMultiples?.join(' | ')">
+                      <i class="bi bi-arrow-repeat"></i>
+                      <span class="pill-time">{{ dia.entradasMultiples?.length }} Entradas</span>
+                      <small class="pill-diff">{{ dia.entradasMultiples?.join(', ') }}</small>
+                    </div>
+                    <!-- Entrada -->
+                    <div class="pfv-event-pill in-pill" *ngIf="dia.primeraEntrada"
+                         [class.pill-ok]="estadoEntrada(dia) === 'ok'"
+                         [class.pill-warn]="estadoEntrada(dia) === 'warning'"
+                         [class.pill-bad]="estadoEntrada(dia) === 'late'">
+                      <i class="bi bi-box-arrow-in-right"></i>
+                      <span class="pill-time">{{ dia.primeraEntrada }}</span>
+                      <small class="pill-diff" *ngIf="textoEntrada(dia)">{{ textoEntrada(dia) }}</small>
+                    </div>
+
+                    <!-- Salida -->
+                    <div class="pfv-event-pill out-pill" *ngIf="dia.ultimaSalida"
+                         [class.pill-ok]="estadoSalida(dia) === 'ok'"
+                         [class.pill-warn]="estadoSalida(dia) === 'warning'"
+                         [class.pill-bad]="estadoSalida(dia) === 'late'">
+                      <i class="bi bi-box-arrow-right"></i>
+                      <span class="pill-time">{{ dia.ultimaSalida }}</span>
+                      <small class="pill-diff" *ngIf="textoSalida(dia)">{{ textoSalida(dia) }}</small>
+                    </div>
+
+                    <!-- En sede hoy -->
+                    <div class="pfv-event-pill live-pill" *ngIf="dia.esHoy && dia.primeraEntrada && !dia.ultimaSalida">
+                      <span class="live-pulse"></span>
+                      <span class="pill-time">En sede</span>
+                    </div>
+
+                    <!-- Sin eventos en día hábil pasado -->
+                    <div class="pfv-no-events" *ngIf="dia.eventos.length === 0 && !dia.esHoy && !esFestivo(dia)">
+                      <span class="no-events-dash">&mdash; Sin registro &mdash;</span>
+                    </div>
+
+                    <!-- Si es festivo -->
+                    <div class="pfv-festivo-pill" *ngIf="esFestivo(dia)">
+                      <i class="bi bi-flag-fill"></i> Festivo
+                    </div>
+
+                    <!-- Total marcaciones si hay más de 2 -->
+                    <div class="pfv-extra-punches" *ngIf="dia.eventos.length > 2">
+                      <i class="bi bi-fingerprint"></i> +{{ dia.eventos.length - 2 }} marcaciones
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== PESTAÑA 2: VISTA DETALLE & TABLA ==================== -->
+          <div class="pfv-tab-content" *ngIf="!cargandoPresentismo && activePresentismoTab === 'detalle'">
+            <!-- Barra de Filtros y Exportación -->
+            <div class="pfv-table-toolbar">
+              <div class="toolbar-left">
+                <!-- Buscador de texto -->
+                <div class="tb-search-wrap">
+                  <i class="bi bi-search"></i>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="filtroTextoDetalle" 
+                    placeholder="Filtrar por fecha, día, hora..." 
+                    class="tb-search-input" />
+                  <button *ngIf="filtroTextoDetalle" class="tb-clear-btn" (click)="filtroTextoDetalle = ''">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </div>
+
+                <!-- Chips de filtro de estado -->
+                <div class="tb-filter-chips">
+                  <button type="button" class="filter-chip" [class.is-active]="filtroEstadoDetalle === 'todos'" (click)="filtroEstadoDetalle = 'todos'">
+                    Todos
+                  </button>
+                  <button type="button" class="filter-chip chip-ok" [class.is-active]="filtroEstadoDetalle === 'puntual'" (click)="filtroEstadoDetalle = 'puntual'">
+                    Puntuales
+                  </button>
+                  <button type="button" class="filter-chip chip-warn" [class.is-active]="filtroEstadoDetalle === 'tarde'" (click)="filtroEstadoDetalle = 'tarde'">
+                    Llegadas Tarde
+                  </button>
+                  <button type="button" class="filter-chip chip-bad" [class.is-active]="filtroEstadoDetalle === 'salida_tarde'" (click)="filtroEstadoDetalle = 'salida_tarde'">
+                    Salidas Tardes (> 5:40 PM)
+                  </button>
+                  <button type="button" class="filter-chip" [class.is-active]="filtroEstadoDetalle === 'sin_registro'" (click)="filtroEstadoDetalle = 'sin_registro'">
+                    Sin Registro
+                  </button>
+                </div>
+              </div>
+
+              <div class="toolbar-right">
+                <button type="button" class="btn-action-export btn-export-excel" (click)="exportarExcelDetalle()" title="Descargar reporte en formato Excel (CSV UTF-8)">
+                  <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+                  <span>Excel</span>
+                </button>
+                <button type="button" class="btn-action-export btn-export-pdf" (click)="exportarPdfDetalle()" title="Descargar reporte oficial en PDF">
+                  <i class="bi bi-file-earmark-pdf-fill"></i>
+                  <span>PDF</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Tabla de Detalle -->
+            <div class="pfv-table-responsive">
+              <table class="pfv-custom-table">
+                <thead>
+                  <tr>
+                    <th (click)="cambiarOrdenDetalle('fecha')" class="sortable-th">
+                      <span>Fecha</span>
+                      <i class="bi" [ngClass]="columnaOrdenDetalle === 'fecha' ? (ordenAscDetalle ? 'bi-sort-up' : 'bi-sort-down') : 'bi-arrow-down-up'"></i>
+                    </th>
+                    <th>Día</th>
+                    <th (click)="cambiarOrdenDetalle('entrada')" class="sortable-th">
+                      <span>Primera Entrada</span>
+                      <i class="bi" [ngClass]="columnaOrdenDetalle === 'entrada' ? (ordenAscDetalle ? 'bi-sort-up' : 'bi-sort-down') : 'bi-arrow-down-up'"></i>
+                    </th>
+                    <th (click)="cambiarOrdenDetalle('salida')" class="sortable-th">
+                      <span>Última Salida</span>
+                      <i class="bi" [ngClass]="columnaOrdenDetalle === 'salida' ? (ordenAscDetalle ? 'bi-sort-up' : 'bi-sort-down') : 'bi-arrow-down-up'"></i>
+                    </th>
+                    <th (click)="cambiarOrdenDetalle('extraBio')" class="sortable-th">
+                      <span>Extra/Biométrico</span>
+                      <i class="bi" [ngClass]="columnaOrdenDetalle === 'extraBio' ? (ordenAscDetalle ? 'bi-sort-up' : 'bi-sort-down') : 'bi-arrow-down-up'"></i>
+                    </th>
+                    <th>Tiempo Extra</th>
+                    <th>Marcaciones</th>
+                    <th>Incidencia / Estado</th>
+                    <th class="text-center">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let dia of diasDetallePaginados" [class.is-today-row]="dia.esHoy">
+                    <td class="cell-date">
+                      <strong>{{ dia.fechaDate | date: 'dd/MM/yyyy' }}</strong>
+                      <span class="row-today-pill" *ngIf="dia.esHoy">Hoy</span>
+                    </td>
+                    <td class="cell-weekday">{{ dia.fechaDate | date: 'EEEE' }}</td>
+                    <td>
+                      <span *ngIf="dia.primeraEntrada" class="table-badge-time in"
+                            [class.badge-ok]="estadoEntrada(dia) === 'ok'"
+                            [class.badge-warn]="estadoEntrada(dia) === 'warning'"
+                            [class.badge-bad]="estadoEntrada(dia) === 'late'">
+                        <i class="bi bi-box-arrow-in-right"></i> {{ dia.primeraEntrada }}
+                        <small *ngIf="textoEntrada(dia)">({{ textoEntrada(dia) }})</small>
+                      </span>
+                      <span *ngIf="!dia.primeraEntrada" class="text-muted">--:--</span>
+                    </td>
+                    <td>
+                      <span *ngIf="dia.ultimaSalida" class="table-badge-time out"
+                            [class.badge-ok]="estadoSalida(dia) === 'ok'"
+                            [class.badge-warn]="estadoSalida(dia) === 'warning'"
+                            [class.badge-bad]="estadoSalida(dia) === 'late'">
+                        <i class="bi bi-box-arrow-right"></i> {{ dia.ultimaSalida }}
+                        <small *ngIf="textoSalida(dia)">({{ textoSalida(dia) }})</small>
+                      </span>
+                      <span *ngIf="!dia.ultimaSalida" class="text-muted">--:--</span>
+                    </td>
+                    <td class="cell-extra-biometrico">
+                      <ng-container *ngIf="calcularExtraBiometrico(dia) as eb">
+                        <span class="badge-extra-bio">
+                          <i class="bi bi-clock-history"></i> {{ eb.textoHoras }}
+                        </span>
+                        <small class="extra-bio-sub">{{ eb.decimalTexto }} ({{ eb.minutos }} min)</small>
+                      </ng-container>
+                      <span class="text-muted" *ngIf="!calcularExtraBiometrico(dia)">--</span>
+                    </td>
+                    <td>
+                      <span class="badge-te-table te-aprobado" *ngIf="obtenerTiempoExtraDia(dia)?.estado === 'APROBADO'">
+                        <i class="bi bi-check-circle-fill"></i> +{{ obtenerTiempoExtraDia(dia)?.horas }}h Aprobado
+                      </span>
+                      <span class="badge-te-table te-pendiente" *ngIf="obtenerTiempoExtraDia(dia)?.estado === 'PENDIENTE'">
+                        <i class="bi bi-hourglass-split"></i> +{{ obtenerTiempoExtraDia(dia)?.horas }}h Pendiente
+                      </span>
+                      <span class="text-muted" *ngIf="!obtenerTiempoExtraDia(dia)">--</span>
+                    </td>
+                    <td>
+                      <span class="badge-punches-count">
+                        <i class="bi bi-fingerprint"></i> {{ dia.eventos.length }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="status-cell-tag" [ngClass]="'status-' + obtenerIncidenciaDia(dia).tipo">
+                        {{ obtenerIncidenciaDia(dia).texto }}
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <button type="button" class="btn-table-detail" (click)="abrirDetalleDiaSlideOver(dia)" title="Ver detalle del día">
+                        <i class="bi bi-layout-sidebar-reverse"></i>
+                        <span>Detalle</span>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="diasDetalleFiltrados.length === 0">
+                    <td colspan="9" class="table-empty-row">
+                      <i class="bi bi-inbox"></i> No se encontraron registros con los filtros seleccionados.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Paginación -->
+            <div class="pfv-pagination-bar" *ngIf="diasDetalleFiltrados.length > 0">
+              <span class="pagination-info">
+                Página {{ paginaDetalleActual }} de {{ totalPaginasDetalle }} ({{ diasDetalleFiltrados.length }} registros)
+              </span>
+              <div class="pagination-controls">
+                <button type="button" class="btn-page-nav" [disabled]="paginaDetalleActual <= 1" (click)="cambiarPaginaDetalle(paginaDetalleActual - 1)">
+                  <i class="bi bi-chevron-left"></i> Anterior
+                </button>
+                <button type="button" class="btn-page-nav" [disabled]="paginaDetalleActual >= totalPaginasDetalle" (click)="cambiarPaginaDetalle(paginaDetalleActual + 1)">
+                  Siguiente <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== PESTAÑA 3: VISTA ESTADÍSTICAS & TENDENCIAS ==================== -->
+          <div class="pfv-tab-content" *ngIf="!cargandoPresentismo && activePresentismoTab === 'estadisticas'">
+            <div class="pfv-stats-grid">
+              
+              <!-- Gráfico 1: Tendencia Diaria de Hora de Entrada (Gráfica de Puntos) -->
+              <div class="pfv-stats-card card-span-2">
+                <div class="stats-card-header">
+                  <div class="sch-left">
+                    <div class="sch-icon icon-trend"><i class="bi bi-diagram-3-fill"></i></div>
+                    <div>
+                      <h4 class="sch-title">Tendencia Diaria de Hora de Entrada (Gráfica de Puntos)</h4>
+                      <p class="sch-sub">Dispersión de marcaciones diarias de ingreso vs hora pactada (07:30 AM)</p>
+                    </div>
+                  </div>
+                  <div class="sch-badges">
+                    <span class="sch-badge badge-puntual"><span class="dot-ok"></span> &le; 07:30 Puntual</span>
+                    <span class="sch-badge badge-gabela"><span class="dot-warn"></span> 07:31-07:35 Gabela</span>
+                    <span class="sch-badge badge-retraso"><span class="dot-bad"></span> &gt; 07:35 Retraso</span>
+                  </div>
+                </div>
+
+                <!-- Gráfica de Puntos Vectorial SVG -->
+                <div class="scatter-chart-wrap">
+                  <svg viewBox="0 0 1000 265" class="scatter-svg-chart">
+                    <!-- Guías de fondo horizontales -->
+                    <line x1="55" y1="25" x2="980" y2="25" stroke="#f1f5f9" stroke-width="1" />
+                    <text x="50" y="29" text-anchor="end" class="scatter-axis-text">08:30</text>
+
+                    <line x1="55" y1="70" x2="980" y2="70" stroke="#f1f5f9" stroke-width="1" />
+                    <text x="50" y="74" text-anchor="end" class="scatter-axis-text">08:00</text>
+
+                    <!-- Línea de Gabela (07:35 AM) -->
+                    <line x1="55" y1="125" x2="980" y2="125" stroke="#eab308" stroke-width="1.5" stroke-dasharray="4,4" />
+                    <text x="50" y="129" text-anchor="end" class="scatter-axis-text axis-warn">07:35</text>
+
+                    <!-- Línea Puntual (07:30 AM) -->
+                    <line x1="55" y1="150" x2="980" y2="150" stroke="#16a34a" stroke-width="2" />
+                    <text x="50" y="154" text-anchor="end" class="scatter-axis-text axis-ok">07:30</text>
+
+                    <!-- Línea Base (07:00 AM) -->
+                    <line x1="55" y1="205" x2="980" y2="205" stroke="#cbd5e1" stroke-width="1.5" />
+                    <text x="50" y="209" text-anchor="end" class="scatter-axis-text">07:00</text>
+
+                    <!-- Línea tenue de conexión entre puntos consecutivos -->
+                    <polyline [attr.points]="puntosLineaTendenciaSvg" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.45" />
+
+                    <!-- Líneas verticales de caída y puntos -->
+                    <g *ngFor="let p of datosTendenciaEntrada">
+                      <line [attr.x1]="p.cx" [attr.y1]="p.cy" [attr.x2]="p.cx" y2="205" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2" *ngIf="p.estado !== 'vacio'" />
+                      
+                      <!-- Halo brillante del punto -->
+                      <circle [attr.cx]="p.cx" [attr.cy]="p.cy" r="9" [attr.fill]="getColorPunto(p.estado)" opacity="0.25" *ngIf="p.estado !== 'vacio'" />
+                      
+                      <!-- Punto principal (Gráfica de Puntos) -->
+                      <circle [attr.cx]="p.cx" [attr.cy]="p.cy" r="5" [attr.fill]="getColorPunto(p.estado)" stroke="#ffffff" stroke-width="2" class="scatter-point-node" *ngIf="p.estado !== 'vacio'">
+                        <title>Día {{ p.dia }} · {{ p.horaTexto }} · {{ p.estado === 'ok' ? 'Puntual' : (p.estado === 'warning' ? 'Dentro de Gabela' : 'Llegada Tarde') }}</title>
+                      </circle>
+
+                      <!-- Etiqueta con la hora exacta justo arriba del punto -->
+                      <text [attr.x]="p.cx" [attr.y]="p.cy - 10" text-anchor="middle" class="scatter-hour-badge" *ngIf="p.estado !== 'vacio'">{{ p.horaCorta }}</text>
+
+                      <!-- Punto vacío para días sin marcación -->
+                      <circle [attr.cx]="p.cx" cy="205" r="3" fill="#cbd5e1" opacity="0.6" *ngIf="p.estado === 'vacio'">
+                        <title>Día {{ p.dia }} · Sin marcación registrada</title>
+                      </circle>
+
+                      <!-- Etiqueta del día y día de la semana en el eje X -->
+                      <text [attr.x]="p.cx" y="224" text-anchor="middle" class="scatter-day-text">{{ p.dia }}</text>
+                      <text [attr.x]="p.cx" y="239" text-anchor="middle" class="scatter-weekday-text">
+                        <title>{{ p.diaSemanaNombre }}</title>
+                        {{ p.diaSemanaLetra }}
+                      </text>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Gráfico 2: Tendencia Diaria de Hora de Salida (Gráfica de Puntos) -->
+              <div class="pfv-stats-card card-span-2">
+                <div class="stats-card-header">
+                  <div class="sch-left">
+                    <div class="sch-icon icon-trend-out"><i class="bi bi-box-arrow-right"></i></div>
+                    <div>
+                      <h4 class="sch-title">Tendencia Diaria de Hora de Salida (Gráfica de Puntos)</h4>
+                      <p class="sch-sub">Dispersión de marcaciones diarias de salida vs jornada pactada (05:30 PM)</p>
+                    </div>
+                  </div>
+                  <div class="sch-badges">
+                    <span class="sch-badge badge-anticipada"><span class="dot-bad"></span> &lt; 17:30 Anticipada</span>
+                    <span class="sch-badge badge-normal"><span class="dot-ok"></span> 17:30-17:35 Normal</span>
+                    <span class="sch-badge badge-post"><span class="dot-warn"></span> 17:36-17:40 Post</span>
+                    <span class="sch-badge badge-adicional"><span class="dot-bad"></span> &gt; 17:40 Salida Tarde</span>
+                  </div>
+                </div>
+
+                <!-- Gráfica de Puntos Vectorial SVG Salida -->
+                <div class="scatter-chart-wrap">
+                  <svg viewBox="0 0 1000 265" class="scatter-svg-chart">
+                    <!-- Guías de fondo horizontales -->
+                    <line x1="55" y1="25" x2="980" y2="25" stroke="#f1f5f9" stroke-width="1" />
+                    <text x="50" y="29" text-anchor="end" class="scatter-axis-text">19:30</text>
+
+                    <line x1="55" y1="70" x2="980" y2="70" stroke="#f1f5f9" stroke-width="1" />
+                    <text x="50" y="74" text-anchor="end" class="scatter-axis-text">18:30</text>
+
+                    <!-- Línea Límite Salida Post (17:40 PM) -->
+                    <line x1="55" y1="125" x2="980" y2="125" stroke="#eab308" stroke-width="1.5" stroke-dasharray="4,4" />
+                    <text x="50" y="129" text-anchor="end" class="scatter-axis-text axis-warn">17:40</text>
+
+                    <!-- Línea Salida Pactada (17:30 PM) -->
+                    <line x1="55" y1="155" x2="980" y2="155" stroke="#16a34a" stroke-width="2" />
+                    <text x="50" y="159" text-anchor="end" class="scatter-axis-text axis-ok">17:30</text>
+
+                    <!-- Línea Base / Anticipada (17:00 PM) -->
+                    <line x1="55" y1="205" x2="980" y2="205" stroke="#cbd5e1" stroke-width="1.5" />
+                    <text x="50" y="209" text-anchor="end" class="scatter-axis-text axis-bad">17:00</text>
+
+                    <!-- Línea tenue de conexión entre puntos consecutivos -->
+                    <polyline [attr.points]="puntosLineaTendenciaSalidaSvg" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.45" />
+
+                    <!-- Líneas verticales de caída y puntos -->
+                    <g *ngFor="let p of datosTendenciaSalida">
+                      <line [attr.x1]="p.cx" [attr.y1]="p.cy" [attr.x2]="p.cx" y2="205" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2" *ngIf="p.estado !== 'vacio'" />
+                      
+                      <!-- Halo brillante del punto -->
+                      <circle [attr.cx]="p.cx" [attr.cy]="p.cy" r="9" [attr.fill]="getColorPuntoSalida(p.estado)" opacity="0.25" *ngIf="p.estado !== 'vacio'" />
+                      
+                      <!-- Punto principal (Gráfica de Puntos Salida) -->
+                      <circle [attr.cx]="p.cx" [attr.cy]="p.cy" r="5" [attr.fill]="getColorPuntoSalida(p.estado)" stroke="#ffffff" stroke-width="2" class="scatter-point-node" *ngIf="p.estado !== 'vacio'">
+                        <title>Día {{ p.dia }} · {{ p.horaTexto }} · {{ p.textoEstado }}</title>
+                      </circle>
+
+                      <!-- Etiqueta con la hora exacta justo arriba del punto -->
+                      <text [attr.x]="p.cx" [attr.y]="p.cy - 10" text-anchor="middle" class="scatter-hour-badge" *ngIf="p.estado !== 'vacio'">{{ p.horaCorta }}</text>
+
+                      <!-- Punto vacío para días sin marcación -->
+                      <circle [attr.cx]="p.cx" cy="205" r="3" fill="#cbd5e1" opacity="0.6" *ngIf="p.estado === 'vacio'">
+                        <title>Día {{ p.dia }} · Sin marcación de salida</title>
+                      </circle>
+
+                      <!-- Etiqueta del día y día de la semana en el eje X -->
+                      <text [attr.x]="p.cx" y="224" text-anchor="middle" class="scatter-day-text">{{ p.dia }}</text>
+                      <text [attr.x]="p.cx" y="239" text-anchor="middle" class="scatter-weekday-text">
+                        <title>{{ p.diaSemanaNombre }}</title>
+                        {{ p.diaSemanaLetra }}
+                      </text>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+
+              <ng-container *ngIf="puedeVerEstadisticas">
+              <!-- Gráfico 3: Retrasos Acumulados por Semana -->
+              <div class="pfv-stats-card card-span-2">
+                <div class="stats-card-header">
+                  <div class="sch-left">
+                    <div class="sch-icon icon-weeks"><i class="bi bi-bar-chart-fill"></i></div>
+                    <div>
+                      <h4 class="sch-title">Retrasos por Semana</h4>
+                      <p class="sch-sub">Minutos acumulados semana a semana en el mes</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="weekly-bars-container">
+                  <div *ngFor="let sem of datosRetrasosSemanales" class="weekly-bar-row">
+                    <div class="wbr-meta">
+                      <strong class="wbr-label">{{ sem.semana }}</strong>
+                      <span class="wbr-incidents">
+                        {{ sem.llegadasTarde }} tarde · {{ sem.salidasTardes }} salidas tardes
+                      </span>
+                    </div>
+                    <div class="wbr-progress-track">
+                      <div class="wbr-progress-fill" [style.width.%]="Math.min(100, (sem.minutosTarde / 60) * 100)" [class.wbr-heavy]="sem.minutosTarde > 30"></div>
+                    </div>
+                    <span class="wbr-val">{{ sem.minutosTarde }} min</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gráfico 4: Ranking de Puntualidad del Equipo (Líderes) -->
+              <div class="pfv-stats-card card-span-2" *ngIf="areaSeleccionadaPresentismo && rankingColaboradoresArea.length > 0">
+                <div class="stats-card-header">
+                  <div class="sch-left">
+                    <div class="sch-icon icon-ranking"><i class="bi bi-trophy-fill"></i></div>
+                    <div>
+                      <h4 class="sch-title">Ranking de Puntualidad y Cumplimiento del Equipo</h4>
+                      <p class="sch-sub">
+                        Área: <strong>{{ areaSeleccionadaPresentismo.nombreArea }}</strong> ({{ rankingColaboradoresArea.length }} colaboradores) &bull; Período: <strong>{{ nombreMesPresentismo }} (Mes Completo)</strong> &bull; Haz clic en cualquier colaborador para inspeccionar su calendario
+                      </p>
+                    </div>
+                  </div>
+                  <div class="sch-right">
+                    <span class="badge-real-data" *ngIf="!cargandoDatosAreaBiometrico" title="Métricas extraídas directamente de las marcaciones biométricas reales">
+                      <i class="bi bi-shield-check"></i> Biométrico Real
+                    </span>
+                    <span class="badge-real-data badge-loading" *ngIf="cargandoDatosAreaBiometrico">
+                      <i class="bi bi-arrow-repeat spin"></i> Consultando...
+                    </span>
+                  </div>
+                </div>
+
+                <div class="ranking-table-responsive">
+                  <table class="ranking-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Colaborador</th>
+                        <th>Cargo</th>
+                        <th>Puntualidad</th>
+                        <th>Días Asistidos</th>
+                        <th>Llegadas Tardes</th>
+                        <th>Salidas Tardes (&gt; 5:40 PM)</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let colab of rankingColaboradoresArea; let i = index"
+                          (click)="seleccionarColaboradorDesdeRanking(colab)"
+                          class="rank-row-clickable"
+                          title="Clic para abrir el calendario y detalle biométrico de {{ colab.nombre }}">
+                        <td class="rank-pos">
+                          <span class="rank-badge" [class.pos-1]="i === 0" [class.pos-2]="i === 1" [class.pos-3]="i === 2">
+                            <span *ngIf="i === 0">🥇</span>
+                            <span *ngIf="i === 1">🥈</span>
+                            <span *ngIf="i === 2">🥉</span>
+                            <span *ngIf="i > 2">{{ i + 1 }}</span>
+                          </span>
+                        </td>
+                        <td class="rank-name">
+                          <strong>{{ colab.nombre }}</strong>
+                          <span class="rank-doc-sub" *ngIf="colab.cedula">CC {{ colab.cedula }}</span>
+                        </td>
+                        <td class="rank-cargo">{{ colab.cargo }}</td>
+                        <td>
+                          <span class="rank-pill" [class.pill-ok]="colab.porcentajePuntualidad >= 90" [class.pill-warn]="colab.porcentajePuntualidad < 90 && colab.porcentajePuntualidad >= 80" [class.pill-bad]="colab.porcentajePuntualidad < 80">
+                            {{ colab.porcentajePuntualidad }}%
+                          </span>
+                        </td>
+                        <td>
+                          <div class="rank-asistidos-group">
+                            <strong class="text-primary font-bold">{{ colab.diasAsistidos }}</strong>
+                            <span class="rank-habiles-sub">/ {{ diasHabilesMesTotal }} días</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span *ngIf="colab.llegadasTarde === 0" class="badge-pill-zero">
+                            <i class="bi bi-check2"></i> 0
+                          </span>
+                          <span *ngIf="colab.llegadasTarde > 0" class="badge-pill-tardes text-danger font-bold">
+                            <i class="bi bi-alarm-fill"></i> {{ colab.llegadasTarde }} (+{{ colab.minutosTarde }} min)
+                          </span>
+                        </td>
+                        <td>
+                          <span *ngIf="(colab.salidasTardes || 0) === 0" class="badge-pill-zero">
+                            <i class="bi bi-check2"></i> 0
+                          </span>
+                          <span *ngIf="(colab.salidasTardes || 0) > 0" class="badge-pill-salida-tarde text-danger font-bold">
+                            <i class="bi bi-box-arrow-right"></i> {{ colab.salidasTardes }}
+                          </span>
+                        </td>
+                        <td class="rank-action">
+                          <button type="button" class="btn-rank-inspect" title="Ver calendario detallado">
+                            <i class="bi bi-calendar3"></i> Ver
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              </ng-container>
+
+            </div>
+          </div>
+
+          <!-- ==================== SLIDE-OVER DRAWER DETALLE DEL DÍA ==================== -->
+          <div class="pfv-slide-over-backdrop" *ngIf="panelDiaSlideOverOpen && diaSeleccionadoPresentismo" (click)="cerrarDetalleDiaSlideOver()">
+            <aside class="pfv-slide-over-drawer" (click)="$event.stopPropagation()">
+              
+              <!-- Drawer Header -->
+              <div class="drawer-header">
+                <div class="dh-left">
+                  <div class="dh-icon-badge"><i class="bi bi-fingerprint"></i></div>
+                  <div>
+                    <span class="dh-tag">SIESA ACCESS · BIOMÉTRICO</span>
+                    <h3 class="dh-title">Detalle del Día</h3>
+                    <p class="dh-date">
+                      <i class="bi bi-calendar3"></i>
+                      <span>{{ diaSeleccionadoPresentismo.fechaDate | date: 'EEEE, d \'de\' MMMM \'de\' yyyy' }}</span>
+                      <span class="badge-today-mini ms-2" *ngIf="diaSeleccionadoPresentismo.esHoy">Hoy</span>
+                    </p>
+                  </div>
+                </div>
+                <button type="button" class="btn-close-drawer" (click)="cerrarDetalleDiaSlideOver()" title="Cerrar panel lateral">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+
+              <!-- Drawer Body -->
+              <div class="drawer-body">
+                
+                <!-- Tarjeta de Turno Asignado -->
+                <div class="drawer-turno-card" [ngClass]="{
+                  'turno-card-ordinario': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'ordinario',
+                  'turno-card-descanso': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'descanso',
+                  'turno-card-festivo': obtenerTurnoDia(diaSeleccionadoPresentismo).tipoBadge === 'festivo'
+                }">
+                  <div class="dt-header" style="margin-bottom: 0;">
+                    <span class="dt-badge-name">{{ obtenerTurnoDia(diaSeleccionadoPresentismo).nombre }}</span>
+                    <span class="dt-code">{{ obtenerTurnoDia(diaSeleccionadoPresentismo).codigo }}</span>
+                  </div>
+                </div>
+
+                <!-- Resumen de Ingreso y Salida -->
+                <div class="drawer-io-grid">
+                  <div class="io-card io-in">
+                    <div class="io-icon"><i class="bi bi-box-arrow-in-right"></i></div>
+                    <div class="io-content">
+                      <span class="io-label">Primer Ingreso</span>
+                      <strong class="io-value">{{ diaSeleccionadoPresentismo.primeraEntrada || '--:--' }}</strong>
+                      <span class="io-eval" *ngIf="diaSeleccionadoPresentismo.primeraEntrada"
+                            [class.eval-ok]="estadoEntrada(diaSeleccionadoPresentismo) === 'ok'"
+                            [class.eval-warn]="estadoEntrada(diaSeleccionadoPresentismo) === 'warning'"
+                            [class.eval-bad]="estadoEntrada(diaSeleccionadoPresentismo) === 'late'">
+                        {{ textoEntrada(diaSeleccionadoPresentismo) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="io-card io-out">
+                    <div class="io-icon"><i class="bi bi-box-arrow-right"></i></div>
+                    <div class="io-content">
+                      <span class="io-label">Última Salida</span>
+                      <strong class="io-value">{{ diaSeleccionadoPresentismo.ultimaSalida || (diaSeleccionadoPresentismo.esHoy && diaSeleccionadoPresentismo.primeraEntrada ? 'En Sede' : '--:--') }}</strong>
+                      <span class="io-eval" *ngIf="diaSeleccionadoPresentismo.ultimaSalida"
+                            [class.eval-ok]="estadoSalida(diaSeleccionadoPresentismo) === 'ok'"
+                            [class.eval-warn]="estadoSalida(diaSeleccionadoPresentismo) === 'warning'"
+                            [class.eval-bad]="estadoSalida(diaSeleccionadoPresentismo) === 'late'">
+                        {{ textoSalida(diaSeleccionadoPresentismo) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+
+
+                <!-- Sección Tiempo Extra / Horas Adicionales -->
+                <div class="drawer-section te-section">
+                  <div class="ds-header-row">
+                    <div>
+                      <h4 class="ds-title"><i class="bi bi-stopwatch-fill text-warning"></i> Tiempo Extra / Permanencia</h4>
+                      <p class="ds-subtitle">Solicitudes sujetas a validación de líder</p>
+                    </div>
+                    <button type="button" class="btn-drawer-te-toggle" (click)="toggleFormularioTiempoExtra()">
+                      <i class="bi" [class.bi-plus-lg]="!mostrarFormularioTiempoExtra" [class.bi-dash-lg]="mostrarFormularioTiempoExtra"></i>
+                      <span>{{ mostrarFormularioTiempoExtra ? 'Cerrar' : '+ Solicitar' }}</span>
+                    </button>
+                  </div>
+
+                  <!-- Formulario para solicitar tiempo extra -->
+                  <div class="drawer-te-form" *ngIf="mostrarFormularioTiempoExtra">
+                    <div class="te-form-group">
+                      <label class="te-form-label">Cantidad de tiempo extra <span class="req">*</span></label>
+                      <div class="te-chips-row">
+                        <button type="button" class="btn-preset-chip" [class.active]="nuevaHoraExtra === 1" (click)="setHorasExtraRapidas(1)">+1 hora</button>
+                        <button type="button" class="btn-preset-chip" [class.active]="nuevaHoraExtra === 2" (click)="setHorasExtraRapidas(2)">+2 horas</button>
+                        <button type="button" class="btn-preset-chip" [class.active]="nuevaHoraExtra === 3" (click)="setHorasExtraRapidas(3)">+3 horas</button>
+                        <button type="button" class="btn-preset-chip" [class.active]="nuevaHoraExtra === 4" (click)="setHorasExtraRapidas(4)">+4 horas</button>
+                      </div>
+                      <div class="te-custom-row">
+                        <span class="text-muted">O escribe la cantidad:</span>
+                        <input type="number" [(ngModel)]="nuevaHoraExtra" min="0.5" max="12" step="0.5" class="te-input-hours" />
+                        <span>horas</span>
+                      </div>
+                    </div>
+
+                    <div class="te-form-group">
+                      <label class="te-form-label">Descripción / Motivo <span class="req">*</span></label>
+                      <textarea 
+                        [(ngModel)]="nuevaDescripcionExtra" 
+                        placeholder="Motivo del tiempo adicional (cierre contable, reunión, soporte...)"
+                        rows="3" 
+                        class="te-drawer-textarea"></textarea>
+                    </div>
+
+                    <div class="te-form-group">
+                      <label class="te-form-label" for="selectAprobadorDrawer">
+                        <i class="bi bi-person-check-fill text-success"></i> Escoger usuario que va a aprobar (Cargo 1 y 2: Presidencia / Dirección) <span class="req">*</span>
+                      </label>
+                      <select id="selectAprobadorDrawer" [(ngModel)]="aprobadorSeleccionadoId" class="te-drawer-select">
+                        <option *ngFor="let ap of aprobadoresDisponibles" [value]="ap.id">
+                          {{ ap.nombre }} — {{ ap.cargo }} ({{ ap.area }}) {{ ap.esLiderDirecto ? '★ Líder Directo' : '' }}
+                        </option>
+                      </select>
+                      <div class="te-approver-note">
+                        <i class="bi bi-envelope-check-fill text-success"></i>
+                        <span>Notificación a <strong>{{ aprobadorSeleccionadoActual.nombre }}</strong> (<em>{{ aprobadorSeleccionadoActual.correo || 'correo institucional' }}</em>)</span>
+                      </div>
+                    </div>
+
+                    <div class="te-actions-row">
+                      <button type="button" class="btn-te-cancel" (click)="toggleFormularioTiempoExtra()">Cancelar</button>
+                      <button type="button" class="btn-te-submit" (click)="solicitarTiempoExtra()" [disabled]="!nuevaDescripcionExtra.trim() || nuevaHoraExtra <= 0">
+                        <i class="bi bi-send-check"></i> Enviar Solicitud
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Lista de solicitudes registradas -->
+                  <div class="drawer-te-list" *ngIf="solicitudesDiaSeleccionado.length > 0">
+                    <div *ngFor="let sol of solicitudesDiaSeleccionado" class="drawer-te-card" [ngClass]="'te-card-' + sol.estado.toLowerCase()">
+                      <div class="dtc-header">
+                        <span class="dtc-hours">+{{ sol.horas }} {{ sol.horas === 1 ? 'hora' : 'horas' }}</span>
+                        <span class="dtc-status" [ngClass]="'status-' + sol.estado.toLowerCase()">
+                          {{ sol.estado }}
+                        </span>
+                      </div>
+                      <p class="dtc-desc"><strong>Motivo:</strong> {{ sol.descripcion }}</p>
+                      <div class="dtc-meta">
+                        <span><i class="bi bi-person"></i> Solicitó: {{ sol.nombreColaborador }}</span>
+                        <span *ngIf="sol.estado === 'PENDIENTE'"><i class="bi bi-person-badge"></i> Debe aprobar: {{ sol.aprobadorAsignado || 'Líder' }}</span>
+                        <span *ngIf="sol.estado === 'APROBADO'" class="text-success"><i class="bi bi-shield-check"></i> Aprobó: {{ sol.aprobadoPor || sol.aprobadorAsignado }}</span>
+                        <span *ngIf="sol.estado === 'RECHAZADO'" class="text-danger"><i class="bi bi-x-circle"></i> Rechazó: {{ sol.aprobadoPor || sol.aprobadorAsignado }}</span>
+                      </div>
+
+                      <!-- Acciones de Aprobación para Líderes (nunca el solicitante) -->
+                      <div class="dtc-actions" *ngIf="puedeAprobarSolicitud(sol) && sol.estado === 'PENDIENTE'">
+                        <button type="button" class="btn-te-approve" (click)="aprobarTiempoExtra(sol)"><i class="bi bi-check-lg"></i> Aprobar</button>
+                        <button type="button" class="btn-te-reject" (click)="rechazarTiempoExtra(sol)"><i class="bi bi-x-lg"></i> Rechazar</button>
+                      </div>
+                      <div class="dtc-actions" *ngIf="puedeRevocarSolicitud(sol) && sol.estado === 'APROBADO'">
+                        <button type="button" class="btn-te-revoke" (click)="rechazarTiempoExtra(sol)"><i class="bi bi-arrow-counterclockwise"></i> Revocar</button>
+                      </div>
+                      <button type="button" class="btn-te-delete" *ngIf="puedeEliminarSolicitud(sol)" (click)="eliminarTiempoExtra(sol)">
+                        <i class="bi bi-trash"></i> Eliminar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="drawer-empty-te" *ngIf="solicitudesDiaSeleccionado.length === 0 && !mostrarFormularioTiempoExtra">
+                    <i class="bi bi-info-circle"></i> Sin solicitudes de tiempo extra registradas.
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Drawer Footer -->
+              <div class="drawer-footer">
+                <span class="df-sync-pill"><span class="sync-dot"></span> Sincronizado Siesa</span>
+                <button type="button" class="btn-close-drawer-bottom" (click)="cerrarDetalleDiaSlideOver()">Cerrar</button>
+              </div>
+
+            </aside>
+          </div>
+
+          </main>
+        </div><!-- /.pfv-layout-container -->
+      <!-- Modal Marcaciones Erróneas: Cuántas hay y De quiénes -->
+    <div class="presentismo-modal-backdrop" *ngIf="modalMarcacionesErroneasOpen" (click)="cerrarModalMarcacionesErroneas()">
+      <div class="pfv-error-modal-card" (click)="$event.stopPropagation()">
+        <div class="pfv-modal-head">
+          <div class="head-icon-title">
+            <div class="icon-wrap-err"><i class="bi bi-exclamation-diamond-fill"></i></div>
+            <div>
+              <h3>Marcaciones Erróneas Detectadas</h3>
+              <p>Colaboradores que presentan dos o más marcaciones de entrada en una misma jornada por error o duplicidad del aplicativo biométrico.</p>
+            </div>
+          </div>
+          <button class="btn-close-pfv" (click)="cerrarModalMarcacionesErroneas()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="pfv-modal-body">
+          <div class="pfv-error-summary-bar">
+            <span class="summary-count">
+              <i class="bi bi-bug-fill"></i> Total registradas: <strong>{{ marcacionesErroneasCount }}</strong> caso(s)
+            </span>
+            <span class="summary-periodo">
+              Período: {{ nombreMesPresentismo }}
+            </span>
+          </div>
+
+          <!-- Si no hay marcaciones erróneas -->
+          <div class="pfv-empty-errors" *ngIf="marcacionesErroneasCount === 0">
+            <i class="bi bi-shield-check"></i>
+            <h4>Sin marcaciones erróneas</h4>
+            <p>No se encontraron registros de doble entrada para este período.</p>
+          </div>
+
+          <!-- Tabla de Quiénes son -->
+          <div class="pfv-error-table-wrap" *ngIf="marcacionesErroneasCount > 0">
+            <table class="pfv-table-erroneas">
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Documento</th>
+                  <th>Fecha</th>
+                  <th>Entradas Registradas</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of marcacionesErroneas">
+                  <td class="colab-name">
+                    <i class="bi bi-person-circle"></i>
+                    <strong>{{ m.nombre }}</strong>
+                  </td>
+                  <td>{{ m.documento }}</td>
+                  <td>{{ m.fecha }}</td>
+                  <td>
+                    <div class="badge-horas-wrap">
+                      <span class="hora-badge" *ngFor="let h of m.horas">
+                        <i class="bi bi-clock"></i> {{ h }}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <button class="btn-ver-en-cal" (click)="irADiaMarcacionErronea(m)" title="Ver este día en el calendario">
+                      <i class="bi bi-calendar-event"></i> Ver día
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pfv-modal-foot">
+          <button class="btn-cerrar-err" (click)="cerrarModalMarcacionesErroneas()">Entendido / Cerrar</button>
+        </div>
+      </div>
+    </div>
+      </div><!-- /.presentismo-full-view-panel -->
+    </div><!-- /.presentismo-full-view-backdrop -->
   </main>
 </div>

@@ -73,6 +73,14 @@ public class Area {
 		this.activo = activo;
 	}
 
+	public Integer getEstado() {
+		return activo;
+	}
+
+	public void setEstado(Integer estado) {
+		this.activo = estado;
+	}
+
 	public LocalDateTime getDateCreate() {
 		return dateCreate;
 	}

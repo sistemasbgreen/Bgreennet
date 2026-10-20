@@ -550,5 +550,367 @@ public class VariablesScadaService {
             System.err.println("[AlertaScada] ❌ Error enviando correo de alerta para variable " + tag + ": " + e.getMessage());
         }
     }
-}
 
+
+    // =========================================================================
+    // REPORTE DIARIO PROGRAMADO (6:00 AM TODOS LOS DÍAS)
+    // Cobertura: 06:00:00 AM del día anterior hasta las 05:59:59 AM del día actual
+    // =========================================================================
+
+    public static class VariableEstadisticaReporte {
+        public String tag;
+        public String nombre;
+        public String unidadProceso;
+        public String unidadMedida;
+        public Double metaMin;
+        public Double metaMax;
+        public boolean notificar;
+        public int totalLecturas = 0;
+        public double minRegistrado = Double.MAX_VALUE;
+        public double maxRegistrado = -Double.MAX_VALUE;
+        public double sumaLecturas = 0.0;
+        public int lecturasFueraDeRango = 0;
+        public int porDebajoMin = 0;
+        public int porEncimaMax = 0;
+        public double peorExcursion = 0.0;
+
+        public double getPromedio() {
+            return totalLecturas > 0 ? (sumaLecturas / totalLecturas) : 0.0;
+        }
+
+        public double getPorcentajeFuera() {
+            return totalLecturas > 0 ? ((double) lecturasFueraDeRango / totalLecturas) * 100.0 : 0.0;
+        }
+
+        public double getPorcentajeCumplimiento() {
+            return Math.max(0.0, 100.0 - getPorcentajeFuera());
+        }
+
+        public boolean tieneNovedad() {
+            return lecturasFueraDeRango > 0;
+        }
+    }
+
+    private Double obtenerValorDeFila(Map<String, Object> row, String tag) {
+        if (tag == null || row == null) return null;
+        Object val = row.get(tag);
+        if (val == null) val = row.get("[" + tag + "]");
+        if (val == null) {
+            String cleanTag = tag.replace("[", "").replace("]", "").trim();
+            for (Map.Entry<String, Object> e : row.entrySet()) {
+                String keyClean = e.getKey().replace("[", "").replace("]", "").trim();
+                if (keyClean.equalsIgnoreCase(cleanTag)) {
+                    val = e.getValue();
+                    break;
+                }
+            }
+        }
+        if (val instanceof Number) {
+            return ((Number) val).doubleValue();
+        }
+        if (val instanceof String) {
+            try {
+                return Double.parseDouble(((String) val).trim());
+            } catch (Exception ex) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    public Map<String, Object> generarYEnviarReporteDiario(java.time.LocalDate fechaRef) {
+        java.time.LocalDate ref = (fechaRef != null) ? fechaRef : java.time.LocalDate.now();
+        java.time.LocalDateTime fin = ref.atTime(5, 59, 59);
+        java.time.LocalDateTime inicio = ref.minusDays(1).atTime(6, 0, 0);
+
+        java.time.format.DateTimeFormatter dtfSql = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        java.time.format.DateTimeFormatter dtfDisplay = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a");
+        java.time.format.DateTimeFormatter dtfSoloFecha = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        String strInicioSql = inicio.format(dtfSql);
+        String strFinSql = fin.format(dtfSql);
+
+        System.out.println("[ReporteScada6AM] ⏳ Generando reporte de 24 horas: " + strInicioSql + " hasta " + strFinSql);
+
+        // 1. Consultar registros de Tabla_12
+        String sql = "SELECT * FROM [DB_Process_Data_PLCs].[dbo].[Tabla_12] " +
+                     "WHERE [timestamp] >= CONVERT(DATETIME, ?, 120) AND [timestamp] <= CONVERT(DATETIME, ?, 120) " +
+                     "ORDER BY [timestamp] ASC";
+
+        List<Map<String, Object>> rows;
+        try {
+            rows = plcJdbcTemplate.queryForList(sql, strInicioSql, strFinSql);
+            System.out.println("[ReporteScada6AM] Registros obtenidos de Tabla_12: " + rows.size());
+        } catch (Exception e) {
+            System.err.println("[ReporteScada6AM] ❌ Error consultando Tabla_12: " + e.getMessage());
+            rows = new java.util.ArrayList<>();
+        }
+
+        // 2. Obtener variables configuradas activas
+        List<VariableScadaConfig> configs = variableScadaConfigRepository.findAll().stream()
+                .filter(v -> v.getActivo() == null || v.getActivo())
+                .collect(java.util.stream.Collectors.toList());
+
+        List<VariableEstadisticaReporte> stats = new java.util.ArrayList<>();
+
+        for (VariableScadaConfig cfg : configs) {
+            VariableEstadisticaReporte stat = new VariableEstadisticaReporte();
+            stat.tag = cfg.getTag();
+            stat.nombre = cfg.getNombre() != null ? cfg.getNombre() : cfg.getTag();
+            stat.unidadProceso = cfg.getUnidad() != null ? cfg.getUnidad().getNombre() : "General";
+            stat.unidadMedida = cfg.getUnit() != null ? cfg.getUnit().getNombre() : "";
+            stat.metaMin = cfg.getMetaMin();
+            stat.metaMax = cfg.getMetaMax();
+            stat.notificar = Boolean.TRUE.equals(cfg.getNotificar());
+
+            for (Map<String, Object> r : rows) {
+                Double v = obtenerValorDeFila(r, cfg.getTag());
+                if (v != null && !Double.isNaN(v) && !Double.isInfinite(v)) {
+                    stat.totalLecturas++;
+                    stat.sumaLecturas += v;
+                    if (v < stat.minRegistrado) stat.minRegistrado = v;
+                    if (v > stat.maxRegistrado) stat.maxRegistrado = v;
+
+                    if (cfg.getMetaMin() != null && v < cfg.getMetaMin()) {
+                        stat.lecturasFueraDeRango++;
+                        stat.porDebajoMin++;
+                        double diff = cfg.getMetaMin() - v;
+                        if (diff > stat.peorExcursion) stat.peorExcursion = diff;
+                    } else if (cfg.getMetaMax() != null && v > cfg.getMetaMax()) {
+                        stat.lecturasFueraDeRango++;
+                        stat.porEncimaMax++;
+                        double diff = v - cfg.getMetaMax();
+                        if (diff > stat.peorExcursion) stat.peorExcursion = diff;
+                    }
+                }
+            }
+
+            if (stat.minRegistrado == Double.MAX_VALUE) stat.minRegistrado = 0.0;
+            if (stat.maxRegistrado == -Double.MAX_VALUE) stat.maxRegistrado = 0.0;
+
+            stats.add(stat);
+        }
+
+        // 3. Separar en novedades y normales
+        List<VariableEstadisticaReporte> conNovedad = stats.stream()
+                .filter(s -> s.totalLecturas > 0 && s.tieneNovedad())
+                .sorted((a, b) -> Double.compare(b.getPorcentajeFuera(), a.getPorcentajeFuera()))
+                .collect(java.util.stream.Collectors.toList());
+
+        List<VariableEstadisticaReporte> normales = stats.stream()
+                .filter(s -> s.totalLecturas > 0 && !s.tieneNovedad())
+                .sorted((a, b) -> a.nombre.compareToIgnoreCase(b.nombre))
+                .collect(java.util.stream.Collectors.toList());
+
+        List<VariableEstadisticaReporte> sinLecturas = stats.stream()
+                .filter(s -> s.totalLecturas == 0)
+                .collect(java.util.stream.Collectors.toList());
+
+        // 4. Obtener destinatarios
+        String destinatarios = obtenerReceptoresPlcConfigurados();
+        if (destinatarios == null || destinatarios.trim().isEmpty()) {
+            destinatarios = "Notificacionesbgreennet@bgreen.com.co";
+        }
+
+        // 5. Construir HTML del correo
+        String html = construirHtmlReporteDiario(inicio, fin, rows.size(), stats.size(), conNovedad, normales, sinLecturas);
+
+        String subject = (conNovedad.size() > 0)
+                ? "⚠️ [REPORTE SCADA 6:00 AM] BGREEN: " + conNovedad.size() + " Variable(s) Fuera de Rango (" + inicio.format(dtfSoloFecha) + " - " + fin.format(dtfSoloFecha) + ")"
+                : "✅ [REPORTE SCADA 6:00 AM] BGREEN: Operación Normal de Variables (" + inicio.format(dtfSoloFecha) + " - " + fin.format(dtfSoloFecha) + ")";
+
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom("Notificacionesbgreennet@bgreen.com.co");
+            helper.setTo(destinatarios.split(","));
+            helper.setSubject(subject);
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            System.out.println("[ReporteScada6AM] ✅ Correo enviado exitosamente a: " + destinatarios);
+
+            return Map.of(
+                    "success", true,
+                    "message", "Reporte diario de 24 horas enviado exitosamente.",
+                    "inicio", inicio.format(dtfDisplay),
+                    "fin", fin.format(dtfDisplay),
+                    "totalLecturas", rows.size(),
+                    "totalVariablesMonitoreadas", stats.size(),
+                    "variablesFueraDeRango", conNovedad.size(),
+                    "variablesNormales", normales.size(),
+                    "destinatarios", destinatarios
+            );
+        } catch (Exception e) {
+            System.err.println("[ReporteScada6AM] ❌ Error enviando correo: " + e.getMessage());
+            e.printStackTrace();
+            return Map.of(
+                    "success", false,
+                    "error", "Error enviando correo: " + e.getMessage()
+            );
+        }
+    }
+
+    private String construirHtmlReporteDiario(
+            java.time.LocalDateTime inicio,
+            java.time.LocalDateTime fin,
+            int totalLecturas,
+            int totalVariables,
+            List<VariableEstadisticaReporte> conNovedad,
+            List<VariableEstadisticaReporte> normales,
+            List<VariableEstadisticaReporte> sinLecturas) {
+
+        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a");
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,##0.00");
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
+        sb.append("<style>");
+        sb.append("body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }");
+        sb.append(".container { max-width: 820px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }");
+        sb.append(".header { background: linear-gradient(135deg, #15803d 0%, #065f46 100%); color: #ffffff; padding: 24px 28px; text-align: left; }");
+        sb.append(".header-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }");
+        sb.append(".header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }");
+        sb.append(".header p { margin: 6px 0 0; font-size: 13px; opacity: 0.9; }");
+        sb.append(".content { padding: 24px 28px; }");
+        sb.append(".kpi-grid { display: table; width: 100%; margin-bottom: 24px; border-spacing: 8px; border-collapse: separate; }");
+        sb.append(".kpi-cell { display: table-cell; width: 25%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; vertical-align: middle; }");
+        sb.append(".kpi-num { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }");
+        sb.append(".kpi-lbl { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px; }");
+        sb.append(".kpi-alert { background: #fef2f2; border-color: #fecaca; }");
+        sb.append(".kpi-alert .kpi-num { color: #dc2626; }");
+        sb.append(".kpi-ok { background: #f0fdf4; border-color: #bbf7d0; }");
+        sb.append(".kpi-ok .kpi-num { color: #16a34a; }");
+        sb.append(".alert-banner { background: #fffbeb; border: 1px solid #fde68a; border-left: 5px solid #d97706; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; color: #92400e; }");
+        sb.append(".ok-banner { background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 5px solid #16a34a; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; color: #166534; }");
+        sb.append(".section-title { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 10px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }");
+        sb.append(".table-custom { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }");
+        sb.append(".table-custom th { background: #f8fafc; color: #475569; font-weight: 700; text-align: left; padding: 10px 12px; border-bottom: 2px solid #cbd5e1; font-size: 11px; text-transform: uppercase; }");
+        sb.append(".table-custom td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }");
+        sb.append(".tag-badge { background: #0f172a; color: #ffffff; padding: 2px 7px; border-radius: 4px; font-family: monospace; font-size: 11px; font-weight: bold; }");
+        sb.append(".badge-red { background: #dc2626; color: #ffffff; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }");
+        sb.append(".badge-orange { background: #d97706; color: #ffffff; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }");
+        sb.append(".badge-green { background: #16a34a; color: #ffffff; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }");
+        sb.append(".footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 28px; text-align: center; font-size: 11px; color: #64748b; }");
+        sb.append("</style></head><body>");
+
+        sb.append("<div class='container'>");
+
+        // Header
+        sb.append("<div class='header'>");
+        sb.append("<div class='header-badge'>Control de Operación & Planta · SCADA / PLC</div>");
+        sb.append("<h1>Reporte Diario de Variables y Operación de Planta</h1>");
+        sb.append("<p>Ciclo Operativo: <strong>").append(inicio.format(dtf)).append("</strong> hasta <strong>").append(fin.format(dtf)).append("</strong> (24 horas)</p>");
+        sb.append("</div>");
+
+        // Content
+        sb.append("<div class='content'>");
+
+        // KPIs
+        sb.append("<div class='kpi-grid'>");
+        sb.append("<div class='kpi-cell'><div class='kpi-num'>").append(totalVariables).append("</div><div class='kpi-lbl'>Variables Configuradas</div></div>");
+        
+        if (!conNovedad.isEmpty()) {
+            sb.append("<div class='kpi-cell kpi-alert'><div class='kpi-num'>").append(conNovedad.size()).append("</div><div class='kpi-lbl'>Fuera de Límites</div></div>");
+        } else {
+            sb.append("<div class='kpi-cell kpi-ok'><div class='kpi-num'>0</div><div class='kpi-lbl'>Fuera de Límites</div></div>");
+        }
+
+        sb.append("<div class='kpi-cell kpi-ok'><div class='kpi-num'>").append(normales.size()).append("</div><div class='kpi-lbl'>100% en Meta</div></div>");
+        sb.append("<div class='kpi-cell'><div class='kpi-num'>").append(totalLecturas).append("</div><div class='kpi-lbl'>Registros PLC Analizados</div></div>");
+        sb.append("</div>");
+
+        // Banner
+        if (!conNovedad.isEmpty()) {
+            sb.append("<div class='alert-banner'>");
+            sb.append("<strong>⚠️ Novedad Operativa Detectada:</strong> Durante la ventana de 24 horas finalizada a las 05:59 AM, se registraron <strong>")
+              .append(conNovedad.size()).append(" variable(s)</strong> con excursiones fuera de los límites operacionales.");
+            sb.append("</div>");
+
+            // Tabla con Novedad
+            sb.append("<div class='section-title' style='color: #dc2626;'>🚨 Variables con Desviación de Meta</div>");
+            sb.append("<table class='table-custom'>");
+            sb.append("<thead><tr>");
+            sb.append("<th>Tag</th>");
+            sb.append("<th>Nombre / Proceso</th>");
+            sb.append("<th>Límites Meta</th>");
+            sb.append("<th style='text-align: right;'>Mínimo</th>");
+            sb.append("<th style='text-align: right;'>Máximo</th>");
+            sb.append("<th style='text-align: right;'>Promedio</th>");
+            sb.append("<th style='text-align: center;'>Lecturas Fuera</th>");
+            sb.append("<th style='text-align: center;'>% Fuera</th>");
+            sb.append("</tr></thead><tbody>");
+
+            for (VariableEstadisticaReporte v : conNovedad) {
+                String metaStr = (v.metaMin != null ? df.format(v.metaMin) : "-") + " a " + (v.metaMax != null ? df.format(v.metaMax) : "-") + " " + v.unidadMedida;
+                String badgeClass = v.getPorcentajeFuera() >= 20.0 ? "badge-red" : "badge-orange";
+
+                sb.append("<tr>");
+                sb.append("<td><span class='tag-badge'>").append(v.tag).append("</span></td>");
+                sb.append("<td><strong>").append(v.nombre).append("</strong><br><small style='color: #64748b;'>").append(v.unidadProceso).append("</small></td>");
+                sb.append("<td style='color: #475569;'>").append(metaStr).append("</td>");
+                sb.append("<td style='text-align: right; color: ").append(v.porDebajoMin > 0 ? "#dc2626; font-weight: bold;" : "#1e293b;").append("'>").append(df.format(v.minRegistrado)).append("</td>");
+                sb.append("<td style='text-align: right; color: ").append(v.porEncimaMax > 0 ? "#dc2626; font-weight: bold;" : "#1e293b;").append("'>").append(df.format(v.maxRegistrado)).append("</td>");
+                sb.append("<td style='text-align: right; font-weight: 600;'>").append(df.format(v.getPromedio())).append(" ").append(v.unidadMedida).append("</td>");
+                sb.append("<td style='text-align: center; color: #dc2626; font-weight: bold;'>").append(v.lecturasFueraDeRango).append(" / ").append(v.totalLecturas).append("</td>");
+                sb.append("<td style='text-align: center;'><span class='").append(badgeClass).append("'>").append(df.format(v.getPorcentajeFuera())).append("%</span></td>");
+                sb.append("</tr>");
+            }
+            sb.append("</tbody></table>");
+        } else {
+            sb.append("<div class='ok-banner'>");
+            sb.append("<strong>✅ Operación Estable y Conforme:</strong> Todas las variables monitoreadas se mantuvieron dentro de sus rangos y metas operativas durante la ventana completa de 24 horas.");
+            sb.append("</div>");
+        }
+
+        // Tabla Variables Normales
+        if (!normales.isEmpty()) {
+            sb.append("<div class='section-title' style='color: #166534;'>✅ Variables con Cumplimiento 100% en Meta</div>");
+            sb.append("<table class='table-custom'>");
+            sb.append("<thead><tr>");
+            sb.append("<th>Tag</th>");
+            sb.append("<th>Nombre / Proceso</th>");
+            sb.append("<th>Límites Meta</th>");
+            sb.append("<th style='text-align: right;'>Mínimo</th>");
+            sb.append("<th style='text-align: right;'>Máximo</th>");
+            sb.append("<th style='text-align: right;'>Promedio</th>");
+            sb.append("<th style='text-align: center;'>Cumplimiento</th>");
+            sb.append("</tr></thead><tbody>");
+
+            int maxToShow = 25;
+            int count = 0;
+            for (VariableEstadisticaReporte v : normales) {
+                if (count++ >= maxToShow) break;
+                String metaStr = (v.metaMin != null ? df.format(v.metaMin) : "-") + " a " + (v.metaMax != null ? df.format(v.metaMax) : "-") + " " + v.unidadMedida;
+
+                sb.append("<tr>");
+                sb.append("<td><span class='tag-badge'>").append(v.tag).append("</span></td>");
+                sb.append("<td>").append(v.nombre).append(" <small style='color: #64748b;'>(").append(v.unidadProceso).append(")</small></td>");
+                sb.append("<td style='color: #475569;'>").append(metaStr).append("</td>");
+                sb.append("<td style='text-align: right;'>").append(df.format(v.minRegistrado)).append("</td>");
+                sb.append("<td style='text-align: right;'>").append(df.format(v.maxRegistrado)).append("</td>");
+                sb.append("<td style='text-align: right; font-weight: 600;'>").append(df.format(v.getPromedio())).append(" ").append(v.unidadMedida).append("</td>");
+                sb.append("<td style='text-align: center;'><span class='badge-green'>100% OK</span></td>");
+                sb.append("</tr>");
+            }
+            if (normales.size() > maxToShow) {
+                sb.append("<tr><td colspan='7' style='text-align: center; color: #64748b; font-style: italic;'>... y ").append(normales.size() - maxToShow).append(" variables adicionales dentro de rango.</td></tr>");
+            }
+            sb.append("</tbody></table>");
+        }
+
+        sb.append("</div>"); // /content
+
+        // Footer
+        sb.append("<div class='footer'>");
+        sb.append("<p style='margin: 0;'>Reporte emitido automáticamente a las 06:00 AM desde la plataforma <strong>BgreenNet</strong>.</p>");
+        sb.append("<p style='margin: 4px 0 0; color: #94a3b8;'>Para modificar destinatarios o metas, ingresa a BgreenNet > Configuración > Variables y Parámetros (/configuracion/variables-plc).</p>");
+        sb.append("</div>");
+
+        sb.append("</div></body></html>");
+
+        return sb.toString();
+    }
+
+}

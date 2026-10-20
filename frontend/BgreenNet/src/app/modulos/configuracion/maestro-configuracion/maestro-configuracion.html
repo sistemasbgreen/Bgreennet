@@ -52,6 +52,11 @@
               <span>Imágenes de Login</span>
               <span class="mc-tab-badge">{{ imagenes.length }}</span>
             </button>
+            <button class="mc-tab-btn" [class.active]="activeTab === 'asistencia'" (click)="cambiarTab('asistencia')">
+              <i class="bi bi-person-check-fill"></i>
+              <span>Supervisión de Horarios</span>
+              <span class="mc-tab-badge">{{ totalSupervisoresJerarquia + totalSupervisores }}</span>
+            </button>
           </div>
         </div>
 
@@ -847,6 +852,684 @@
 
           </div>
 
+
+          <!-- ──────────────────────────────────────────────────────
+               TAB 4 · SUPERVISIÓN DE HORARIOS & ASISTENCIA
+               ────────────────────────────────────────────────────── -->
+          <div *ngIf="activeTab === 'asistencia'" class="asistencia-config-wrapper">
+
+            <!-- Encabezado de Sección -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+              <div class="section-header mb-0">
+                <div class="section-header-icon sh-emerald">
+                  <i class="bi bi-person-check-fill"></i>
+                </div>
+                <div class="section-header-text">
+                  <h6>Supervisión de Horarios &amp; Asistencia</h6>
+                  <p>Visualiza los líderes asignados automáticamente por jerarquía organizacional y administra los permisos agregados manualmente</p>
+                </div>
+              </div>
+
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn-refresh-sup" (click)="loadSupervisoresAsistencia(); loadListasParaAsignacion()" [disabled]="loadingSupervisores" title="Recargar listas">
+                  <i class="bi bi-arrow-clockwise" [class.spin-animation]="loadingSupervisores"></i>
+                </button>
+                <button type="button" class="btn-nueva-supervision" (click)="abrirModalNuevaSupervision()">
+                  <i class="bi bi-plus-circle-fill"></i>
+                  <span>+ Asignar Supervisor Manual</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- KPI Cards de Supervisión -->
+            <div class="sup-kpi-grid mb-4">
+              <div class="sup-kpi-card">
+                <div class="sup-kpi-icon icon-emerald">
+                  <i class="bi bi-diagram-3-fill"></i>
+                </div>
+                <div class="sup-kpi-info">
+                  <span class="sup-kpi-label">Asignados por Jerarquía</span>
+                  <span class="sup-kpi-value">{{ totalSupervisoresJerarquia }}</span>
+                  <span class="sup-kpi-sub">Automáticos por Cargo 1, 2 y 3</span>
+                </div>
+              </div>
+
+              <div class="sup-kpi-card">
+                <div class="sup-kpi-icon icon-blue">
+                  <i class="bi bi-person-badge-fill"></i>
+                </div>
+                <div class="sup-kpi-info">
+                  <span class="sup-kpi-label">Agregados Manualmente</span>
+                  <span class="sup-kpi-value">{{ totalSupervisores }}</span>
+                  <span class="sup-kpi-sub">Reglas personalizadas activas</span>
+                </div>
+              </div>
+
+              <div class="sup-kpi-card">
+                <div class="sup-kpi-icon icon-purple">
+                  <i class="bi bi-building-check"></i>
+                </div>
+                <div class="sup-kpi-info">
+                  <span class="sup-kpi-label">Áreas Supervisadas</span>
+                  <span class="sup-kpi-value">{{ totalAreasSupervisadas }}</span>
+                  <span class="sup-kpi-sub">Departamentos con cobertura</span>
+                </div>
+              </div>
+
+              <div class="sup-kpi-card">
+                <div class="sup-kpi-icon icon-teal">
+                  <i class="bi bi-globe-americas"></i>
+                </div>
+                <div class="sup-kpi-info">
+                  <span class="sup-kpi-label">Visibilidad Global</span>
+                  <span class="sup-kpi-value">{{ totalSupervisoresGlobales }}</span>
+                  <span class="sup-kpi-sub">Acceso total a toda la planta</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Barra de Filtros y Búsqueda Unificada -->
+            <div class="sup-filter-bar mb-4">
+              <div class="sup-search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" [(ngModel)]="filtroSupervisores" placeholder="Buscar en ambas secciones por nombre, usuario, cargo, área o documento...">
+                <button *ngIf="filtroSupervisores" type="button" class="btn-clear-search" (click)="filtroSupervisores = ''">
+                  <i class="bi bi-x-circle-fill"></i>
+                </button>
+              </div>
+
+              <div class="sup-filter-group">
+                <label>Alcance:</label>
+                <select [(ngModel)]="filtroTipoAlcance" class="sup-filter-select">
+                  <option value="TODOS">Todos los alcances</option>
+                  <option value="GLOBAL">Acceso Global (Todas las áreas)</option>
+                  <option value="AREA">Por Área / Dirección</option>
+                  <option value="COLABORADOR">Por Colaborador(es)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- ═════════════════════════════════════════════════════════
+                 SECCIÓN 1: ASIGNADOS POR JERARQUÍA (REGLA AUTOMÁTICA)
+                 ═════════════════════════════════════════════════════════ -->
+            <div class="sup-section-block mb-4">
+              <div class="sup-section-block-header" (click)="mostrarSeccionJerarquia = !mostrarSeccionJerarquia">
+                <div class="ssbh-left">
+                  <div class="ssbh-icon ssbh-hierarchy">
+                    <i class="bi bi-award-fill"></i>
+                  </div>
+                  <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <h6 class="ssbh-title mb-0">1. Asignados por Jerarquía</h6>
+                      <span class="ssbh-badge badge-auto">Regla Automática del Sistema</span>
+                      <span class="ssbh-counter">{{ supervisoresJerarquiaFiltrados.length }} líder(es)</span>
+                    </div>
+                    <p class="ssbh-sub mb-0">
+                      Supervisores que acceden automáticamente según su nivel de cargo en BGreenNet (incluye usuario <strong>admin</strong> y cargos directivos)
+                    </p>
+                  </div>
+                </div>
+                <button type="button" class="btn-ssbh-collapse" [title]="mostrarSeccionJerarquia ? 'Colapsar sección' : 'Expandir sección'">
+                  <i class="bi" [ngClass]="mostrarSeccionJerarquia ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                </button>
+              </div>
+
+              <div class="sup-section-block-body" *ngIf="mostrarSeccionJerarquia">
+                <!-- Leyenda de las 3 reglas de jerarquía -->
+                <div class="sup-hierarchy-rules-strip">
+                  <div class="shr-item shr-n1">
+                    <span class="shr-tag">Nivel 1 · Presidencia / Admin</span>
+                    <span class="shr-desc"><i class="bi bi-globe-americas"></i> Ve <strong>todas las áreas</strong> de la compañía y aprueba horas extra</span>
+                  </div>
+                  <div class="shr-item shr-n2">
+                    <span class="shr-tag">Nivel 2 · Directores</span>
+                    <span class="shr-desc"><i class="bi bi-diagram-3"></i> Ve las <strong>áreas de su Dirección</strong> y aprueba horas extra</span>
+                  </div>
+                  <div class="shr-item shr-n3">
+                    <span class="shr-tag">Nivel 3 · Coordinadores / Jefes</span>
+                    <span class="shr-desc"><i class="bi bi-building"></i> Ve los colaboradores de <strong>su propia Área</strong></span>
+                  </div>
+                </div>
+
+                <!-- Tabla de Asignados por Jerarquía -->
+                <div class="table-responsive sup-table-container">
+                  <table class="table table-hover align-middle mb-0 sup-table">
+                    <thead>
+                      <tr>
+                        <th>Supervisor / Líder</th>
+                        <th>Nivel Jerárquico</th>
+                        <th>Alcance por Defecto</th>
+                        <th>Visibilidad Automática</th>
+                        <th class="text-center">Aprobar Horas Extra</th>
+                        <th class="text-center">Origen</th>
+                        <th class="text-end">Personalizar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let supJ of supervisoresJerarquiaFiltrados">
+                        <!-- Supervisor -->
+                        <td>
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="sup-avatar-badge" [ngClass]="'avatar-n' + supJ.nivelJerarquico">
+                              {{ supJ.nombreSupervisor.charAt(0) || 'A' }}
+                            </div>
+                            <div>
+                              <div class="sup-name">
+                                {{ supJ.nombreSupervisor }}
+                                <span *ngIf="supJ.usuarioLogin" class="sup-user-chip">@{{ supJ.usuarioLogin }}</span>
+                              </div>
+                              <div class="sup-meta">
+                                <span><i class="bi bi-card-text"></i> {{ supJ.cedulaSupervisor }}</span>
+                                <span class="text-muted">· {{ supJ.cargoSupervisor }}</span>
+                                <span class="badge-sup-area">{{ supJ.areaSupervisor }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <!-- Nivel Jerárquico -->
+                        <td>
+                          <span class="badge-nivel-jerarquia" [ngClass]="'bnj-' + supJ.nivelJerarquico">
+                            <i class="bi bi-award-fill"></i> {{ supJ.etiquetaNivel }}
+                          </span>
+                        </td>
+
+                        <!-- Tipo de Alcance -->
+                        <td>
+                          <span *ngIf="supJ.tipoAlcance === 'GLOBAL'" class="badge-alcance alcance-global">
+                            <i class="bi bi-globe-americas"></i> Global (Todas)
+                          </span>
+                          <span *ngIf="supJ.tipoAlcance === 'DIRECCION'" class="badge-alcance alcance-mixto">
+                            <i class="bi bi-diagram-3-fill"></i> Por Dirección
+                          </span>
+                          <span *ngIf="supJ.tipoAlcance === 'AREA'" class="badge-alcance alcance-area">
+                            <i class="bi bi-building"></i> Mi Área
+                          </span>
+                        </td>
+
+                        <!-- Visibilidad Automática -->
+                        <td>
+                          <div *ngIf="supJ.tipoAlcance === 'GLOBAL'" class="sup-assigned-global">
+                            <i class="bi bi-check2-all text-success"></i>
+                            <span>{{ supJ.descripcionRegla }} (<strong>{{ supJ.areasNombres.length || 'Todas las' }} áreas</strong>)</span>
+                          </div>
+                          <div *ngIf="supJ.tipoAlcance !== 'GLOBAL'" class="d-flex flex-column gap-1">
+                            <div class="d-flex flex-wrap gap-1">
+                              <span *ngFor="let a of supJ.areasNombres" class="sup-tag-area">
+                                <i class="bi bi-diagram-2"></i> {{ a }}
+                              </span>
+                            </div>
+                            <small class="text-muted">{{ supJ.descripcionRegla }}</small>
+                          </div>
+                        </td>
+
+                        <!-- Aprobar Horas Extra -->
+                        <td class="text-center">
+                          <span *ngIf="supJ.puedeAprobarHorasExtra" class="badge-permiso permiso-autorizado">
+                            <i class="bi bi-check-circle-fill"></i> Autorizado (N{{ supJ.nivelJerarquico }})
+                          </span>
+                          <span *ngIf="!supJ.puedeAprobarHorasExtra" class="badge-permiso permiso-lectura">
+                            <i class="bi bi-eye-fill"></i> Supervisión
+                          </span>
+                        </td>
+
+                        <!-- Origen -->
+                        <td class="text-center">
+                          <div class="d-flex flex-column align-items-center gap-1">
+                            <span class="badge-origen-auto">
+                              <i class="bi bi-cpu-fill"></i> Por Jerarquía
+                            </span>
+                            <span *ngIf="supJ.tieneReglaManual" class="badge-origen-override" title="Este usuario también tiene una regla manual personalizada abajo">
+                              <i class="bi bi-sliders"></i> + Regla Manual
+                            </span>
+                          </div>
+                        </td>
+
+                        <!-- Acción: Personalizar -->
+                        <td class="text-end">
+                          <button type="button" class="btn-personalizar-jerarquia" (click)="abrirModalDesdeJerarquia(supJ)" title="Agregar o personalizar áreas/colaboradores adicionales para este líder">
+                            <i class="bi bi-sliders"></i>
+                            <span>{{ supJ.tieneReglaManual ? 'Editar Regla' : 'Personalizar' }}</span>
+                          </button>
+                        </td>
+                      </tr>
+
+                      <tr *ngIf="supervisoresJerarquiaFiltrados.length === 0">
+                        <td colspan="7" class="text-center py-4 text-muted">
+                          No se encontraron líderes por jerarquía con el filtro actual.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- ═════════════════════════════════════════════════════════
+                 SECCIÓN 2: AGREGADOS MANUALMENTE (REGLAS PERSONALIZADAS)
+                 ═════════════════════════════════════════════════════════ -->
+            <div class="sup-section-block">
+              <div class="sup-section-block-header" (click)="mostrarSeccionManual = !mostrarSeccionManual">
+                <div class="ssbh-left">
+                  <div class="ssbh-icon ssbh-manual">
+                    <i class="bi bi-person-plus-fill"></i>
+                  </div>
+                  <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <h6 class="ssbh-title mb-0">2. Agregados Manualmente</h6>
+                      <span class="ssbh-badge badge-manual">Configuración Personalizada</span>
+                      <span class="ssbh-counter">{{ supervisoresFiltrados.length }} asignado(s)</span>
+                    </div>
+                    <p class="ssbh-sub mb-0">
+                      Permisos específicos creados manualmente para otorgar visibilidad a áreas adicionales o colaboradores puntuales
+                    </p>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-2" (click)="$event.stopPropagation()">
+                  <button type="button" class="btn-nueva-supervision btn-sm-sup" (click)="abrirModalNuevaSupervision()">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    <span>+ Agregar Manual</span>
+                  </button>
+                  <button type="button" class="btn-ssbh-collapse" (click)="mostrarSeccionManual = !mostrarSeccionManual">
+                    <i class="bi" [ngClass]="mostrarSeccionManual ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="sup-section-block-body" *ngIf="mostrarSeccionManual">
+                <!-- Tabla de Supervisores Asignados Manualmente -->
+                <div class="table-responsive sup-table-container">
+                  <table class="table table-hover align-middle mb-0 sup-table">
+                    <thead>
+                      <tr>
+                        <th>Supervisor / Líder</th>
+                        <th>Tipo de Alcance</th>
+                        <th>Visibilidad Asignada</th>
+                        <th class="text-center">Aprobar Horas Extra</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-end">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let sup of supervisoresFiltrados" [class.row-inactive]="!sup.activo">
+                        <!-- Columna Supervisor -->
+                        <td>
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="sup-avatar-badge" [class.bg-inactive]="!sup.activo">
+                              {{ sup.nombreSupervisor.charAt(0) || 'S' }}
+                            </div>
+                            <div>
+                              <div class="sup-name">{{ sup.nombreSupervisor }}</div>
+                              <div class="sup-meta">
+                                <span><i class="bi bi-card-text"></i> {{ sup.cedulaSupervisor }}</span>
+                                <span *ngIf="sup.cargoSupervisor" class="text-muted">· {{ sup.cargoSupervisor }}</span>
+                                <span *ngIf="sup.areaSupervisor" class="badge-sup-area">{{ sup.areaSupervisor }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <!-- Columna Tipo Alcance -->
+                        <td>
+                          <span *ngIf="sup.tipoAlcance === 'GLOBAL'" class="badge-alcance alcance-global">
+                            <i class="bi bi-globe-americas"></i> Global (Todas)
+                          </span>
+                          <span *ngIf="sup.tipoAlcance === 'AREA'" class="badge-alcance alcance-area">
+                            <i class="bi bi-building"></i> Por Área ({{ sup.totalAreas }})
+                          </span>
+                          <span *ngIf="sup.tipoAlcance === 'COLABORADOR'" class="badge-alcance alcance-colab">
+                            <i class="bi bi-person-fill"></i> Colaboradores ({{ sup.totalColaboradores }})
+                          </span>
+                          <span *ngIf="sup.tipoAlcance === 'MIXTO'" class="badge-alcance alcance-mixto">
+                            <i class="bi bi-layers-fill"></i> Mixto
+                          </span>
+                        </td>
+
+                        <!-- Columna Asignaciones -->
+                        <td>
+                          <!-- Si es Global -->
+                          <div *ngIf="sup.tipoAlcance === 'GLOBAL'" class="sup-assigned-global">
+                            <i class="bi bi-check2-all text-success"></i>
+                            <span>Puede consultar horarios de <strong>todos los empleados</strong> de la compañía</span>
+                          </div>
+
+                          <!-- Si es por Área -->
+                          <div *ngIf="sup.tipoAlcance === 'AREA' || (sup.areasNombres && sup.areasNombres.length > 0)" class="d-flex flex-wrap gap-1">
+                            <span *ngFor="let a of sup.areasNombres" class="sup-tag-area">
+                              <i class="bi bi-diagram-2"></i> {{ a }}
+                            </span>
+                          </div>
+
+                          <!-- Si es por Colaborador -->
+                          <div *ngIf="sup.tipoAlcance === 'COLABORADOR' || (sup.colaboradoresNombres && sup.colaboradoresNombres.length > 0)" class="d-flex flex-wrap gap-1 mt-1">
+                            <span *ngFor="let c of sup.colaboradoresNombres" class="sup-tag-colab">
+                              <i class="bi bi-person"></i> {{ c }}
+                            </span>
+                          </div>
+
+                          <div *ngIf="sup.observacion" class="sup-obs-text mt-1">
+                            <i class="bi bi-chat-left-dots"></i> {{ sup.observacion }}
+                          </div>
+                        </td>
+
+                        <!-- Columna Horas Extra -->
+                        <td class="text-center">
+                          <span *ngIf="sup.puedeAprobarHorasExtra" class="badge-permiso permiso-autorizado" title="Autorizado para aprobar tiempo extra">
+                            <i class="bi bi-check-circle-fill"></i> Autorizado
+                          </span>
+                          <span *ngIf="!sup.puedeAprobarHorasExtra" class="badge-permiso permiso-lectura" title="Solo puede ver horarios, no aprobar extras">
+                            <i class="bi bi-eye-fill"></i> Solo Lectura
+                          </span>
+                        </td>
+
+                        <!-- Columna Estado Switch -->
+                        <td class="text-center">
+                          <div class="form-check form-switch d-inline-block mb-0">
+                            <input class="form-check-input bgreen-toggle" type="checkbox" [checked]="sup.activo" (click)="toggleActivoSupervisor(sup, $event)">
+                            <span class="ms-1 small fw-semibold" [ngClass]="sup.activo ? 'text-success' : 'text-danger'">
+                              {{ sup.activo ? 'Activo' : 'Inactivo' }}
+                            </span>
+                          </div>
+                        </td>
+
+                        <!-- Columna Acciones -->
+                        <td class="text-end">
+                          <div class="d-inline-flex align-items-center gap-1">
+                            <button type="button" class="btn-action-icon btn-action-edit" (click)="abrirModalEditarSupervision(sup)" title="Editar asignaciones">
+                              <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button type="button" class="btn-action-icon btn-action-delete" (click)="eliminarSupervisor(sup)" title="Revocar supervisión">
+                              <i class="bi bi-trash3-fill"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <!-- Estado Vacío -->
+                      <tr *ngIf="supervisoresFiltrados.length === 0 && !loadingSupervisores">
+                        <td colspan="6" class="text-center py-5">
+                          <div class="sup-empty-state">
+                            <div class="sup-empty-icon">
+                              <i class="bi bi-person-plus"></i>
+                            </div>
+                            <h5>Sin supervisores agregados manualmente</h5>
+                            <p class="text-muted">
+                              Los líderes por jerarquía ya están activos en la sección superior.<br>
+                              Si deseas otorgar permisos especiales a otro colaborador o ampliar el alcance de un líder, agrégalo aquí.
+                            </p>
+                            <button type="button" class="btn-nueva-supervision mt-2" (click)="abrirModalNuevaSupervision()">
+                              <i class="bi bi-plus-circle-fill"></i>
+                              <span>+ Agregar Supervisor Manual</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <!-- Loading -->
+                      <tr *ngIf="loadingSupervisores">
+                        <td colspan="6" class="text-center py-5">
+                          <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                          <span class="ms-2 text-muted">Cargando permisos manuales de supervisión...</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- =========================================================
+               MODAL: CONFIGURAR / EDITAR SUPERVISOR DE ASISTENCIA
+               ========================================================= -->
+          <div *ngIf="modalSupervisionOpen" class="sup-modal-overlay" (click)="cerrarModalSupervision()">
+            <div class="sup-modal-card" (click)="$event.stopPropagation()">
+
+              <!-- Header del Modal -->
+              <div class="sup-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="sup-modal-icon">
+                    <i class="bi bi-person-gear"></i>
+                  </div>
+                  <div>
+                    <h5 class="sup-modal-title">Configurar Quién Ve el Horario</h5>
+                    <p class="sup-modal-sub">Define qué líder o supervisor tiene acceso al Control de Asistencia &amp; Presentismo de otros colaboradores</p>
+                  </div>
+                </div>
+                <button type="button" class="btn-close-sup-modal" (click)="cerrarModalSupervision()">&times;</button>
+              </div>
+
+              <!-- Body del Modal -->
+              <div class="sup-modal-body">
+
+                <!-- PASO 1: SELECCIONAR EL SUPERVISOR ("QUIÉN VE") -->
+                <div class="sup-modal-section">
+                  <div class="sup-step-badge">
+                    <span class="step-num">1</span>
+                    <span class="step-title">¿Quién es el Supervisor o Líder?</span>
+                  </div>
+
+                  <!-- Buscador de usuario supervisor -->
+                  <div class="mb-2">
+                    <div class="sup-input-group">
+                      <i class="bi bi-search"></i>
+                      <input type="text" [(ngModel)]="busquedaSupervisorModal" placeholder="Filtrar por nombre, cargo, área o cédula...">
+                    </div>
+                  </div>
+
+                  <!-- Lista desplegable / selección de supervisor -->
+                  <div class="sup-user-select-list">
+                    <div *ngFor="let u of usuariosSupervisorFiltrados" 
+                         class="sup-user-option" 
+                         [class.selected]="supervisorSeleccionadoId === u.idUsuario"
+                         (click)="seleccionarSupervisor(u)">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="user-radio-circle" [class.checked]="supervisorSeleccionadoId === u.idUsuario">
+                          <i *ngIf="supervisorSeleccionadoId === u.idUsuario" class="bi bi-check"></i>
+                        </div>
+                        <div class="sup-user-info">
+                          <div class="sup-user-name">{{ u.nombre }} {{ u.apellido }}</div>
+                          <div class="sup-user-sub">
+                            <span>Doc: {{ u.identificacion || '--' }}</span>
+                            <span *ngIf="u.descripcionCargo || u.cargo"> · {{ u.descripcionCargo || u.cargo }}</span>
+                            <span *ngIf="u.descripcionArea || u.area" class="text-emerald"> · {{ u.descripcionArea || u.area }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div *ngIf="usuariosSupervisorFiltrados.length === 0" class="text-center py-3 text-muted">
+                      No se encontraron usuarios con ese filtro.
+                    </div>
+                  </div>
+
+                  <!-- Banner de supervisor actualmente seleccionado -->
+                  <div *ngIf="supervisorSeleccionadoObj" class="sup-selected-summary mt-2">
+                    <i class="bi bi-person-check-fill text-success fs-5"></i>
+                    <div>
+                      <strong>{{ supervisorSeleccionadoObj.nombre }} {{ supervisorSeleccionadoObj.apellido }}</strong>
+                      <span class="text-muted d-block small">{{ supervisorSeleccionadoObj.descripcionCargo || supervisorSeleccionadoObj.cargo || 'Colaborador' }} · {{ supervisorSeleccionadoObj.descripcionArea || supervisorSeleccionadoObj.area || 'Sin Área' }} (Doc: {{ supervisorSeleccionadoObj.identificacion }})</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- PASO 2: ALCANCE DE LA VISIBILIDAD ("A QUIÉN VE") -->
+                <div class="sup-modal-section mt-4">
+                  <div class="sup-step-badge">
+                    <span class="step-num">2</span>
+                    <span class="step-title">¿Qué horarios y asistencia podrá consultar?</span>
+                  </div>
+
+                  <!-- 3 Botones / Tarjetas de Selección de Tipo -->
+                  <div class="sup-tipo-grid mb-3">
+                    <div class="sup-tipo-card" [class.active]="tipoAlcanceSeleccionado === 'AREA'" (click)="tipoAlcanceSeleccionado = 'AREA'">
+                      <div class="tipo-radio" [class.checked]="tipoAlcanceSeleccionado === 'AREA'"></div>
+                      <div class="tipo-icon"><i class="bi bi-building"></i></div>
+                      <div class="tipo-title">Por Área(s)</div>
+                      <div class="tipo-desc">Ve a todos los colaboradores de las áreas seleccionadas</div>
+                    </div>
+
+                    <div class="sup-tipo-card" [class.active]="tipoAlcanceSeleccionado === 'COLABORADOR'" (click)="tipoAlcanceSeleccionado = 'COLABORADOR'">
+                      <div class="tipo-radio" [class.checked]="tipoAlcanceSeleccionado === 'COLABORADOR'"></div>
+                      <div class="tipo-icon"><i class="bi bi-person-lines-fill"></i></div>
+                      <div class="tipo-title">Por Colaborador(es)</div>
+                      <div class="tipo-desc">Ve puntualmente a personas específicas de cualquier área</div>
+                    </div>
+
+                    <div class="sup-tipo-card" [class.active]="tipoAlcanceSeleccionado === 'GLOBAL'" (click)="tipoAlcanceSeleccionado = 'GLOBAL'">
+                      <div class="tipo-radio" [class.checked]="tipoAlcanceSeleccionado === 'GLOBAL'"></div>
+                      <div class="tipo-icon"><i class="bi bi-globe-americas"></i></div>
+                      <div class="tipo-title">Acceso Global</div>
+                      <div class="tipo-desc">Ve todas las áreas y a todo el personal de la empresa</div>
+                    </div>
+                  </div>
+
+                  <!-- CONTENIDO SI SELECCIONÓ 'AREA' -->
+                  <div *ngIf="tipoAlcanceSeleccionado === 'AREA'" class="sup-sub-box">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="small fw-bold text-dark">
+                        Selecciona las Áreas a Supervisar ({{ areasSeleccionadasIds.length }} seleccionadas):
+                      </span>
+                      <div class="d-flex gap-2">
+                        <button type="button" class="btn-link-action" (click)="seleccionarTodasAreasModal()">Seleccionar todas</button>
+                        <span class="text-muted">·</span>
+                        <button type="button" class="btn-link-action text-danger" (click)="limpiarAreasModal()">Limpiar</button>
+                      </div>
+                    </div>
+
+                    <div class="mb-2">
+                      <div class="sup-input-group">
+                        <i class="bi bi-search"></i>
+                        <input type="text" [(ngModel)]="busquedaAreaModal" placeholder="Buscar área por nombre...">
+                      </div>
+                    </div>
+
+                    <div class="sup-checkbox-grid">
+                      <div *ngFor="let area of areasFiltradasModal" 
+                           class="sup-check-item"
+                           [class.checked]="isAreaModalSeleccionada(area.idArea || area.id_area)"
+                           (click)="toggleAreaModal(area.idArea || area.id_area)">
+                        <div class="check-box-square" [class.checked]="isAreaModalSeleccionada(area.idArea || area.id_area)">
+                          <i *ngIf="isAreaModalSeleccionada(area.idArea || area.id_area)" class="bi bi-check"></i>
+                        </div>
+                        <span class="area-item-name">{{ area.descripcionArea || area.nombre || area.area }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- CONTENIDO SI SELECCIONÓ 'COLABORADOR' -->
+                  <div *ngIf="tipoAlcanceSeleccionado === 'COLABORADOR'" class="sup-sub-box">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="small fw-bold text-dark">
+                        Selecciona los Colaboradores a Supervisar ({{ colaboradoresSeleccionadosCedulas.length }} seleccionados):
+                      </span>
+                      <div class="d-flex gap-2">
+                        <button type="button" class="btn-link-action" (click)="seleccionarTodosColaboradoresModal()">Seleccionar todos</button>
+                        <span class="text-muted">·</span>
+                        <button type="button" class="btn-link-action text-danger" (click)="limpiarColaboradoresModal()">Limpiar</button>
+                      </div>
+                    </div>
+
+                    <!-- Chips de seleccionados -->
+                    <div *ngIf="colaboradoresSeleccionadosCedulas.length > 0" class="sup-chips-container mb-2">
+                      <span *ngFor="let doc of colaboradoresSeleccionadosCedulas" class="sup-chip">
+                        <span>{{ getNombreColaboradorPorCedula(doc) }}</span>
+                        <button type="button" class="btn-remove-chip" (click)="quitarColaboradorModal(doc)">&times;</button>
+                      </span>
+                    </div>
+
+                    <div class="mb-2">
+                      <div class="sup-input-group">
+                        <i class="bi bi-search"></i>
+                        <input type="text" [(ngModel)]="busquedaColaboradorModal" placeholder="Buscar colaborador por nombre, cédula o área...">
+                      </div>
+                    </div>
+
+                    <div class="sup-colab-scroll-list">
+                      <div *ngFor="let colab of colaboradoresFiltradosModal"
+                           class="sup-colab-item"
+                           [class.checked]="isColaboradorModalSeleccionado(colab.identificacion)"
+                           (click)="toggleColaboradorModal(colab)">
+                        <div class="check-box-square" [class.checked]="isColaboradorModalSeleccionado(colab.identificacion)">
+                          <i *ngIf="isColaboradorModalSeleccionado(colab.identificacion)" class="bi bi-check"></i>
+                        </div>
+                        <div class="colab-info">
+                          <div class="colab-name">{{ colab.nombre }} {{ colab.apellido }}</div>
+                          <div class="colab-sub">
+                            <span>Doc: {{ colab.identificacion }}</span>
+                            <span *ngIf="colab.descripcionArea || colab.area"> · {{ colab.descripcionArea || colab.area }}</span>
+                            <span *ngIf="colab.descripcionCargo || colab.cargo" class="text-muted"> · {{ colab.descripcionCargo || colab.cargo }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- CONTENIDO SI SELECCIONÓ 'GLOBAL' -->
+                  <div *ngIf="tipoAlcanceSeleccionado === 'GLOBAL'" class="sup-global-alert">
+                    <i class="bi bi-info-circle-fill text-emerald fs-4"></i>
+                    <div>
+                      <strong>Acceso Total de Supervisión</strong>
+                      <p class="mb-0 text-muted small">
+                        Este usuario podrá visualizar la cuadrícula completa de todas las áreas de la compañía, así como consultar las marcaciones biométricas, horas acumuladas y turnos de cualquier colaborador.
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- PASO 3: PERMISOS Y OPCIONES ADICIONALES -->
+                <div class="sup-modal-section mt-4">
+                  <div class="sup-step-badge">
+                    <span class="step-num">3</span>
+                    <span class="step-title">Permisos y Estado</span>
+                  </div>
+
+                  <div class="sup-options-grid">
+                    <div class="sup-option-item">
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input bgreen-toggle" type="checkbox" [(ngModel)]="puedeAprobarHorasExtraModal" id="chkHorasExtra">
+                        <label class="form-check-label fw-semibold ms-2" for="chkHorasExtra">
+                          Permitir Aprobar Solicitudes de Tiempo Extra
+                        </label>
+                      </div>
+                      <p class="option-desc">El supervisor podrá dar visto bueno o rechazar horas adicionales solicitadas por sus supervisados.</p>
+                    </div>
+
+                    <div class="sup-option-item">
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input bgreen-toggle" type="checkbox" [(ngModel)]="activoSupervisionModal" id="chkActivo">
+                        <label class="form-check-label fw-semibold ms-2" for="chkActivo">
+                          Asignación Activa
+                        </label>
+                      </div>
+                      <p class="option-desc">Habilita inmediatamente esta regla en el Control de Asistencia &amp; Presentismo.</p>
+                    </div>
+                  </div>
+
+                  <div class="mt-3">
+                    <label class="small fw-semibold text-dark mb-1">Observación o Justificación (Opcional):</label>
+                    <input type="text" [(ngModel)]="observacionSupervisionModal" class="sup-input-text" placeholder="Ej. Supervisión de turno nocturno, reemplazo temporal, jefe de cuadrilla...">
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Footer del Modal -->
+              <div class="sup-modal-footer">
+                <button type="button" class="btn-cancel-sup" (click)="cerrarModalSupervision()" [disabled]="guardandoSupervision">
+                  Cancelar
+                </button>
+                <button type="button" class="btn-save-sup" (click)="guardarConfiguracionSupervision()" [disabled]="guardandoSupervision || !supervisorSeleccionadoId">
+                  <i *ngIf="guardandoSupervision" class="bi bi-arrow-clockwise spin-animation"></i>
+                  <i *ngIf="!guardandoSupervision" class="bi bi-check-circle-fill"></i>
+                  <span>{{ guardandoSupervision ? 'Guardando Asignación...' : 'Guardar Asignación' }}</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
 
 
         </div>

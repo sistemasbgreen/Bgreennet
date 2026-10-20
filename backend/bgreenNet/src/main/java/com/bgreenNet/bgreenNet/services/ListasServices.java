@@ -52,12 +52,101 @@ public class ListasServices {
         return empresaRepository.findAll();
     }
 
+    public Empresa guardarEmpresa(Empresa empresa) {
+        LocalDateTime now = LocalDateTime.now();
+        if (empresa.getIdEmpresa() == null) {
+            empresa.setDateCreate(now);
+        }
+        empresa.setDateModify(now);
+        if (empresa.getActivo() == null) {
+            empresa.setActivo(1);
+        }
+        return empresaRepository.save(empresa);
+    }
+
+    public Empresa actualizarEmpresa(Integer id, Empresa datos) {
+        Empresa existente = empresaRepository.findById(id).orElse(new Empresa());
+        if (existente.getIdEmpresa() == null) {
+            existente.setDateCreate(LocalDateTime.now());
+        }
+        if (datos.getDescripcionEmpresa() != null) {
+            existente.setDescripcionEmpresa(datos.getDescripcionEmpresa());
+        }
+        if (datos.getActivo() != null) {
+            existente.setActivo(datos.getActivo());
+        }
+        existente.setDateModify(LocalDateTime.now());
+        return empresaRepository.save(existente);
+    }
+
     public List<Area> obtenerAreas() {
         return areaRepository.findAll();
     }
 
+    public Area guardarArea(Area area) {
+        LocalDateTime now = LocalDateTime.now();
+        if (area.getIdArea() == null) {
+            area.setDateCreate(now);
+        }
+        area.setDateModify(now);
+        if (area.getActivo() == null) {
+            area.setActivo(1);
+        }
+        if (area.getIdDireccionFk() == null) {
+            area.setIdDireccionFk(1L);
+        }
+        return areaRepository.save(area);
+    }
+
+    public Area actualizarArea(Integer id, Area datos) {
+        Area existente = areaRepository.findById(id).orElse(new Area());
+        if (existente.getIdArea() == null) {
+            existente.setDateCreate(LocalDateTime.now());
+        }
+        if (datos.getDescripcionArea() != null) {
+            existente.setDescripcionArea(datos.getDescripcionArea());
+        }
+        if (datos.getIdDireccionFk() != null) {
+            existente.setIdDireccionFk(datos.getIdDireccionFk());
+        } else if (existente.getIdDireccionFk() == null) {
+            existente.setIdDireccionFk(1L);
+        }
+        if (datos.getActivo() != null) {
+            existente.setActivo(datos.getActivo());
+        }
+        existente.setDateModify(LocalDateTime.now());
+        return areaRepository.save(existente);
+    }
+
     public List<Cargo> obtenerCargos() {
         return cargoRepository.findAll();
+    }
+
+    public Cargo guardarCargo(Cargo cargo) {
+        LocalDateTime now = LocalDateTime.now();
+        if (cargo.getIdCargo() == null) {
+            cargo.setDateCreate(now);
+        }
+        cargo.setDateModify(now);
+        if (cargo.getActivo() == null) {
+            cargo.setActivo(1);
+        }
+        return cargoRepository.save(cargo);
+    }
+
+    public Cargo actualizarCargo(Integer id, Cargo datos) {
+        Cargo existente = cargoRepository.findById(id).orElse(new Cargo());
+        if (existente.getIdCargo() == null) {
+            existente.setDateCreate(LocalDateTime.now());
+        }
+        if (datos.getDescripcionCargo() != null) {
+            existente.setDescripcionCargo(datos.getDescripcionCargo());
+        }
+        if (datos.getActivo() != null) {
+            existente.setActivo(datos.getActivo());
+        }
+        existente.setDateModify(LocalDateTime.now());
+        return cargoRepository.save(existente);
     }
     
 

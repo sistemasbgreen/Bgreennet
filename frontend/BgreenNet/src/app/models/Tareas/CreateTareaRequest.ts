@@ -1,3 +1,8 @@
+export interface CreateSubtareaDTO {
+  titulo: string;
+  idUsuario?: number;
+}
+
 export interface CreateTareaRequest {
   titulo: string;
   descripcion: string;
@@ -6,4 +11,6 @@ export interface CreateTareaRequest {
   idEstado: number;
   idPrioridad: number;
   fechaLimite?: string;
+  subtareas?: CreateSubtareaDTO[];
+  idUsuariosAsignados?: number[];
 }

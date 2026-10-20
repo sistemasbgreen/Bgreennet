@@ -21,6 +21,7 @@ export class VariablesPlc implements OnInit {
   loading: boolean = false;
   receptoresPlc: string = '';
   guardandoReceptores: boolean = false;
+  enviandoReporteDiario: boolean = false;
 
   // Formulario general
   showForm: boolean = false;
@@ -369,4 +370,25 @@ export class VariablesPlc implements OnInit {
       }
     });
   }
+
+  enviarReporteDiarioAhora() {
+    if (!confirm('¿Desea generar y enviar el Reporte Diario (6:00 AM) ahora mismo a los destinatarios configurados?')) {
+      return;
+    }
+    this.enviandoReporteDiario = true;
+    this.scadaService.sendDailyReportManual().subscribe({
+      next: (res) => {
+        this.enviandoReporteDiario = false;
+        alert(res.message || 'Reporte diario generado y enviado con éxito.');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error enviando reporte diario manual:', err);
+        this.enviandoReporteDiario = false;
+        alert('Error al generar o enviar el reporte diario: ' + (err.error?.message || err.message || 'Error del servidor'));
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
 }

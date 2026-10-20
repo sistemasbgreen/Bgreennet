@@ -82,4 +82,10 @@ export class ScadaService {
   saveReceptoresPlc(destinatarios: string): Observable<any> {
     return this.http.post<any>(`${this.scadaUrl}/receptores-plc`, { destinatarios });
   }
+
+  // Genera y envía manualmente o de prueba el reporte diario de las 6:00 AM
+  sendDailyReportManual(fecha?: string): Observable<any> {
+    const body = fecha ? { fecha } : {};
+    return this.http.post<any>(`${this.scadaUrl}/reporte-diario/enviar`, body);
+  }
 }

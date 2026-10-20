@@ -1,41 +1,46 @@
 package com.bgreenNet.bgreenNet.services;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bgreenNet.bgreenNet.dto.CreateSubtareaRequest;
 import com.bgreenNet.bgreenNet.dto.CreateTareaRequest;
 import com.bgreenNet.bgreenNet.dto.UpdateTareaRequest;
 import com.bgreenNet.bgreenNet.models.EstadoTarea;
+import com.bgreenNet.bgreenNet.models.Notificacion;
 import com.bgreenNet.bgreenNet.models.PrioridadTarea;
+import com.bgreenNet.bgreenNet.models.Subtarea;
 import com.bgreenNet.bgreenNet.models.Tarea;
 import com.bgreenNet.bgreenNet.models.TareaEstadoHistorial;
 import com.bgreenNet.bgreenNet.models.TareaSeguimiento;
-import com.bgreenNet.bgreenNet.models.Notificacion;
 import com.bgreenNet.bgreenNet.models.Usuario;
 import com.bgreenNet.bgreenNet.repository.EstadoTareaRepository;
 import com.bgreenNet.bgreenNet.repository.NotificacionRepository;
 import com.bgreenNet.bgreenNet.repository.PrioridadTareaRepository;
+import com.bgreenNet.bgreenNet.repository.SubtareaRepository;
 import com.bgreenNet.bgreenNet.repository.TareaEstadoHistorialRepository;
 import com.bgreenNet.bgreenNet.repository.TareaRepository;
 import com.bgreenNet.bgreenNet.repository.TareaSeguimientoRepository;
 import com.bgreenNet.bgreenNet.repository.UsuarioRepository;
-import java.time.Duration;
-import java.util.Optional;
 
 @Service
 public class TareaService {
 
 	private final PrioridadTareaRepository prioridadRepository;
-
 	private final EstadoTareaRepository estadoRepository;
 	private final TareaRepository tareaRepository;
 	private final TareaSeguimientoRepository seguimientoRepository;
 	private final TareaEstadoHistorialRepository historialRepository;
 	private final UsuarioRepository usuarioRepository;
 	private final NotificacionRepository notificacionRepository;
+	private final SubtareaRepository subtareaRepository;
 
 	public TareaService(EstadoTareaRepository estadoRepository, 
 						TareaRepository tareaRepository, 
@@ -43,7 +48,8 @@ public class TareaService {
 						TareaSeguimientoRepository seguimientoRepository,
 						TareaEstadoHistorialRepository historialRepository,
 						UsuarioRepository usuarioRepository,
-						NotificacionRepository notificacionRepository) {
+						NotificacionRepository notificacionRepository,
+						SubtareaRepository subtareaRepository) {
 		this.estadoRepository = estadoRepository;
 		this.tareaRepository = tareaRepository;
 		this.prioridadRepository = prioridadRepository;
@@ -51,10 +57,11 @@ public class TareaService {
 		this.historialRepository = historialRepository;
 		this.usuarioRepository = usuarioRepository;
 		this.notificacionRepository = notificacionRepository;
+		this.subtareaRepository = subtareaRepository;
 	}
 
 	public List<Tarea> obtenerPorUsuario(Integer idUsuario) {
-		return tareaRepository.findByIdUsuarioOrIdUsuarioCreador(idUsuario, idUsuario);
+		return tareaRepository.findTareasParaUsuario(idUsuario);
 	}
 
 	@Transactional
@@ -74,6 +81,17 @@ public class TareaService {
 
 	@Transactional
 	public Tarea crear(CreateTareaRequest request) {
+		if (request.getIdUsuario() == null || request.getIdUsuario() <= 0) {
+			throw new IllegalArgumentException("Debe asignar un usuario válido a la tarea.");
+		}
+		if (!usuarioRepository.existsById(request.getIdUsuario())) {
+			throw new IllegalArgumentException("El usuario asignado con ID (" + request.getIdUsuario() + ") no existe en la base de datos.");
+		}
+
+		Integer idCreador = request.getIdUsuarioCreador();
+		if (idCreador == null || idCreador <= 0 || !usuarioRepository.existsById(idCreador)) {
+			idCreador = request.getIdUsuario();
+		}
 
 		EstadoTarea estado = estadoRepository.findById(request.getIdEstado())
 				.orElseThrow(() -> new RuntimeException("Estado no existe"));
@@ -83,7 +101,7 @@ public class TareaService {
 
 		Tarea tarea = new Tarea();
 		tarea.setIdUsuario(request.getIdUsuario());
-		tarea.setIdUsuarioCreador(request.getIdUsuarioCreador() != null ? request.getIdUsuarioCreador() : request.getIdUsuario());
+		tarea.setIdUsuarioCreador(idCreador);
 		tarea.setTitulo(request.getTitulo());
 		tarea.setDescripcion(request.getDescripcion());
 		tarea.setEstado(estado);
@@ -96,12 +114,60 @@ public class TareaService {
 		// Registrar el estado inicial en el historial
 		registrarCambioEstado(saved, null, estado);
 		
-		// Notificar al asignado si no es el creador
+		// Guardar subtareas si existen
+		Set<Integer> usuariosConSubtarea = new HashSet<>();
+		if (request.getSubtareas() != null && !request.getSubtareas().isEmpty()) {
+			for (CreateSubtareaRequest subReq : request.getSubtareas()) {
+				if (subReq.getTitulo() != null && !subReq.getTitulo().trim().isEmpty()) {
+					Subtarea sub = new Subtarea();
+					sub.setTarea(saved);
+					sub.setTitulo(subReq.getTitulo().trim());
+					Integer asignado = subReq.getIdUsuario();
+					if (asignado == null || asignado <= 0 || !usuarioRepository.existsById(asignado)) {
+						asignado = saved.getIdUsuario();
+					}
+					sub.setIdUsuario(asignado);
+					sub.setCompletada(false);
+					sub.setFechaCreacion(LocalDateTime.now());
+					subtareaRepository.save(sub);
+					usuariosConSubtarea.add(asignado);
+
+					// Notificar al asignado de la subtarea si es diferente al creador
+					if (asignado != null && !asignado.equals(saved.getIdUsuarioCreador())) {
+						crearNotificacion(asignado, "Se te ha asignado la subtarea: " + sub.getTitulo() + " en la tarea: " + saved.getTitulo(), "NUEVA_SUBTAREA", saved.getId());
+					}
+				}
+			}
+		}
+
+		// Asignar y vincular usuarios adicionales si se seleccionaron varios
+		if (request.getIdUsuariosAsignados() != null) {
+			for (Integer uId : request.getIdUsuariosAsignados()) {
+				if (uId != null && uId > 0 && !uId.equals(saved.getIdUsuario()) && usuarioRepository.existsById(uId)) {
+					if (!usuariosConSubtarea.contains(uId)) {
+						Subtarea subPart = new Subtarea();
+						subPart.setTarea(saved);
+						subPart.setTitulo("Colaboración en: " + saved.getTitulo());
+						subPart.setIdUsuario(uId);
+						subPart.setCompletada(false);
+						subPart.setFechaCreacion(LocalDateTime.now());
+						subtareaRepository.save(subPart);
+						usuariosConSubtarea.add(uId);
+
+						if (!uId.equals(saved.getIdUsuarioCreador())) {
+							crearNotificacion(uId, "Se te ha asignado a la tarea: " + saved.getTitulo(), "NUEVA_TAREA", saved.getId());
+						}
+					}
+				}
+			}
+		}
+
+		// Notificar al asignado principal si no es el creador
 		if (!tarea.getIdUsuario().equals(tarea.getIdUsuarioCreador())) {
 			crearNotificacion(tarea.getIdUsuario(), "Se te ha asignado una nueva tarea: " + tarea.getTitulo(), "NUEVA_TAREA", saved.getId());
 		}
 		
-		return saved;
+		return obtenerPorId(saved.getId());
 	}
 
 	@Transactional
@@ -165,6 +231,73 @@ public class TareaService {
 	        .orElseThrow(() -> new RuntimeException("Tarea no encontrada"));
 	}
 
+	// ==========================================
+	// GESTIÓN DE SUBTAREAS
+	// ==========================================
+	public List<Subtarea> obtenerSubtareas(Long idTarea) {
+		return subtareaRepository.findByTareaIdOrderByIdAsc(idTarea);
+	}
+
+	@Transactional
+	public Subtarea agregarSubtarea(Long idTarea, CreateSubtareaRequest request) {
+		Tarea tarea = obtenerPorId(idTarea);
+
+		Subtarea sub = new Subtarea();
+		sub.setTarea(tarea);
+		sub.setTitulo(request.getTitulo().trim());
+		Integer asignado = request.getIdUsuario();
+		if (asignado == null || asignado <= 0 || !usuarioRepository.existsById(asignado)) {
+			asignado = tarea.getIdUsuario();
+		}
+		sub.setIdUsuario(asignado);
+		sub.setCompletada(false);
+		sub.setFechaCreacion(LocalDateTime.now());
+
+		Subtarea saved = subtareaRepository.save(sub);
+
+		// Notificar al usuario asignado a la subtarea
+		if (asignado != null && !asignado.equals(tarea.getIdUsuarioCreador())) {
+			crearNotificacion(asignado, "Se te ha asignado la subtarea: " + sub.getTitulo() + " en la tarea: " + tarea.getTitulo(), "NUEVA_SUBTAREA", tarea.getId());
+		}
+
+		return saved;
+	}
+
+	@Transactional
+	public Subtarea alternarSubtarea(Long idSubtarea) {
+		Subtarea sub = subtareaRepository.findById(idSubtarea)
+				.orElseThrow(() -> new RuntimeException("Subtarea no encontrada"));
+
+		boolean nuevoEstado = !sub.getCompletada();
+		sub.setCompletada(nuevoEstado);
+		sub.setFechaCompletado(nuevoEstado ? LocalDateTime.now() : null);
+
+		return subtareaRepository.save(sub);
+	}
+
+	@Transactional
+	public Subtarea actualizarSubtarea(Long idSubtarea, CreateSubtareaRequest request) {
+		Subtarea sub = subtareaRepository.findById(idSubtarea)
+				.orElseThrow(() -> new RuntimeException("Subtarea no encontrada"));
+
+		if (request.getTitulo() != null && !request.getTitulo().trim().isEmpty()) {
+			sub.setTitulo(request.getTitulo().trim());
+		}
+		if (request.getIdUsuario() != null && request.getIdUsuario() > 0 && usuarioRepository.existsById(request.getIdUsuario())) {
+			sub.setIdUsuario(request.getIdUsuario());
+		}
+
+		return subtareaRepository.save(sub);
+	}
+
+	@Transactional
+	public void eliminarSubtarea(Long idSubtarea) {
+		subtareaRepository.deleteById(idSubtarea);
+	}
+
+	// ==========================================
+	// HISTORIAL Y ESTADOS
+	// ==========================================
 	private void registrarCambioEstado(Tarea tarea, EstadoTarea anterior, EstadoTarea nuevo) {
 		LocalDateTime now = LocalDateTime.now();
 		
@@ -205,10 +338,18 @@ public class TareaService {
 		
 		TareaSeguimiento saved = seguimientoRepository.save(seguimiento);
 		
-		// Notificar a la "otra" persona
-		Integer destinatarioId = idUsuario.equals(tarea.getIdUsuario()) ? tarea.getIdUsuarioCreador() : tarea.getIdUsuario();
-		if (destinatarioId != null && !destinatarioId.equals(idUsuario)) {
-			crearNotificacion(destinatarioId, "Nuevo mensaje en la tarea: " + tarea.getTitulo(), "NUEVO_MENSAJE", tarea.getId());
+		// Notificar a todos los participantes de la tarea (creador, asignado principal y miembros asignados a subtareas)
+		Set<Integer> destinatarios = new HashSet<>();
+		if (tarea.getIdUsuario() != null) destinatarios.add(tarea.getIdUsuario());
+		if (tarea.getIdUsuarioCreador() != null) destinatarios.add(tarea.getIdUsuarioCreador());
+		if (tarea.getSubtareas() != null) {
+			for (Subtarea s : tarea.getSubtareas()) {
+				if (s.getIdUsuario() != null) destinatarios.add(s.getIdUsuario());
+			}
+		}
+		destinatarios.remove(idUsuario);
+		for (Integer destId : destinatarios) {
+			crearNotificacion(destId, "Nuevo mensaje en la tarea: " + tarea.getTitulo(), "NUEVO_MENSAJE", tarea.getId());
 		}
 
 		return saved;

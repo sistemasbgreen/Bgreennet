@@ -9,6 +9,7 @@ import { CrearSistema } from '../models/CrearSistema';
 import { Tarea } from '../models/Tareas/Tarea';
 import { CreateTareaRequest } from '../models/Tareas/CreateTareaRequest';
 import { UpdateTareaRequest } from '../models/Tareas/UpdateTareaRequest';
+import { Subtarea } from '../models/Tareas/Subtarea';
 
 @Injectable({
   providedIn: 'root'
@@ -89,8 +90,28 @@ export class homeservices {
   }
 
   enviarSeguimiento(idTarea: number, idUsuario: number, mensaje: string): Observable<any> {
-    // Enviamos un objeto para asegurar que el Body sea JSON válido y procesable por Jackson
     return this.http.post<any>(`${this.urltareas}/${idTarea}/seguimiento/${idUsuario}`, { mensaje }, { headers: this.getHeaders() });
+  }
+
+  // Subtareas
+  getSubtareas(idTarea: number): Observable<Subtarea[]> {
+    return this.http.get<Subtarea[]>(`${this.urltareas}/${idTarea}/subtareas`, { headers: this.getHeaders() });
+  }
+
+  crearSubtarea(idTarea: number, request: { titulo: string; idUsuario?: number }): Observable<Subtarea> {
+    return this.http.post<Subtarea>(`${this.urltareas}/${idTarea}/subtareas`, request, { headers: this.getHeaders() });
+  }
+
+  toggleSubtarea(idSubtarea: number): Observable<Subtarea> {
+    return this.http.put<Subtarea>(`${this.urltareas}/subtareas/${idSubtarea}/toggle`, {}, { headers: this.getHeaders() });
+  }
+
+  actualizarSubtarea(idSubtarea: number, request: { titulo?: string; idUsuario?: number }): Observable<Subtarea> {
+    return this.http.put<Subtarea>(`${this.urltareas}/subtareas/${idSubtarea}`, request, { headers: this.getHeaders() });
+  }
+
+  eliminarSubtarea(idSubtarea: number): Observable<any> {
+    return this.http.delete<any>(`${this.urltareas}/subtareas/${idSubtarea}`, { headers: this.getHeaders() });
   }
 
   // Generic methods
@@ -100,6 +121,35 @@ export class homeservices {
 
   put(endpoint: string, body: any): Observable<any> {
     return this.http.put<any>(`${environment.apiUrl}/${endpoint}`, body, { headers: this.getHeaders() });
+  }
+
+  // Presentismo & Control de Acceso (Siesa Access)
+  getEventosPresentismo(documento: string, fechaInicio?: string, fechaFin?: string): Observable<any[]> {
+    const params: string[] = [];
+    if (documento) params.push(`documento=${encodeURIComponent(documento)}`);
+    if (fechaInicio) params.push(`fechaInicio=${encodeURIComponent(fechaInicio)}`);
+    if (fechaFin) params.push(`fechaFin=${encodeURIComponent(fechaFin)}`);
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
+
+    return this.http.get<any[]>(`${environment.apiUrl}/api/presentismo/eventos${query}`, { headers: this.getHeaders() });
+  }
+
+  getEventosEquipo(documentos: string[], fechaInicio: string, fechaFin: string): Observable<any[]> {
+    return this.http.post<any[]>(
+      `${environment.apiUrl}/api/presentismo/eventos-equipo`,
+      { documentos, fechaInicio, fechaFin },
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getMarcacionesErroneas(documento?: string, fechaInicio?: string, fechaFin?: string): Observable<any[]> {
+    const params: string[] = [];
+    if (documento) params.push(`documento=${encodeURIComponent(documento)}`);
+    if (fechaInicio) params.push(`fechaInicio=${encodeURIComponent(fechaInicio)}`);
+    if (fechaFin) params.push(`fechaFin=${encodeURIComponent(fechaFin)}`);
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
+
+    return this.http.get<any[]>(`${environment.apiUrl}/api/presentismo/marcaciones-erroneas${query}`, { headers: this.getHeaders() });
   }
 
 }

@@ -26,8 +26,6 @@ public class BgreenNetApplication {
     
     @Autowired
     private EmailReporteService emailReporteService;
-    
-
 
     @Bean
     CommandLineRunner testJdbcConnections(
@@ -36,12 +34,41 @@ public class BgreenNetApplication {
             @Qualifier("siesaJdbcTemplate") JdbcTemplate siesaJdbcTemplate,
             @Qualifier("siesaDataSource") DataSource siesaDataSource,
             @Qualifier("plcJdbcTemplate") JdbcTemplate plcJdbcTemplate,
-            @Qualifier("plcDataSource") DataSource plcDataSource
+            @Qualifier("plcDataSource") DataSource plcDataSource,
+            @Qualifier("siesaAccessJdbcTemplate") JdbcTemplate siesaAccessJdbcTemplate,
+            @Qualifier("siesaAccessDataSource") DataSource siesaAccessDataSource
     ) {
         return args -> {
             boolean conn1 = probarConexion("BASE DE DATOS PRINCIPAL", primaryJdbcTemplate, primaryDataSource);
             boolean conn2 = probarConexion("BASE DE DATOS SIESA", siesaJdbcTemplate, siesaDataSource);
             boolean conn3 = probarConexion("BASE DE DATOS PLC (172.30.72.147)", plcJdbcTemplate, plcDataSource);
+            boolean conn4 = probarConexion("BASE DE DATOS SIESA ACCESS BIOCOSTA (172.30.72.47)", siesaAccessJdbcTemplate, siesaAccessDataSource);
+
+            if (conn1) {
+                try {
+                    primaryJdbcTemplate.execute("""
+                        IF OBJECT_ID('subtareas', 'U') IS NULL
+                        BEGIN
+                            CREATE TABLE subtareas (
+                                id_subtarea BIGINT IDENTITY(1,1) PRIMARY KEY,
+                                id_tarea INT NOT NULL,
+                                id_usuario INT NULL,
+                                titulo NVARCHAR(255) NOT NULL,
+                                completada BIT NOT NULL DEFAULT 0,
+                                fecha_creacion DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+                                fecha_completado DATETIME2 NULL,
+                                CONSTRAINT fk_subtareas_tarea FOREIGN KEY (id_tarea) REFERENCES tareas(id_tarea) ON DELETE CASCADE,
+                                CONSTRAINT fk_subtareas_usuario FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
+                            );
+                            CREATE INDEX idx_subtareas_tarea ON subtareas(id_tarea);
+                            CREATE INDEX idx_subtareas_usuario ON subtareas(id_usuario);
+                        END
+                    """);
+                    System.out.println("✅ Tabla 'subtareas' verificada/creada exitosamente.");
+                } catch (Exception ex) {
+                    System.err.println("⚠️ Nota esquema subtareas: " + ex.getMessage());
+                }
+            }
 
             System.out.println("\n========================================");
             System.out.println("    RESUMEN DE CONEXIONES A BASE DE DATOS");
@@ -49,6 +76,7 @@ public class BgreenNetApplication {
             System.out.println(" CONEXIÓN 1 (Principal) : " + (conn1 ? "✅ CONECTADO" : "❌ FALLÓ"));
             System.out.println(" CONEXIÓN 2 (SIESA)     : " + (conn2 ? "✅ CONECTADO" : "❌ FALLÓ"));
             System.out.println(" CONEXIÓN 3 (PLC .147)  : " + (conn3 ? "✅ CONECTADO" : "❌ FALLÓ"));
+            System.out.println(" CONEXIÓN 4 (SIESA ACCESS): " + (conn4 ? "✅ CONECTADO" : "❌ FALLÓ"));
             System.out.println("========================================\n");
         };
     }

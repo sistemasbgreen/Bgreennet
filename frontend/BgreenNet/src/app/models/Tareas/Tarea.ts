@@ -1,6 +1,7 @@
 import { EstadoTarea } from "./EstadoTarea";
 import { PrioridadTarea } from "./PrioridadTarea";
 import { Usuario } from "../usuario";
+import { Subtarea } from "./Subtarea";
 
 export interface Tarea {
   id: number;
@@ -17,4 +18,5 @@ export interface Tarea {
   estado: EstadoTarea;
   prioridad: PrioridadTarea;
   fechaLimite?: string;
+  subtareas?: Subtarea[];
 }

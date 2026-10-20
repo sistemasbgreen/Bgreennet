@@ -78,6 +78,14 @@ public class Empresa {
 	public void setActivo(Integer activo) {
 		this.activo = activo;
 	}
+
+	public Integer getEstado() {
+		return activo;
+	}
+
+	public void setEstado(Integer estado) {
+		this.activo = estado;
+	}
     
     
 

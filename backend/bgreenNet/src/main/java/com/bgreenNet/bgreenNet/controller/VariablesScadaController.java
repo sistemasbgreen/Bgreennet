@@ -125,5 +125,15 @@ public class VariablesScadaController {
         service.guardarReceptoresPlc(destinatarios);
         return Map.of("success", true, "message", "Destinatarios actualizados correctamente.");
     }
-}
 
+    // 🔹 Generar y enviar reporte diario de las 6:00 AM (manualmente o de prueba)
+    @PostMapping("/reporte-diario/enviar")
+    public Map<String, Object> enviarReporteDiarioManual(@RequestBody(required = false) Map<String, String> body) {
+        String fechaStr = (body != null) ? body.get("fecha") : null;
+        java.time.LocalDate fecha = null;
+        if (fechaStr != null && !fechaStr.trim().isEmpty()) {
+            fecha = java.time.LocalDate.parse(fechaStr.trim());
+        }
+        return service.generarYEnviarReporteDiario(fecha);
+    }
+}
