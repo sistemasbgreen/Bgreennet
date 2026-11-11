@@ -3146,7 +3146,9 @@ body.dark-mode .nota-cierre-text {
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   max-width: 100%;
   word-wrap: break-word;
-  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.45;
 }
 
 .own-msg .chat-msg-body {
@@ -11229,14 +11231,21 @@ button:disabled {
 }
 
 .tarea-card__avatar--creator {
-  border: 2px solid #059669 !important;
+  background: linear-gradient(135deg, #059669, #10b981) !important;
+  border: 2px solid #ffffff !important;
+  color: white !important;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
+  z-index: 3;
 }
 
-.tarea-card__avatar--more {
-  background: #e2e8f0 !important;
-  color: #475569 !important;
-  font-weight: 700 !important;
-  font-size: 10px !important;
+.tarea-card__avatar--invitado,
+.tarea-card__avatar--secondary {
+  margin-left: -8px;
+  z-index: 1;
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  border: 2px solid #ffffff !important;
+  color: white !important;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
 }
 
 .badge-mis-subtareas {
@@ -12093,5 +12102,103 @@ button:disabled {
 .btn-remove-chip:hover {
   color: #ef4444;
   background: #fee2e2;
+}
+
+/* ============================================
+   ESTILOS: INTERLINEADO EN CHAT Y EDICIÓN USUARIO SUBTAREA
+============================================ */
+.chat-textarea-interlineado {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 18px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 13.5px;
+  font-family: inherit;
+  line-height: 1.45;
+  resize: vertical;
+  max-height: 140px;
+  min-height: 42px;
+  height: 42px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.chat-textarea-interlineado:focus {
+  border-color: #0a5c2e;
+  box-shadow: 0 0 0 3px rgba(10, 92, 46, 0.08);
+  background: #ffffff;
+}
+
+.chat-interlineado-hint {
+  padding: 4px 20px 8px 20px;
+  font-size: 11px;
+  color: #64748b;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.subtarea-user-pill-wrap {
+  display: inline-flex;
+}
+
+.subtarea-assigned-user {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.subtarea-assigned-user:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.edit-user-pencil-icon {
+  font-size: 10.5px;
+  color: #64748b;
+  margin-left: 3px;
+  opacity: 0.7;
+}
+
+.subtarea-assigned-user:hover .edit-user-pencil-icon {
+  opacity: 1;
+  color: #059669;
+}
+
+.subtarea-edit-user-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.select-sub-user-inline {
+  font-size: 11.5px;
+  height: 28px;
+  padding: 2px 20px 2px 8px;
+  border-radius: 12px;
+  border: 1.5px solid #059669;
+  background-color: #ecfdf5;
+  color: #047857;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-cancel-edit-sub-user {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.btn-cancel-edit-sub-user:hover {
+  color: #ef4444;
 }
 

@@ -650,36 +650,25 @@
                 </div>
               </div>
 
-              <!-- Avatares de asignación múltiple -->
+              <!-- Avatares de participantes: Creador (Verde) e Invitados (Naranja) -->
               <div class="tarea-card__assign-row">
                 <div class="tarea-card__avatars">
-                  <!-- Creador -->
+                  <!-- Creador (Verde) -->
                   <div class="tarea-card__avatar tarea-card__avatar--creator" 
                        [title]="'Creador: ' + getUserDisplayName(tarea.idUsuarioCreador)">
                     {{ getUserInitials(tarea.idUsuarioCreador) }}
                   </div>
-                  <span class="avatar-flow-arrow" *ngIf="getUsuariosAsignadosTarea(tarea).length > 0">
+                  <span class="avatar-flow-arrow" *ngIf="getUsuariosInvitadosTarea(tarea).length > 0">
                     <i class="bi bi-chevron-right"></i>
                   </span>
-                  <!-- Asignados de la tarea y subtareas -->
-                  <ng-container *ngFor="let uId of getUsuariosAsignadosTarea(tarea); let i = index">
-                    <div class="tarea-card__avatar tarea-card__avatar--secondary" 
-                         *ngIf="i < 4"
-                         [title]="getUserDisplayName(uId) + (getSubtareasDeUsuario(tarea, uId).total > 0 ? ' (' + getSubtareasDeUsuario(tarea, uId).completadas + '/' + getSubtareasDeUsuario(tarea, uId).total + ' subtareas)' : '')">
+                  <!-- Invitados (Naranja) -->
+                  <ng-container *ngFor="let uId of getUsuariosInvitadosTarea(tarea)">
+                    <div class="tarea-card__avatar tarea-card__avatar--invitado" 
+                         [title]="'Invitado: ' + getUserDisplayName(uId)">
                       {{ getUserInitials(uId) }}
                     </div>
                   </ng-container>
-                  <div class="tarea-card__avatar tarea-card__avatar--more" *ngIf="getUsuariosAsignadosTarea(tarea).length > 4"
-                       [title]="'+' + (getUsuariosAsignadosTarea(tarea).length - 4) + ' más'">
-                    +{{ getUsuariosAsignadosTarea(tarea).length - 4 }}
-                  </div>
                 </div>
-
-                <!-- Badge si el usuario logueado tiene subtareas -->
-                <span class="badge-mis-subtareas" *ngIf="getSubtareasDeUsuario(tarea, id_usuario).total > 0">
-                  <i class="bi bi-person-check-fill"></i>
-                  {{ getSubtareasDeUsuario(tarea, id_usuario).completadas }}/{{ getSubtareasDeUsuario(tarea, id_usuario).total }} mías
-                </span>
               </div>
 
               <!-- Fecha de vencimiento (Siempre ocupa espacio) -->
@@ -1413,12 +1402,30 @@
                   <span class="subtarea-titulo-text">{{ sub.titulo }}</span>
                 </label>
                 <div class="subtarea-item-meta">
-                  <span class="subtarea-assigned-user"
-                        [class.is-me]="sub.idUsuario === id_usuario"
-                        [title]="'Asignado a: ' + getUserDisplayName(sub.idUsuario)">
-                    <span class="mini-circle-avatar">{{ getUserInitials(sub.idUsuario) }}</span>
-                    {{ getUserDisplayName(sub.idUsuario) }}
-                  </span>
+                  <!-- Usuario asignado (modo lectura / clic para editar) -->
+                  <div class="subtarea-user-pill-wrap" *ngIf="!sub._editandoUsuario">
+                    <span class="subtarea-assigned-user"
+                          [class.is-me]="sub.idUsuario === id_usuario"
+                          (click)="sub._editandoUsuario = true"
+                          [title]="'Clic para cambiar el usuario asignado (actual: ' + getUserDisplayName(sub.idUsuario) + ')'">
+                      <span class="mini-circle-avatar">{{ getUserInitials(sub.idUsuario) }}</span>
+                      <span class="subtarea-user-name-text">{{ getUserDisplayName(sub.idUsuario) }}</span>
+                      <i class="bi bi-pencil edit-user-pencil-icon" *ngIf="tareaSeleccionada?.estado?.nombre !== 'FINALIZADA'" title="Cambiar usuario asignado"></i>
+                    </span>
+                  </div>
+
+                  <!-- Selector inline para editar el usuario de la subtarea -->
+                  <div class="subtarea-edit-user-wrap" *ngIf="sub._editandoUsuario">
+                    <select class="form-select form-select-sm select-sub-user-inline"
+                            [ngModel]="sub.idUsuario"
+                            (ngModelChange)="cambiarUsuarioSubtarea(sub, $event)">
+                      <option *ngFor="let u of usuariosSubtareasMismaArea" [ngValue]="u.idUsuario || u.id_usuario || u.Id_usuario">
+                        {{ u.nombre }} {{ u.apellido }}
+                      </option>
+                    </select>
+                    <button type="button" class="btn-cancel-edit-sub-user" (click)="sub._editandoUsuario = false" title="Cancelar">×</button>
+                  </div>
+
                   <button type="button"
                           class="btn-subtarea-delete"
                           *ngIf="tareaSeleccionada?.estado?.nombre !== 'FINALIZADA' && (tareaSeleccionada?.idUsuarioCreador === id_usuario || sub.idUsuario === id_usuario)"
@@ -1558,12 +1565,14 @@
               </div>
             </div>
 
-            <!-- Input con emoji al lado del botón enviar -->
+            <!-- Input con soporte de interlineado (Shift + Enter) y emoji al lado del botón enviar -->
             <div class="detalle-chat-input" *ngIf="tareaSeleccionada?.estado?.nombre !== 'FINALIZADA'">
-              <input type="text"
+              <textarea
+                class="chat-textarea-interlineado"
                 [(ngModel)]="mensajeSeguimiento"
-                (keyup.enter)="enviarMensaje()"
-                placeholder="Escribe un mensaje de seguimiento...">
+                (keydown)="onChatKeyDown($event)"
+                rows="1"
+                placeholder="Escribe un mensaje... (Shift + Enter para interlineado / salto de línea)"></textarea>
               <button type="button"
                       class="btn-emoji-trigger"
                       [class.active]="mostrarEmojiPicker"
@@ -1571,9 +1580,12 @@
                       title="Insertar emoji">
                 <i class="bi bi-emoji-smile"></i>
               </button>
-              <button class="btn-chat-send" (click)="enviarMensaje()" [disabled]="!mensajeSeguimiento.trim()" title="Enviar mensaje">
+              <button class="btn-chat-send" (click)="enviarMensaje()" [disabled]="!mensajeSeguimiento.trim()" title="Enviar mensaje (Enter)">
                 <i class="bi bi-send-fill"></i>
               </button>
+            </div>
+            <div class="chat-interlineado-hint" *ngIf="tareaSeleccionada?.estado?.nombre !== 'FINALIZADA'">
+              <i class="bi bi-keyboard"></i> Presiona <strong>Shift + Enter</strong> para agregar un <strong>interlineado</strong> (salto de línea). <strong>Enter</strong> para enviar.
             </div>
 
             <!-- Aviso si está finalizada -->

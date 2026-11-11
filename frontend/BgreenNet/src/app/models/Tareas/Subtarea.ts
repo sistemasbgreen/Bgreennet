@@ -9,4 +9,5 @@ export interface Subtarea {
   completada: boolean;
   fechaCreacion?: string;
   fechaCompletado?: string;
+  _editandoUsuario?: boolean;
 }

@@ -284,7 +284,14 @@ public class TareaService {
 			sub.setTitulo(request.getTitulo().trim());
 		}
 		if (request.getIdUsuario() != null && request.getIdUsuario() > 0 && usuarioRepository.existsById(request.getIdUsuario())) {
+			Integer anterior = sub.getIdUsuario();
 			sub.setIdUsuario(request.getIdUsuario());
+			if (!request.getIdUsuario().equals(anterior)) {
+				Tarea t = sub.getTarea();
+				if (t != null && !request.getIdUsuario().equals(t.getIdUsuarioCreador())) {
+					crearNotificacion(request.getIdUsuario(), "Se te ha reasignado la subtarea: " + sub.getTitulo() + " en la tarea: " + t.getTitulo(), "NUEVA_SUBTAREA", t.getId());
+				}
+			}
 		}
 
 		return subtareaRepository.save(sub);

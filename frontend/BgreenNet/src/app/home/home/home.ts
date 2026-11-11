@@ -2177,6 +2177,60 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  cambiarUsuarioSubtarea(sub: Subtarea, nuevoUsuarioId: any): void {
+    if (!sub || !sub.id || !nuevoUsuarioId) return;
+    const numId = Number(nuevoUsuarioId);
+    if (isNaN(numId) || numId <= 0) return;
+
+    if (sub.idUsuario === numId) {
+      sub._editandoUsuario = false;
+      return;
+    }
+
+    const payload = {
+      titulo: sub.titulo,
+      idUsuario: numId
+    };
+
+    this.homeservice.actualizarSubtarea(sub.id, payload).subscribe({
+      next: () => {
+        sub.idUsuario = numId;
+        sub._editandoUsuario = false;
+
+        if (this.tareaSeleccionada && this.tareaSeleccionada.subtareas) {
+          const s = this.tareaSeleccionada.subtareas.find(x => x.id === sub.id);
+          if (s) s.idUsuario = numId;
+        }
+        const t = this.tareas.find(x => x.id === this.tareaSeleccionada?.id);
+        if (t && t.subtareas) {
+          const s = t.subtareas.find(x => x.id === sub.id);
+          if (s) s.idUsuario = numId;
+        }
+
+        this.obtenerTareas();
+        const userObj = this.getUserById(numId);
+        const nombre = userObj ? `${userObj.nombre} ${userObj.apellido}` : 'Colaborador';
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Subtarea reasignada',
+          text: `La subtarea fue reasignada a ${nombre}.`,
+          timer: 2000,
+          showConfirmButton: false
+        });
+      },
+      error: (err) => {
+        console.error('Error al actualizar usuario de subtarea:', err);
+        sub._editandoUsuario = false;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo reasignar el usuario de la subtarea.'
+        });
+      }
+    });
+  }
+
   getProgresoTarea(tarea: Tarea): number {
     if (!tarea || !tarea.subtareas || tarea.subtareas.length === 0) {
       const estado = tarea?.estado?.nombre?.toUpperCase() || '';
@@ -2203,6 +2257,24 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     if (tarea.subtareas) {
       for (const sub of tarea.subtareas) {
         if (sub.idUsuario) ids.add(Number(sub.idUsuario));
+      }
+    }
+    return Array.from(ids);
+  }
+
+  getUsuariosInvitadosTarea(tarea: Tarea): number[] {
+    if (!tarea) return [];
+    const ids = new Set<number>();
+    const creadorId = Number(tarea.idUsuarioCreador || 0);
+
+    if (tarea.idUsuario && Number(tarea.idUsuario) !== creadorId) {
+      ids.add(Number(tarea.idUsuario));
+    }
+    if (tarea.subtareas) {
+      for (const sub of tarea.subtareas) {
+        if (sub.idUsuario && Number(sub.idUsuario) !== creadorId) {
+          ids.add(Number(sub.idUsuario));
+        }
       }
     }
     return Array.from(ids);
@@ -2319,6 +2391,13 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
           this.cargarSeguimientos(this.tareaSeleccionada.id);
         }
       });
+  }
+
+  onChatKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.enviarMensaje();
+    }
   }
 
   enviarMensaje(): void {
