@@ -66,6 +66,75 @@ export class Nomina implements OnInit, OnDestroy {
   // Cumplimiento por Grupos / Areas
   resumenGrupos: GrupoCumplimiento[] = [];
   filtroTurnosGrupos: 'TODOS' | 'SIN_TURNO' | 'CON_TURNO' = 'TODOS';
+  ordenGrupos: 'PENDIENTES' | 'MENOR_CUMPLIMIENTO' | 'MAYOR_DEFICIT' = 'PENDIENTES';
+  diagnosticoExpandido: boolean = true;
+  vistaTablaSemanal: 'detallada' | 'malla' = 'detallada';
+  mostrarHorariosMallaNomina: boolean = false;
+
+  marcacionPorDia: Array<{
+    indice: number;
+    esHoy: boolean;
+    esFuturo: boolean;
+    debenMarcar: number;
+    marcaron: number;
+    noMarcaron: number;
+    porcentaje: number;
+  }> = [];
+
+  diagnosticoPresentismo: {
+    tieneHoy: boolean;
+    debenMarcarHoy: number;
+    marcaronHoy: number;
+    faltanHoy: number;
+    porcentajeHoy: number;
+    personasDebenMarcarSemana: number;
+    personasMarcaronSemana: number;
+    turnosDebenMarcarSemana: number;
+    turnosMarcaronSemana: number;
+    turnosSinMarcarSemana: number;
+    porcentajeMarcacionSemana: number;
+    horasProgAlDia: number;
+    horasEjecAlDia: number;
+    cumplimientoAlDia: number;
+    horasFuturas: number;
+    casosNoAsistioTotal: number;
+    casosSinSalidaTotal: number;
+    causasBaja: Array<{
+      id: string;
+      titulo: string;
+      descripcion: string;
+      horas: number;
+      casos: number;
+      personas: number;
+      porcentajeImpacto: number;
+      color: string;
+      icono: string;
+      filtroEstado?: string;
+    }>;
+    areaMasIncumplida: any | null;
+    topAreasAfectadas: any[];
+  } = {
+    tieneHoy: false,
+    debenMarcarHoy: 0,
+    marcaronHoy: 0,
+    faltanHoy: 0,
+    porcentajeHoy: 0,
+    personasDebenMarcarSemana: 0,
+    personasMarcaronSemana: 0,
+    turnosDebenMarcarSemana: 0,
+    turnosMarcaronSemana: 0,
+    turnosSinMarcarSemana: 0,
+    porcentajeMarcacionSemana: 0,
+    horasProgAlDia: 0,
+    horasEjecAlDia: 0,
+    cumplimientoAlDia: 0,
+    horasFuturas: 0,
+    casosNoAsistioTotal: 0,
+    casosSinSalidaTotal: 0,
+    causasBaja: [],
+    areaMasIncumplida: null,
+    topAreasAfectadas: []
+  };
 
   colaboradorSeleccionadoSemanal: ColaboradorResumenSemanal | null = null;
   modalDetalleColaboradorSemanal: boolean = false;
@@ -1708,11 +1777,24 @@ export class Nomina implements OnInit, OnDestroy {
         if (c.diferenciaHoras <= 0.2) return false;
       } else if (estado === 'CUMPLIDO') {
         if (c.porcentajeCumplimiento < 99.5) return false;
+      } else if (estado === 'NO_ASISTIO') {
+        const tieneAusencia = c.dias && c.dias.some(d =>
+          !d.esFuturo && !d.enCurso && (d.horasProgramadas || 0) > 0 &&
+          !d.horaEntrada && (d.horasEjecutadas || 0) === 0 && !d.tieneInterrupcion
+        );
+        if (!tieneAusencia) return false;
+      } else if (estado === 'SIN_SALIDA') {
+        const tieneSinSalida = c.dias && c.dias.some(d =>
+          !d.esFuturo && !d.enCurso && (d.horasProgramadas || 0) > 0 &&
+          Boolean(d.horaEntrada) && !d.horaSalida && (d.horasEjecutadas || 0) === 0
+        );
+        if (!tieneSinSalida) return false;
       }
 
       return true;
     });
 
+    this.calcularMarcacionPorDia();
     this.totalPaginasSemanal = Math.max(1, Math.ceil(this.colaboradoresSemanalFiltrados.length / this.elementosPorPaginaSemanal));
     this.actualizarPaginacionSemanal();
   }
@@ -1784,13 +1866,27 @@ export class Nomina implements OnInit, OnDestroy {
 
   get resumenGruposFiltrados(): GrupoCumplimiento[] {
     if (!this.resumenGrupos) return [];
+    let lista = [...this.resumenGrupos];
     if (this.filtroTurnosGrupos === 'SIN_TURNO') {
-      return this.resumenGrupos.filter(g => (g.colaboradoresSinTurno || 0) > 0);
+      lista = lista.filter(g => (g.colaboradoresSinTurno || 0) > 0);
+    } else if (this.filtroTurnosGrupos === 'CON_TURNO') {
+      lista = lista.filter(g => (g.colaboradoresConTurno || 0) > 0);
     }
-    if (this.filtroTurnosGrupos === 'CON_TURNO') {
-      return this.resumenGrupos.filter(g => (g.colaboradoresConTurno || 0) > 0);
+
+    if (this.ordenGrupos === 'MENOR_CUMPLIMIENTO') {
+      lista.sort((a, b) => {
+        const aTiene = (a.totalHorasProgramadas || 0) > 0 ? 0 : 1;
+        const bTiene = (b.totalHorasProgramadas || 0) > 0 ? 0 : 1;
+        if (aTiene !== bTiene) return aTiene - bTiene;
+        if ((a.porcentajeCumplimiento || 0) !== (b.porcentajeCumplimiento || 0)) {
+          return (a.porcentajeCumplimiento || 0) - (b.porcentajeCumplimiento || 0);
+        }
+        return (a.diferenciaHoras || 0) - (b.diferenciaHoras || 0);
+      });
+    } else if (this.ordenGrupos === 'MAYOR_DEFICIT') {
+      lista.sort((a, b) => (a.diferenciaHoras || 0) - (b.diferenciaHoras || 0));
     }
-    return this.resumenGrupos;
+    return lista;
   }
 
   esSinAsignar(nombre?: string | null): boolean {
@@ -1806,6 +1902,45 @@ export class Nomina implements OnInit, OnDestroy {
     if (this.esSinAsignar(grupoNombre)) return false;
     const g = (this.resumenGrupos || []).find(x => x.grupo === grupoNombre);
     return !!g && ((g.colaboradoresConTurno || 0) === 0 || (g.totalHorasProgramadas || 0) === 0);
+  }
+
+  get colaboradoresActivosAsignados(): ColaboradorResumenSemanal[] {
+    if (!this.dataResumenSemanal || !this.dataResumenSemanal.colaboradores) return [];
+    return this.dataResumenSemanal.colaboradores.filter(c => c.activo !== false && !this.esSinAsignar(c.grupo));
+  }
+
+  get totalColaboradoresTodos(): number {
+    return this.colaboradoresActivosAsignados.length;
+  }
+
+  get totalHorasProgramadasTodos(): number {
+    const sum = this.colaboradoresActivosAsignados.reduce((acc, c) => acc + (c.totalHorasProgramadas || 0), 0);
+    return Math.round(sum * 10) / 10;
+  }
+
+  get totalHorasEjecutadasTodos(): number {
+    const sum = this.colaboradoresActivosAsignados.reduce((acc, c) => acc + (c.totalHorasEjecutadas || 0), 0);
+    return Math.round(sum * 10) / 10;
+  }
+
+  get diferenciaHorasTodos(): number {
+    return Math.round((this.totalHorasEjecutadasTodos - this.totalHorasProgramadasTodos) * 10) / 10;
+  }
+
+  get porcentajeCumplimientoTodos(): number {
+    const prog = this.totalHorasProgramadasTodos;
+    const ejec = this.totalHorasEjecutadasTodos;
+    return prog > 0 ? Math.round((ejec / prog) * 1000) / 10 : (ejec > 0 ? 100 : 0);
+  }
+
+  get totalHorasProgramadasFiltradas(): number {
+    const sum = (this.colaboradoresSemanalFiltrados || []).reduce((acc, c) => acc + (c.totalHorasProgramadas || 0), 0);
+    return Math.round(sum * 10) / 10;
+  }
+
+  get totalHorasEjecutadasFiltradas(): number {
+    const sum = (this.colaboradoresSemanalFiltrados || []).reduce((acc, c) => acc + (c.totalHorasEjecutadas || 0), 0);
+    return Math.round(sum * 10) / 10;
   }
 
   get totalColaboradoresDobleEntrada(): number {
@@ -1907,6 +2042,527 @@ export class Nomina implements OnInit, OnDestroy {
       }
       return b.totalColaboradores - a.totalColaboradores;
     });
+
+    this.calcularDiagnosticoPresentismo();
+  }
+
+  calcularMarcacionPorDia(): void {
+    const diasMeta = this.dataResumenSemanal?.diasMeta || [];
+    const lista = this.colaboradoresSemanalFiltrados || [];
+    this.marcacionPorDia = diasMeta.map((dm, idx) => {
+      let debenMarcar = 0;
+      let marcaron = 0;
+      for (const c of lista) {
+        const d = c.dias ? c.dias[idx] : null;
+        if (!d) continue;
+        const esLaboral = (d.horasProgramadas || 0) > 0 || (d.turno && d.turno.toLowerCase() !== 'descanso' && (d.horasProgramadas || 0) > 0);
+        if (esLaboral) {
+          debenMarcar++;
+          if (Boolean(d.horaEntrada) || (d.horasEjecutadas || 0) > 0) {
+            marcaron++;
+          }
+        }
+      }
+      const noMarcaron = Math.max(0, debenMarcar - marcaron);
+      const porcentaje = debenMarcar > 0 ? Math.round((marcaron / debenMarcar) * 100) : 0;
+      return {
+        indice: idx,
+        esHoy: Boolean(dm.esHoy),
+        esFuturo: Boolean(dm.esFuturo),
+        debenMarcar,
+        marcaron,
+        noMarcaron,
+        porcentaje
+      };
+    });
+  }
+
+  calcularDiagnosticoPresentismo(): void {
+    const colabs = this.colaboradoresActivosAsignados;
+    let tieneHoy = false;
+    let debenMarcarHoy = 0;
+    let marcaronHoy = 0;
+
+    let personasDebenMarcarSemana = 0;
+    let personasMarcaronSemana = 0;
+    let turnosDebenMarcarSemana = 0;
+    let turnosMarcaronSemana = 0;
+
+    let horasProgAlDia = 0;
+    let horasEjecAlDia = 0;
+    let horasProgTotal = 0;
+
+    let horasFuturas = 0;
+    let casosFuturos = 0;
+
+    let horasEnCurso = 0;
+    let casosEnCurso = 0;
+    const persEnCurso = new Set<string>();
+
+    let horasSinEntrada = 0;
+    let casosSinEntrada = 0;
+    const persSinEntrada = new Set<string>();
+
+    let horasSinSalida = 0;
+    let casosSinSalida = 0;
+    const persSinSalida = new Set<string>();
+
+    let horasInterrup = 0;
+    let casosInterrup = 0;
+    const persInterrup = new Set<string>();
+
+    let horasIncompletas = 0;
+    let casosIncompletas = 0;
+    const persIncompletas = new Set<string>();
+
+    const areasMap = new Map<string, {
+      grupo: string;
+      totalColaboradores: number;
+      progTotal: number;
+      ejecTotal: number;
+      progAlDia: number;
+      ejecAlDia: number;
+      debenMarcar: number;
+      marcaron: number;
+      sinMarcar: number;
+      sinSalida: number;
+      interrupciones: number;
+      incompletas: number;
+    }>();
+
+    for (const c of colabs) {
+      const idStr = String(c.idPersona || c.documento || c.colaborador);
+      const gName = (c.grupo && c.grupo.trim()) ? c.grupo.trim() : '(Sin Grupo)';
+      if (!areasMap.has(gName)) {
+        areasMap.set(gName, {
+          grupo: gName,
+          totalColaboradores: 0,
+          progTotal: 0,
+          ejecTotal: 0,
+          progAlDia: 0,
+          ejecAlDia: 0,
+          debenMarcar: 0,
+          marcaron: 0,
+          sinMarcar: 0,
+          sinSalida: 0,
+          interrupciones: 0,
+          incompletas: 0
+        });
+      }
+      const area = areasMap.get(gName)!;
+      area.totalColaboradores++;
+
+      let colabDebiaMarcar = false;
+      let colabMarcoAlguna = false;
+
+      for (const d of (c.dias || [])) {
+        const hp = d.horasProgramadas || 0;
+        const he = d.horasEjecutadas || 0;
+        horasProgTotal += hp;
+        area.progTotal += hp;
+        area.ejecTotal += he;
+
+        if (d.esHoy) tieneHoy = true;
+
+        if (!d.esFuturo) {
+          horasProgAlDia += hp;
+          horasEjecAlDia += he;
+          area.progAlDia += hp;
+          area.ejecAlDia += he;
+        }
+
+        if (hp > 0) {
+          const marco = Boolean(d.horaEntrada) || he > 0;
+
+          if (d.esHoy) {
+            debenMarcarHoy++;
+            if (marco) marcaronHoy++;
+          }
+
+          if (!d.esFuturo) {
+            colabDebiaMarcar = true;
+            turnosDebenMarcarSemana++;
+            area.debenMarcar++;
+            if (marco) {
+              colabMarcoAlguna = true;
+              turnosMarcaronSemana++;
+              area.marcaron++;
+            }
+          }
+
+          const faltante = Math.max(0, hp - he);
+          if (faltante > 0.05) {
+            if (d.esFuturo) {
+              horasFuturas += faltante;
+              casosFuturos++;
+            } else if (d.enCurso) {
+              horasEnCurso += faltante;
+              casosEnCurso++;
+              persEnCurso.add(idStr);
+            } else if (d.tieneInterrupcion) {
+              horasInterrup += faltante;
+              casosInterrup++;
+              persInterrup.add(idStr);
+              area.interrupciones++;
+            } else if (!d.horaEntrada && he === 0) {
+              horasSinEntrada += faltante;
+              casosSinEntrada++;
+              persSinEntrada.add(idStr);
+              area.sinMarcar++;
+            } else if (Boolean(d.horaEntrada) && !d.horaSalida && he === 0) {
+              horasSinSalida += faltante;
+              casosSinSalida++;
+              persSinSalida.add(idStr);
+              area.sinSalida++;
+            } else {
+              horasIncompletas += faltante;
+              casosIncompletas++;
+              persIncompletas.add(idStr);
+              area.incompletas++;
+            }
+          }
+        }
+      }
+
+      if (colabDebiaMarcar) personasDebenMarcarSemana++;
+      if (colabMarcoAlguna) personasMarcaronSemana++;
+    }
+
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    const basePct = horasProgTotal > 0 ? horasProgTotal : 1;
+
+    const causas: Array<{
+      id: string;
+      titulo: string;
+      descripcion: string;
+      horas: number;
+      casos: number;
+      personas: number;
+      porcentajeImpacto: number;
+      color: string;
+      icono: string;
+      filtroEstado?: string;
+    }> = [];
+
+    if (horasSinEntrada > 0) {
+      causas.push({
+        id: 'SIN_ENTRADA',
+        titulo: 'No marcaron entrada (Ausencias)',
+        descripcion: 'Turnos programados sin registro biométrico de ingreso',
+        horas: r1(horasSinEntrada),
+        casos: casosSinEntrada,
+        personas: persSinEntrada.size,
+        porcentajeImpacto: r1((horasSinEntrada / basePct) * 100),
+        color: 'danger',
+        icono: 'bi-person-x-fill',
+        filtroEstado: 'NO_ASISTIO'
+      });
+    }
+
+    if (horasSinSalida > 0) {
+      causas.push({
+        id: 'SIN_SALIDA',
+        titulo: 'Olvidaron marcar salida (0h contadas)',
+        descripcion: 'Marcaron entrada pero sin salida; no suman horas ejecutadas',
+        horas: r1(horasSinSalida),
+        casos: casosSinSalida,
+        personas: persSinSalida.size,
+        porcentajeImpacto: r1((horasSinSalida / basePct) * 100),
+        color: 'warning',
+        icono: 'bi-box-arrow-right',
+        filtroEstado: 'SIN_SALIDA'
+      });
+    }
+
+    if (horasIncompletas > 0) {
+      causas.push({
+        id: 'INCOMPLETAS',
+        titulo: 'Jornadas incompletas',
+        descripcion: 'Llegadas tarde o salidas anticipadas frente al turno',
+        horas: r1(horasIncompletas),
+        casos: casosIncompletas,
+        personas: persIncompletas.size,
+        porcentajeImpacto: r1((horasIncompletas / basePct) * 100),
+        color: 'info',
+        icono: 'bi-hourglass-split',
+        filtroEstado: 'INCOMPLETO'
+      });
+    }
+
+    if (horasInterrup > 0) {
+      causas.push({
+        id: 'INTERRUPCIONES',
+        titulo: 'Interrupciones y novedades',
+        descripcion: 'Incapacidades, permisos, licencias o vacaciones',
+        horas: r1(horasInterrup),
+        casos: casosInterrup,
+        personas: persInterrup.size,
+        porcentajeImpacto: r1((horasInterrup / basePct) * 100),
+        color: 'purple',
+        icono: 'bi-exclamation-triangle-fill',
+        filtroEstado: 'CON_INTERRUPCION'
+      });
+    }
+
+    if (horasEnCurso > 0) {
+      causas.push({
+        id: 'EN_CURSO',
+        titulo: 'Turnos en curso hoy',
+        descripcion: 'Horas restantes de colaboradores laborando actualmente',
+        horas: r1(horasEnCurso),
+        casos: casosEnCurso,
+        personas: persEnCurso.size,
+        porcentajeImpacto: r1((horasEnCurso / basePct) * 100),
+        color: 'muted',
+        icono: 'bi-play-circle-fill'
+      });
+    }
+
+    if (horasFuturas > 0) {
+      causas.push({
+        id: 'FUTURAS',
+        titulo: 'Días futuros de la semana',
+        descripcion: 'Turnos programados para días posteriores que aún no ocurren',
+        horas: r1(horasFuturas),
+        casos: casosFuturos,
+        personas: 0,
+        porcentajeImpacto: r1((horasFuturas / basePct) * 100),
+        color: 'muted',
+        icono: 'bi-calendar-event'
+      });
+    }
+
+    causas.sort((a, b) => b.horas - a.horas);
+
+    // Ranking de áreas más afectadas (áreas con turnos programados)
+    const areasConTurnos = Array.from(areasMap.values())
+      .filter(a => a.progTotal > 0)
+      .map(a => {
+        const pctSemanal = a.progTotal > 0 ? Math.round((a.ejecTotal / a.progTotal) * 1000) / 10 : 0;
+        const pctAlDia = a.progAlDia > 0 ? Math.round((a.ejecAlDia / a.progAlDia) * 1000) / 10 : pctSemanal;
+        const diffSemanal = r1(a.ejecTotal - a.progTotal);
+        const diffAlDia = r1(a.ejecAlDia - a.progAlDia);
+
+        const motivos: string[] = [];
+        if (a.sinMarcar > 0) motivos.push(`${a.sinMarcar} sin marcar`);
+        if (a.sinSalida > 0) motivos.push(`${a.sinSalida} sin salida`);
+        if (a.interrupciones > 0) motivos.push(`${a.interrupciones} interrup.`);
+        if (a.incompletas > 0 && motivos.length === 0) motivos.push(`${a.incompletas} incompletas`);
+
+        return {
+          grupo: a.grupo,
+          totalColaboradores: a.totalColaboradores,
+          porcentajeCumplimiento: pctSemanal,
+          porcentajeCumplimientoAlDia: pctAlDia,
+          horasProgramadas: r1(a.progTotal),
+          horasEjecutadas: r1(a.ejecTotal),
+          horasProgramadasAlDia: r1(a.progAlDia),
+          diferenciaHoras: diffSemanal,
+          diferenciaHorasAlDia: diffAlDia,
+          debenMarcar: a.debenMarcar,
+          marcaron: a.marcaron,
+          sinMarcar: a.sinMarcar,
+          sinSalida: a.sinSalida,
+          interrupciones: a.interrupciones,
+          motivoPrincipal: motivos.length > 0 ? motivos.join(' · ') : 'Pendiente por ejecutar'
+        };
+      })
+      .sort((a, b) => {
+        const aPct = a.horasProgramadasAlDia > 0 ? a.porcentajeCumplimientoAlDia : a.porcentajeCumplimiento;
+        const bPct = b.horasProgramadasAlDia > 0 ? b.porcentajeCumplimientoAlDia : b.porcentajeCumplimiento;
+        if (aPct !== bPct) return aPct - bPct;
+        return a.diferenciaHorasAlDia - b.diferenciaHorasAlDia;
+      });
+
+    const areasIncumplidas = areasConTurnos.filter(a =>
+      (a.horasProgramadasAlDia > 0 ? a.porcentajeCumplimientoAlDia : a.porcentajeCumplimiento) < 99.5
+    );
+
+    const areaMasIncumplida = areasIncumplidas.length > 0 ? areasIncumplidas[0] : (areasConTurnos[0] || null);
+    const topAreasAfectadas = (areasIncumplidas.length > 0 ? areasIncumplidas : areasConTurnos).slice(0, 5);
+
+    this.diagnosticoPresentismo = {
+      tieneHoy,
+      debenMarcarHoy,
+      marcaronHoy,
+      faltanHoy: Math.max(0, debenMarcarHoy - marcaronHoy),
+      porcentajeHoy: debenMarcarHoy > 0 ? Math.round((marcaronHoy / debenMarcarHoy) * 100) : 0,
+      personasDebenMarcarSemana,
+      personasMarcaronSemana,
+      turnosDebenMarcarSemana,
+      turnosMarcaronSemana,
+      turnosSinMarcarSemana: Math.max(0, turnosDebenMarcarSemana - turnosMarcaronSemana),
+      porcentajeMarcacionSemana: turnosDebenMarcarSemana > 0 ? Math.round((turnosMarcaronSemana / turnosDebenMarcarSemana) * 100) : 0,
+      horasProgAlDia: r1(horasProgAlDia),
+      horasEjecAlDia: r1(horasEjecAlDia),
+      cumplimientoAlDia: horasProgAlDia > 0 ? Math.round((horasEjecAlDia / horasProgAlDia) * 1000) / 10 : 0,
+      horasFuturas: r1(horasFuturas),
+      casosNoAsistioTotal: casosSinEntrada,
+      casosSinSalidaTotal: casosSinSalida,
+      causasBaja: causas,
+      areaMasIncumplida,
+      topAreasAfectadas
+    };
+  }
+
+  filtrarPorCausaPresentismo(filtroEstado?: string): void {
+    if (!filtroEstado) return;
+    this.filtroEstadoSemanal = filtroEstado;
+    this.paginaActualSemanal = 1;
+    this.aplicarFiltrosSemanal();
+  }
+
+private parsearMinutosHoraMalla(hhmm: string): number | null {
+    if (!hhmm || !hhmm.includes(':')) return null;
+    const p = hhmm.split(':');
+    const hh = parseInt(p[0], 10);
+    const mm = parseInt(p[1], 10);
+    if (isNaN(hh) || isNaN(mm)) return null;
+    return hh * 60 + mm;
+  }
+
+evaluarDiaMallaNomina(d: any) {
+    const nombre = String(d?.turno || 'Descanso').trim();
+    const nombreUp = nombre.toUpperCase();
+    const hp = Number(d?.horasProgramadas || 0);
+    const he = Number(d?.horasEjecutadas || 0);
+    const esDescanso = !nombre || nombreUp === 'DESCANSO' || hp === 0;
+
+    const inicio = d?.inicioTurno ? String(d.inicioTurno).substring(0, 5) : '';
+    const fin = d?.finTurno ? String(d.finTurno).substring(0, 5) : '';
+    const horarioTexto = esDescanso ? 'Descanso' : ((inicio && fin) ? `${inicio} - ${fin}` : nombre);
+
+    const horaEntrada = d?.horaEntrada ? String(d.horaEntrada).substring(0, 5) : '';
+    const horaSalida = d?.horaSalida ? String(d.horaSalida).substring(0, 5) : '';
+
+    const minInicio = this.parsearMinutosHoraMalla(inicio);
+    const minFin = this.parsearMinutosHoraMalla(fin);
+    const minEntrada = this.parsearMinutosHoraMalla(horaEntrada);
+    const minSalida = this.parsearMinutosHoraMalla(horaSalida);
+
+    let minTarde = 0;
+    if (!esDescanso && minEntrada !== null && minInicio !== null) {
+      let diffEnt = minEntrada - minInicio;
+      if (diffEnt > 720) diffEnt -= 1440;
+      if (diffEnt < -720) diffEnt += 1440;
+      if (diffEnt > 5) {
+        minTarde = diffEnt;
+      }
+    }
+
+    let minExtra = 0;
+    let minFaltantes = 0;
+    let extraDescansoMin = 0;
+    const esFuturo = Boolean(d?.esFuturo);
+    const enCurso = Boolean(d?.enCurso);
+    const tieneInterrupcion = Boolean(d?.tieneInterrupcion);
+
+    let entradaEstado: 'ok' | 'tarde' | 'falta' | 'futuro' | 'interrup' = 'ok';
+    let salidaEstado: 'ok' | 'extra' | 'antes' | 'falta' | 'en_curso' | 'futuro' | 'interrup' = 'ok';
+
+    if (esDescanso) {
+      if (he > 0) {
+        extraDescansoMin = Math.round(he * 60);
+      }
+      if (!horaEntrada && he === 0) {
+        entradaEstado = esFuturo ? 'futuro' : 'ok';
+        salidaEstado = esFuturo ? 'futuro' : 'ok';
+      }
+    } else if (esFuturo) {
+      entradaEstado = 'futuro';
+      salidaEstado = 'futuro';
+    } else {
+      // Evaluar ENTRADA
+      if (tieneInterrupcion && !horaEntrada) {
+        entradaEstado = 'interrup';
+      } else if (!horaEntrada && he === 0) {
+        entradaEstado = 'falta';
+      } else if (minTarde > 0) {
+        entradaEstado = 'tarde';
+      } else {
+        entradaEstado = 'ok';
+      }
+
+      // Evaluar SALIDA
+      if (enCurso) {
+        salidaEstado = 'en_curso';
+      } else if (tieneInterrupcion && !horaSalida) {
+        salidaEstado = 'interrup';
+      } else if (!horaSalida && he === 0) {
+        salidaEstado = 'falta';
+      } else {
+        if (minSalida !== null && minFin !== null) {
+          let diffSal = minSalida - minFin;
+          if (diffSal > 720) diffSal -= 1440;
+          if (diffSal < -720) diffSal += 1440;
+          if (diffSal > 5) {
+            minExtra = diffSal;
+            salidaEstado = 'extra';
+          } else if (diffSal < -10) {
+            minFaltantes = Math.abs(diffSal);
+            salidaEstado = 'antes';
+          } else {
+            salidaEstado = 'ok';
+          }
+        } else if (he > hp + 0.08) {
+          minExtra = Math.round((he - hp) * 60);
+          salidaEstado = 'extra';
+        } else if (he < hp - 0.25) {
+          minFaltantes = Math.round((hp - he) * 60);
+          salidaEstado = 'antes';
+        } else {
+          salidaEstado = 'ok';
+        }
+      }
+    }
+
+    const tooltipParts = [
+      `Turno: ${nombre}`,
+      inicio && fin ? `Horario: ${inicio} - ${fin}` : '',
+      `Prog: ${hp}h`,
+      horaEntrada ? `Entrada: ${horaEntrada}` : '',
+      horaSalida ? `Salida: ${horaSalida}` : ''
+    ].filter(Boolean);
+
+    return {
+      esDescanso,
+      horarioTexto,
+      turnoNombre: nombre,
+      horasProgramadas: hp,
+      esHoy: Boolean(d?.esHoy),
+      esFuturo,
+      horaEntrada,
+      horaSalida,
+      minTarde,
+      minExtra,
+      minFaltantes,
+      extraDescansoMin,
+      entradaEstado,
+      salidaEstado,
+      tooltip: tooltipParts.join(' · ')
+    };
+  }
+
+  getHorasLS(c: ColaboradorResumenSemanal): number {
+    const sum = (c.dias || []).slice(0, 6).reduce((acc, d) => acc + (d.horasProgramadas || 0), 0);
+    return Math.round(sum * 10) / 10;
+  }
+
+  getHorasDom(c: ColaboradorResumenSemanal): number {
+    return Math.round(((c.dias && c.dias[6]?.horasProgramadas) || 0) * 10) / 10;
+  }
+
+  getCortoDiaMeta(nombre: string): string {
+    const map: Record<string, string> = {
+      'Lunes': 'LUN',
+      'Martes': 'MAR',
+      'Miércoles': 'MIÉ',
+      'Jueves': 'JUE',
+      'Viernes': 'VIE',
+      'Sábado': 'SÁB',
+      'Domingo': 'DOM'
+    };
+    return map[nombre] || (nombre || '').substring(0, 3).toUpperCase();
   }
 
   seleccionarGrupoCard(grupo: string): void {

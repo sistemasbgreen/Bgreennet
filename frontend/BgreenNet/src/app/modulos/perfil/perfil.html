@@ -701,7 +701,7 @@
           </div>
 
           <!-- Navegación de Mes Central -->
-          <div class="pfv-month-navigator">
+          <div class="pfv-month-navigator" *ngIf="activePresentismoTab !== 'malla_semanal'">
             <button type="button" class="btn-nav-arrow" (click)="cambiarMesPresentismo(-1)" title="Mes anterior">
               <i class="bi bi-chevron-left"></i>
             </button>
@@ -720,6 +720,15 @@
           <!-- Pestañas de Vista y Cerrar -->
           <div class="pfv-header-actions">
             <nav class="pfv-nav-tabs">
+              <button 
+                type="button" 
+                class="pfv-tab-btn" 
+                *ngIf="esLiderPresentismo && areasPresentismo.length > 0"
+                [class.is-active]="activePresentismoTab === 'malla_semanal'"
+                (click)="abrirTabMallaSemanal()">
+                <i class="bi bi-calendar3-week"></i>
+                <span>Turnos Semana</span>
+              </button>
               <button 
                 type="button" 
                 class="pfv-tab-btn" 
@@ -849,7 +858,7 @@
           <main class="pfv-workspace">
 
             <!-- ── ENCABEZADO DE LA PERSONA ACTIVA ── -->
-            <section class="pfv-persona-strip">
+            <section class="pfv-persona-strip" *ngIf="activePresentismoTab !== 'malla_semanal'">
               <div class="pfv-persona-left">
                 <div class="persona-avatar-lg">{{ inicialesColaboradorActivo }}</div>
                 <div class="persona-details">
@@ -882,7 +891,7 @@
             </section>
 
             <!-- ── FRANJA DE KPIS CLAVE DEL MES CON COMPARATIVO HISTÓRICO ── -->
-            <section class="pfv-kpis-grid">
+            <section class="pfv-kpis-grid" *ngIf="activePresentismoTab !== 'malla_semanal'">
               <!-- KPI 1: Días Puntuales -->
               <div class="pfv-kpi-card">
                 <div class="kpi-icon-wrap icon-puntualidad"><i class="bi bi-calendar-check-fill"></i></div>
@@ -1493,6 +1502,154 @@
               </div>
               </ng-container>
 
+            </div>
+          </div>
+
+          <!-- ==================== PESTAÑA 4: MALLA SEMANAL DE TURNOS DEL EQUIPO ==================== -->
+          <div class="pfv-tab-content malla-semanal-wrapper" *ngIf="activePresentismoTab === 'malla_semanal'">
+            <!-- Barra de controles de la malla semanal -->
+            <div class="malla-toolbar">
+              <div class="malla-toolbar-left">
+                <div class="malla-area-badge" *ngIf="areaSeleccionadaPresentismo">
+                  <i class="bi bi-diagram-3-fill"></i>
+                  <span>{{ areaSeleccionadaPresentismo.nombreArea }}</span>
+                  <small>({{ mallaFilasEquipoFiltradas.length }} colab.)</small>
+                </div>
+
+                <div class="malla-search-box">
+                  <i class="bi bi-search"></i>
+                  <input type="text" [(ngModel)]="busquedaMallaPerfil" placeholder="Filtrar persona o cargo..." />
+                </div>
+              </div>
+
+              <div class="malla-toolbar-center">
+                <button type="button" class="malla-nav-btn" (click)="cambiarSemanaMallaPerfil(-7)" title="Semana anterior">
+                  <i class="bi bi-chevron-left"></i> Anterior
+                </button>
+                <button type="button" class="malla-nav-btn malla-nav-btn--hoy" (click)="irASemanaActualMallaPerfil()">
+                  Esta Semana
+                </button>
+                <button type="button" class="malla-nav-btn" (click)="cambiarSemanaMallaPerfil(7)" title="Semana siguiente">
+                  Siguiente <i class="bi bi-chevron-right"></i>
+                </button>
+                <input type="date" class="malla-date-input" [(ngModel)]="fechaReferenciaMallaPerfil" (change)="cargarMallaTurnosSemana()" />
+              </div>
+
+              <div class="malla-toolbar-right">
+                <div class="malla-legend">
+                  <span class="malla-leg-item"><span class="malla-io-pill malla-io--ok"><i class="bi bi-check-circle-fill"></i></span> Cumplió</span>
+                  <span class="malla-leg-item"><span class="malla-io-pill malla-io--tarde">+Xm</span> Llegó tarde</span>
+                  <span class="malla-leg-item"><span class="malla-io-pill malla-io--extra">+Xm</span> Se pasó</span>
+                  <span class="malla-leg-item"><span class="malla-io-pill malla-io--antes">-Xm</span> Salió antes</span>
+                  <span class="malla-leg-item"><span class="malla-io-pill malla-io--falta"><i class="bi bi-x-circle-fill"></i></span> Sin marca</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="presentismo-loading" *ngIf="cargandoMallaTurnos">
+              <div class="spinner-border text-primary" role="status"></div>
+              <p>Cargando programación semanal de turnos...</p>
+            </div>
+
+            <div class="malla-table-card" *ngIf="!cargandoMallaTurnos">
+              <div class="malla-table-scroll">
+                <table class="malla-turnos-table">
+                  <thead>
+                    <tr class="malla-head-banner">
+                      <th rowspan="2" class="malla-th-colab">COLABORADOR &amp; ROL</th>
+                      <th colspan="7" class="malla-th-semana-title">
+                        Semana <span class="malla-semana-range" *ngIf="mallaSemanaInicio">({{ mallaSemanaInicio }} al {{ mallaSemanaFin }})</span>
+                      </th>
+                      <th rowspan="2" class="malla-th-num">L-S (h)</th>
+                      <th rowspan="2" class="malla-th-dom">Dom/Fest</th>
+                      <th rowspan="2" class="malla-th-total">Total Sem</th>
+                    </tr>
+                    <tr class="malla-head-days">
+                      <th *ngFor="let dm of mallaDiasMeta" class="malla-th-day" [class.malla-th-day--hoy]="dm.esHoy" [class.malla-th-day--dom]="dm.indice === 6">
+                        <span class="malla-day-abbr">{{ dm.nombreCorto }}</span>
+                        <span class="malla-day-num">{{ dm.diaNumero }}</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let fila of mallaFilasEquipoFiltradas"
+                        class="malla-row"
+                        (click)="seleccionarColaboradorPresentismo(fila.colaborador)"
+                        title="Clic para inspeccionar el calendario detallado de {{ fila.nombreCompleto }}">
+                      <td class="malla-td-colab">
+                        <div class="malla-colab-top">
+                          <span class="malla-colab-name">{{ fila.nombreCompleto }}</span>
+                          <span class="malla-colab-doc">{{ fila.documento }}</span>
+                        </div>
+                        <div class="malla-colab-sub">
+                          <span>{{ fila.cargo }}</span>
+                        </div>
+                      </td>
+
+                      <td *ngFor="let d of fila.dias" class="malla-td-shift" [class.malla-td-shift--hoy]="d.esHoy">
+                        <div class="malla-shift-cell-split" [title]="d.tooltip">
+                          <!-- Parte Superior: Horario del Turno -->
+                          <div class="malla-cell-top-band">
+                            <span class="malla-horario-pill" [class.malla-horario-pill--descanso]="d.esDescanso">
+                              {{ d.horarioTexto }}
+                            </span>
+                          </div>
+
+                          <!-- Parte Inferior dividida en 2: Entrada y Salida -->
+                          <div class="malla-io-split" *ngIf="!d.esDescanso">
+                            <!-- ENTRADA -->
+                            <div class="malla-io-col" [title]="'Entrada' + (d.horaEntrada ? ': ' + d.horaEntrada : '')">
+                              <span class="malla-io-pill" [ngClass]="'malla-io--' + d.entradaEstado">
+                                <i class="bi bi-check-circle-fill" *ngIf="d.entradaEstado === 'ok'"></i>
+                                <ng-container *ngIf="d.entradaEstado === 'tarde'">+{{ d.minTarde }}m</ng-container>
+                                <i class="bi bi-x-circle-fill" *ngIf="d.entradaEstado === 'falta'"></i>
+                                <i class="bi bi-exclamation-circle-fill" *ngIf="d.entradaEstado === 'interrup'"></i>
+                                <ng-container *ngIf="d.entradaEstado === 'futuro'">--</ng-container>
+                              </span>
+                              <span class="malla-io-label">Entrada</span>
+                            </div>
+
+                            <!-- SALIDA -->
+                            <div class="malla-io-col" [title]="'Salida' + (d.horaSalida ? ': ' + d.horaSalida : '')">
+                              <span class="malla-io-pill" [ngClass]="'malla-io--' + d.salidaEstado">
+                                <i class="bi bi-check-circle-fill" *ngIf="d.salidaEstado === 'ok'"></i>
+                                <ng-container *ngIf="d.salidaEstado === 'extra'">+{{ d.minExtra }}m</ng-container>
+                                <ng-container *ngIf="d.salidaEstado === 'antes'">-{{ d.minFaltantes }}m</ng-container>
+                                <i class="bi bi-clock-fill" *ngIf="d.salidaEstado === 'en_curso'"></i>
+                                <i class="bi bi-x-circle-fill" *ngIf="d.salidaEstado === 'falta'"></i>
+                                <i class="bi bi-exclamation-circle-fill" *ngIf="d.salidaEstado === 'interrup'"></i>
+                                <ng-container *ngIf="d.salidaEstado === 'futuro'">--</ng-container>
+                              </span>
+                              <span class="malla-io-label">{{ d.salidaEstado === 'en_curso' ? 'En turno' : 'Salida' }}</span>
+                            </div>
+                          </div>
+
+                          <!-- Si trabajó en descanso -->
+                          <div class="malla-io-descanso-extra" *ngIf="d.esDescanso && d.extraDescansoMin > 0">
+                            <span class="malla-io-pill malla-io--extra">+{{ d.extraDescansoMin }}m extra</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td class="malla-td-num">{{ fila.horasLS }}</td>
+                      <td class="malla-td-dom">{{ fila.horasDom }}</td>
+                      <td class="malla-td-total" [class.malla-td-total--extra]="fila.horasExtra > 0">
+                        <div class="malla-total-val">
+                          <i class="bi bi-exclamation-triangle-fill" *ngIf="fila.horasExtra > 0"></i>
+                          <span>{{ fila.totalSem }}h</span>
+                        </div>
+                        <span class="malla-extra-sub" *ngIf="fila.horasExtra > 0">+{{ fila.horasExtra }}h extra</span>
+                      </td>
+                    </tr>
+
+                    <tr *ngIf="mallaFilasEquipoFiltradas.length === 0">
+                      <td colspan="11" class="malla-empty-row">
+                        <i class="bi bi-people"></i> No se encontraron colaboradores en esta área.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 

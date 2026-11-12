@@ -5997,3 +5997,1127 @@
   color: #dc2626 !important;
   font-weight: 700 !important;
 }
+
+
+/* ==========================================================================
+   KPI 5 COLUMNAS Y TARJETA HORAS PROGRAMADAS / EJECUTADAS DE TODOS
+   ========================================================================== */
+.kpi-grid--5col-semanal {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1360px) {
+  .kpi-grid--5col-semanal {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .kpi-grid--5col-semanal {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .kpi-grid--5col-semanal {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-card--horas-totales {
+  border-left: none !important;
+  border-top: 4px solid #10b981 !important;
+}
+
+.kpi-card--horas-totales::before {
+  display: none !important;
+}
+
+.kpi-card--horas-totales .kpi-card__icon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.kpi-card__main--horas {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.kpi-horas-prog {
+  font-size: 21px;
+  font-weight: 800;
+  color: #334155;
+  letter-spacing: -0.5px;
+}
+
+.kpi-horas-sep {
+  font-size: 18px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.kpi-horas-ejec {
+  font-size: 21px;
+  font-weight: 800;
+  color: #059669;
+  letter-spacing: -0.5px;
+}
+
+.kpi-pill--pos {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  font-weight: 700;
+}
+
+.kpi-pill--neg {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
+.badge-total-tabla {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.badge-total-tabla strong {
+  color: #0f172a;
+}
+
+.total-tabla-prog {
+  font-weight: 800;
+  color: #334155;
+}
+
+.total-tabla-sep {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.total-tabla-ejec {
+  font-weight: 800;
+  color: #059669;
+}
+
+
+/* ==========================================================================
+   PANEL DIAGNÓSTICO DE PRESENTISMO, MARCACIÓN Y HORARIO PROGRAMADO EN CELDAS
+   ========================================================================== */
+.diagnostico-presentismo-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.diagnostico-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.diagnostico-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.diagnostico-header-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.diagnostico-header-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.diagnostico-header-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.diagnostico-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.diag-pill-sub {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.btn-toggle-diag {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.diagnostico-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+@media (max-width: 1100px) {
+  .diagnostico-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.diag-col {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.diag-col-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.marcacion-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.marcacion-box--hoy {
+  border-color: #bae6fd;
+  background: linear-gradient(180deg, #f8fcff, #ffffff);
+}
+
+.marcacion-box-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.marcacion-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #f1f5f9;
+  color: #475569;
+  letter-spacing: 0.4px;
+}
+
+.marcacion-tag--hoy {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.marcacion-pct {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.marcacion-metrics-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.m-metric {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.m-metric--ok {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.m-metric--miss {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.m-val {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.m-metric--ok .m-val { color: #059669; }
+.m-metric--miss .m-val { color: #dc2626; }
+
+.m-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.marcacion-bar {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.marcacion-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 999px;
+}
+
+.marcacion-semana-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ms-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: #475569;
+}
+
+.ms-row strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.ms-row--danger strong,
+.ms-row--danger span {
+  color: #dc2626;
+}
+
+/* Causas de baja en cumplimiento */
+.causas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.causa-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.causa-item--clickable {
+  cursor: pointer;
+}
+
+.causa-item--clickable:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.causa-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.causa-name {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.causa-horas {
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.causa-horas--danger { color: #dc2626; }
+.causa-horas--warning { color: #d97706; }
+.causa-horas--info { color: #0284c7; }
+.causa-horas--purple { color: #7c3aed; }
+.causa-horas--muted { color: #64748b; }
+
+.causa-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.causa-count {
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.causa-bar {
+  width: 100%;
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.causa-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.causa-bar--danger { background: #ef4444; }
+.causa-bar--warning { background: #f59e0b; }
+.causa-bar--info { background: #0284c7; }
+.causa-bar--purple { background: #8b5cf6; }
+.causa-bar--muted { background: #94a3b8; }
+
+.causas-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 9px;
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Área más incumplida y Top áreas afectadas */
+.area-peor-card {
+  background: #fff5f5;
+  border: 1.5px solid #fca5a5;
+  border-left: 4px solid #dc2626;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.area-peor-card:hover {
+  background: #fef2f2;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.15);
+}
+
+.area-peor-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #dc2626;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.area-peor-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.area-peor-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.area-peor-pct {
+  font-size: 14px;
+  font-weight: 800;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.area-peor-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #475569;
+}
+
+.area-peor-diff {
+  font-weight: 800;
+  color: #dc2626;
+}
+
+.area-peor-motivo {
+  font-size: 10.5px;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.top-areas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.top-area-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.top-area-row:hover,
+.top-area-row--active {
+  border-color: #f87171;
+  background: #fffafa;
+}
+
+.top-area-rank {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #64748b;
+  min-width: 20px;
+}
+
+.top-area-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-area-name {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-area-motivo {
+  font-size: 10px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-area-nums {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 11px;
+}
+
+.top-area-pct {
+  font-weight: 800;
+}
+
+.top-area-diff {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Selector de orden en áreas */
+.sort-grupos-select {
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+/* Indicador de marcación en encabezado de cada día */
+.th-dia-marcacion {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  margin-top: 2px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.th-dia-marcacion--ok {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.th-dia-marcacion--warn {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.th-dia-marcacion--bad {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.th-dia-marcacion--futuro {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* Hora programada del turno visible en la celda diaria */
+.dia-cell-horario-prog {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 5px;
+  padding: 1.5px 6px;
+  width: fit-content;
+  margin-top: 2px;
+}
+
+
+/* ==========================================================================
+   TOGGLE MALLA DE TURNOS EN NÓMINA Y TABLA COMPACTA (COLORES CORPORATIVOS)
+   ========================================================================== */
+.view-mode-switch {
+  display: inline-flex;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.view-mode-switch button {
+  border: none;
+  background: transparent;
+  color: #166534;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.view-mode-switch button.active {
+  background: linear-gradient(135deg, #006c2c 0%, #15803d 100%);
+  color: #ffffff;
+}
+
+.malla-nomina-legend-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #166534;
+}
+
+.malla-nomina-legend-bar > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.malla-turnos-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+  font-size: 12px;
+}
+
+.malla-head-banner th {
+  background: linear-gradient(135deg, #006c2c 0%, #15803d 100%);
+  color: #ffffff;
+  font-weight: 800;
+  text-align: center;
+  padding: 9px 10px;
+  border: 1px solid #005823;
+  font-size: 11.5px;
+}
+
+.malla-th-colab {
+  text-align: left !important;
+  min-width: 220px;
+  padding-left: 16px !important;
+}
+
+.malla-th-semana-title {
+  background: #005823 !important;
+}
+
+.malla-semana-range {
+  font-weight: 600;
+  color: #bbf7d0;
+  font-size: 11px;
+}
+
+.malla-th-num {
+  background: #f0fdf4 !important;
+  color: #006c2c !important;
+  width: 70px;
+  border-color: #bbf7d0 !important;
+}
+
+.malla-th-dom {
+  background: #fefce8 !important;
+  color: #92400e !important;
+  width: 78px;
+  border-color: #fde68a !important;
+}
+
+.malla-th-total {
+  background: #dcfce7 !important;
+  color: #004d1f !important;
+  width: 90px;
+  border-color: #86efac !important;
+}
+
+.malla-head-days th {
+  background: #f0fdf4;
+  color: #166534;
+  padding: 6px 4px;
+  text-align: center;
+  border: 1px solid #bbf7d0;
+}
+
+.malla-th-day {
+  min-width: 94px;
+}
+
+.malla-th-day--hoy {
+  background: #dcfce7 !important;
+  color: #006c2c !important;
+  border-bottom: 2.5px solid #006c2c !important;
+}
+
+.malla-th-day--dom .malla-day-abbr,
+.malla-th-day--dom .malla-day-num {
+  color: #b45309;
+}
+
+.malla-day-abbr {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.malla-day-num {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: #004d1f;
+}
+
+.malla-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.malla-row:hover {
+  background: #f0fdf4;
+}
+
+.malla-row td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 9px 6px;
+  vertical-align: middle;
+}
+
+.malla-td-colab {
+  padding: 10px 12px 10px 16px !important;
+  border-right: 1px solid #e2e8f0;
+}
+
+.malla-colab-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.malla-colab-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.malla-colab-doc {
+  font-size: 10.5px;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.malla-colab-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.malla-td-shift {
+  text-align: center;
+  border-right: 1px solid #f1f5f9;
+}
+
+.malla-td-shift--hoy {
+  background: #f0fdf4;
+}
+
+.malla-shift-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.malla-horario-pill {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #006c2c;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  letter-spacing: -0.1px;
+}
+
+.malla-horario-pill--descanso {
+  color: #64748b;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  font-weight: 600;
+}
+
+.malla-eval-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px;
+}
+
+.malla-eval-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+.malla-eval--ok {
+  background: #dcfce7;
+  color: #006c2c;
+  border: 1px solid #86efac;
+}
+
+.malla-eval--extra {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+.malla-eval--tarde {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.malla-eval--incompleto {
+  background: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+
+.malla-eval--miss {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.malla-eval--warn {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.malla-eval--live {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+}
+
+.malla-eval--interrup {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.malla-eval-futuro {
+  font-size: 9.5px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.malla-td-num {
+  text-align: center;
+  font-weight: 700;
+  color: #006c2c;
+  border-left: 1px solid #e2e8f0;
+}
+
+.malla-td-dom {
+  text-align: center;
+  font-weight: 700;
+  color: #92400e;
+  background: #fffdf5;
+}
+
+.malla-td-total {
+  text-align: center;
+  font-weight: 800;
+  color: #004d1f;
+  background: #f0fdf4;
+}
+
+.malla-td-total--extra {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+.malla-total-val {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12.5px;
+}
+
+.malla-extra-sub {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.malla-empty-row {
+  text-align: center;
+  padding: 28px !important;
+  color: #64748b;
+  font-weight: 600;
+}
+
+
+/* Diseño de celda dividida: Horario arriba + Entrada/Salida abajo en 2 columnas */
+.malla-shift-cell-split {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 3px;
+}
+
+.malla-cell-top-band {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #d1fae5;
+}
+
+.malla-io-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+  min-width: 96px;
+}
+
+.malla-io-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.malla-io-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  border: 1.5px solid transparent;
+}
+
+.malla-io--ok {
+  background: #dcfce7;
+  color: #006c2c;
+  border-color: #86efac;
+}
+
+.malla-io--ok i {
+  font-size: 12px;
+}
+
+.malla-io--tarde {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.malla-io--extra {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+
+.malla-io--antes {
+  background: #ffedd5;
+  color: #c2410c;
+  border-color: #fdba74;
+}
+
+.malla-io--falta {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.malla-io--en_curso {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #6ee7b7;
+}
+
+.malla-io--interrup {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+.malla-io--futuro {
+  background: #f8fafc;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}
+
+.malla-io-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.1;
+}
+
+.malla-io-descanso-extra {
+  display: flex;
+  justify-content: center;
+}

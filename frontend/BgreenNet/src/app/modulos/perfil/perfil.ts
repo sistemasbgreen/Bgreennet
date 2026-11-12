@@ -224,7 +224,44 @@ export class Perfil implements OnInit {
   isModalPresentismoOpen: boolean = false;
 
   // ── ESTADO DEL REDISEÑO DE PRESENTISMO ──
-  activePresentismoTab: 'calendario' | 'detalle' | 'estadisticas' = 'calendario';
+  activePresentismoTab: 'calendario' | 'detalle' | 'estadisticas' | 'malla_semanal' = 'calendario';
+
+  // Malla Semanal de Turnos del Equipo (Jefe / Supervisor)
+  fechaReferenciaMallaPerfil: string = '';
+  cargandoMallaTurnos: boolean = false;
+  busquedaMallaPerfil: string = '';
+  mostrarHorariosMallaPerfil: boolean = false;
+  mallaSemanaInicio: string = '';
+  mallaSemanaFin: string = '';
+  mallaDiasMeta: Array<{ indice: number; nombre: string; nombreCorto: string; diaNumero: string; fecha: string; esHoy: boolean; esFuturo: boolean }> = [];
+  mallaTurnosCacheResumen: any = null;
+  mallaFilasEquipo: Array<{
+    colaborador: UsuarioOrganigrama;
+    nombreCompleto: string;
+    cargo: string;
+    documento: string;
+    dias: Array<{
+      esDescanso: boolean;
+      horarioTexto: string;
+      turnoNombre: string;
+      horasProgramadas: number;
+      esHoy: boolean;
+      esFuturo: boolean;
+      horaEntrada: string;
+      horaSalida: string;
+      minTarde: number;
+      minExtra: number;
+      minFaltantes: number;
+      extraDescansoMin: number;
+      entradaEstado: 'ok' | 'tarde' | 'falta' | 'futuro' | 'interrup';
+      salidaEstado: 'ok' | 'extra' | 'antes' | 'falta' | 'en_curso' | 'futuro' | 'interrup';
+      tooltip: string;
+    }>;
+    horasLS: number;
+    horasDom: number;
+    totalSem: number;
+    horasExtra: number;
+  }> = [];
   sidebarPresentismoColapsado: boolean = false;
   busquedaColaboradorSupervisor: string = '';
   panelDiaSlideOverOpen: boolean = false;
@@ -398,13 +435,15 @@ export class Perfil implements OnInit {
     if (area) {
       this.modoVistaSupervisor = 'area';
       this.areaSeleccionadaPresentismo = area;
-    this.cargarDatosAreaBiometrico();
+      this.cargarDatosAreaBiometrico();
+      this.activePresentismoTab = 'malla_semanal';
+      this.cargarMallaTurnosSemana();
     } else {
       this.modoVistaSupervisor = 'mi_calendario';
       this.colaboradorSeleccionadoPresentismo = null;
-    }
-    if (this.activePresentismoTab === 'detalle') {
-      this.activePresentismoTab = 'calendario';
+      if (this.activePresentismoTab === 'detalle' || this.activePresentismoTab === 'malla_semanal') {
+        this.activePresentismoTab = 'calendario';
+      }
     }
     this.isModalPresentismoOpen = true;
   }
@@ -477,6 +516,9 @@ export class Perfil implements OnInit {
     this.modoVistaSupervisor = 'area';
     this.areaSeleccionadaPresentismo = area;
     this.cargarDatosAreaBiometrico();
+    if (this.activePresentismoTab === 'malla_semanal') {
+      this.construirMallaFilasEquipo();
+    }
   }
 
   onAreaSeleccionadaChange(idArea: any): void {
@@ -507,7 +549,270 @@ export class Perfil implements OnInit {
     this.modoVistaSupervisor = 'area';
     this.colaboradorSeleccionadoPresentismo = colab;
     this.cedulaUsuario = String(colab.identificacion || '').trim();
+    if (this.activePresentismoTab === 'malla_semanal') {
+      this.activePresentismoTab = 'calendario';
+    }
     this.cargarEventosPresentismo();
+  }
+
+  abrirTabMallaSemanal(): void {
+    if (!this.areaSeleccionadaPresentismo && this.areasPresentismo.length > 0) {
+      this.areaSeleccionadaPresentismo = this.areasPresentismo[0];
+    }
+    this.activePresentismoTab = 'malla_semanal';
+    this.cargarMallaTurnosSemana();
+  }
+
+  private formatearFechaISOMalla(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  cambiarSemanaMallaPerfil(deltaDias: number): void {
+    const base = this.fechaReferenciaMallaPerfil && this.fechaReferenciaMallaPerfil.length >= 10
+      ? new Date(
+          parseInt(this.fechaReferenciaMallaPerfil.substring(0, 4), 10),
+          parseInt(this.fechaReferenciaMallaPerfil.substring(5, 7), 10) - 1,
+          parseInt(this.fechaReferenciaMallaPerfil.substring(8, 10), 10)
+        )
+      : new Date();
+    base.setDate(base.getDate() + deltaDias);
+    this.fechaReferenciaMallaPerfil = this.formatearFechaISOMalla(base);
+    this.cargarMallaTurnosSemana();
+  }
+
+  irASemanaActualMallaPerfil(): void {
+    this.fechaReferenciaMallaPerfil = this.formatearFechaISOMalla(new Date());
+    this.cargarMallaTurnosSemana();
+  }
+
+  cargarMallaTurnosSemana(): void {
+    if (!this.fechaReferenciaMallaPerfil) {
+      this.fechaReferenciaMallaPerfil = this.formatearFechaISOMalla(new Date());
+    }
+    this.cargandoMallaTurnos = true;
+    this.nominaService.getResumenSemanal(this.fechaReferenciaMallaPerfil).subscribe({
+      next: (resp) => {
+        this.mallaTurnosCacheResumen = resp;
+        this.mallaSemanaInicio = resp?.semanaInicio || '';
+        this.mallaSemanaFin = resp?.semanaFin || '';
+
+        const cortos = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+        this.mallaDiasMeta = (resp?.diasMeta || []).map((dm: any, idx: number) => {
+          const fechaStr = String(dm.fecha || '');
+          const diaNum = fechaStr.length >= 10 ? fechaStr.substring(8, 10) : '';
+          return {
+            indice: idx,
+            nombre: dm.nombre || cortos[idx] || '',
+            nombreCorto: cortos[idx] || '',
+            diaNumero: diaNum,
+            fecha: fechaStr,
+            esHoy: Boolean(dm.esHoy),
+            esFuturo: Boolean(dm.esFuturo)
+          };
+        });
+
+        this.construirMallaFilasEquipo();
+        this.cargandoMallaTurnos = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cargandoMallaTurnos = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+private parsearMinutosHoraMalla(hhmm: string): number | null {
+    if (!hhmm || !hhmm.includes(':')) return null;
+    const p = hhmm.split(':');
+    const hh = parseInt(p[0], 10);
+    const mm = parseInt(p[1], 10);
+    if (isNaN(hh) || isNaN(mm)) return null;
+    return hh * 60 + mm;
+  }
+
+private evaluarDiaMallaCore(d: any) {
+    const nombre = String(d?.turno || 'Descanso').trim();
+    const nombreUp = nombre.toUpperCase();
+    const hp = Number(d?.horasProgramadas || 0);
+    const he = Number(d?.horasEjecutadas || 0);
+    const esDescanso = !nombre || nombreUp === 'DESCANSO' || hp === 0;
+
+    const inicio = d?.inicioTurno ? String(d.inicioTurno).substring(0, 5) : '';
+    const fin = d?.finTurno ? String(d.finTurno).substring(0, 5) : '';
+    const horarioTexto = esDescanso ? 'Descanso' : ((inicio && fin) ? `${inicio} - ${fin}` : nombre);
+
+    const horaEntrada = d?.horaEntrada ? String(d.horaEntrada).substring(0, 5) : '';
+    const horaSalida = d?.horaSalida ? String(d.horaSalida).substring(0, 5) : '';
+
+    const minInicio = this.parsearMinutosHoraMalla(inicio);
+    const minFin = this.parsearMinutosHoraMalla(fin);
+    const minEntrada = this.parsearMinutosHoraMalla(horaEntrada);
+    const minSalida = this.parsearMinutosHoraMalla(horaSalida);
+
+    let minTarde = 0;
+    if (!esDescanso && minEntrada !== null && minInicio !== null) {
+      let diffEnt = minEntrada - minInicio;
+      if (diffEnt > 720) diffEnt -= 1440;
+      if (diffEnt < -720) diffEnt += 1440;
+      if (diffEnt > 5) {
+        minTarde = diffEnt;
+      }
+    }
+
+    let minExtra = 0;
+    let minFaltantes = 0;
+    let extraDescansoMin = 0;
+    const esFuturo = Boolean(d?.esFuturo);
+    const enCurso = Boolean(d?.enCurso);
+    const tieneInterrupcion = Boolean(d?.tieneInterrupcion);
+
+    let entradaEstado: 'ok' | 'tarde' | 'falta' | 'futuro' | 'interrup' = 'ok';
+    let salidaEstado: 'ok' | 'extra' | 'antes' | 'falta' | 'en_curso' | 'futuro' | 'interrup' = 'ok';
+
+    if (esDescanso) {
+      if (he > 0) {
+        extraDescansoMin = Math.round(he * 60);
+      }
+      if (!horaEntrada && he === 0) {
+        entradaEstado = esFuturo ? 'futuro' : 'ok';
+        salidaEstado = esFuturo ? 'futuro' : 'ok';
+      }
+    } else if (esFuturo) {
+      entradaEstado = 'futuro';
+      salidaEstado = 'futuro';
+    } else {
+      // Evaluar ENTRADA
+      if (tieneInterrupcion && !horaEntrada) {
+        entradaEstado = 'interrup';
+      } else if (!horaEntrada && he === 0) {
+        entradaEstado = 'falta';
+      } else if (minTarde > 0) {
+        entradaEstado = 'tarde';
+      } else {
+        entradaEstado = 'ok';
+      }
+
+      // Evaluar SALIDA
+      if (enCurso) {
+        salidaEstado = 'en_curso';
+      } else if (tieneInterrupcion && !horaSalida) {
+        salidaEstado = 'interrup';
+      } else if (!horaSalida && he === 0) {
+        salidaEstado = 'falta';
+      } else {
+        if (minSalida !== null && minFin !== null) {
+          let diffSal = minSalida - minFin;
+          if (diffSal > 720) diffSal -= 1440;
+          if (diffSal < -720) diffSal += 1440;
+          if (diffSal > 5) {
+            minExtra = diffSal;
+            salidaEstado = 'extra';
+          } else if (diffSal < -10) {
+            minFaltantes = Math.abs(diffSal);
+            salidaEstado = 'antes';
+          } else {
+            salidaEstado = 'ok';
+          }
+        } else if (he > hp + 0.08) {
+          minExtra = Math.round((he - hp) * 60);
+          salidaEstado = 'extra';
+        } else if (he < hp - 0.25) {
+          minFaltantes = Math.round((hp - he) * 60);
+          salidaEstado = 'antes';
+        } else {
+          salidaEstado = 'ok';
+        }
+      }
+    }
+
+    const tooltipParts = [
+      `Turno: ${nombre}`,
+      inicio && fin ? `Horario: ${inicio} - ${fin}` : '',
+      `Prog: ${hp}h`,
+      horaEntrada ? `Entrada: ${horaEntrada}` : '',
+      horaSalida ? `Salida: ${horaSalida}` : ''
+    ].filter(Boolean);
+
+    return {
+      esDescanso,
+      horarioTexto,
+      turnoNombre: nombre,
+      horasProgramadas: hp,
+      esHoy: Boolean(d?.esHoy),
+      esFuturo,
+      horaEntrada,
+      horaSalida,
+      minTarde,
+      minExtra,
+      minFaltantes,
+      extraDescansoMin,
+      entradaEstado,
+      salidaEstado,
+      tooltip: tooltipParts.join(' · ')
+    };
+  }
+
+  construirMallaFilasEquipo(): void {
+    const colabsArea = this.areaSeleccionadaPresentismo?.colaboradores || [];
+    const colabsNomina = (this.mallaTurnosCacheResumen?.colaboradores || []) as any[];
+
+    const porDoc = new Map<string, any>();
+    const porNombre = new Map<string, any>();
+    for (const nc of colabsNomina) {
+      const doc = String(nc.documento || '').trim();
+      if (doc) porDoc.set(doc, nc);
+      const nom = this.normalizarTexto(String(nc.colaborador || ''));
+      if (nom) porNombre.set(nom, nc);
+    }
+
+    this.mallaFilasEquipo = colabsArea.map(u => {
+      const doc = String(u.identificacion || '').trim();
+      const nombreCompleto = `${u.nombre || ''} ${u.apellido || ''}`.trim();
+      const match = (doc && porDoc.get(doc)) || porNombre.get(this.normalizarTexto(nombreCompleto));
+
+      const diasRaw = match?.dias || [];
+      const dias = Array.from({ length: 7 }, (_, i) => {
+        const d = diasRaw[i] || {
+          turno: 'Descanso',
+          horasProgramadas: 0,
+          horasEjecutadas: 0,
+          esHoy: this.mallaDiasMeta[i]?.esHoy,
+          esFuturo: this.mallaDiasMeta[i]?.esFuturo
+        };
+        return this.evaluarDiaMallaCore(d);
+      });
+
+      const horasLS = Math.round(dias.slice(0, 6).reduce((acc, d) => acc + (d.horasProgramadas || 0), 0) * 10) / 10;
+      const horasDom = Math.round((dias[6]?.horasProgramadas || 0) * 10) / 10;
+      const totalSem = Math.round((horasLS + horasDom) * 10) / 10;
+      const horasExtra = totalSem > 42 ? Math.round((totalSem - 42) * 10) / 10 : 0;
+
+      return {
+        colaborador: u,
+        nombreCompleto,
+        cargo: String(u.cargo || u.descripcionCargo || 'Colaborador'),
+        documento: doc,
+        dias,
+        horasLS,
+        horasDom,
+        totalSem,
+        horasExtra
+      };
+    });
+  }
+
+  get mallaFilasEquipoFiltradas() {
+    const q = this.normalizarTexto(this.busquedaMallaPerfil || '');
+    if (!q) return this.mallaFilasEquipo;
+    return this.mallaFilasEquipo.filter(f =>
+      this.normalizarTexto(f.nombreCompleto).includes(q) ||
+      this.normalizarTexto(f.cargo).includes(q) ||
+      f.documento.toLowerCase().includes(q)
+    );
   }
 
   volverAMiPresentismo(): void {

@@ -3,6 +3,7 @@ package com.bgreenNet.bgreenNet.controllers;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,7 +21,8 @@ public class MetricsController {
     private MeterRegistry meterRegistry;
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String NODE_RED_URL = "http://172.30.72.143:1880/flows";
+    @Value("${nodered.url:http://172.30.72.143:1885/flows}")
+    private String nodeRedUrl;
 
     @GetMapping("/current")
     public Map<String, Object> getCurrentMetrics() {
@@ -58,7 +60,7 @@ public class MetricsController {
         Map<String, Object> nodeRedMetrics = new HashMap<>();
         long startTime = System.currentTimeMillis();
         try {
-            restTemplate.getForObject(NODE_RED_URL, String.class);
+            restTemplate.getForObject(nodeRedUrl, String.class);
             long latency = System.currentTimeMillis() - startTime;
             nodeRedMetrics.put("status", "UP");
             nodeRedMetrics.put("latencyMs", latency);

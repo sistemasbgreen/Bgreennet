@@ -800,17 +800,38 @@
     </section>
 
     <!-- KPIS RESUMEN SEMANAL -->
-    <section class="kpi-grid kpi-grid--4col-semanal">
+    <section class="kpi-grid kpi-grid--5col-semanal">
       <div class="kpi-card kpi-card--primary">
         <div class="kpi-card__top">
           <span class="kpi-card__label">Total Colaboradores</span>
           <div class="kpi-card__icon"><i class="bi bi-people-fill"></i></div>
         </div>
         <div class="kpi-card__main">
-          <span class="kpi-card__value">{{ dataResumenSemanal?.resumen?.totalColaboradores || 0 }}</span>
+          <span class="kpi-card__value">{{ totalColaboradoresTodos }}</span>
         </div>
         <div class="kpi-card__footer">
           <span class="kpi-pill"><i class="bi bi-person-check"></i> Activos en nómina</span>
+        </div>
+      </div>
+
+      <!-- KPI HORAS PROGRAMADAS / EJECUTADAS DE TODOS -->
+      <div class="kpi-card kpi-card--horas-totales" title="Total de horas programadas vs ejecutadas de todos los colaboradores">
+        <div class="kpi-card__top">
+          <span class="kpi-card__label">Horas Prog. / Ejec. (Todos)</span>
+          <div class="kpi-card__icon"><i class="bi bi-clock-history"></i></div>
+        </div>
+        <div class="kpi-card__main kpi-card__main--horas">
+          <span class="kpi-horas-prog" title="Horas programadas de todos">{{ totalHorasProgramadasTodos }}h</span>
+          <span class="kpi-horas-sep">/</span>
+          <span class="kpi-horas-ejec" title="Horas ejecutadas de todos">{{ totalHorasEjecutadasTodos }}h</span>
+        </div>
+        <div class="kpi-card__footer">
+          <span class="kpi-pill"
+                [class.kpi-pill--pos]="diferenciaHorasTodos >= 0"
+                [class.kpi-pill--neg]="diferenciaHorasTodos < 0">
+            <i class="bi" [ngClass]="diferenciaHorasTodos >= 0 ? 'bi-arrow-up-right' : 'bi-arrow-down-right'"></i>
+            Dif: {{ diferenciaHorasTodos > 0 ? '+' : '' }}{{ diferenciaHorasTodos }}h
+          </span>
         </div>
       </div>
 
@@ -853,10 +874,200 @@
           <div class="kpi-card__icon"><i class="bi bi-percent"></i></div>
         </div>
         <div class="kpi-card__main">
-          <span class="kpi-card__value">{{ dataResumenSemanal?.resumen?.porcentajeCumplimientoGlobal || 0 }}%</span>
+          <span class="kpi-card__value">{{ porcentajeCumplimientoTodos }}%</span>
         </div>
         <div class="kpi-card__footer">
-          <span class="kpi-pill"><i class="bi bi-graph-up-arrow"></i> Programado vs Ejecutado</span>
+          <span class="kpi-pill"><i class="bi bi-graph-up-arrow"></i> {{ totalHorasEjecutadasTodos }}h / {{ totalHorasProgramadasTodos }}h</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== DIAGNÓSTICO DE PRESENTISMO Y MARCACIÓN ==================== -->
+    <section class="diagnostico-presentismo-card" *ngIf="!cargandoSemanal && totalColaboradoresTodos > 0">
+      <div class="diagnostico-header" (click)="diagnosticoExpandido = !diagnosticoExpandido" style="cursor: pointer;">
+        <div class="diagnostico-header-left">
+          <div class="diagnostico-header-icon"><i class="bi bi-activity"></i></div>
+          <div>
+            <h3 class="diagnostico-header-title">Diagnóstico de Presentismo y Control de Marcación</h3>
+            <p class="diagnostico-header-sub">
+              Personas que deben marcar vs marcaron, por qué baja el cumplimiento y áreas más afectadas
+            </p>
+          </div>
+        </div>
+        <div class="diagnostico-header-right">
+          <span class="diag-pill diag-pill--real" *ngIf="diagnosticoPresentismo.horasProgAlDia > 0"
+                title="Cumplimiento calculado únicamente sobre los días transcurridos hasta hoy (excluye días futuros)">
+            <i class="bi bi-check2-all"></i>
+            Cumplimiento al día: <strong>{{ diagnosticoPresentismo.cumplimientoAlDia }}%</strong>
+            <span class="diag-pill-sub">({{ diagnosticoPresentismo.horasEjecAlDia }}h / {{ diagnosticoPresentismo.horasProgAlDia }}h)</span>
+          </span>
+          <button type="button" class="btn-toggle-diag" title="Mostrar u ocultar diagnóstico">
+            <i class="bi" [ngClass]="diagnosticoExpandido ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="diagnostico-grid" *ngIf="diagnosticoExpandido">
+        <!-- COLUMNA 1: CUANTAS PERSONAS DEBEN MARCAR Y CUANTAS MARCARON -->
+        <div class="diag-col">
+          <div class="diag-col-title">
+            <i class="bi bi-fingerprint text-primary"></i>
+            <span>Control de Marcación</span>
+          </div>
+
+          <!-- Bloque HOY (si es semana actual) -->
+          <div class="marcacion-box marcacion-box--hoy" *ngIf="diagnosticoPresentismo.tieneHoy">
+            <div class="marcacion-box-head">
+              <span class="marcacion-tag marcacion-tag--hoy">HOY</span>
+              <span class="marcacion-pct"
+                    [class.text-success]="diagnosticoPresentismo.porcentajeHoy >= 90"
+                    [class.text-warning]="diagnosticoPresentismo.porcentajeHoy >= 70 && diagnosticoPresentismo.porcentajeHoy < 90"
+                    [class.text-danger]="diagnosticoPresentismo.porcentajeHoy < 70">
+                {{ diagnosticoPresentismo.porcentajeHoy }}% marcaron
+              </span>
+            </div>
+            <div class="marcacion-metrics-3">
+              <div class="m-metric">
+                <span class="m-val">{{ diagnosticoPresentismo.debenMarcarHoy }}</span>
+                <span class="m-lbl">Deben marcar</span>
+              </div>
+              <div class="m-metric m-metric--ok">
+                <span class="m-val">{{ diagnosticoPresentismo.marcaronHoy }}</span>
+                <span class="m-lbl">Marcaron</span>
+              </div>
+              <div class="m-metric m-metric--miss">
+                <span class="m-val">{{ diagnosticoPresentismo.faltanHoy }}</span>
+                <span class="m-lbl">Sin marcar</span>
+              </div>
+            </div>
+            <div class="marcacion-bar">
+              <div class="marcacion-bar-fill" [style.width.%]="diagnosticoPresentismo.porcentajeHoy"></div>
+            </div>
+          </div>
+
+          <!-- Bloque SEMANA (Días transcurridos) -->
+          <div class="marcacion-box">
+            <div class="marcacion-box-head">
+              <span class="marcacion-tag">SEMANA (HASTA HOY)</span>
+              <span class="marcacion-pct">{{ diagnosticoPresentismo.porcentajeMarcacionSemana }}% turnos</span>
+            </div>
+            <div class="marcacion-semana-rows">
+              <div class="ms-row">
+                <span>Personas que deben marcar:</span>
+                <strong>{{ diagnosticoPresentismo.personasMarcaronSemana }} / {{ diagnosticoPresentismo.personasDebenMarcarSemana }} pers.</strong>
+              </div>
+              <div class="ms-row">
+                <span>Turnos marcados en la semana:</span>
+                <strong>{{ diagnosticoPresentismo.turnosMarcaronSemana }} / {{ diagnosticoPresentismo.turnosDebenMarcarSemana }} turnos</strong>
+              </div>
+              <div class="ms-row ms-row--danger" *ngIf="diagnosticoPresentismo.turnosSinMarcarSemana > 0">
+                <span>Turnos sin registro de entrada:</span>
+                <strong>{{ diagnosticoPresentismo.turnosSinMarcarSemana }} turnos</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMNA 2: POR QUÉ BAJA EL CUMPLIMIENTO DEL PRESENTISMO -->
+        <div class="diag-col">
+          <div class="diag-col-title">
+            <i class="bi bi-graph-down-arrow text-danger"></i>
+            <span>¿Por qué baja el cumplimiento?</span>
+          </div>
+
+          <div class="causas-list" *ngIf="diagnosticoPresentismo.causasBaja.length > 0; else sinCausasBaja">
+            <div *ngFor="let causa of diagnosticoPresentismo.causasBaja"
+                 class="causa-item"
+                 [class.causa-item--clickable]="!!causa.filtroEstado"
+                 (click)="filtrarPorCausaPresentismo(causa.filtroEstado)"
+                 [title]="causa.filtroEstado ? 'Clic para filtrar estos colaboradores en la tabla' : ''">
+              <div class="causa-top">
+                <span class="causa-name">
+                  <i class="bi" [ngClass]="causa.icono + ' text-' + causa.color"></i>
+                  {{ causa.titulo }}
+                </span>
+                <span class="causa-horas" [ngClass]="'causa-horas--' + causa.color">
+                  -{{ causa.horas }}h ({{ causa.porcentajeImpacto }}%)
+                </span>
+              </div>
+              <div class="causa-sub">
+                <span>{{ causa.descripcion }}</span>
+                <span class="causa-count">
+                  {{ causa.casos }} turno(s)<ng-container *ngIf="causa.personas > 0"> · {{ causa.personas }} pers.</ng-container>
+                </span>
+              </div>
+              <div class="causa-bar">
+                <div class="causa-bar-fill" [ngClass]="'causa-bar--' + causa.color"
+                     [style.width.%]="causa.porcentajeImpacto > 100 ? 100 : causa.porcentajeImpacto"></div>
+              </div>
+            </div>
+          </div>
+          <ng-template #sinCausasBaja>
+            <div class="causas-ok">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>¡Sin brechas negativas! El cumplimiento semanal está al 100%.</span>
+            </div>
+          </ng-template>
+        </div>
+
+        <!-- COLUMNA 3: ÁREAS MÁS AFECTADAS Y MÁS INCUMPLIDA -->
+        <div class="diag-col">
+          <div class="diag-col-title">
+            <i class="bi bi-building-exclamation text-warning"></i>
+            <span>Áreas Más Afectadas</span>
+          </div>
+
+          <ng-container *ngIf="diagnosticoPresentismo.areaMasIncumplida as peor; else sinAreasIncumplidas">
+            <!-- Área más incumplida -->
+            <div class="area-peor-card" (click)="seleccionarGrupoCard(peor.grupo)"
+                 title="Clic para filtrar los colaboradores de esta área en la tabla">
+              <div class="area-peor-badge">
+                <i class="bi bi-exclamation-octagon-fill"></i> Área más incumplida
+              </div>
+              <div class="area-peor-main">
+                <span class="area-peor-name">{{ peor.grupo }}</span>
+                <span class="area-peor-pct">
+                  {{ peor.horasProgramadasAlDia > 0 ? peor.porcentajeCumplimientoAlDia : peor.porcentajeCumplimiento }}%
+                </span>
+              </div>
+              <div class="area-peor-meta">
+                <span>Ejec: <strong>{{ peor.horasEjecutadas }}h</strong> / Prog al día: <strong>{{ peor.horasProgramadasAlDia }}h</strong></span>
+                <span class="area-peor-diff">{{ peor.diferenciaHorasAlDia }}h</span>
+              </div>
+              <div class="area-peor-motivo">
+                <i class="bi bi-info-circle"></i> {{ peor.motivoPrincipal }}
+              </div>
+            </div>
+
+            <!-- Top áreas afectadas -->
+            <div class="top-areas-list" *ngIf="diagnosticoPresentismo.topAreasAfectadas.length > 1">
+              <div *ngFor="let a of diagnosticoPresentismo.topAreasAfectadas; let idx = index"
+                   class="top-area-row"
+                   [class.top-area-row--active]="grupoSemanal === a.grupo"
+                   (click)="seleccionarGrupoCard(a.grupo)"
+                   [title]="'Clic para ver colaboradores de ' + a.grupo">
+                <span class="top-area-rank">#{{ idx + 1 }}</span>
+                <div class="top-area-info">
+                  <span class="top-area-name">{{ a.grupo }}</span>
+                  <span class="top-area-motivo">{{ a.motivoPrincipal }}</span>
+                </div>
+                <div class="top-area-nums">
+                  <span class="top-area-pct"
+                        [class.text-danger]="(a.horasProgramadasAlDia > 0 ? a.porcentajeCumplimientoAlDia : a.porcentajeCumplimiento) < 70"
+                        [class.text-warning]="(a.horasProgramadasAlDia > 0 ? a.porcentajeCumplimientoAlDia : a.porcentajeCumplimiento) >= 70">
+                    {{ a.horasProgramadasAlDia > 0 ? a.porcentajeCumplimientoAlDia : a.porcentajeCumplimiento }}%
+                  </span>
+                  <span class="top-area-diff">{{ a.diferenciaHorasAlDia }}h</span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+          <ng-template #sinAreasIncumplidas>
+            <div class="causas-ok">
+              <i class="bi bi-award-fill"></i>
+              <span>No hay áreas con turnos programados incumplidos en esta semana.</span>
+            </div>
+          </ng-template>
         </div>
       </div>
     </section>
@@ -916,6 +1127,12 @@
               <span>Con Turno ({{ totalAreasConTurnosAsignados }})</span>
             </button>
           </div>
+
+          <select class="sort-grupos-select" [(ngModel)]="ordenGrupos" title="Ordenar tarjetas de área">
+            <option value="PENDIENTES">Orden: Pendientes de Turno</option>
+            <option value="MENOR_CUMPLIMIENTO">Orden: Más Incumplidas (%)</option>
+            <option value="MAYOR_DEFICIT">Orden: Mayor Déficit (hrs)</option>
+          </select>
 
           <div *ngIf="grupoSemanal !== 'TODOS'" style="display: inline-flex; align-items: center; gap: 8px;">
             <span class="filtro-activo-chip">
@@ -1062,6 +1279,20 @@
                     title="Filtrar colaboradores que no tienen turnos asignados esta semana">
               <i class="bi bi-calendar-x-fill"></i> Falta Turno ({{ totalColaboradoresSinTurno }})
             </button>
+            <button type="button" class="btn-chip btn-chip--danger"
+                    [class.btn-chip--active]="filtroEstadoSemanal === 'NO_ASISTIO'"
+                    (click)="cambiarFiltroEstadoSemanal('NO_ASISTIO')"
+                    *ngIf="diagnosticoPresentismo.casosNoAsistioTotal > 0"
+                    title="Filtrar colaboradores que tuvieron turno programado y no marcaron entrada">
+              <i class="bi bi-person-x-fill"></i> No Marcaron
+            </button>
+            <button type="button" class="btn-chip btn-chip--warn"
+                    [class.btn-chip--active]="filtroEstadoSemanal === 'SIN_SALIDA'"
+                    (click)="cambiarFiltroEstadoSemanal('SIN_SALIDA')"
+                    *ngIf="diagnosticoPresentismo.casosSinSalidaTotal > 0"
+                    title="Filtrar colaboradores que marcaron entrada pero olvidaron marcar salida">
+              <i class="bi bi-box-arrow-right"></i> Sin Salida
+            </button>
             <button type="button" class="btn-chip btn-chip--doble"
                     [class.btn-chip--active]="filtroEstadoSemanal === 'DOBLE_ENTRADA'"
                     (click)="cambiarFiltroEstadoSemanal('DOBLE_ENTRADA')"
@@ -1130,6 +1361,20 @@
         </div>
 
         <div class="table-card__actions">
+          <div class="view-mode-switch" title="Cambiar vista de la planilla">
+            <button type="button" [class.active]="vistaTablaSemanal === 'detallada'" (click)="vistaTablaSemanal = 'detallada'">
+              <i class="bi bi-card-list"></i> Detallada
+            </button>
+            <button type="button" [class.active]="vistaTablaSemanal === 'malla'" (click)="vistaTablaSemanal = 'malla'">
+              <i class="bi bi-calendar3-week"></i> Malla Turnos
+            </button>
+          </div>
+          <span class="badge-total-tabla" title="Total de horas programadas y ejecutadas de los colaboradores visibles">
+            <strong>Total:</strong>
+            <span class="total-tabla-prog">{{ totalHorasProgramadasFiltradas }}h</span>
+            <span class="total-tabla-sep">/</span>
+            <span class="total-tabla-ejec">{{ totalHorasEjecutadasFiltradas }}h</span>
+          </span>
           <span class="badge-legend badge-legend--prog"><span class="dot dot-gray"></span> Prog: Programadas</span>
           <span class="badge-legend badge-legend--ejec"><span class="dot dot-green"></span> Ejec: Ejecutadas</span>
           <button class="btn-export-sm" (click)="exportarCsvSemanal()" title="Descargar CSV">
@@ -1138,18 +1383,140 @@
         </div>
       </div>
 
-      <div class="table-responsive-wrapper">
+      <!-- VISTA MALLA SEMANAL COMPACTA DE TURNOS -->
+      <div class="table-responsive-wrapper" *ngIf="vistaTablaSemanal === 'malla'">
+        <div class="malla-nomina-legend-bar">
+          <span><span class="malla-io-pill malla-io--ok"><i class="bi bi-check-circle-fill"></i></span> Cumplió</span>
+          <span><span class="malla-io-pill malla-io--tarde">+Xm</span> Llegó tarde (Entrada)</span>
+          <span><span class="malla-io-pill malla-io--extra">+Xm</span> Se pasó (Salida)</span>
+          <span><span class="malla-io-pill malla-io--antes">-Xm</span> Salió antes</span>
+          <span><span class="malla-io-pill malla-io--falta"><i class="bi bi-x-circle-fill"></i></span> Sin marca</span>
+        </div>
+        <table class="malla-turnos-table">
+          <thead>
+            <tr class="malla-head-banner">
+              <th rowspan="2" class="malla-th-colab">COLABORADOR &amp; ÁREA</th>
+              <th colspan="7" class="malla-th-semana-title">
+                Semana <span class="malla-semana-range">({{ dataResumenSemanal?.semanaInicio }} al {{ dataResumenSemanal?.semanaFin }})</span>
+              </th>
+              <th rowspan="2" class="malla-th-num">L-S (h)</th>
+              <th rowspan="2" class="malla-th-dom">Dom/Fest</th>
+              <th rowspan="2" class="malla-th-total">Total Sem</th>
+            </tr>
+            <tr class="malla-head-days">
+              <th *ngFor="let dm of dataResumenSemanal?.diasMeta; let i = index"
+                  class="malla-th-day"
+                  [class.malla-th-day--hoy]="dm.esHoy"
+                  [class.malla-th-day--dom]="i === 6">
+                <span class="malla-day-abbr">{{ getCortoDiaMeta(dm.nombre) }}</span>
+                <span class="malla-day-num">{{ (dm.fecha || '').substring(8, 10) }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of colaboradoresSemanalPaginados"
+                class="malla-row"
+                (click)="abrirDetalleColaboradorSemanal(c)"
+                title="Clic para ver el detalle completo de {{ c.colaborador }}">
+              <td class="malla-td-colab">
+                <div class="malla-colab-top">
+                  <span class="malla-colab-name">{{ c.colaborador }}</span>
+                  <span class="malla-colab-doc">{{ c.documento }}</span>
+                </div>
+                <div class="malla-colab-sub">
+                  <span>{{ c.grupo }}</span>
+                </div>
+              </td>
+
+              <td *ngFor="let d of c.dias" class="malla-td-shift" [class.malla-td-shift--hoy]="d.esHoy">
+                <ng-container *ngIf="evaluarDiaMallaNomina(d) as tm">
+                  <div class="malla-shift-cell-split" [title]="tm.tooltip">
+                    <div class="malla-cell-top-band">
+                      <span class="malla-horario-pill" [class.malla-horario-pill--descanso]="tm.esDescanso">
+                        {{ tm.horarioTexto }}
+                      </span>
+                    </div>
+
+                    <div class="malla-io-split" *ngIf="!tm.esDescanso">
+                      <div class="malla-io-col" [title]="'Entrada' + (tm.horaEntrada ? ': ' + tm.horaEntrada : '')">
+                        <span class="malla-io-pill" [ngClass]="'malla-io--' + tm.entradaEstado">
+                          <i class="bi bi-check-circle-fill" *ngIf="tm.entradaEstado === 'ok'"></i>
+                          <ng-container *ngIf="tm.entradaEstado === 'tarde'">+{{ tm.minTarde }}m</ng-container>
+                          <i class="bi bi-x-circle-fill" *ngIf="tm.entradaEstado === 'falta'"></i>
+                          <i class="bi bi-exclamation-circle-fill" *ngIf="tm.entradaEstado === 'interrup'"></i>
+                          <ng-container *ngIf="tm.entradaEstado === 'futuro'">--</ng-container>
+                        </span>
+                        <span class="malla-io-label">Entrada</span>
+                      </div>
+
+                      <div class="malla-io-col" [title]="'Salida' + (tm.horaSalida ? ': ' + tm.horaSalida : '')">
+                        <span class="malla-io-pill" [ngClass]="'malla-io--' + tm.salidaEstado">
+                          <i class="bi bi-check-circle-fill" *ngIf="tm.salidaEstado === 'ok'"></i>
+                          <ng-container *ngIf="tm.salidaEstado === 'extra'">+{{ tm.minExtra }}m</ng-container>
+                          <ng-container *ngIf="tm.salidaEstado === 'antes'">-{{ tm.minFaltantes }}m</ng-container>
+                          <i class="bi bi-clock-fill" *ngIf="tm.salidaEstado === 'en_curso'"></i>
+                          <i class="bi bi-x-circle-fill" *ngIf="tm.salidaEstado === 'falta'"></i>
+                          <i class="bi bi-exclamation-circle-fill" *ngIf="tm.salidaEstado === 'interrup'"></i>
+                          <ng-container *ngIf="tm.salidaEstado === 'futuro'">--</ng-container>
+                        </span>
+                        <span class="malla-io-label">{{ tm.salidaEstado === 'en_curso' ? 'En turno' : 'Salida' }}</span>
+                      </div>
+                    </div>
+
+                    <div class="malla-io-descanso-extra" *ngIf="tm.esDescanso && tm.extraDescansoMin > 0">
+                      <span class="malla-io-pill malla-io--extra">+{{ tm.extraDescansoMin }}m extra</span>
+                    </div>
+                  </div>
+                </ng-container>
+              </td>
+
+              <td class="malla-td-num">{{ getHorasLS(c) }}</td>
+              <td class="malla-td-dom">{{ getHorasDom(c) }}</td>
+              <td class="malla-td-total" [class.malla-td-total--extra]="c.totalHorasProgramadas > 42">
+                <div class="malla-total-val">
+                  <i class="bi bi-exclamation-triangle-fill" *ngIf="c.totalHorasProgramadas > 42"></i>
+                  <span>{{ c.totalHorasProgramadas }}h</span>
+                </div>
+                <span class="malla-extra-sub" *ngIf="c.totalHorasProgramadas > 42">+{{ (c.totalHorasProgramadas - 42) | number:'1.0-1' }}h extra</span>
+              </td>
+            </tr>
+
+            <tr *ngIf="colaboradoresSemanalPaginados.length === 0">
+              <td colspan="11" class="malla-empty-row">
+                No se encontraron colaboradores para mostrar.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-responsive-wrapper" *ngIf="vistaTablaSemanal === 'detallada'">
         <table class="table-semanal">
           <thead>
             <tr>
               <th class="th-colab">Colaborador</th>
               <th class="th-totales">Total Semana</th>
               <th class="th-interrup">Interrupciones</th>
-              <th *ngFor="let dm of dataResumenSemanal?.diasMeta" class="th-dia" [class.th-dia--hoy]="dm.esHoy">
+              <th *ngFor="let dm of dataResumenSemanal?.diasMeta; let i = index" class="th-dia" [class.th-dia--hoy]="dm.esHoy">
                 <div class="th-dia-content">
                   <span class="th-dia-name">{{ dm.nombre }}</span>
                   <span class="th-dia-fecha">{{ dm.fecha | date:'dd MMM' }}</span>
                   <span class="th-dia-badge" *ngIf="dm.esHoy">HOY</span>
+                  <ng-container *ngIf="marcacionPorDia[i] as md">
+                    <span class="th-dia-marcacion"
+                          *ngIf="!dm.esFuturo && md.debenMarcar > 0"
+                          [class.th-dia-marcacion--ok]="md.porcentaje >= 90"
+                          [class.th-dia-marcacion--warn]="md.porcentaje >= 70 && md.porcentaje < 90"
+                          [class.th-dia-marcacion--bad]="md.porcentaje < 70"
+                          [title]="'Deben marcar: ' + md.debenMarcar + ' | Marcaron: ' + md.marcaron + ' | Faltan: ' + md.noMarcaron">
+                      <i class="bi bi-fingerprint"></i> {{ md.marcaron }}/{{ md.debenMarcar }}
+                    </span>
+                    <span class="th-dia-marcacion th-dia-marcacion--futuro"
+                          *ngIf="dm.esFuturo && md.debenMarcar > 0"
+                          [title]="'Colaboradores con turno programado para este día: ' + md.debenMarcar">
+                      <i class="bi bi-calendar2-check"></i> Prog: {{ md.debenMarcar }}
+                    </span>
+                  </ng-container>
                 </div>
               </th>
               <th class="th-action">Acción</th>
@@ -1271,6 +1638,14 @@
                   <div class="dia-cell-turno" [title]="'Turno: ' + d.turno + (d.inicioTurno ? ' (' + d.inicioTurno + ' - ' + d.finTurno + ')' : '')">
                     <i class="bi bi-clock"></i>
                     <span>{{ d.turno }}</span>
+                  </div>
+
+                  <!-- Hora programada del turno -->
+                  <div class="dia-cell-horario-prog"
+                       *ngIf="d.inicioTurno && d.finTurno && d.estado !== 'DESCANSO'"
+                       [title]="'Horario programado del turno: ' + d.inicioTurno + ' a ' + d.finTurno">
+                    <i class="bi bi-calendar2-range"></i>
+                    <span>{{ d.inicioTurno.substring(0, 5) }} - {{ d.finTurno.substring(0, 5) }}</span>
                   </div>
 
                   <!-- Marcación real -->
@@ -1440,7 +1815,7 @@
                   <td><strong>{{ d.nombreDia }}</strong> <span class="badge-today" *ngIf="d.esHoy">HOY</span></td>
                   <td>{{ d.fecha }}</td>
                   <td><span class="pill-shift">{{ d.turno }}</span></td>
-                  <td>{{ d.inicioTurno ? (d.inicioTurno + ' - ' + d.finTurno) : '--' }}</td>
+                  <td>{{ d.inicioTurno ? (d.inicioTurno.substring(0, 5) + ' - ' + (d.finTurno ? d.finTurno.substring(0, 5) : '--')) : '--' }}</td>
                   <td><strong>{{ d.horasProgramadas }} hrs</strong></td>
                   <td class="text-success font-bold">
                     {{ d.horaEntrada || '--' }}

@@ -5,6 +5,7 @@ import com.bgreenNet.bgreenNet.repository.VariableScadaConfigRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -18,7 +19,8 @@ public class NodeRedSyncService {
     @Autowired
     private VariableScadaConfigRepository variableScadaConfigRepository;
 
-    private final String NODE_RED_URL = "http://172.30.72.143:1880/flows";
+    @Value("${nodered.url:http://172.30.72.143:1885/flows}")
+    private String nodeRedUrl;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -28,7 +30,7 @@ public class NodeRedSyncService {
 
         try {
             // Obtener el JSON de los flujos de Node-RED
-            String jsonResponse = restTemplate.getForObject(NODE_RED_URL, String.class);
+            String jsonResponse = restTemplate.getForObject(nodeRedUrl, String.class);
             if (jsonResponse == null) {
                 resultado.put("success", false);
                 resultado.put("message", "No se recibió respuesta de Node-RED");
