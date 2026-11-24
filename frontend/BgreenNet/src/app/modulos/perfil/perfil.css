@@ -11358,3 +11358,582 @@
   display: flex;
   justify-content: center;
 }
+
+/* ==========================================================================
+   SOLICITUD DE NOVEDADES Y PERMISOS (Descanso, Incapacidad, Vacaciones, Cambio)
+   ========================================================================== */
+
+.novedad-section {
+  border-top: 2px dashed #e2e8f0;
+  padding-top: 14px;
+  margin-top: 10px;
+}
+
+.btn-drawer-nov-toggle {
+  color: #006c2c !important;
+  border-color: #86efac !important;
+}
+
+.btn-drawer-nov-toggle:hover {
+  background: #006c2c !important;
+  color: #ffffff !important;
+  border-color: #006c2c !important;
+}
+
+.drawer-nov-form {
+  background: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+}
+
+/* Chips de selección de tipo de novedad */
+.nov-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.btn-nov-chip {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: all 0.18s ease-in-out;
+}
+
+.btn-nov-chip i {
+  font-size: 0.95rem;
+}
+
+.btn-nov-chip:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.btn-nov-chip.active {
+  background: #006c2c;
+  border-color: #006c2c;
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 108, 44, 0.25);
+}
+
+.btn-nov-chip.active i {
+  color: #ffffff !important;
+}
+
+/* Fila de Fechas */
+.nov-dates-row {
+  display: flex;
+  gap: 10px;
+}
+
+.nov-dates-row .flex-1 {
+  flex: 1;
+}
+
+.nov-input-date {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.nov-input-date:focus {
+  outline: none;
+  border-color: #006c2c;
+  box-shadow: 0 0 0 2px rgba(0, 108, 44, 0.15);
+}
+
+.nov-days-counter {
+  font-size: 0.74rem;
+  color: #006c2c;
+  background: #ffffff;
+  border: 1px dashed #86efac;
+  border-radius: 6px;
+  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Dropzone de carga de soporte */
+.nov-upload-dropzone {
+  border: 1.5px dashed #94a3b8;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: center;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.nov-upload-dropzone:hover {
+  border-color: #006c2c;
+  background: #f8fafc;
+}
+
+.nov-file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.nov-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.nov-upload-icon {
+  font-size: 1.6rem;
+  color: #006c2c;
+}
+
+.nov-upload-text {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.nov-upload-hint {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+/* File pill (cuando ya hay soporte seleccionado) */
+.nov-file-pill {
+  background: #ffffff;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nfp-icon i {
+  font-size: 1.4rem;
+}
+
+.nfp-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.nfp-name {
+  font-size: 0.76rem;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nfp-size {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.btn-nfp-remove {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-nfp-remove:hover {
+  color: #b91c1c;
+}
+
+.btn-nov-submit {
+  background: linear-gradient(135deg, #006c2c, #15803d) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.btn-nov-submit:hover {
+  background: linear-gradient(135deg, #005020, #006c2c) !important;
+}
+
+/* Tarjetas de Novedades Registradas */
+.nov-card {
+  position: relative;
+}
+
+.nov-card-aprobado { border-left: 4px solid #16a34a !important; }
+.nov-card-pendiente { border-left: 4px solid #eab308 !important; }
+.nov-card-rechazado { border-left: 4px solid #ef4444 !important; }
+
+.nov-type-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge-nov-tipo {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.nov-badge-descanso {
+  background: #ede9fe;
+  color: #6366f1;
+}
+
+.nov-badge-incapacidad {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.nov-badge-vacaciones {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.nov-badge-cambio {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.nov-date-badge {
+  font-size: 0.72rem;
+  color: #475569;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Fila de soporte en tarjeta */
+.nov-soporte-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.btn-ver-soporte {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #006c2c;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-ver-soporte:hover {
+  background: #006c2c;
+  color: #ffffff;
+  border-color: #006c2c;
+}
+
+.btn-descargar-soporte {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: #475569;
+  cursor: pointer;
+}
+
+.btn-descargar-soporte:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* Chips en la celda del calendario mensual */
+.nov-cal-chip {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Modal de Visualización de Soporte (PDF / Imagen) */
+.soporte-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 10500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.soporte-preview-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  width: 90vw;
+  max-width: 820px;
+  height: 85vh;
+  max-height: 750px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: pfvModalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spc-header {
+  padding: 14px 18px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.spc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spc-title-row i {
+  font-size: 1.3rem;
+}
+
+.spc-title-row h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.spc-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-spc-dl {
+  background: #006c2c;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-spc-dl:hover {
+  background: #005020;
+  color: #ffffff;
+}
+
+.btn-spc-close {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-spc-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.spc-body {
+  flex: 1;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 12px;
+}
+
+.soporte-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.soporte-img-preview {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Gráfica de Línea Combinada: Tiempos de Entrada y Salida por Usuario */
+.icon-dual-line {
+  background: linear-gradient(135deg, #dcfce7, #dbeafe);
+  color: #0f766e;
+}
+
+.badge-line-entrada {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-line-salida {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.dot-line-ent {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  margin-right: 4px;
+}
+
+.dot-line-sal {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2563eb;
+  margin-right: 4px;
+}
+
+.dual-line-svg-chart {
+  height: 325px;
+}
+
+.dual-zone-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  opacity: 0.7;
+}
+
+.zone-label-salida {
+  fill: #1d4ed8;
+}
+
+.zone-label-entrada {
+  fill: #15803d;
+}
+
+.axis-salida-ref {
+  fill: #1d4ed8 !important;
+  font-weight: 800 !important;
+}
+
+.badge-hour-salida {
+  fill: #1e40af !important;
+  font-weight: 800 !important;
+}
+
+.badge-hour-entrada {
+  fill: #166534 !important;
+  font-weight: 800 !important;
+}
+
+.dual-user-group {
+  cursor: pointer;
+}
+
+.dual-user-group:hover .dual-user-initials {
+  fill: #0f766e;
+  font-weight: 900;
+}
+
+/* Leyenda interactiva para las gráficas de línea de Entrada y Salida del equipo */
+.team-lines-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 4px;
+}
+
+.team-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.team-legend-chip:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.team-legend-chip.chip-active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+.team-legend-chip.chip-dimmed {
+  opacity: 0.45;
+}
+
+.team-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

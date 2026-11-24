@@ -45,6 +45,14 @@ export const layoutRoutes: Routes = [
     loadComponent: () => import('../modulos/nomina/nomina').then(m => m.Nomina)
   },
   {
+    path: 'items',
+    loadComponent: () => import('../modulos/items/items').then(m => m.Items)
+  },
+  {
+    path: 'home/items',
+    loadComponent: () => import('../modulos/items/items').then(m => m.Items)
+  },
+  {
     path: 'home/nomina',
     loadComponent: () => import('../modulos/nomina/nomina').then(m => m.Nomina)
   },
@@ -147,6 +155,14 @@ export const layoutRoutes: Routes = [
       {
         path: 'nomina',
         loadComponent: () => import('../modulos/nomina/nomina').then(c => c.Nomina)
+      },
+      {
+        path: 'items',
+        loadComponent: () => import('../modulos/items/items').then(c => c.Items)
+      },
+      {
+        path: 'items/existencias',
+        loadComponent: () => import('../modulos/items/items').then(c => c.Items)
       },
       // 👇 NUEVA: Ruta comodín para cargar componentes dinámicamente
       {

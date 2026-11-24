@@ -25,8 +25,9 @@ public class FirmaDigitalService {
     }
 
     /**
-     * Obtiene los registros de requisición interna dentro de un rango de fechas (f441_ts),
-     * con filtro opcional por consecutivo de documento.
+     * Obtiene los registros de requisición interna en Siesa.
+     * Permite consultar por consecutivo de documento, por rango de fechas (f441_ts),
+     * o por ambos filtros combinados.
      */
     public List<FirmaDigitalRequisicionDTO> obtenerRequisiciones(
             String fechaInicio,
@@ -34,14 +35,34 @@ public class FirmaDigitalService {
             Integer consecDocto,
             Integer idCia,
             String tipoDocto) {
-        LocalDate inicio = parseFecha(fechaInicio, "fechaInicio");
-        LocalDate fin = parseFecha(fechaFin, "fechaFin");
 
-        if (fin.isBefore(inicio)) {
-            throw new IllegalArgumentException("El campo 'fechaFin' no puede ser anterior a 'fechaInicio'.");
+        boolean tieneConsecutivo = (consecDocto != null);
+        boolean tieneFechaInicio = (fechaInicio != null && !fechaInicio.trim().isEmpty());
+        boolean tieneFechaFin = (fechaFin != null && !fechaFin.trim().isEmpty());
+
+        if (!tieneConsecutivo && !tieneFechaInicio && !tieneFechaFin) {
+            throw new IllegalArgumentException(
+                    "Debes proporcionar al menos un filtro: 'consecDocto' (ej: 5939) o un rango de fechas ('fechaInicio' y 'fechaFin')."
+            );
         }
-        if (consecDocto != null && consecDocto <= 0) {
+
+        if (tieneConsecutivo && consecDocto <= 0) {
             throw new IllegalArgumentException("El campo 'consecDocto' debe ser un número entero positivo.");
+        }
+
+        LocalDate inicio = null;
+        LocalDate fin = null;
+
+        if (tieneFechaInicio || tieneFechaFin) {
+            if (!tieneFechaInicio || !tieneFechaFin) {
+                throw new IllegalArgumentException("Para filtrar por fecha debes enviar tanto 'fechaInicio' como 'fechaFin'.");
+            }
+            inicio = parseFecha(fechaInicio, "fechaInicio");
+            fin = parseFecha(fechaFin, "fechaFin");
+
+            if (fin.isBefore(inicio)) {
+                throw new IllegalArgumentException("El campo 'fechaFin' no puede ser anterior a 'fechaInicio'.");
+            }
         }
 
         int ciaFinal = (idCia != null && idCia > 0) ? idCia : DEFAULT_ID_CIA;
@@ -49,7 +70,7 @@ public class FirmaDigitalService {
                 ? tipoDocto.trim().toUpperCase()
                 : DEFAULT_TIPO_DOCTO;
 
-        return firmaDigitalRepository.consultarRequisicionesPorFecha(
+        return firmaDigitalRepository.consultarRequisiciones(
                 inicio,
                 fin,
                 consecDocto,

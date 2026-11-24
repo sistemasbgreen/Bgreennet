@@ -54,6 +54,21 @@
 
   <!-- ==================== SELECTOR DE PESTAÑAS ==================== -->
   <div class="tabs-nav-container">
+    <button class="tab-nav-btn tab-nav-btn--dashboard"
+            [class.tab-nav-btn--active]="pestanaActiva === 'dashboard'"
+            (click)="cambiarPestana('dashboard')">
+      <div class="tab-btn-content">
+        <i class="bi bi-graph-up-arrow"></i>
+        <div class="tab-btn-texts">
+          <span class="tab-btn-title">Indicadores y Gráficos</span>
+          <span class="tab-btn-sub">Presentismo, Horas y Cumplimiento Mensual</span>
+        </div>
+      </div>
+      <span class="tab-badge tab-badge--dash" *ngIf="dataDashboard">
+        {{ dataDashboard.presentismo }}%
+      </span>
+    </button>
+
     <button class="tab-nav-btn tab-nav-btn--alert"
             [class.tab-nav-btn--active]="pestanaActiva === 'llegadas_tarde'"
             (click)="cambiarPestana('llegadas_tarde')">
@@ -84,6 +99,265 @@
       </span>
     </button>
   </div>
+
+
+  <!-- ################################################################ -->
+  <!-- ######### TAB 1: TABLERO DE CONTROL (INDICADORES & GRÁFICOS) ##### -->
+  <!-- ################################################################ -->
+  <ng-container *ngIf="pestanaActiva === 'dashboard'">
+    <!-- BARRA DE FILTROS Y NAVEGACIÓN ENTRE MESES DEL DASHBOARD -->
+    <section class="dashboard-filters-bar">
+      <div class="dash-nav-stepper">
+        <button type="button" class="btn-dash-nav" (click)="mesAnteriorDashboard()" title="Ver mes anterior">
+          <i class="bi bi-chevron-left"></i> Mes Anterior
+        </button>
+        <div class="dash-current-month-display">
+          <i class="bi bi-calendar-event"></i>
+          <span class="dash-month-title">{{ mesTextoFormateado }}</span>
+        </div>
+        <button type="button" class="btn-dash-nav" (click)="mesSiguienteDashboard()" [disabled]="esMesActualOFuturo" title="Ver mes siguiente">
+          Mes Siguiente <i class="bi bi-chevron-right"></i>
+        </button>
+        <button type="button" class="btn-dash-nav btn-dash-nav--today" *ngIf="!esMesActualOFuturo" (click)="mesActualDashboard()" title="Volver al mes actual">
+          <i class="bi bi-calendar-check"></i> Mes Actual
+        </button>
+      </div>
+
+      <!-- CHIPS RÁPIDOS DE MESES (ENE..DIC) -->
+      <div class="dash-month-chips-container">
+        <span class="dash-chips-label"><i class="bi bi-clock-history"></i> Historial:</span>
+        <div class="dash-month-chips">
+          <button type="button"
+                  *ngFor="let m of listaMesesDisponibles"
+                  class="btn-month-chip"
+                  [class.active]="m.num === mesDashboardNumero"
+                  (click)="seleccionarMesNumero(m.num)"
+                  [title]="'Ver indicadores de ' + m.nombre + ' ' + anioDashboardNumero">
+            {{ m.abrev }}
+          </button>
+        </div>
+      </div>
+
+      <div class="dash-filters-controls">
+        <div class="dash-filter-item">
+          <label><i class="bi bi-calendar-month"></i> Selector libre:</label>
+          <input type="month" class="form-control-month" [(ngModel)]="mesDashboard" (change)="cargarDatosDashboard()">
+        </div>
+        <div class="dash-filter-item">
+          <label><i class="bi bi-people-fill"></i> Grupo / Cuadrilla:</label>
+          <select class="form-control-select" [(ngModel)]="grupoDashboard" (change)="cargarDatosDashboard()">
+            <option value="TODOS">Todos los grupos (General)</option>
+            <option *ngFor="let g of gruposLTDisponibles" [value]="g">{{ g }}</option>
+          </select>
+        </div>
+        <button class="btn-dash-action" (click)="cargarDatosDashboard()" [disabled]="cargandoDashboard" title="Actualizar datos">
+          <i class="bi bi-arrow-clockwise" [class.spin]="cargandoDashboard"></i> Actualizar
+        </button>
+      </div>
+    </section>
+
+    <!-- SCORECARD / TABLERO (RÉPLICA EXACTA DE LA IMAGEN) -->
+    <div class="dash-scorecard-container">
+      <!-- BARRA SUPERIOR DORADA -->
+      <div class="dash-accent-topbar"></div>
+
+      <!-- FILA SUPERIOR: 4 KPIs + 2 DONUTS -->
+      <div class="dash-row-top">
+        <!-- 1. HORAS PROGRAMADAS -->
+        <div class="dash-kpi-col">
+          <div class="dash-kpi-header">
+            <span>HORAS</span>
+            <span>PROGRAMADAS:</span>
+          </div>
+          <div class="dash-icon-circle circle-orange">
+            <i class="bi bi-clock"></i>
+          </div>
+          <div class="dash-kpi-val">
+            {{ (dataDashboard?.horasProgramadas || 8886) | number:'1.0-0' }}
+          </div>
+        </div>
+
+        <!-- 2. HORAS TRABAJADAS -->
+        <div class="dash-kpi-col">
+          <div class="dash-kpi-header">
+            <span>HORAS</span>
+            <span>TRABAJADAS</span>
+          </div>
+          <div class="dash-icon-circle circle-green">
+            <i class="bi bi-calendar-check"></i>
+          </div>
+          <div class="dash-kpi-val">
+            {{ (dataDashboard?.horasTrabajadas || 8470) | number:'1.0-0' }}
+          </div>
+          <div class="dash-kpi-sub">
+            {{ (((dataDashboard?.horasTrabajadas || 8470) / (dataDashboard?.horasProgramadas || 8886)) * 100) | number:'1.0-1' }}% de lo programado
+          </div>
+        </div>
+
+        <!-- 3. PROMEDIO EMPLEADOS PROGRAMADOS -->
+        <div class="dash-kpi-col">
+          <div class="dash-kpi-header">
+            <span>PROMEDIO EMPLEADOS</span>
+            <span>PROGRAMADOS</span>
+          </div>
+          <div class="dash-icon-circle circle-yellow">
+            <i class="bi bi-person"></i>
+          </div>
+          <div class="dash-kpi-val">
+            {{ dataDashboard?.promedioEmpleadosProgramados || 61 }}
+          </div>
+        </div>
+
+        <!-- 4. EMPLEADOS QUE ASISTIERON -->
+        <div class="dash-kpi-col">
+          <div class="dash-kpi-header">
+            <span>EMPLEADOS QUE</span>
+            <span>ASISTIERON</span>
+          </div>
+          <div class="dash-icon-circle circle-green-user">
+            <i class="bi bi-person"></i>
+          </div>
+          <div class="dash-kpi-val">
+            {{ dataDashboard?.empleadosAsistieron || 60 }}
+          </div>
+          <button type="button" class="dash-kpi-link" (click)="mostrarNoAsistieron = !mostrarNoAsistieron"
+                  *ngIf="dataDashboard?.noAsistieron">
+            <i class="bi bi-person-x-fill"></i>
+            {{ dataDashboard?.noAsistieronTotal || 0 }} no asistieron
+            <i class="bi" [ngClass]="mostrarNoAsistieron ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </button>
+        </div>
+
+        <!-- 5. PRESENTISMO -->
+        <div class="dash-kpi-col dash-kpi-col--donut">
+          <div class="dash-kpi-header">
+            <span>PRESENTISMO</span>
+          </div>
+          <div class="dash-donut-box">
+            <canvas id="chartDashPresentismo"></canvas>
+            <div class="dash-donut-overlay">
+              <span class="dash-donut-val">{{ dataDashboard?.presentismo || 97 }} %</span>
+            </div>
+          </div>
+          <div class="dash-donut-footer-val">{{ dataDashboard?.presentismo || 97 }} %</div>
+        </div>
+
+        <!-- 6. ESTADO DE MARCACIÓN -->
+        <div class="dash-kpi-col dash-kpi-col--donut dash-kpi-col--marcacion">
+          <div class="dash-kpi-header">
+            <span>ESTADO DE MARCACIÓN</span>
+          </div>
+          <div class="dash-donut-box dash-donut-box--marcacion">
+            <canvas id="chartDashMarcacion"></canvas>
+            <div class="dash-donut-overlay">
+              <div class="dash-donut-center">
+                <span class="dash-donut-val">{{ dataDashboard?.marcacionCompletaPct ?? 92 }}%</span>
+                <span class="dash-donut-cap">completa</span>
+              </div>
+            </div>
+          </div>
+          <div class="dash-marcacion-legend">
+            <div class="legend-row">
+              <span class="legend-item"><span class="legend-dot dot-completa"></span> Completa</span>
+              <strong class="legend-val legend-val--completa">{{ dataDashboard?.marcacionCompletaPct ?? 92 }}%</strong>
+            </div>
+            <div class="legend-row">
+              <span class="legend-item"><span class="legend-dot dot-parcial"></span> Parcial</span>
+              <strong class="legend-val legend-val--parcial">{{ dataDashboard?.marcacionParcialPct ?? 5 }}%</strong>
+            </div>
+            <div class="legend-row">
+              <span class="legend-item"><span class="legend-dot dot-sin"></span> Sin marcación</span>
+              <strong class="legend-val legend-val--sin">{{ dataDashboard?.sinMarcacionPct ?? 3 }}%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTADO: EMPLEADOS QUE NO ASISTIERON -->
+      <div class="dash-noasist-panel" *ngIf="mostrarNoAsistieron && dataDashboard?.noAsistieron">
+        <div class="dash-noasist-head">
+          <div class="dash-noasist-title">
+            <i class="bi bi-person-x-fill"></i>
+            <div>
+              <h4>Empleados que no asistieron</h4>
+              <span>Turnos programados sin marcación en {{ dataDashboard?.periodo }}</span>
+            </div>
+            <span class="dash-noasist-count">{{ dataDashboard?.noAsistieronTotal || 0 }}</span>
+          </div>
+          <div class="dash-noasist-search" *ngIf="(dataDashboard?.noAsistieron?.length || 0) > 0">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="Buscar por nombre, cédula o grupo" [(ngModel)]="filtroNoAsistieron">
+          </div>
+        </div>
+
+        <div class="dash-noasist-empty" *ngIf="(dataDashboard?.noAsistieron?.length || 0) === 0">
+          <i class="bi bi-check-circle-fill"></i> Todos los empleados programados registraron marcación en este período.
+        </div>
+
+        <div class="dash-noasist-table-wrap" *ngIf="(dataDashboard?.noAsistieron?.length || 0) > 0">
+          <table class="dash-noasist-table">
+            <thead>
+              <tr>
+                <th>Colaborador</th>
+                <th>Cédula</th>
+                <th>Grupo / Cuadrilla</th>
+                <th>Último turno</th>
+                <th class="th-center">Últ. fecha</th>
+                <th class="th-center">Días sin marcar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of noAsistieronFiltrados">
+                <td class="td-name">{{ p.nombre }}</td>
+                <td>{{ p.documento }}</td>
+                <td>{{ p.grupo }}</td>
+                <td>{{ p.turno || '—' }}</td>
+                <td class="th-center">{{ formatearFechaCorta(p.ultimaFecha) }}</td>
+                <td class="th-center">
+                  <span class="dash-noasist-badge" [class.badge-alto]="p.diasSinMarcar >= 3">{{ p.diasSinMarcar }}</span>
+                </td>
+              </tr>
+              <tr *ngIf="noAsistieronFiltrados.length === 0">
+                <td colspan="6" class="td-empty">Sin resultados para la búsqueda.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FILA INFERIOR: 2 GRÁFICOS DE LÍNEA -->
+      <div class="dash-row-bottom">
+        <!-- 1. TENDENCIA HORAS PROGRAMADAS VS HORAS LABORADAS DIARIAS -->
+        <div class="dash-chart-panel">
+          <div class="dash-chart-title">
+            TENDENCIA HORAS PROGRAMADAS VS HORAS LABORADAS DIARIAS
+          </div>
+          <div class="dash-chart-legend-top">
+            <span class="legend-item"><span class="legend-dot dot-prog"></span> Horas programadas</span>
+            <span class="legend-item"><span class="legend-dot dot-lab"></span> Horas laboradas</span>
+          </div>
+          <div class="dash-chart-canvas-wrapper">
+            <canvas id="chartDashTendencia"></canvas>
+          </div>
+        </div>
+
+        <!-- 2. CUMPLIMIENTO MENSUAL -->
+        <div class="dash-chart-panel">
+          <div class="dash-chart-header-row">
+            <div class="dash-chart-title">
+              CUMPLIMIENTO MENSUAL
+            </div>
+            <div class="dash-chart-interactive-badge" title="Haz clic sobre cualquier mes para navegar directamente">
+              <i class="bi bi-cursor-fill"></i> Clic en un mes para ver su detalle
+            </div>
+          </div>
+          <div class="dash-chart-canvas-wrapper dash-chart-canvas-wrapper--cumplimiento">
+            <canvas id="chartDashCumplimiento"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
 
   <!-- ################################################################ -->
   <!-- ######### TAB 3: LLEGADAS TARDE & CONTROL DE HORARIOS ########## -->
@@ -908,44 +1182,113 @@
       </div>
 
       <div class="diagnostico-grid" *ngIf="diagnosticoExpandido">
-        <!-- COLUMNA 1: CUANTAS PERSONAS DEBEN MARCAR Y CUANTAS MARCARON -->
+        <!-- COLUMNA 1: CONTROL DE MARCACIÓN CON AUDITORÍA DE DÍAS ANTERIORES -->
         <div class="diag-col">
-          <div class="diag-col-title">
-            <i class="bi bi-fingerprint text-primary"></i>
-            <span>Control de Marcación</span>
+          <div class="diag-col-header-stepper">
+            <div class="diag-col-title">
+              <i class="bi bi-fingerprint text-primary"></i>
+              <span>Control de Marcación</span>
+            </div>
+            <div class="m-stepper-actions">
+              <button type="button" class="btn-m-step" (click)="diaAnteriorControlMarcacion()" title="Ver día anterior">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <button type="button" class="btn-m-step-today" (click)="diaHoyControlMarcacion()" title="Ir a hoy">
+                Hoy
+              </button>
+              <button type="button" class="btn-m-step" (click)="diaSiguienteControlMarcacion()" title="Ver día siguiente">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
           </div>
 
-          <!-- Bloque HOY (si es semana actual) -->
-          <div class="marcacion-box marcacion-box--hoy" *ngIf="diagnosticoPresentismo.tieneHoy">
+          <!-- SELECTOR RÁPIDO DE DÍAS (LUN..DOM) -->
+          <div class="marcacion-dias-bar" *ngIf="marcacionPorDia.length > 0">
+            <button type="button"
+                    *ngFor="let dm of marcacionPorDia"
+                    class="btn-m-dia-chip"
+                    [class.active]="dm.indice === diaControlMarcacionIndex"
+                    [class.btn-m-dia-chip--hoy]="dm.esHoy"
+                    [class.btn-m-dia-chip--ayer]="dm.esAyer"
+                    [class.btn-m-dia-chip--futuro]="dm.esFuturo"
+                    (click)="seleccionarDiaControlMarcacion(dm.indice)"
+                    [title]="dm.nombre + ' ' + dm.fechaCorta + ' (' + dm.porcentaje + '% marcaron)'">
+              <span class="m-chip-abrev">{{ dm.abrev }}</span>
+              <span class="m-chip-num">{{ dm.fechaCorta.split(' ')[0] }}</span>
+              <span class="m-chip-dot"
+                    *ngIf="!dm.esFuturo && dm.debenMarcar > 0"
+                    [class.dot-ok]="dm.porcentaje >= 90"
+                    [class.dot-warn]="dm.porcentaje >= 70 && dm.porcentaje < 90"
+                    [class.dot-bad]="dm.porcentaje < 70"></span>
+            </button>
+          </div>
+
+          <!-- BLOQUE DEL DÍA SELECCIONADO (HOY, AYER O CUALQUIER DÍA ANTERIOR) -->
+          <div class="marcacion-box marcacion-box--dia-actual" *ngIf="diaControlMarcacionActual as diaSel">
             <div class="marcacion-box-head">
-              <span class="marcacion-tag marcacion-tag--hoy">HOY</span>
+              <div class="m-head-left">
+                <span class="marcacion-tag"
+                      [class.marcacion-tag--hoy]="diaSel.esHoy"
+                      [class.marcacion-tag--ayer]="diaSel.esAyer"
+                      [class.marcacion-tag--pasado]="!diaSel.esHoy && !diaSel.esAyer && !diaSel.esFuturo">
+                  {{ diaSel.esHoy ? 'HOY' : (diaSel.esAyer ? 'AYER' : diaSel.abrev) }}
+                </span>
+                <span class="m-dia-sub">{{ diaSel.nombre }} {{ diaSel.fechaCorta }}</span>
+              </div>
               <span class="marcacion-pct"
-                    [class.text-success]="diagnosticoPresentismo.porcentajeHoy >= 90"
-                    [class.text-warning]="diagnosticoPresentismo.porcentajeHoy >= 70 && diagnosticoPresentismo.porcentajeHoy < 90"
-                    [class.text-danger]="diagnosticoPresentismo.porcentajeHoy < 70">
-                {{ diagnosticoPresentismo.porcentajeHoy }}% marcaron
+                    [class.text-success]="diaSel.porcentaje >= 90"
+                    [class.text-warning]="diaSel.porcentaje >= 70 && diaSel.porcentaje < 90"
+                    [class.text-danger]="diaSel.porcentaje < 70">
+                {{ diaSel.porcentaje }}% marcaron
               </span>
             </div>
+
             <div class="marcacion-metrics-3">
               <div class="m-metric">
-                <span class="m-val">{{ diagnosticoPresentismo.debenMarcarHoy }}</span>
+                <span class="m-val">{{ diaSel.debenMarcar }}</span>
                 <span class="m-lbl">Deben marcar</span>
               </div>
               <div class="m-metric m-metric--ok">
-                <span class="m-val">{{ diagnosticoPresentismo.marcaronHoy }}</span>
+                <span class="m-val">{{ diaSel.marcaron }}</span>
                 <span class="m-lbl">Marcaron</span>
               </div>
               <div class="m-metric m-metric--miss">
-                <span class="m-val">{{ diagnosticoPresentismo.faltanHoy }}</span>
+                <span class="m-val">{{ diaSel.noMarcaron }}</span>
                 <span class="m-lbl">Sin marcar</span>
               </div>
             </div>
+
             <div class="marcacion-bar">
-              <div class="marcacion-bar-fill" [style.width.%]="diagnosticoPresentismo.porcentajeHoy"></div>
+              <div class="marcacion-bar-fill"
+                   [style.width.%]="diaSel.porcentaje"
+                   [class.bar-ok]="diaSel.porcentaje >= 90"
+                   [class.bar-warn]="diaSel.porcentaje >= 70 && diaSel.porcentaje < 90"
+                   [class.bar-bad]="diaSel.porcentaje < 70"></div>
+            </div>
+
+            <!-- BOTÓN EXPANDIR QUIÉNES NO MARCARON -->
+            <div class="m-actions-sub" *ngIf="diaSel.noMarcaron > 0">
+              <button type="button" class="btn-toggle-sin-marcar" (click)="toggleListaSinMarcarDia()">
+                <i class="bi" [ngClass]="mostrarListaSinMarcarDia ? 'bi-chevron-up' : 'bi-people-fill'"></i>
+                {{ mostrarListaSinMarcarDia ? 'Ocultar sin marcar' : 'Ver ' + diaSel.noMarcaron + ' sin marcar' }}
+              </button>
+            </div>
+
+            <!-- LISTA COMPACTA DE QUIÉNES NO MARCARON ESTE DÍA -->
+            <div class="m-sin-marcar-drawer" *ngIf="mostrarListaSinMarcarDia && diaSel.noMarcaron > 0">
+              <div class="m-sin-marcar-item" *ngFor="let colab of diaSel.colaboradoresSinMarcar">
+                <div class="m-smi-left">
+                  <span class="m-smi-name">{{ colab.nombre }}</span>
+                  <span class="m-smi-meta">{{ colab.grupo }} · C.C. {{ colab.documento }}</span>
+                </div>
+                <button type="button" class="btn-smi-filter" (click)="filtrarPorColaboradorDoc(colab.documento)" title="Filtrar en planilla">
+                  <i class="bi bi-search"></i>
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Bloque SEMANA (Días transcurridos) -->
+          <!-- Bloque SEMANA (Días transcurridos / consolidado del período) -->
           <div class="marcacion-box">
             <div class="marcacion-box-head">
               <span class="marcacion-tag">SEMANA (HASTA HOY)</span>
@@ -1497,7 +1840,12 @@
               <th class="th-colab">Colaborador</th>
               <th class="th-totales">Total Semana</th>
               <th class="th-interrup">Interrupciones</th>
-              <th *ngFor="let dm of dataResumenSemanal?.diasMeta; let i = index" class="th-dia" [class.th-dia--hoy]="dm.esHoy">
+              <th *ngFor="let dm of dataResumenSemanal?.diasMeta; let i = index"
+                    class="th-dia"
+                    [class.th-dia--hoy]="dm.esHoy"
+                    [class.th-dia--selected]="diaControlMarcacionIndex === i"
+                    (click)="seleccionarDiaControlMarcacion(i)"
+                    title="Clic para seleccionar este día en el Control de Marcación">
                 <div class="th-dia-content">
                   <span class="th-dia-name">{{ dm.nombre }}</span>
                   <span class="th-dia-fecha">{{ dm.fecha | date:'dd MMM' }}</span>

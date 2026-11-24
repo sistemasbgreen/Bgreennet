@@ -1409,20 +1409,22 @@
                 </div>
               </div>
 
-              <!-- Gráfico 4: Ranking de Puntualidad del Equipo (Líderes) -->
-              <div class="pfv-stats-card card-span-2" *ngIf="areaSeleccionadaPresentismo && rankingColaboradoresArea.length > 0">
+              <!-- Gráfica 4A: Gráfica de Línea - Tiempos de Entrada de los Usuarios del Equipo (Hora en Eje Y vs Días en Eje X) -->
+              <div class="pfv-stats-card card-span-2" *ngIf="areaSeleccionadaPresentismo && seriesTiemposEquipoPorDia.length > 0">
                 <div class="stats-card-header">
                   <div class="sch-left">
-                    <div class="sch-icon icon-ranking"><i class="bi bi-trophy-fill"></i></div>
+                    <div class="sch-icon icon-trend"><i class="bi bi-box-arrow-in-right"></i></div>
                     <div>
-                      <h4 class="sch-title">Ranking de Puntualidad y Cumplimiento del Equipo</h4>
+                      <h4 class="sch-title">Tiempos de Entrada de los Usuarios del Equipo (Gráfica de Línea)</h4>
                       <p class="sch-sub">
-                        Área: <strong>{{ areaSeleccionadaPresentismo.nombreArea }}</strong> ({{ rankingColaboradoresArea.length }} colaboradores) &bull; Período: <strong>{{ nombreMesPresentismo }} (Mes Completo)</strong> &bull; Haz clic en cualquier colaborador para inspeccionar su calendario
+                        Área: <strong>{{ areaSeleccionadaPresentismo.nombreArea }}</strong> ({{ seriesTiemposEquipoPorDia.length }} colaboradores) &bull; Eje Y: Hora de Entrada &bull; Eje X: Días de <strong>{{ nombreMesPresentismo }}</strong>
                       </p>
                     </div>
                   </div>
-                  <div class="sch-right">
-                    <span class="badge-real-data" *ngIf="!cargandoDatosAreaBiometrico" title="Métricas extraídas directamente de las marcaciones biométricas reales">
+                  <div class="sch-badges">
+                    <span class="sch-badge badge-puntual"><span class="dot-ok"></span> 07:30 Puntual</span>
+                    <span class="sch-badge badge-gabela"><span class="dot-warn"></span> 07:35 Gabela</span>
+                    <span class="badge-real-data" *ngIf="!cargandoDatosAreaBiometrico">
                       <i class="bi bi-shield-check"></i> Biométrico Real
                     </span>
                     <span class="badge-real-data badge-loading" *ngIf="cargandoDatosAreaBiometrico">
@@ -1431,73 +1433,199 @@
                   </div>
                 </div>
 
-                <div class="ranking-table-responsive">
-                  <table class="ranking-table">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Colaborador</th>
-                        <th>Cargo</th>
-                        <th>Puntualidad</th>
-                        <th>Días Asistidos</th>
-                        <th>Llegadas Tardes</th>
-                        <th>Salidas Tardes (&gt; 5:40 PM)</th>
-                        <th>Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngFor="let colab of rankingColaboradoresArea; let i = index"
-                          (click)="seleccionarColaboradorDesdeRanking(colab)"
-                          class="rank-row-clickable"
-                          title="Clic para abrir el calendario y detalle biométrico de {{ colab.nombre }}">
-                        <td class="rank-pos">
-                          <span class="rank-badge" [class.pos-1]="i === 0" [class.pos-2]="i === 1" [class.pos-3]="i === 2">
-                            <span *ngIf="i === 0">🥇</span>
-                            <span *ngIf="i === 1">🥈</span>
-                            <span *ngIf="i === 2">🥉</span>
-                            <span *ngIf="i > 2">{{ i + 1 }}</span>
-                          </span>
-                        </td>
-                        <td class="rank-name">
-                          <strong>{{ colab.nombre }}</strong>
-                          <span class="rank-doc-sub" *ngIf="colab.cedula">CC {{ colab.cedula }}</span>
-                        </td>
-                        <td class="rank-cargo">{{ colab.cargo }}</td>
-                        <td>
-                          <span class="rank-pill" [class.pill-ok]="colab.porcentajePuntualidad >= 90" [class.pill-warn]="colab.porcentajePuntualidad < 90 && colab.porcentajePuntualidad >= 80" [class.pill-bad]="colab.porcentajePuntualidad < 80">
-                            {{ colab.porcentajePuntualidad }}%
-                          </span>
-                        </td>
-                        <td>
-                          <div class="rank-asistidos-group">
-                            <strong class="text-primary font-bold">{{ colab.diasAsistidos }}</strong>
-                            <span class="rank-habiles-sub">/ {{ diasHabilesMesTotal }} días</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span *ngIf="colab.llegadasTarde === 0" class="badge-pill-zero">
-                            <i class="bi bi-check2"></i> 0
-                          </span>
-                          <span *ngIf="colab.llegadasTarde > 0" class="badge-pill-tardes text-danger font-bold">
-                            <i class="bi bi-alarm-fill"></i> {{ colab.llegadasTarde }} (+{{ colab.minutosTarde }} min)
-                          </span>
-                        </td>
-                        <td>
-                          <span *ngIf="(colab.salidasTardes || 0) === 0" class="badge-pill-zero">
-                            <i class="bi bi-check2"></i> 0
-                          </span>
-                          <span *ngIf="(colab.salidasTardes || 0) > 0" class="badge-pill-salida-tarde text-danger font-bold">
-                            <i class="bi bi-box-arrow-right"></i> {{ colab.salidasTardes }}
-                          </span>
-                        </td>
-                        <td class="rank-action">
-                          <button type="button" class="btn-rank-inspect" title="Ver calendario detallado">
-                            <i class="bi bi-calendar3"></i> Ver
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <!-- Leyenda interactiva de usuarios -->
+                <div class="team-lines-legend">
+                  <button type="button"
+                          class="team-legend-chip"
+                          [class.chip-active]="usuarioDestacadoGraficaEquipo === null"
+                          (click)="toggleUsuarioDestacadoGrafica(null)">
+                    Todos ({{ seriesTiemposEquipoPorDia.length }})
+                  </button>
+                  <button type="button"
+                          *ngFor="let s of seriesTiemposEquipoPorDia"
+                          class="team-legend-chip"
+                          [class.chip-active]="usuarioDestacadoGraficaEquipo === s.cedula"
+                          [class.chip-dimmed]="usuarioDestacadoGraficaEquipo !== null && usuarioDestacadoGraficaEquipo !== s.cedula"
+                          (click)="toggleUsuarioDestacadoGrafica(s.cedula)"
+                          [title]="s.nombre + ' (' + s.cargo + ') - Clic para resaltar su línea'">
+                    <span class="team-legend-dot" [style.background]="s.color"></span>
+                    <span>{{ s.nombreCorto }}</span>
+                  </button>
+                </div>
+
+                <!-- SVG Gráfica de Línea: Entrada de Usuarios (Eje Y: Hora, Eje X: Días) -->
+                <div class="scatter-chart-wrap">
+                  <svg viewBox="0 0 1000 265" class="scatter-svg-chart">
+                    <!-- Eje Y: Horas de Entrada -->
+                    <line x1="55" y1="25" x2="980" y2="25" stroke="#f1f5f9" stroke-width="1" />
+                    <text x="50" y="29" text-anchor="end" class="scatter-axis-text">08:30</text>
+
+                    <line x1="55" y1="70" x2="980" y2="70" stroke="#f1f5f9" stroke-width="1" />
+                    <text x="50" y="74" text-anchor="end" class="scatter-axis-text">08:00</text>
+
+                    <!-- Línea de Gabela (07:35 AM) -->
+                    <line x1="55" y1="125" x2="980" y2="125" stroke="#eab308" stroke-width="1.5" stroke-dasharray="4,4" />
+                    <text x="50" y="129" text-anchor="end" class="scatter-axis-text axis-warn">07:35</text>
+
+                    <!-- Línea Puntual (07:30 AM) -->
+                    <line x1="55" y1="150" x2="980" y2="150" stroke="#16a34a" stroke-width="2" />
+                    <text x="50" y="154" text-anchor="end" class="scatter-axis-text axis-ok">07:30</text>
+
+                    <!-- Línea Base (07:00 AM) -->
+                    <line x1="55" y1="205" x2="980" y2="205" stroke="#cbd5e1" stroke-width="1.5" />
+                    <text x="50" y="209" text-anchor="end" class="scatter-axis-text">07:00</text>
+
+                    <!-- Guías verticales y etiquetas de días en el Eje X -->
+                    <g *ngFor="let dX of diasEjeXGraficasEquipo">
+                      <line [attr.x1]="dX.cx" y1="25" [attr.x2]="dX.cx" y2="205" stroke="#f8fafc" stroke-width="1" />
+                      <text [attr.x]="dX.cx" y="224" text-anchor="middle" class="scatter-day-text">{{ dX.dia }}</text>
+                      <text [attr.x]="dX.cx" y="239" text-anchor="middle" class="scatter-weekday-text">
+                        <title>{{ dX.diaSemanaNombre }}</title>
+                        {{ dX.diaSemanaLetra }}
+                      </text>
+                    </g>
+
+                    <!-- Líneas y puntos de cada usuario del equipo -->
+                    <g *ngFor="let s of seriesTiemposEquipoPorDia"
+                       [attr.opacity]="usuarioDestacadoGraficaEquipo === null || usuarioDestacadoGraficaEquipo === s.cedula ? 1 : 0.15">
+                      <polyline *ngIf="s.polylineEntrada"
+                                [attr.points]="s.polylineEntrada"
+                                fill="none"
+                                [attr.stroke]="s.color"
+                                [attr.stroke-width]="usuarioDestacadoGraficaEquipo === s.cedula ? 3.2 : 2.2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round" />
+
+                      <g *ngFor="let p of s.puntosEntrada">
+                        <circle [attr.cx]="p.cx"
+                                [attr.cy]="p.cy"
+                                [attr.r]="usuarioDestacadoGraficaEquipo === s.cedula ? 5.5 : 4"
+                                [attr.fill]="s.color"
+                                stroke="#ffffff"
+                                stroke-width="1.8"
+                                class="scatter-point-node"
+                                (click)="seleccionarColaboradorPorCedula(s.cedula)">
+                          <title>{{ s.nombre }} · Día {{ p.dia }} · Entrada: {{ p.horaCorta }}</title>
+                        </circle>
+                        <text *ngIf="usuarioDestacadoGraficaEquipo === s.cedula || seriesTiemposEquipoPorDia.length <= 3"
+                              [attr.x]="p.cx"
+                              [attr.y]="p.cy - 9"
+                              text-anchor="middle"
+                              class="scatter-hour-badge"
+                              [attr.fill]="s.color">{{ p.horaCorta }}</text>
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Gráfica 4B: Gráfica de Línea - Tiempos de Salida de los Usuarios del Equipo (Hora en Eje Y vs Días en Eje X) -->
+              <div class="pfv-stats-card card-span-2" *ngIf="areaSeleccionadaPresentismo && seriesTiemposEquipoPorDia.length > 0">
+                <div class="stats-card-header">
+                  <div class="sch-left">
+                    <div class="sch-icon icon-trend-out"><i class="bi bi-box-arrow-right"></i></div>
+                    <div>
+                      <h4 class="sch-title">Tiempos de Salida de los Usuarios del Equipo (Gráfica de Línea)</h4>
+                      <p class="sch-sub">
+                        Área: <strong>{{ areaSeleccionadaPresentismo.nombreArea }}</strong> ({{ seriesTiemposEquipoPorDia.length }} colaboradores) &bull; Eje Y: Hora de Salida &bull; Eje X: Días de <strong>{{ nombreMesPresentismo }}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <div class="sch-badges">
+                    <span class="sch-badge badge-normal"><span class="dot-ok"></span> 17:30 Pactada</span>
+                    <span class="sch-badge badge-post"><span class="dot-warn"></span> 17:40 Post</span>
+                    <span class="badge-real-data" *ngIf="!cargandoDatosAreaBiometrico">
+                      <i class="bi bi-shield-check"></i> Biométrico Real
+                    </span>
+                    <span class="badge-real-data badge-loading" *ngIf="cargandoDatosAreaBiometrico">
+                      <i class="bi bi-arrow-repeat spin"></i> Consultando...
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Leyenda interactiva de usuarios -->
+                <div class="team-lines-legend">
+                  <button type="button"
+                          class="team-legend-chip"
+                          [class.chip-active]="usuarioDestacadoGraficaEquipo === null"
+                          (click)="toggleUsuarioDestacadoGrafica(null)">
+                    Todos ({{ seriesTiemposEquipoPorDia.length }})
+                  </button>
+                  <button type="button"
+                          *ngFor="let s of seriesTiemposEquipoPorDia"
+                          class="team-legend-chip"
+                          [class.chip-active]="usuarioDestacadoGraficaEquipo === s.cedula"
+                          [class.chip-dimmed]="usuarioDestacadoGraficaEquipo !== null && usuarioDestacadoGraficaEquipo !== s.cedula"
+                          (click)="toggleUsuarioDestacadoGrafica(s.cedula)"
+                          [title]="s.nombre + ' (' + s.cargo + ') - Clic para resaltar su línea'">
+                    <span class="team-legend-dot" [style.background]="s.color"></span>
+                    <span>{{ s.nombreCorto }}</span>
+                  </button>
+                </div>
+
+                <!-- SVG Gráfica de Línea: Salida de Usuarios (Eje Y: Hora, Eje X: Días) -->
+                <div class="scatter-chart-wrap">
+                  <svg viewBox="0 0 1000 265" class="scatter-svg-chart">
+                    <!-- Eje Y: Horas de Salida -->
+                    <line x1="55" y1="25" x2="980" y2="25" stroke="#f1f5f9" stroke-width="1" />
+                    <text x="50" y="29" text-anchor="end" class="scatter-axis-text">19:30</text>
+
+                    <line x1="55" y1="70" x2="980" y2="70" stroke="#f1f5f9" stroke-width="1" />
+                    <text x="50" y="74" text-anchor="end" class="scatter-axis-text">18:30</text>
+
+                    <!-- Línea Límite Salida Post (17:40 PM) -->
+                    <line x1="55" y1="125" x2="980" y2="125" stroke="#eab308" stroke-width="1.5" stroke-dasharray="4,4" />
+                    <text x="50" y="129" text-anchor="end" class="scatter-axis-text axis-warn">17:40</text>
+
+                    <!-- Línea Salida Pactada (17:30 PM) -->
+                    <line x1="55" y1="155" x2="980" y2="155" stroke="#16a34a" stroke-width="2" />
+                    <text x="50" y="159" text-anchor="end" class="scatter-axis-text axis-ok">17:30</text>
+
+                    <!-- Línea Base / Anticipada (17:00 PM) -->
+                    <line x1="55" y1="205" x2="980" y2="205" stroke="#cbd5e1" stroke-width="1.5" />
+                    <text x="50" y="209" text-anchor="end" class="scatter-axis-text axis-bad">17:00</text>
+
+                    <!-- Guías verticales y etiquetas de días en el Eje X -->
+                    <g *ngFor="let dX of diasEjeXGraficasEquipo">
+                      <line [attr.x1]="dX.cx" y1="25" [attr.x2]="dX.cx" y2="205" stroke="#f8fafc" stroke-width="1" />
+                      <text [attr.x]="dX.cx" y="224" text-anchor="middle" class="scatter-day-text">{{ dX.dia }}</text>
+                      <text [attr.x]="dX.cx" y="239" text-anchor="middle" class="scatter-weekday-text">
+                        <title>{{ dX.diaSemanaNombre }}</title>
+                        {{ dX.diaSemanaLetra }}
+                      </text>
+                    </g>
+
+                    <!-- Líneas y puntos de salida de cada usuario del equipo -->
+                    <g *ngFor="let s of seriesTiemposEquipoPorDia"
+                       [attr.opacity]="usuarioDestacadoGraficaEquipo === null || usuarioDestacadoGraficaEquipo === s.cedula ? 1 : 0.15">
+                      <polyline *ngIf="s.polylineSalida"
+                                [attr.points]="s.polylineSalida"
+                                fill="none"
+                                [attr.stroke]="s.color"
+                                [attr.stroke-width]="usuarioDestacadoGraficaEquipo === s.cedula ? 3.2 : 2.2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round" />
+
+                      <g *ngFor="let p of s.puntosSalida">
+                        <circle [attr.cx]="p.cx"
+                                [attr.cy]="p.cy"
+                                [attr.r]="usuarioDestacadoGraficaEquipo === s.cedula ? 5.5 : 4"
+                                [attr.fill]="s.color"
+                                stroke="#ffffff"
+                                stroke-width="1.8"
+                                class="scatter-point-node"
+                                (click)="seleccionarColaboradorPorCedula(s.cedula)">
+                          <title>{{ s.nombre }} · Día {{ p.dia }} · Salida: {{ p.horaCorta }}</title>
+                        </circle>
+                        <text *ngIf="usuarioDestacadoGraficaEquipo === s.cedula || seriesTiemposEquipoPorDia.length <= 3"
+                              [attr.x]="p.cx"
+                              [attr.y]="p.cy - 9"
+                              text-anchor="middle"
+                              class="scatter-hour-badge"
+                              [attr.fill]="s.color">{{ p.horaCorta }}</text>
+                      </g>
+                    </g>
+                  </svg>
                 </div>
               </div>
               </ng-container>
@@ -1913,3 +2041,25 @@
     </div><!-- /.presentismo-full-view-backdrop -->
   </main>
 </div>
+
+    <!-- Modal para Visualizar Soporte Adjunto (PDF o Imagen) -->
+    <div class="soporte-preview-backdrop" *ngIf="modalSoporteAbierto" (click)="cerrarModalSoporte()">
+      <div class="soporte-preview-card" (click)="$event.stopPropagation()">
+        <div class="spc-header">
+          <div class="spc-title-row">
+            <i class="bi" [ngClass]="soporteVisualizar?.tipo?.includes('pdf') || soporteVisualizar?.url?.startsWith('data:application/pdf') ? 'bi-file-earmark-pdf-fill text-danger' : 'bi-file-earmark-image-fill text-success'"></i>
+            <h4>{{ soporteVisualizar?.nombre || 'Soporte Adjunto' }}</h4>
+          </div>
+          <div class="spc-actions">
+            <a [href]="soporteVisualizar?.url" [download]="soporteVisualizar?.nombre" target="_blank" class="btn-spc-dl" title="Abrir en pestaña nueva o descargar">
+              <i class="bi bi-box-arrow-up-right"></i> Abrir
+            </a>
+            <button type="button" class="btn-spc-close" (click)="cerrarModalSoporte()" title="Cerrar"><i class="bi bi-x-lg"></i></button>
+          </div>
+        </div>
+        <div class="spc-body">
+          <iframe *ngIf="soporteVisualizar?.tipo?.includes('pdf') || soporteVisualizar?.url?.startsWith('data:application/pdf')" [src]="soporteVisualizar?.url" class="soporte-iframe" title="Vista previa PDF"></iframe>
+          <img *ngIf="!soporteVisualizar?.tipo?.includes('pdf') && !soporteVisualizar?.url?.startsWith('data:application/pdf')" [src]="soporteVisualizar?.url" alt="Soporte adjunto" class="soporte-img-preview" />
+        </div>
+      </div>
+    </div>

@@ -1,0 +1,731 @@
+<div class="items-modulo-container">
+
+  <!-- ==================== NOTIFICACIÓN FLOTANTE (TOAST) ==================== -->
+  <div class="toast-notification" *ngIf="mensajeToast">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ mensajeToast }}</span>
+  </div>
+
+  <!-- ==================== ENCABEZADO ==================== -->
+  <header class="modulo-header">
+    <div class="header-left">
+      <!-- Botón de Regresar -->
+      <button type="button" class="btn-regresar" (click)="regresar()" title="Regresar a la página anterior">
+        <i class="bi bi-arrow-left"></i>
+        <span>Regresar</span>
+      </button>
+
+      <div class="header-divider"></div>
+
+      <div class="header-icon-box">
+        <i class="bi bi-boxes"></i>
+      </div>
+      <div>
+        <h1 class="modulo-title">Módulo de Ítems</h1>
+        <p class="modulo-subtitle">Existencias y Costos en Bodega (Siesa UnoEE)</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Carrito de compras pequeño en la parte superior -->
+      <button class="btn-cart-header-sm" (click)="abrirRequisicion()" title="Arma tu Requisición">
+        <i class="bi bi-cart3"></i>
+        <span class="badge-cart-bubble" *ngIf="requisicion.length > 0">{{ requisicion.length }}</span>
+      </button>
+
+      <!-- Conmutador de Vista: Tarjetas / Tabla -->
+      <div class="view-mode-toggle" title="Cambiar modo de vista">
+        <button
+          type="button"
+          class="btn-toggle-view"
+          [class.active]="vistaModo === 'tarjetas'"
+          (click)="vistaModo = 'tarjetas'"
+        >
+          <i class="bi bi-grid-fill"></i>
+          <span>Tarjetas</span>
+        </button>
+        <button
+          type="button"
+          class="btn-toggle-view"
+          [class.active]="vistaModo === 'tabla'"
+          (click)="vistaModo = 'tabla'"
+        >
+          <i class="bi bi-table"></i>
+          <span>Tabla</span>
+        </button>
+      </div>
+
+      <button class="btn btn-outline" (click)="consultarExistencias()" [disabled]="cargando" title="Recargar datos">
+        <i class="bi bi-arrow-clockwise" [class.spin]="cargando"></i>
+        <span>Actualizar</span>
+      </button>
+
+      <button class="btn btn-success" (click)="exportarCsv()" [disabled]="cargando || itemsFiltrados.length === 0" title="Descargar como archivo CSV para Excel">
+        <i class="bi bi-file-earmark-excel"></i>
+        <span>Exportar</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== TARJETAS DE RESUMEN (KPIS) ==================== -->
+  <section class="kpis-grid">
+    <div class="kpi-card card-total">
+      <div class="kpi-icon">
+        <i class="bi bi-collection"></i>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Ítems</span>
+        <span class="kpi-value">{{ resumen.totalItems | number }}</span>
+        <span class="kpi-subtext">Referencias en inventario</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-con-stock">
+      <div class="kpi-icon">
+        <i class="bi bi-check2-circle"></i>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Con Existencia</span>
+        <span class="kpi-value text-success">{{ resumen.itemsConStock | number }}</span>
+        <span class="kpi-subtext">Ítems con stock disponible</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-sin-stock">
+      <div class="kpi-icon">
+        <i class="bi bi-dash-circle"></i>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Sin Existencia</span>
+        <span class="kpi-value text-muted">{{ resumen.itemsSinStock | number }}</span>
+        <span class="kpi-subtext">Ítems con saldo cero</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-stock-total">
+      <div class="kpi-icon">
+        <i class="bi bi-box-seam"></i>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Unidades</span>
+        <span class="kpi-value text-primary">{{ resumen.totalStock | number:'1.0-2' }}</span>
+        <span class="kpi-subtext">Cantidad física total</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-valor-total">
+      <div class="kpi-icon">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Valor Total Inventario</span>
+        <span class="kpi-value text-emerald">$ {{ resumen.valorTotalInventario | number:'1.2-2' }}</span>
+        <span class="kpi-subtext">Costo total acumulado</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SELECTOR DE BODEGAS (CHIPS / PILLS) ==================== -->
+  <section class="bodegas-bar-card">
+    <div class="bodegas-bar-header">
+      <div class="bodegas-bar-title">
+        <i class="bi bi-buildings"></i>
+        <span>Seleccionar Bodega:</span>
+      </div>
+      <div class="bodegas-bar-options">
+        <span class="bodegas-active-summary" *ngIf="!modoSeleccionMultiple && bodegaSeleccionada !== 'TODAS'">
+          Bodega activa: <strong>{{ bodegaSeleccionada }}</strong>
+        </span>
+        <span class="bodegas-active-summary" *ngIf="modoSeleccionMultiple">
+          {{ bodegasMultiples.length }} bodega(s) seleccionada(s)
+        </span>
+        <span class="bodegas-active-summary" *ngIf="!modoSeleccionMultiple && bodegaSeleccionada === 'TODAS'">
+          Mostrando <strong>Todas las bodegas</strong>
+        </span>
+      </div>
+    </div>
+
+    <div class="bodegas-chips-list">
+      <!-- Opción: Todas las bodegas -->
+      <button
+        type="button"
+        class="bodega-chip"
+        [class.active]="!modoSeleccionMultiple && bodegaSeleccionada === 'TODAS'"
+        (click)="seleccionarBodega('TODAS')"
+      >
+        <i class="bi bi-grid"></i>
+        <span>Todas las Bodegas</span>
+      </button>
+
+      <!-- Chips de cada bodega disponible -->
+      <button
+        type="button"
+        *ngFor="let b of bodegas"
+        class="bodega-chip"
+        [class.active]="isBodegaActiva(b.id)"
+        (click)="seleccionarBodega(b.id)"
+        [title]="b.descripcion || b.id"
+      >
+        <i class="bi bi-geo-alt"></i>
+        <strong>{{ b.id }}</strong>
+        <span class="chip-desc" *ngIf="b.descripcion">{{ b.descripcion }}</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== BARRA DE FILTROS ==================== -->
+  <section class="filters-card">
+    <div class="filters-grid">
+      <!-- Buscador -->
+      <div class="filter-item search-filter">
+        <label class="filter-label">Buscar Ítem</label>
+        <div class="search-input-wrapper">
+          <i class="bi bi-search search-icon"></i>
+          <input
+            type="text"
+            class="form-control search-input"
+            placeholder="Buscar por ID, descripción o bodega..."
+            [(ngModel)]="busqueda"
+            (ngModelChange)="aplicarFiltros()"
+          />
+          <button *ngIf="busqueda" class="clear-btn" (click)="busqueda = ''; aplicarFiltros()" title="Limpiar búsqueda">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Selector Desplegable de Bodega -->
+      <div class="filter-item">
+        <label class="filter-label">Filtrar Bodega (Lista)</label>
+        <select
+          class="form-control"
+          [ngModel]="bodegaSeleccionada"
+          (ngModelChange)="seleccionarBodega($event)"
+          [disabled]="cargando"
+        >
+          <option value="TODAS">-- Todas las bodegas --</option>
+          <option *ngFor="let b of bodegas" [value]="b.id">
+            {{ b.id }} - {{ b.descripcion || 'Sin descripción' }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Filtro de Stock -->
+      <div class="filter-item">
+        <label class="filter-label">Estado de Stock</label>
+        <select
+          class="form-control"
+          [(ngModel)]="filtroStock"
+          (ngModelChange)="aplicarFiltros()"
+        >
+          <option value="todos">Todos los ítems</option>
+          <option value="con_stock">Solo con stock (&gt; 0)</option>
+          <option value="sin_stock">Sin stock (= 0)</option>
+          <option value="negativo">Stock negativo (&lt; 0)</option>
+        </select>
+      </div>
+
+      <!-- Ordenar por -->
+      <div class="filter-item">
+        <label class="filter-label">Ordenar por</label>
+        <select
+          class="form-control"
+          [ngModel]="columnaOrden"
+          (ngModelChange)="ordenarPor($event)"
+        >
+          <option value="itemId">ID Ítem</option>
+          <option value="descripcion">Descripción</option>
+          <option value="bodega">Bodega</option>
+          <option value="stockActual">Stock Actual</option>
+          <option value="valorTotalInventario">Valor Total</option>
+        </select>
+      </div>
+
+      <!-- Botón Limpiar Filtros -->
+      <div class="filter-item filter-btn-col">
+        <label class="filter-label">&nbsp;</label>
+        <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()" title="Restablecer filtros">
+          <i class="bi bi-funnel"></i> Limpiar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MENSAJE DE ERROR ==================== -->
+  <div *ngIf="error" class="alert-error-banner">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div class="alert-content">
+      <strong>Error:</strong> {{ error }}
+    </div>
+    <button class="btn-alert-retry" (click)="consultarExistencias()">Reintentar</button>
+  </div>
+
+  <!-- ==================== CONTENIDO PRINCIPAL: TARJETAS O TABLA ==================== -->
+  <section class="content-view-card">
+
+    <!-- Barra superior de estado -->
+    <div class="view-header-bar">
+      <div class="view-info">
+        <span>Mostrando <strong>{{ itemsFiltrados.length | number }}</strong> ítems</span>
+        <span *ngIf="itemsFiltrados.length !== items.length" class="text-muted">
+          (de {{ items.length | number }} totales cargados)
+        </span>
+        <span *ngIf="fechaConsulta" class="text-muted update-time">
+          • Actualizado: {{ fechaConsulta | date:'dd/MM/yyyy HH:mm:ss' }}
+        </span>
+      </div>
+
+      <!-- Selector de cantidad por página -->
+      <div class="pagination-size-selector">
+        <label>Por página:</label>
+        <select [ngModel]="itemsPorPagina" (ngModelChange)="cambiarItemsPorPagina($event)" class="form-control-sm">
+          <option *ngFor="let opt of itemsPorPaginaOpciones" [value]="opt">{{ opt }} ítems</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Spinner de carga -->
+    <div *ngIf="cargando" class="loading-state">
+      <div class="spinner"></div>
+      <p>Consultando existencias y costos en Siesa...</p>
+    </div>
+
+    <!-- ==================== VISTA POR TARJETICAS ==================== -->
+    <div *ngIf="!cargando && vistaModo === 'tarjetas' && itemsFiltrados.length > 0" class="cards-grid">
+      <div *ngFor="let it of itemsPaginados" class="item-card ic-card"
+           [class.card-in-requisicion]="estaEnRequisicion(it)"
+           [class.ic-card-ok]="(it.stockActual || 0) > 0"
+           [class.ic-card-zero]="(it.stockActual || 0) === 0"
+           [class.ic-card-neg]="(it.stockActual || 0) < 0">
+
+        <!-- Header de la tarjeta -->
+        <div class="ic-header">
+          <div class="ic-ids">
+            <button type="button" class="ic-code" (click)="copiarId(it.itemId)" [title]="'Clic para copiar: ' + it.itemId">
+              <span>#{{ it.itemId }}</span>
+              <i class="bi" [class.bi-copy]="copiadoItemId !== it.itemId" [class.bi-check-lg]="copiadoItemId === it.itemId"></i>
+            </button>
+            <span class="ic-bodega" [title]="it.nombreBodega || it.bodega">
+              <i class="bi bi-geo-alt-fill"></i>{{ it.bodega }}
+            </span>
+          </div>
+
+          <!-- Carrito pequeño para agregar -->
+          <button
+            type="button"
+            class="btn-cart-sm ic-cart"
+            [class.in-req]="estaEnRequisicion(it)"
+            (click)="agregarARequisicion(it)"
+            [title]="estaEnRequisicion(it) ? 'En requisición (' + getCantidadEnReq(it) + '). Clic para sumar' : 'Agregar a tu Requisición'"
+          >
+            <i class="bi" [class.bi-cart-plus]="!estaEnRequisicion(it)" [class.bi-cart-check-fill]="estaEnRequisicion(it)"></i>
+            <span class="cart-sm-count" *ngIf="estaEnRequisicion(it)">{{ getCantidadEnReq(it) }}</span>
+          </button>
+        </div>
+
+        <!-- Cuerpo: descripción y detalles -->
+        <div class="ic-body">
+          <h3 class="ic-title" [title]="it.descripcion">{{ it.descripcion }}</h3>
+          <p class="ic-subtitle" *ngIf="it.descripcionCorta && it.descripcionCorta !== it.descripcion" [title]="it.descripcionCorta">
+            {{ it.descripcionCorta }}
+          </p>
+
+          <div class="ic-meta">
+            <span class="ic-chip ic-chip-code" *ngIf="it.tipoInvServ" [title]="'Código tipo inv/serv: ' + it.tipoInvServ">
+              <i class="bi bi-upc"></i>{{ it.tipoInvServ }}
+            </span>
+            <span class="ic-chip ic-chip-tipo" *ngIf="it.descTipoInvServ" [title]="'Tipo: ' + it.descTipoInvServ">
+              <span class="ic-chip-text">{{ it.descTipoInvServ }}</span>
+            </span>
+          </div>
+
+          <div class="ic-location" *ngIf="it.nombreBodega" [title]="it.nombreBodega">
+            <i class="bi bi-building"></i>
+            <span>{{ it.nombreBodega }}</span>
+          </div>
+        </div>
+
+        <!-- Panel de stock -->
+        <div class="ic-stock"
+             [class.ic-ok]="(it.stockActual || 0) > 0"
+             [class.ic-zero]="(it.stockActual || 0) === 0"
+             [class.ic-neg]="(it.stockActual || 0) < 0">
+          <div class="ic-stock-left">
+            <span class="ic-stock-label">Disponible</span>
+            <span class="ic-stock-status">
+              <span class="ic-dot"></span>
+              <ng-container *ngIf="(it.stockActual || 0) > 0">En stock</ng-container>
+              <ng-container *ngIf="(it.stockActual || 0) === 0">Sin stock</ng-container>
+              <ng-container *ngIf="(it.stockActual || 0) < 0">Negativo</ng-container>
+            </span>
+          </div>
+          <div class="ic-stock-right">
+            <span class="ic-stock-num">{{ it.stockActual | number:'1.0-2' }}</span>
+            <span class="ic-stock-unit">{{ it.unidadInventario || 'UND' }}</span>
+          </div>
+        </div>
+
+        <!-- Costos -->
+        <div class="ic-costs">
+          <div class="ic-cost">
+            <span class="ic-cost-label"><i class="bi bi-tag"></i> Costo prom.</span>
+            <span class="ic-cost-val" [title]="'$ ' + (it.costoPromedio | number:'1.2-2')">$ {{ it.costoPromedio | number:'1.0-0' }}</span>
+          </div>
+          <div class="ic-cost ic-cost-total">
+            <span class="ic-cost-label"><i class="bi bi-cash-stack"></i> Valor total</span>
+            <span class="ic-cost-val" [title]="'$ ' + (it.valorTotalInventario | number:'1.2-2')">$ {{ it.valorTotalInventario | number:'1.0-0' }}</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== VISTA TABLA (ALTERNATIVA) ==================== -->
+    <div class="table-responsive" *ngIf="!cargando && vistaModo === 'tabla' && itemsFiltrados.length > 0">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th (click)="ordenarPor('cia')" class="th-sortable">
+              Cía <i class="bi" [class.bi-arrow-up]="columnaOrden === 'cia' && ordenAsc" [class.bi-arrow-down]="columnaOrden === 'cia' && !ordenAsc" [class.bi-arrow-down-up]="columnaOrden !== 'cia'"></i>
+            </th>
+            <th (click)="ordenarPor('itemId')" class="th-sortable">
+              ID Ítem <i class="bi" [class.bi-arrow-up]="columnaOrden === 'itemId' && ordenAsc" [class.bi-arrow-down]="columnaOrden === 'itemId' && !ordenAsc" [class.bi-arrow-down-up]="columnaOrden !== 'itemId'"></i>
+            </th>
+            <th (click)="ordenarPor('descripcion')" class="th-sortable th-desc">
+              Descripción <i class="bi" [class.bi-arrow-up]="columnaOrden === 'descripcion' && ordenAsc" [class.bi-arrow-down]="columnaOrden === 'descripcion' && !ordenAsc" [class.bi-arrow-down-up]="columnaOrden !== 'descripcion'"></i>
+            </th>
+            <th class="th-sortable">
+              Unidad / Tipo
+            </th>
+            <th (click)="ordenarPor('bodega')" class="th-sortable">
+              Bodega <i class="bi" [class.bi-arrow-up]="columnaOrden === 'bodega' && ordenAsc" [class.bi-arrow-down]="columnaOrden === 'bodega' && !ordenAsc" [class.bi-arrow-down-up]="columnaOrden !== 'bodega'"></i>
+            </th>
+            <th (click)="ordenarPor('stockActual')" class="th-sortable text-right">
+              Stock Actual <i class="bi" [class.bi-arrow-up]="columnaOrden === 'stockActual' && ordenAsc" [class.bi-arrow-down]="columnaOrden === 'stockActual' && !ordenAsc" [class.bi-arrow-down-up]="columnaOrden !== 'stockActual'"></i>
+            </th>
+            <th (click)="ordenarPor('costoPromedio')" class="th-sortable text-right">
+              Costo Promedio <i class="bi" [class.bi-arrow-up]="columnaOrden === 'costoPromedio' && ordenAsc" [class.bi-arrow-down]="columnaOrden === 'costoPromedio' && !ordenAsc" [class.bi-arrow-down-up]="columnaOrden !== 'costoPromedio'"></i>
+            </th>
+            <th (click)="ordenarPor('valorTotalInventario')" class="th-sortable text-right">
+              Valor Total <i class="bi" [class.bi-arrow-up]="columnaOrden === 'valorTotalInventario' && ordenAsc" [class.bi-arrow-down]="columnaOrden === 'valorTotalInventario' && !ordenAsc" [class.bi-arrow-down-up]="columnaOrden !== 'valorTotalInventario'"></i>
+            </th>
+            <th class="text-center">Requisición</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of itemsPaginados">
+            <td><span class="badge-cia">{{ it.cia }}</span></td>
+            <td><span class="badge-item-id">{{ it.itemId }}</span></td>
+            <td class="td-descripcion">
+              <span class="item-descripcion-text" [title]="it.descripcion">{{ it.descripcion }}</span>
+              <small class="d-block text-muted item-desc-sub" *ngIf="it.descripcionCorta">
+                <i class="bi bi-tag"></i> {{ it.descripcionCorta }}
+              </small>
+            </td>
+            <td>
+              <div class="unidad-tipo-cell">
+                <span class="badge-tag badge-unidad" *ngIf="it.unidadInventario">{{ it.unidadInventario }}</span>
+                <span class="badge-tag ic-chip-code" *ngIf="it.tipoInvServ" [title]="'Código tipo inv/serv'">{{ it.tipoInvServ }}</span>
+                <span class="badge-tag badge-tipo" *ngIf="it.descTipoInvServ" [title]="it.descTipoInvServ">
+                  {{ it.descTipoInvServ }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="bodega-cell">
+                <span class="badge-bodega">{{ it.bodega }}</span>
+                <span class="bodega-nombre" *ngIf="it.nombreBodega">{{ it.nombreBodega }}</span>
+              </div>
+            </td>
+            <td class="text-right">
+              <span class="stock-badge" [class.stock-positivo]="(it.stockActual || 0) > 0" [class.stock-cero]="(it.stockActual || 0) === 0" [class.stock-negativo]="(it.stockActual || 0) < 0">
+                {{ it.stockActual | number:'1.2-2' }}
+              </span>
+            </td>
+            <td class="text-right text-muted font-mono">$ {{ it.costoPromedio | number:'1.2-2' }}</td>
+            <td class="text-right font-mono font-weight-bold text-dark-green">$ {{ it.valorTotalInventario | number:'1.2-2' }}</td>
+            <td class="text-center">
+              <button
+                type="button"
+                class="btn-table-add-req"
+                [class.btn-table-in-req]="estaEnRequisicion(it)"
+                (click)="agregarARequisicion(it)"
+                title="Agregar a Requisición"
+              >
+                <i class="bi" [class.bi-cart-plus]="!estaEnRequisicion(it)" [class.bi-cart-check-fill]="estaEnRequisicion(it)"></i>
+                <span *ngIf="estaEnRequisicion(it)">({{ getCantidadEnReq(it) }})</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="tfoot-totals">
+            <td colspan="5" class="text-right font-weight-bold">Totales de ítems filtrados ({{ itemsFiltrados.length | number }} ítems):</td>
+            <td class="text-right font-weight-bold text-primary font-mono">{{ resumen.totalStock | number:'1.2-2' }}</td>
+            <td class="text-right text-muted font-mono">-</td>
+            <td class="text-right font-weight-bold text-emerald font-mono">$ {{ resumen.valorTotalInventario | number:'1.2-2' }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Estado vacío -->
+    <div *ngIf="!cargando && itemsFiltrados.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <i class="bi bi-inbox"></i>
+      </div>
+      <h3>No se encontraron ítems</h3>
+      <p *ngIf="busqueda || filtroStock !== 'todos' || filtroCia !== 'todas' || bodegaSeleccionada !== 'TODAS'">
+        No hay coincidencias con los filtros aplicados. Intente seleccionar otra bodega o limpiar los criterios de búsqueda.
+      </p>
+      <p *ngIf="!busqueda && filtroStock === 'todos' && filtroCia === 'todas' && bodegaSeleccionada === 'TODAS'">
+        No se encontraron registros de existencias en Siesa.
+      </p>
+      <button class="btn btn-outline" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+
+    <!-- Paginador -->
+    <div class="pagination-footer" *ngIf="!cargando && itemsFiltrados.length > 0">
+      <div class="pagination-info">
+        Página <strong>{{ paginaActual }}</strong> de <strong>{{ totalPaginas }}</strong>
+        <span class="text-muted">({{ itemsFiltrados.length | number }} ítems en total)</span>
+      </div>
+
+      <div class="pagination-buttons">
+        <button class="btn-page" [disabled]="paginaActual === 1" (click)="irAPagina(1)" title="Primera página">
+          <i class="bi bi-chevron-double-left"></i>
+        </button>
+        <button class="btn-page" [disabled]="paginaActual === 1" (click)="irAPagina(paginaActual - 1)" title="Página anterior">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+
+        <span class="page-indicator">{{ paginaActual }} / {{ totalPaginas }}</span>
+
+        <button class="btn-page" [disabled]="paginaActual >= totalPaginas" (click)="irAPagina(paginaActual + 1)" title="Página siguiente">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+        <button class="btn-page" [disabled]="paginaActual >= totalPaginas" (click)="irAPagina(totalPaginas)" title="Última página">
+          <i class="bi bi-chevron-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MODAL / DRAWER: ARMA TU REQUISICIÓN ==================== -->
+  <div class="requisicion-modal-backdrop" *ngIf="mostrarModalRequisicion" (click)="cerrarRequisicion()">
+    <div class="requisicion-modal-container" (click)="$event.stopPropagation()">
+
+      <!-- Encabezado del Modal -->
+      <div class="requisicion-modal-header">
+        <div class="req-header-left">
+          <div class="req-icon-circle">
+            <i class="bi bi-cart-check-fill"></i>
+          </div>
+          <div>
+            <h2 class="req-modal-title">Arma tu Requisición</h2>
+            <p class="req-modal-sub">Selección de ítems y validación de cantidad disponible</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="cerrarRequisicion()" title="Cerrar ventana">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Cuerpo del Modal -->
+      <div class="requisicion-modal-body">
+
+        <!-- NOTA DE LA REQUISICIÓN -->
+        <div class="requisicion-nota-box">
+          <div class="nota-box-header">
+            <i class="bi bi-info-circle-fill text-warning"></i>
+            <span class="nota-box-title">Nota importante:</span>
+          </div>
+          <p class="nota-box-static">
+            Esta opción solo te sirve para que armes tu requisición y lleves los ítems listos a Siesa, no te creará la requisición enseguida, solo es modo consulta.
+          </p>
+          <textarea
+            class="form-control nota-textarea"
+            [(ngModel)]="notaRequisicion"
+            rows="2"
+            placeholder="Observaciones o notas adicionales de la requisición..."
+          ></textarea>
+        </div>
+
+        <!-- Campos adicionales opcionales: Referencia y Centro de Costos -->
+        <div class="req-meta-row">
+          <div class="req-meta-col">
+            <label class="meta-label">Referencia / Destino:</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Ej: Mantenimiento Planta, Orden #102..."
+              [(ngModel)]="referenciaRequisicion"
+            />
+          </div>
+          <div class="req-meta-col">
+            <label class="meta-label">Centro de Costos:</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Ej: CC-01 Producción..."
+              [(ngModel)]="centroCostoRequisicion"
+            />
+          </div>
+        </div>
+
+        <!-- Estado vacío de la Requisición -->
+        <div *ngIf="requisicion.length === 0" class="req-empty-state">
+          <i class="bi bi-cart-x"></i>
+          <h4>Tu requisición está vacía</h4>
+          <p>Explora los ítems disponibles en las tarjetas y haz clic en <strong>"Agregar a Requisición"</strong> para armar tu solicitud.</p>
+          <button class="btn btn-success" (click)="cerrarRequisicion()">Explorar Ítems</button>
+        </div>
+
+        <!-- Lista de Ítems en la Requisición -->
+        <div *ngIf="requisicion.length > 0" class="req-items-list">
+          <div class="req-table-wrapper">
+            <table class="req-table">
+              <thead>
+                <tr>
+                  <th>Ítem / Descripción</th>
+                  <th>Bodega</th>
+                  <th class="text-right">Disponible</th>
+                  <th class="text-center">Cant. Solicitada</th>
+                  <th class="text-right">Costo Prom.</th>
+                  <th class="text-right">Subtotal</th>
+                  <th class="text-center"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of requisicion; let idx = index" [class.row-alerta-stock]="(r.cantidadSolicitada || 0) > (r.item.stockActual || 0)">
+                  <!-- Ítem y descripción -->
+                  <td>
+                    <div class="req-item-cell">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="req-item-id">{{ r.item.itemId }}</span>
+                        <span class="badge-tag badge-unidad" *ngIf="r.item.unidadInventario">{{ r.item.unidadInventario }}</span>
+                      </div>
+                      <span class="req-item-desc" [title]="r.item.descripcion">{{ r.item.descripcion }}</span>
+                      <small class="text-muted d-block" *ngIf="r.item.descripcionCorta">{{ r.item.descripcionCorta }}</small>
+                      <input
+                        type="text"
+                        class="req-obs-input"
+                        placeholder="Observación o especificación..."
+                        [(ngModel)]="r.observaciones"
+                      />
+                    </div>
+                  </td>
+
+                  <!-- Bodega -->
+                  <td>
+                    <span class="badge-bodega">{{ r.item.bodega }}</span>
+                    <small class="d-block text-muted" *ngIf="r.item.nombreBodega">{{ r.item.nombreBodega }}</small>
+                  </td>
+
+                  <!-- Cantidad Disponible (Stock Siesa) -->
+                  <td class="text-right">
+                    <span
+                      class="stock-badge"
+                      [class.stock-positivo]="(r.item.stockActual || 0) > 0"
+                      [class.stock-cero]="(r.item.stockActual || 0) === 0"
+                      [class.stock-negativo]="(r.item.stockActual || 0) < 0"
+                      title="Stock disponible actualmente en bodega"
+                    >
+                      {{ r.item.stockActual | number:'1.2-2' }}
+                    </span>
+                  </td>
+
+                  <!-- Cantidad Solicitada (Controles) -->
+                  <td class="text-center">
+                    <div class="req-qty-control">
+                      <button
+                        type="button"
+                        class="btn-qty"
+                        (click)="cambiarCantidadReq(r, -1)"
+                        [disabled]="r.cantidadSolicitada <= 1"
+                        title="Disminuir"
+                      >−</button>
+                      <input
+                        type="number"
+                        min="1"
+                        class="input-qty"
+                        [(ngModel)]="r.cantidadSolicitada"
+                      />
+                      <button
+                        type="button"
+                        class="btn-qty"
+                        (click)="cambiarCantidadReq(r, 1)"
+                        title="Aumentar"
+                      >+</button>
+                    </div>
+
+                    <!-- Alerta si supera la cantidad disponible -->
+                    <div class="qty-warning" *ngIf="(r.cantidadSolicitada || 0) > (r.item.stockActual || 0)">
+                      <i class="bi bi-exclamation-triangle-fill"></i>
+                      <span>Supera stock (disp: {{ r.item.stockActual | number:'1.0-2' }})</span>
+                    </div>
+                  </td>
+
+                  <!-- Costo Promedio -->
+                  <td class="text-right text-muted font-mono">
+                    $ {{ r.item.costoPromedio | number:'1.2-2' }}
+                  </td>
+
+                  <!-- Subtotal -->
+                  <td class="text-right font-mono font-weight-bold text-dark-green">
+                    $ {{ ((r.item.costoPromedio || 0) * (r.cantidadSolicitada || 0)) | number:'1.2-2' }}
+                  </td>
+
+                  <!-- Eliminar ítem -->
+                  <td class="text-center">
+                    <button type="button" class="btn-remove-item" (click)="quitarDeRequisicion(idx)" title="Eliminar ítem">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie del Modal con Totales y Acciones -->
+      <div class="requisicion-modal-footer" *ngIf="requisicion.length > 0">
+        <div class="req-totals-summary">
+          <div class="req-summary-item">
+            <span class="sum-label">Ítems:</span>
+            <strong class="sum-val">{{ requisicion.length }}</strong>
+          </div>
+          <div class="req-summary-item">
+            <span class="sum-label">Unidades:</span>
+            <strong class="sum-val text-primary">{{ totalUnidadesRequisicion }}</strong>
+          </div>
+          <div class="req-summary-item">
+            <span class="sum-label">Costo Estimado:</span>
+            <strong class="sum-val text-emerald">$ {{ totalValorRequisicion | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+
+        <div class="req-footer-buttons">
+          <button type="button" class="btn btn-outline-danger" (click)="vaciarRequisicion()" title="Vaciar todos los ítems">
+            <i class="bi bi-trash"></i> Vaciar
+          </button>
+
+          <button type="button" class="btn btn-outline" (click)="copiarResumenRequisicion()" title="Copiar resumen estructurado">
+            <i class="bi" [class.bi-clipboard]="!resumenCopiado" [class.bi-clipboard-check-fill]="resumenCopiado"></i>
+            <span>{{ resumenCopiado ? '¡Copiado!' : 'Copiar Resumen' }}</span>
+          </button>
+
+          <button type="button" class="btn btn-success" (click)="exportarRequisicionCsv()" title="Descargar como archivo Excel CSV">
+            <i class="bi bi-file-earmark-excel"></i>
+            <span>Exportar Excel</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

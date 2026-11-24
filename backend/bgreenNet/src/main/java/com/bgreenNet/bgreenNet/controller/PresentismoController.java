@@ -350,6 +350,45 @@ public class PresentismoController {
     @org.springframework.beans.factory.annotation.Value("${spring.mail.username:notificacionesbgreennet@bgreen.com.co}")
     private String mailFrom;
 
+    private void asegurarTablaNovedades() {
+        try {
+            String ddl = """
+                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='solicitud_novedad' AND xtype='U')
+                BEGIN
+                    CREATE TABLE solicitud_novedad (
+                        id VARCHAR(60) PRIMARY KEY,
+                        cedula_colaborador VARCHAR(30) NOT NULL,
+                        nombre_colaborador VARCHAR(150) NOT NULL,
+                        tipo_novedad VARCHAR(50) NOT NULL,
+                        fecha_inicio VARCHAR(10) NOT NULL,
+                        fecha_fin VARCHAR(10) NOT NULL,
+                        dias INT DEFAULT 1,
+                        motivo NVARCHAR(1000) NOT NULL,
+                        soporte_url NVARCHAR(MAX),
+                        soporte_nombre NVARCHAR(255),
+                        soporte_tipo NVARCHAR(100),
+                        estado VARCHAR(20) DEFAULT 'PENDIENTE',
+                        fecha_solicitud DATETIME DEFAULT GETDATE(),
+                        aprobador_asignado VARCHAR(150),
+                        correo_aprobador VARCHAR(150),
+                        aprobado_por VARCHAR(150),
+                        fecha_respuesta DATETIME,
+                        motivo_respuesta NVARCHAR(500)
+                    )
+                END
+            """;
+            jdbcTemplate.execute(ddl);
+
+            try {
+                jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM syscolumns WHERE id = OBJECT_ID('solicitud_novedad') AND name = 'soporte_url') ALTER TABLE solicitud_novedad ADD soporte_url NVARCHAR(MAX)");
+                jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM syscolumns WHERE id = OBJECT_ID('solicitud_novedad') AND name = 'soporte_nombre') ALTER TABLE solicitud_novedad ADD soporte_nombre NVARCHAR(255)");
+                jdbcTemplate.execute("IF NOT EXISTS (SELECT * FROM syscolumns WHERE id = OBJECT_ID('solicitud_novedad') AND name = 'soporte_tipo') ALTER TABLE solicitud_novedad ADD soporte_tipo NVARCHAR(100)");
+            } catch (Exception ignored) {}
+        } catch (Exception e) {
+            System.err.println("⚠️ Nota al verificar/crear tabla solicitud_novedad: " + e.getMessage());
+        }
+    }
+
     private void asegurarTablaTiempoExtra() {
         try {
             String ddl = """
@@ -558,6 +597,224 @@ public class PresentismoController {
                 System.out.println("✅ [TiempoExtra] Notificación enviada al aprobador: " + correoDestino);
             } catch (Exception e) {
                 System.err.println("⚠️ [TiempoExtra] No se pudo enviar el correo de notificación: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    @GetMapping("/novedades")
+    public ResponseEntity<?> getSolicitudesNovedades(
+            @RequestParam(value = "fechaKey", required = false) String fechaKey,
+            @RequestParam(value = "fechaInicio", required = false) String fechaInicio,
+            @RequestParam(value = "fechaFin", required = false) String fechaFin,
+            @RequestParam(value = "cedula", required = false) String cedula,
+            @RequestParam(value = "tipo", required = false) String tipo) {
+        asegurarTablaNovedades();
+        try {
+            StringBuilder sql = new StringBuilder("SELECT * FROM solicitud_novedad WHERE 1=1 ");
+            List<Object> params = new ArrayList<>();
+            if (fechaKey != null && !fechaKey.trim().isEmpty()) {
+                sql.append(" AND ? >= fecha_inicio AND ? <= fecha_fin ");
+                params.add(fechaKey.trim());
+                params.add(fechaKey.trim());
+            } else {
+                if (fechaInicio != null && !fechaInicio.trim().isEmpty()) {
+                    sql.append(" AND fecha_fin >= ? ");
+                    params.add(fechaInicio.trim());
+                }
+                if (fechaFin != null && !fechaFin.trim().isEmpty()) {
+                    sql.append(" AND fecha_inicio <= ? ");
+                    params.add(fechaFin.trim());
+                }
+            }
+            if (cedula != null && !cedula.trim().isEmpty()) {
+                sql.append(" AND cedula_colaborador = ? ");
+                params.add(cedula.trim());
+            }
+            if (tipo != null && !tipo.trim().isEmpty()) {
+                sql.append(" AND tipo_novedad = ? ");
+                params.add(tipo.trim().toUpperCase());
+            }
+            sql.append(" ORDER BY fecha_solicitud DESC");
+
+            List<Map<String, Object>> lista = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+            return ResponseEntity.ok(lista);
+        } catch (Exception e) {
+            System.err.println("❌ Error en getSolicitudesNovedades: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Error al consultar novedades: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/novedades")
+    public ResponseEntity<?> crearSolicitudNovedad(@RequestBody Map<String, Object> body) {
+        asegurarTablaNovedades();
+        try {
+            String id = (String) body.get("id");
+            if (id == null || id.trim().isEmpty()) {
+                id = "nov_" + System.currentTimeMillis();
+            }
+            String cedulaColab = (String) body.getOrDefault("cedulaColaborador", "");
+            String nombreColab = (String) body.getOrDefault("nombreColaborador", "Colaborador");
+            String tipoNovedad = (String) body.getOrDefault("tipoNovedad", "DESCANSO");
+            String fechaInicio = (String) body.getOrDefault("fechaInicio", "");
+            String fechaFin = (String) body.getOrDefault("fechaFin", fechaInicio);
+            Number diasNum = (Number) body.getOrDefault("dias", 1);
+            int dias = diasNum != null ? diasNum.intValue() : 1;
+            String motivo = (String) body.getOrDefault("motivo", "");
+            String soporteUrl = (String) body.getOrDefault("soporteUrl", null);
+            String soporteNombre = (String) body.getOrDefault("soporteNombre", null);
+            String soporteTipo = (String) body.getOrDefault("soporteTipo", null);
+            String estado = (String) body.getOrDefault("estado", "PENDIENTE");
+            String aprobadorAsignado = (String) body.getOrDefault("aprobadorAsignado", "Líder / Jefe de Área");
+            String correoAprobador = (String) body.getOrDefault("correoAprobador", "");
+
+            String insertSql = """
+                INSERT INTO solicitud_novedad (
+                    id, cedula_colaborador, nombre_colaborador, tipo_novedad,
+                    fecha_inicio, fecha_fin, dias, motivo,
+                    soporte_url, soporte_nombre, soporte_tipo, estado,
+                    fecha_solicitud, aprobador_asignado, correo_aprobador
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, ?)
+            """;
+
+            jdbcTemplate.update(insertSql, id, cedulaColab, nombreColab, tipoNovedad,
+                    fechaInicio, fechaFin, dias, motivo,
+                    soporteUrl, soporteNombre, soporteTipo, estado,
+                    aprobadorAsignado, correoAprobador);
+
+            if (correoAprobador != null && correoAprobador.contains("@") && mailSender != null) {
+                enviarCorreoNotificacionNovedad(correoAprobador, aprobadorAsignado, nombreColab, cedulaColab,
+                        tipoNovedad, fechaInicio, fechaFin, dias, motivo, (soporteNombre != null || soporteUrl != null));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "id", id,
+                "mensaje", "Solicitud de novedad guardada correctamente."
+            ));
+        } catch (Exception e) {
+            System.err.println("❌ Error en crearSolicitudNovedad: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Error al guardar solicitud de novedad: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/novedades/{id}/aprobar")
+    public ResponseEntity<?> aprobarSolicitudNovedad(
+            @PathVariable("id") String id,
+            @RequestBody(required = false) Map<String, Object> body) {
+        asegurarTablaNovedades();
+        try {
+            String aprobadoPor = body != null && body.containsKey("aprobadoPor") ? (String) body.get("aprobadoPor") : "Líder / Supervisor";
+            String updateSql = "UPDATE solicitud_novedad SET estado = 'APROBADO', aprobado_por = ?, fecha_respuesta = GETDATE() WHERE id = ?";
+            jdbcTemplate.update(updateSql, aprobadoPor, id);
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Solicitud de novedad aprobada con éxito."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al aprobar solicitud de novedad: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/novedades/{id}/rechazar")
+    public ResponseEntity<?> rechazarSolicitudNovedad(
+            @PathVariable("id") String id,
+            @RequestBody(required = false) Map<String, Object> body) {
+        asegurarTablaNovedades();
+        try {
+            String aprobadoPor = body != null && body.containsKey("aprobadoPor") ? (String) body.get("aprobadoPor") : "Líder / Supervisor";
+            String motivo = body != null && body.containsKey("motivo") ? (String) body.get("motivo") : "No autorizado";
+            String updateSql = "UPDATE solicitud_novedad SET estado = 'RECHAZADO', aprobado_por = ?, motivo_respuesta = ?, fecha_respuesta = GETDATE() WHERE id = ?";
+            jdbcTemplate.update(updateSql, aprobadoPor, motivo, id);
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Solicitud de novedad rechazada."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al rechazar solicitud de novedad: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/novedades/{id}")
+    public ResponseEntity<?> eliminarSolicitudNovedad(@PathVariable("id") String id) {
+        asegurarTablaNovedades();
+        try {
+            jdbcTemplate.update("DELETE FROM solicitud_novedad WHERE id = ?", id);
+            return ResponseEntity.ok(Map.of("success", true, "mensaje", "Solicitud de novedad eliminada."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al eliminar solicitud de novedad: " + e.getMessage());
+        }
+    }
+
+    private void enviarCorreoNotificacionNovedad(
+            String correoDestino, String nombreAprobador,
+            String nombreColaborador, String cedula,
+            String tipoNovedad, String fechaInicio, String fechaFin,
+            int dias, String motivo, boolean tieneSoporte) {
+        new Thread(() -> {
+            try {
+                jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+                org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(message, true, "UTF-8");
+
+                helper.setFrom(mailFrom);
+                helper.setTo(correoDestino.trim());
+                helper.setSubject("📋 Solicitud de " + tipoNovedad + " - " + nombreColaborador);
+
+                String html = """
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0ece5; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                      <div style="background: linear-gradient(135deg, #006c2c, #16a34a); padding: 22px; color: #ffffff; text-align: center;">
+                        <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">Solicitud de Novedad / Permiso</h2>
+                        <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.95;">Control de Asistencia & Presentismo · BgreenNet</p>
+                      </div>
+                      <div style="padding: 24px 28px; background: #ffffff;">
+                        <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
+                          Estimado(a) <strong>%s</strong>,
+                        </p>
+                        <p style="font-size: 14px; color: #475569; line-height: 1.5;">
+                          El colaborador <strong>%s</strong> (C.C. %s) ha registrado una solicitud de <strong>%s</strong> que requiere tu revisión y aprobación:
+                        </p>
+                        <table style="width: 100%%; border-collapse: collapse; margin: 18px 0; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13.5px;">
+                          <tr>
+                            <td style="padding: 10px 14px; font-weight: bold; color: #334155; border-bottom: 1px solid #e2e8f0; width: 38%%;">Tipo de Novedad:</td>
+                            <td style="padding: 10px 14px; color: #006c2c; font-weight: bold; border-bottom: 1px solid #e2e8f0;">%s</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 10px 14px; font-weight: bold; color: #334155; border-bottom: 1px solid #e2e8f0;">Período Solicitado:</td>
+                            <td style="padding: 10px 14px; color: #0f172a; border-bottom: 1px solid #e2e8f0;">Del %s al %s (%d %s)</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 10px 14px; font-weight: bold; color: #334155; border-bottom: 1px solid #e2e8f0;">Motivo / Justificación:</td>
+                            <td style="padding: 10px 14px; color: #0f172a; border-bottom: 1px solid #e2e8f0;">%s</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 10px 14px; font-weight: bold; color: #334155; border-bottom: 1px solid #e2e8f0;">Soporte Adjunto:</td>
+                            <td style="padding: 10px 14px; color: #0f172a; border-bottom: 1px solid #e2e8f0;">%s</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 10px 14px; font-weight: bold; color: #334155;">Estado Actual:</td>
+                            <td style="padding: 10px 14px; color: #d97706; font-weight: bold;">⏳ Pendiente de Aprobación</td>
+                          </tr>
+                        </table>
+                        <p style="font-size: 13px; color: #64748b; margin-bottom: 0; line-height: 1.4;">
+                          Por favor ingresa a la plataforma <strong>BgreenNet</strong> en el módulo de <em>Control de Asistencia & Presentismo</em> para revisar el soporte adjunto y aprobar o rechazar esta solicitud.
+                        </p>
+                      </div>
+                      <div style="background: #f1f5f9; padding: 14px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+                        Mensaje automático generado por la plataforma BgreenNet. Por favor no respondas directamente a este correo.
+                      </div>
+                    </div>
+                """.formatted(
+                    nombreAprobador != null ? nombreAprobador : "Líder de Área",
+                    nombreColaborador,
+                    cedula != null ? cedula : "N/A",
+                    tipoNovedad,
+                    tipoNovedad,
+                    fechaInicio,
+                    fechaFin,
+                    dias,
+                    dias == 1 ? "día" : "días",
+                    motivo != null ? motivo : "Sin justificación",
+                    tieneSoporte ? "📎 Documento / Imagen adjunta disponible en la plataforma" : "Sin documento adjunto"
+                );
+
+                helper.setText(html, true);
+                mailSender.send(message);
+                System.out.println("✅ [Novedades] Notificación enviada al aprobador: " + correoDestino);
+            } catch (Exception e) {
+                System.err.println("⚠️ [Novedades] No se pudo enviar el correo de notificación: " + e.getMessage());
             }
         }).start();
     }

@@ -30,16 +30,17 @@ public class FirmaDigitalController {
     }
 
     /**
-     * Consulta los movimientos de requisiciones por rango de fechas en el body JSON.
+     * Consulta los movimientos de requisiciones por consecutivo y/o rango de fechas en el body JSON.
      * POST /api/firmasdigital/requisiciones
-     * Body: { "fechaInicio": "2026-11-01", "fechaFin": "2026-11-10", "consecDocto": 5939, "idCia": 2, "tipoDocto": "RQ" }
+     * Body: { "consecDocto": 5939, "idCia": 2, "tipoDocto": "RQ" }
+     * o: { "fechaInicio": "2026-11-01", "fechaFin": "2026-11-10" }
      */
     @PostMapping("/requisiciones")
     public ResponseEntity<?> obtenerRequisiciones(
             @RequestBody(required = false) FirmaDigitalRequisicionRequestDTO request) {
         try {
             if (request == null) {
-                throw new IllegalArgumentException("El cuerpo de la petición es obligatorio con 'fechaInicio' y 'fechaFin'.");
+                throw new IllegalArgumentException("El cuerpo de la petición es obligatorio con 'consecDocto' o rango de fechas.");
             }
             List<FirmaDigitalRequisicionDTO> resultados = firmaDigitalService.obtenerRequisiciones(
                     request.getFechaInicio(),

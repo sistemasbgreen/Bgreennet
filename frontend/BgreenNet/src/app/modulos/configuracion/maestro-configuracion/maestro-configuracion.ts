@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { NgChartsModule } from 'ng2-charts';
@@ -10,7 +10,34 @@ import { AuthService } from '../../../auth/authservices';
 import { UsuarioService } from '../../../servicios/usuarioservices';
 import { MetricsService, SystemMetrics } from '../../../servicios/metrics.service';
 import { SupervisionAsistenciaService, SupervisorAsignadoResumen, GuardarSupervisionPayload, SupervisionAsistenciaItem } from '../../../servicios/supervision-asistencia.service';
+import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
+
+export interface ApiParametro {
+  nombre: string;
+  ubicacion: 'Body JSON' | 'Query Param' | 'Path';
+  tipo: string;
+  obligatorio: boolean;
+  descripcion: string;
+}
+
+export interface ApiCompartida {
+  id: string;
+  nombre: string;
+  metodo: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  endpoint: string;
+  alias?: string;
+  categoria: string;
+  controlador: string;
+  consumidor: string;
+  autenticacion: string;
+  descripcion: string;
+  parametros: ApiParametro[];
+  ejemploQuery?: string;
+  ejemploBody?: string;
+  ejemploBodyAlternativo?: string;
+  etiquetaBodyAlternativo?: string;
+}
 
 Chart.register(...registerables);
 
@@ -22,7 +49,153 @@ Chart.register(...registerables);
   styleUrl: './maestro-configuracion.css',
 })
 export class MaestroConfiguracion implements OnInit, OnDestroy {
-  activeTab: 'seguridad' | 'servidor' | 'imagenes' | 'asistencia' = 'seguridad';
+  activeTab: 'seguridad' | 'servidor' | 'imagenes' | 'asistencia' | 'apis' = 'seguridad';
+
+  // Catálogo de APIs compartidas (no consumidas por el frontend de BgreenNet)
+  ambienteApiSeleccionado: 'actual' | 'prod' | 'preprod' | 'qa' | 'local' = 'actual';
+  filtroApis: string = '';
+
+  readonly apisCompartidas: ApiCompartida[] = [
+    {
+      id: 'firmasdigital-requisiciones',
+      nombre: 'Firmas Digitales — Requisiciones Siesa',
+      metodo: 'POST',
+      endpoint: '/api/firmasdigital/requisiciones',
+      categoria: 'Firmas Digitales',
+      controlador: 'FirmaDigitalController',
+      consumidor: 'Plataforma externa de Firmas Digitales',
+      autenticacion: 'Pública (No Auth)',
+      descripcion: 'Consulta en Siesa (TOP 100) los movimientos de requisiciones internas (RQ), inventario (t470), documento contable (t350), tercero solicitante (t200) y centro de costos (t284).',
+      parametros: [
+        {
+          nombre: 'consecDocto',
+          ubicacion: 'Body JSON',
+          tipo: 'Integer',
+          obligatorio: false,
+          descripcion: 'Consecutivo de la requisición (obligatorio si no se envía rango de fechas).'
+        },
+        {
+          nombre: 'fechaInicio',
+          ubicacion: 'Body JSON',
+          tipo: 'String (YYYY-MM-DD)',
+          obligatorio: false,
+          descripcion: 'Fecha inicial del rango sobre f441_ts (requiere fechaFin).'
+        },
+        {
+          nombre: 'fechaFin',
+          ubicacion: 'Body JSON',
+          tipo: 'String (YYYY-MM-DD)',
+          obligatorio: false,
+          descripcion: 'Fecha final del rango sobre f441_ts (requiere fechaInicio).'
+        },
+        {
+          nombre: 'idCia',
+          ubicacion: 'Body JSON',
+          tipo: 'Integer',
+          obligatorio: false,
+          descripcion: 'Código de compañía Siesa. Valor por defecto: 2.'
+        },
+        {
+          nombre: 'tipoDocto',
+          ubicacion: 'Body JSON',
+          tipo: 'String',
+          obligatorio: false,
+          descripcion: 'Tipo de documento Siesa. Valor por defecto: "RQ".'
+        }
+      ],
+      ejemploBody: JSON.stringify({
+        consecDocto: 8940,
+        idCia: 2,
+        tipoDocto: 'RQ'
+      }, null, 2),
+      etiquetaBodyAlternativo: 'Ejemplo alternativo por rango de fechas',
+      ejemploBodyAlternativo: JSON.stringify({
+        fechaInicio: '2026-11-01',
+        fechaFin: '2026-11-23'
+      }, null, 2)
+    },
+    {
+      id: 'svision-inventario',
+      nombre: 'Inventario Svision — Existencias Siesa',
+      metodo: 'GET',
+      endpoint: '/api/svision/inventario',
+      categoria: 'Inventario Svision',
+      controlador: 'InventarioSvisionController',
+      consumidor: 'Plataforma externa Svision',
+      autenticacion: 'Pública (No Auth)',
+      descripcion: 'Consulta existencias (t400), costo promedio, ítems (t120), bodegas (t150) y tipo de inventario/servicio (t149) en Siesa para integración con Svision.',
+      parametros: [
+        {
+          nombre: 'idCia',
+          ubicacion: 'Query Param',
+          tipo: 'Integer',
+          obligatorio: false,
+          descripcion: 'Código de compañía Siesa. Valor por defecto: 2.'
+        },
+        {
+          nombre: 'bodega',
+          ubicacion: 'Query Param',
+          tipo: 'String',
+          obligatorio: false,
+          descripcion: 'Código de bodega (f150_id) para filtrar existencias específicas.'
+        },
+        {
+          nombre: 'tipoInventario',
+          ubicacion: 'Query Param',
+          tipo: 'String',
+          obligatorio: false,
+          descripcion: 'Código de tipo de inventario/servicio (f120_id_tipo_inv_serv).'
+        }
+      ],
+      ejemploQuery: '?idCia=2'
+    },
+    {
+      id: 'op-docto-datos-erp',
+      nombre: 'Datos ERP — Producción Biodiesel y Glicerina',
+      metodo: 'GET',
+      endpoint: '/api/op-docto/datos-erp',
+      categoria: 'Integración ERP',
+      controlador: 'OpDoctoController',
+      consumidor: 'ERP / SAP / Middleware externo',
+      autenticacion: 'Pública (No Auth)',
+      descripcion: 'Expone los consumos y producciones de Biodiesel y Glicerina transformados al formato ERP (AUFNR, MATNR, MAKTX, MENGE, BWART) usando los mapeos parametrizados en base de datos.',
+      parametros: [
+        {
+          nombre: 'fecha',
+          ubicacion: 'Query Param',
+          tipo: 'String (YYYY-MM-DD)',
+          obligatorio: true,
+          descripcion: 'Fecha de corte a consultar para generar los registros del ERP.'
+        }
+      ],
+      ejemploQuery: '?fecha=2026-11-23'
+    },
+    {
+      id: 'plc-leer',
+      nombre: 'Lectura Directa de PLCs Siemens S7',
+      metodo: 'GET',
+      endpoint: '/api/plc/leer',
+      alias: '/plc/leer',
+      categoria: 'Automatización / PLC',
+      controlador: 'PlcController',
+      consumidor: 'Node-RED / SCADA / Clientes industriales',
+      autenticacion: 'Pública (/plc/leer/**)',
+      descripcion: 'Realiza la lectura directa en tiempo real de todas las variables configuradas en los PLCs Siemens S7 y retorna un mapa JSON con el valor numérico actual de cada tag.',
+      parametros: []
+    },
+    {
+      id: 'auth-test',
+      nombre: 'Verificación de Estado del Backend',
+      metodo: 'GET',
+      endpoint: '/api/auth/test',
+      categoria: 'Diagnóstico',
+      controlador: 'AuthController',
+      consumidor: 'Monitoreo externo / Pruebas de conectividad',
+      autenticacion: 'Pública (No Auth)',
+      descripcion: 'Endpoint liviano de verificación (health check) para validar que el backend responde correctamente en red local o producción.',
+      parametros: []
+    }
+  ];
 
   // Configuración de Servidor & application.properties
   propiedadesServidor: PropiedadesServidor | null = null;
@@ -123,7 +296,7 @@ export class MaestroConfiguracion implements OnInit, OnDestroy {
     this.stopMetricsPolling();
   }
 
-  cambiarTab(tab: 'seguridad' | 'servidor' | 'imagenes' | 'asistencia'): void {
+  cambiarTab(tab: 'seguridad' | 'servidor' | 'imagenes' | 'asistencia' | 'apis'): void {
     this.activeTab = tab;
     if (tab === 'servidor') {
       if (!this.propiedadesServidor) {
@@ -1280,6 +1453,51 @@ export class MaestroConfiguracion implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  // --- APIS COMPARTIDAS ---
+
+  get baseUrlApiActiva(): string {
+    switch (this.ambienteApiSeleccionado) {
+      case 'prod':
+        return 'https://bgreennet.bgreen.com.co';
+      case 'preprod':
+        return 'http://45.183.247.77:8060';
+      case 'qa':
+        return 'http://172.30.72.200';
+      case 'local':
+        return 'http://localhost:8081';
+      default:
+        return environment.apiUrl;
+    }
+  }
+
+  get apisCompartidasFiltradas(): ApiCompartida[] {
+    const q = this.filtroApis.trim().toLowerCase();
+    if (!q) return this.apisCompartidas;
+    return this.apisCompartidas.filter(api =>
+      api.nombre.toLowerCase().includes(q) ||
+      api.endpoint.toLowerCase().includes(q) ||
+      api.categoria.toLowerCase().includes(q) ||
+      api.controlador.toLowerCase().includes(q) ||
+      api.consumidor.toLowerCase().includes(q) ||
+      api.descripcion.toLowerCase().includes(q)
+    );
+  }
+
+  getUrlCompletaApi(api: ApiCompartida, incluirEjemploQuery: boolean = true): string {
+    const base = this.baseUrlApiActiva.replace(/\/+$/, '');
+    const query = incluirEjemploQuery && api.ejemploQuery ? api.ejemploQuery : '';
+    return `${base}${api.endpoint}${query}`;
+  }
+
+  getCurlApi(api: ApiCompartida): string {
+    const url = this.getUrlCompletaApi(api, true);
+    if (api.metodo === 'POST' && api.ejemploBody) {
+      const compactBody = api.ejemploBody.replace(/\s+/g, ' ').trim();
+      return `curl -X POST "${url}" -H "Content-Type: application/json" -d '${compactBody}'`;
+    }
+    return `curl -X ${api.metodo} "${url}"`;
   }
 
 }

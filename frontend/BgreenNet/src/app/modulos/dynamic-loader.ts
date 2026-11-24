@@ -69,6 +69,9 @@ export class DynamicLoader implements OnInit {
         'nomina/interrupciones': () => import('../modulos/nomina/nomina').then(m => m.Nomina),
         'nomina/programacion': () => import('../modulos/nomina/nomina').then(m => m.Nomina),
         'nomina/general': () => import('../modulos/nomina/nomina').then(m => m.Nomina),
+        'items/existencias': () => import('../modulos/items/items').then(m => m.Items),
+        'items/items': () => import('../modulos/items/items').then(m => m.Items),
+        'items/consulta': () => import('../modulos/items/items').then(m => m.Items),
         // Agrega más rutas según necesites
       };
 

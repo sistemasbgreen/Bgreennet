@@ -34,6 +34,7 @@ export interface ResumenDiaPresentismo {
   estado: 'PRESENTE' | 'COMPLETO' | 'SOLO_ENTRADA' | 'SOLO_SALIDA' | 'SIN_REGISTRO' | 'INVALIDO';
   turno?: TurnoDiaInfo;
   solicitudesTiempoExtra?: SolicitudTiempoExtra[];
+  solicitudesNovedades?: SolicitudNovedad[];
   tieneDobleEntrada?: boolean;
   entradasMultiples?: string[];
 }
@@ -118,6 +119,29 @@ export interface SolicitudTiempoExtra {
   horas: number; // e.g. 2
   horasTexto: string; // e.g. "2 horas"
   descripcion: string;
+  estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
+  fechaSolicitud: string;
+  aprobadoPor?: string | null;
+  aprobadorAsignado?: string | null;
+  correoAprobador?: string | null;
+  fechaRespuesta?: string | null;
+  motivoRespuesta?: string | null;
+}
+
+export type TipoNovedad = 'DESCANSO' | 'INCAPACIDAD' | 'VACACIONES' | 'CAMBIO_TURNO';
+
+export interface SolicitudNovedad {
+  id: string;
+  cedulaColaborador: string;
+  nombreColaborador: string;
+  tipoNovedad: TipoNovedad;
+  fechaInicio: string; // YYYY-MM-DD
+  fechaFin: string;    // YYYY-MM-DD
+  dias: number;
+  motivo: string;
+  soporteUrl?: string | null;       // Base64 data URL or HTTP URL
+  soporteNombre?: string | null;    // Nombre original del archivo (ej. 'incapacidad.pdf')
+  soporteTipo?: string | null;      // 'application/pdf', 'image/png', etc.
   estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
   fechaSolicitud: string;
   aprobadoPor?: string | null;

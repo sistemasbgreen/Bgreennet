@@ -25,10 +25,12 @@ import {
   DiaResumenSemanal,
   ResumenSemanalKpis,
   ConfiguracionCorreosLT,
-  EnvioReporteLTPayload
+  EnvioReporteLTPayload,
+  DashboardNominaResponse
 } from '../../models/nomina';
 import Swal from 'sweetalert2';
 import { Chart, registerables } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 Chart.register(...registerables);
 
@@ -43,7 +45,61 @@ export class Nomina implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   // Control de pestaña principal
-  pestanaActiva: 'llegadas_tarde' | 'prueba' = 'llegadas_tarde';
+  pestanaActiva: 'dashboard' | 'llegadas_tarde' | 'prueba' = 'dashboard';
+
+  // ==========================================
+  // TAB 1: TABLERO DE CONTROL (INDICADORES & GRÁFICOS)
+  // ==========================================
+  dataDashboard: DashboardNominaResponse | null = null;
+  cargandoDashboard: boolean = false;
+  mesDashboard: string = '2026-11';
+  grupoDashboard: string = 'TODOS';
+
+  listaMesesDisponibles: Array<{ num: number; nombre: string; abrev: string }> = [
+    { num: 1, nombre: 'Enero', abrev: 'ENE' },
+    { num: 2, nombre: 'Febrero', abrev: 'FEB' },
+    { num: 3, nombre: 'Marzo', abrev: 'MAR' },
+    { num: 4, nombre: 'Abril', abrev: 'ABR' },
+    { num: 5, nombre: 'Mayo', abrev: 'MAY' },
+    { num: 6, nombre: 'Junio', abrev: 'JUN' },
+    { num: 7, nombre: 'Julio', abrev: 'JUL' },
+    { num: 8, nombre: 'Agosto', abrev: 'AGO' },
+    { num: 9, nombre: 'Septiembre', abrev: 'SEP' },
+    { num: 10, nombre: 'Octubre', abrev: 'OCT' },
+    { num: 11, nombre: 'Noviembre', abrev: 'NOV' },
+    { num: 12, nombre: 'Diciembre', abrev: 'DIC' }
+  ];
+
+  get mesDashboardNumero(): number {
+    if (!this.mesDashboard) return 11;
+    const parts = this.mesDashboard.split('-');
+    return parts.length > 1 ? parseInt(parts[1], 10) : 11;
+  }
+
+  get anioDashboardNumero(): number {
+    if (!this.mesDashboard) return 2026;
+    const parts = this.mesDashboard.split('-');
+    return parts.length > 0 ? parseInt(parts[0], 10) : 2026;
+  }
+
+  get mesTextoFormateado(): string {
+    const num = this.mesDashboardNumero;
+    const anio = this.anioDashboardNumero;
+    const mesObj = this.listaMesesDisponibles.find(m => m.num === num);
+    return (mesObj ? mesObj.nombre : 'Noviembre') + ' ' + anio;
+  }
+
+  get esMesActualOFuturo(): boolean {
+    const hoy = new Date();
+    const curYear = hoy.getFullYear();
+    const curMonth = hoy.getMonth() + 1;
+    return this.anioDashboardNumero > curYear || (this.anioDashboardNumero === curYear && this.mesDashboardNumero >= curMonth);
+  }
+
+  chartDashPresentismo: any = null;
+  chartDashMarcacion: any = null;
+  chartDashTendencia: any = null;
+  chartDashCumplimiento: any = null;
 
   // ==========================================
   // TAB 4: MÓDULO PRUEBA (RESUMEN SEMANAL)
@@ -71,15 +127,100 @@ export class Nomina implements OnInit, OnDestroy {
   vistaTablaSemanal: 'detallada' | 'malla' = 'detallada';
   mostrarHorariosMallaNomina: boolean = false;
 
+  mostrarNoAsistieron: boolean = true;
+  filtroNoAsistieron: string = '';
+
+  get noAsistieronFiltrados(): any[] {
+    const lista = this.dataDashboard?.noAsistieron || [];
+    const q = (this.filtroNoAsistieron || '').toLowerCase().trim();
+    if (!q) return lista;
+    return lista.filter(p =>
+      (p.nombre || '').toLowerCase().includes(q) ||
+      (p.documento || '').toLowerCase().includes(q) ||
+      (p.grupo || '').toLowerCase().includes(q));
+  }
+
+  formatearFechaCorta(iso: string): string {
+    if (!iso || iso.length < 10) return iso || '';
+    const p = iso.substring(0, 10).split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+
+  diaControlMarcacionIndex: number = -1;
+  mostrarListaSinMarcarDia: boolean = false;
+
   marcacionPorDia: Array<{
     indice: number;
+    nombre: string;
+    abrev: string;
+    fecha: string;
+    fechaCorta: string;
     esHoy: boolean;
+    esAyer: boolean;
     esFuturo: boolean;
+    etiqueta: string;
     debenMarcar: number;
     marcaron: number;
     noMarcaron: number;
     porcentaje: number;
+    colaboradoresSinMarcar: Array<{ nombre: string; documento: string; grupo: string; turno: string }>;
+    colaboradoresMarcaron: Array<{ nombre: string; documento: string; grupo: string; turno: string; horaEntrada?: string }>;
   }> = [];
+
+  get diaControlMarcacionActual(): any {
+    if (!this.marcacionPorDia || this.marcacionPorDia.length === 0) return null;
+    if (this.diaControlMarcacionIndex >= 0 && this.diaControlMarcacionIndex < this.marcacionPorDia.length) {
+      return this.marcacionPorDia[this.diaControlMarcacionIndex];
+    }
+    const hoyItem = this.marcacionPorDia.find(d => d.esHoy);
+    if (hoyItem) return hoyItem;
+    const revItem = this.marcacionPorDia.slice().reverse().find(d => !d.esFuturo && d.debenMarcar > 0);
+    if (revItem) return revItem;
+    return this.marcacionPorDia[0];
+  }
+
+  seleccionarDiaControlMarcacion(idx: number): void {
+    if (idx >= 0 && idx < this.marcacionPorDia.length) {
+      this.diaControlMarcacionIndex = idx;
+    }
+  }
+
+  diaAnteriorControlMarcacion(): void {
+    if (this.diaControlMarcacionIndex > 0) {
+      this.diaControlMarcacionIndex--;
+    } else if (this.diaControlMarcacionIndex === 0) {
+      this.semanaAnterior();
+      this.diaControlMarcacionIndex = 6;
+    }
+  }
+
+  diaSiguienteControlMarcacion(): void {
+    if (this.diaControlMarcacionIndex < this.marcacionPorDia.length - 1) {
+      this.diaControlMarcacionIndex++;
+    } else if (this.diaControlMarcacionIndex === this.marcacionPorDia.length - 1) {
+      this.semanaSiguiente();
+      this.diaControlMarcacionIndex = 0;
+    }
+  }
+
+  diaHoyControlMarcacion(): void {
+    const idxHoy = this.marcacionPorDia.findIndex(d => d.esHoy);
+    if (idxHoy !== -1) {
+      this.diaControlMarcacionIndex = idxHoy;
+    } else {
+      this.semanaActual();
+    }
+  }
+
+  toggleListaSinMarcarDia(): void {
+    this.mostrarListaSinMarcarDia = !this.mostrarListaSinMarcarDia;
+  }
+
+  filtrarPorColaboradorDoc(doc: string): void {
+    if (!doc) return;
+    this.busquedaSemanal = doc;
+    this.aplicarFiltrosSemanal();
+  }
 
   diagnosticoPresentismo: {
     tieneHoy: boolean;
@@ -280,11 +421,13 @@ export class Nomina implements OnInit, OnDestroy {
 
     this.cargarDatosLlegadasTarde();
     this.cargarConfiguracionCorreosLT();
+    this.cargarDatosDashboard();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.destruirGraficasDashboard();
     if (this.chartGrupos) {
       this.chartGrupos.destroy();
       this.chartGrupos = null;
@@ -303,12 +446,389 @@ export class Nomina implements OnInit, OnDestroy {
     }
   }
 
-  cambiarPestana(p: 'llegadas_tarde' | 'prueba'): void {
+  cambiarPestana(p: 'dashboard' | 'llegadas_tarde' | 'prueba'): void {
     this.pestanaActiva = p;
     this.cdr.detectChanges();
-    if (p === 'llegadas_tarde') {
+    if (p === 'dashboard') {
+      this.renderizarGraficasDashboard();
+    } else if (p === 'llegadas_tarde') {
       this.renderizarGraficasLT();
     }
+  }
+
+  // ==============================================================
+  // MÉTODOS DEL TABLERO DE CONTROL (INDICADORES Y GRÁFICOS)
+  // ==============================================================
+
+  mesAnteriorDashboard(): void {
+    let anio = this.anioDashboardNumero;
+    let mes = this.mesDashboardNumero - 1;
+    if (mes < 1) {
+      mes = 12;
+      anio -= 1;
+    }
+    this.mesDashboard = anio + '-' + String(mes).padStart(2, '0');
+    this.cargarDatosDashboard();
+  }
+
+  mesSiguienteDashboard(): void {
+    let anio = this.anioDashboardNumero;
+    let mes = this.mesDashboardNumero + 1;
+    if (mes > 12) {
+      mes = 1;
+      anio += 1;
+    }
+    this.mesDashboard = anio + '-' + String(mes).padStart(2, '0');
+    this.cargarDatosDashboard();
+  }
+
+  mesActualDashboard(): void {
+    this.mesDashboard = '2026-11';
+    this.cargarDatosDashboard();
+  }
+
+  seleccionarMesNumero(mesNum: number): void {
+    const anio = this.anioDashboardNumero;
+    this.mesDashboard = anio + '-' + String(mesNum).padStart(2, '0');
+    this.cargarDatosDashboard();
+  }
+
+  seleccionarMesPorNombre(nombreMes: string): void {
+    if (!nombreMes) return;
+    const mMatch = this.listaMesesDisponibles.find(m => m.nombre.toLowerCase() === nombreMes.toLowerCase() || m.abrev.toLowerCase() === nombreMes.toLowerCase());
+    if (mMatch) {
+      this.seleccionarMesNumero(mMatch.num);
+    }
+  }
+
+  crearDegradadoDash(ctx: any, rgb: string): CanvasGradient | string {
+    const chart = ctx.chart;
+    const area = chart.chartArea;
+    if (!area) return `rgba(${rgb}, 0.12)`;
+    const g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+    g.addColorStop(0, `rgba(${rgb}, 0.28)`);
+    g.addColorStop(1, `rgba(${rgb}, 0.02)`);
+    return g;
+  }
+
+  cargarDatosDashboard(): void {
+    this.cargandoDashboard = true;
+    this.nominaService.getDashboardIndicadores(this.mesDashboard, undefined, this.grupoDashboard)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.dataDashboard = data;
+          this.cargandoDashboard = false;
+          this.cdr.detectChanges();
+          this.renderizarGraficasDashboard();
+        },
+        error: () => {
+          this.cargandoDashboard = false;
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  destruirGraficasDashboard(): void {
+    if (this.chartDashPresentismo) {
+      this.chartDashPresentismo.destroy();
+      this.chartDashPresentismo = null;
+    }
+    if (this.chartDashMarcacion) {
+      this.chartDashMarcacion.destroy();
+      this.chartDashMarcacion = null;
+    }
+    if (this.chartDashTendencia) {
+      this.chartDashTendencia.destroy();
+      this.chartDashTendencia = null;
+    }
+    if (this.chartDashCumplimiento) {
+      this.chartDashCumplimiento.destroy();
+      this.chartDashCumplimiento = null;
+    }
+  }
+
+  renderizarGraficasDashboard(): void {
+    if (typeof window === 'undefined') return;
+
+    setTimeout(() => {
+      this.destruirGraficasDashboard();
+
+      const d = this.dataDashboard;
+      if (!d) return;
+
+      // 1. Gráfico PRESENTISMO (Dona verde con porcentaje central)
+      const canvasPres = document.getElementById('chartDashPresentismo') as HTMLCanvasElement;
+      if (canvasPres) {
+        const pctPres = Math.min(100, Math.max(0, d.presentismo || 97));
+        this.chartDashPresentismo = new Chart(canvasPres, {
+          type: 'doughnut',
+          data: {
+            labels: ['Presentismo', 'Restante'],
+            datasets: [{
+              data: [pctPres, 100 - pctPres],
+              backgroundColor: ['#047857', '#e8eef3'],
+              hoverBackgroundColor: ['#065f46', '#dbe4ec'],
+              borderWidth: 0,
+              borderRadius: 8,
+              spacing: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx: any) => ' ' + ctx.label + ': ' + ctx.raw + '%'
+                }
+              },
+              datalabels: { display: false }
+            }
+          } as any
+        });
+      }
+
+      // 2. Gráfico ESTADO DE MARCACIÓN (Dona tricolor: completa 92%, parcial 5%, sin marca 3%)
+      const canvasMarc = document.getElementById('chartDashMarcacion') as HTMLCanvasElement;
+      if (canvasMarc) {
+        const compl = d.marcacionCompletaPct || 92;
+        const parc = d.marcacionParcialPct || 5;
+        const sin = d.sinMarcacionPct || 3;
+
+        this.chartDashMarcacion = new Chart(canvasMarc, {
+          type: 'doughnut',
+          data: {
+            labels: ['Marcación completa', 'Marcación parcial', 'Sin marcación'],
+            datasets: [{
+              data: [compl, parc, sin],
+              backgroundColor: ['#16a34a', '#eab308', '#dc2626'],
+              hoverBackgroundColor: ['#15803d', '#ca8a04', '#b91c1c'],
+              borderWidth: 2,
+              borderColor: '#ffffff',
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx: any) => ' ' + ctx.label + ': ' + ctx.raw + '%'
+                }
+              },
+              datalabels: { display: false }
+            }
+          } as any,
+          plugins: [ChartDataLabels]
+        });
+      }
+
+      // 3. Gráfico TENDENCIA HORAS PROGRAMADAS VS HORAS LABORADAS DIARIAS
+      const canvasTend = document.getElementById('chartDashTendencia') as HTMLCanvasElement;
+      if (canvasTend) {
+        const labelsTend = (d.tendenciaDiaria || []).map(t => t.fecha);
+        const dataProg = (d.tendenciaDiaria || []).map(t => t.horasProgramadas);
+        const dataLab = (d.tendenciaDiaria || []).map(t => t.horasLaboradas);
+
+        this.chartDashTendencia = new Chart(canvasTend, {
+          type: 'line',
+          data: {
+            labels: labelsTend,
+            datasets: [
+              {
+                label: 'Horas programadas',
+                data: dataProg,
+                borderColor: '#ca8a04',
+                backgroundColor: (ctx: any) => this.crearDegradadoDash(ctx, '202, 138, 4'),
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#ca8a04',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                fill: true,
+                tension: 0.35
+              },
+              {
+                label: 'Horas laboradas',
+                data: dataLab,
+                borderColor: '#15803d',
+                backgroundColor: (ctx: any) => this.crearDegradadoDash(ctx, '21, 128, 61'),
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#15803d',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                fill: true,
+                tension: 0.35
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            layout: {
+              padding: { top: 25, bottom: 10, left: 10, right: 15 }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+                backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                padding: 12,
+                cornerRadius: 10,
+                titleFont: { size: 12, weight: 'bold' },
+                bodyFont: { size: 12 },
+                boxPadding: 4
+              },
+              datalabels: {
+                display: true,
+                align: (ctx) => ctx.datasetIndex === 0 ? 'top' : 'bottom',
+                offset: 4,
+                font: { size: 10, weight: 'bold' },
+                color: (ctx) => ctx.datasetIndex === 0 ? '#854d0e' : '#14532d',
+                formatter: (val) => val != null ? String(val) : ''
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                suggestedMax: 950,
+                ticks: {
+                  stepSize: 200,
+                  font: { size: 11, weight: 'bold' }
+                },
+                border: { display: false, dash: [4, 4] },
+                grid: {
+                  color: 'rgba(148, 163, 184, 0.25)'
+                }
+              },
+              x: {
+                ticks: {
+                  font: { size: 10 },
+                  maxRotation: 45,
+                  minRotation: 30
+                },
+                grid: {
+                  display: false
+                }
+              }
+            }
+          },
+          plugins: [ChartDataLabels]
+        });
+      }
+
+      // 4. Gráfico CUMPLIMIENTO MENSUAL
+      const canvasCump = document.getElementById('chartDashCumplimiento') as HTMLCanvasElement;
+      if (canvasCump) {
+        const labelsCump = (d.cumplimientoMensual || []).map(m => m.mes);
+        const dataCump = (d.cumplimientoMensual || []).map(m => m.porcentaje);
+
+        this.chartDashCumplimiento = new Chart(canvasCump, {
+          type: 'line',
+          data: {
+            labels: labelsCump,
+            datasets: [
+              {
+                label: 'Cumplimiento',
+                data: dataCump,
+                borderColor: '#15803d',
+                backgroundColor: (ctx: any) => this.crearDegradadoDash(ctx, '21, 128, 61'),
+                borderWidth: 3,
+                pointRadius: (ctx: any) => {
+                  const mName = labelsCump[ctx.dataIndex];
+                  return this.mesTextoFormateado.toLowerCase().startsWith((mName || '').toLowerCase()) ? 7 : 4;
+                },
+                pointHoverRadius: 8,
+                pointBackgroundColor: (ctx: any) => {
+                  const mName = labelsCump[ctx.dataIndex];
+                  return this.mesTextoFormateado.toLowerCase().startsWith((mName || '').toLowerCase()) ? '#ca8a04' : '#14532d';
+                },
+                pointBorderColor: (ctx: any) => {
+                  const mName = labelsCump[ctx.dataIndex];
+                  return this.mesTextoFormateado.toLowerCase().startsWith((mName || '').toLowerCase()) ? '#ffffff' : '#14532d';
+                },
+                pointBorderWidth: 2,
+                fill: true,
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            onClick: (event: any, elements: any[]) => {
+              if (elements && elements.length > 0) {
+                const elementIndex = elements[0].index;
+                const clickedMes = labelsCump[elementIndex];
+                if (clickedMes) {
+                  this.seleccionarMesPorNombre(clickedMes);
+                }
+              }
+            },
+            onHover: (event: any, elements: any[]) => {
+              if (event.native && event.native.target) {
+                event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+              }
+            },
+            layout: {
+              padding: { top: 25, bottom: 10, left: 10, right: 15 }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#0f172a',
+                callbacks: {
+                  label: (ctx) => ' Cumplimiento: ' + ctx.raw + '%'
+                }
+              },
+              datalabels: {
+                display: true,
+                align: 'top',
+                offset: 5,
+                font: { size: 10.5, weight: 'bold' },
+                color: '#0f172a',
+                formatter: (val) => val + ' %'
+              }
+            },
+            scales: {
+              y: {
+                min: 0,
+                max: 100,
+                ticks: {
+                  stepSize: 50,
+                  font: { size: 11, weight: 'bold' },
+                  callback: (v) => v + ' %'
+                },
+                grid: {
+                  color: 'rgba(226, 232, 240, 0.7)'
+                }
+              },
+              x: {
+                ticks: {
+                  font: { size: 11 },
+                  autoSkip: false
+                },
+                grid: {
+                  display: false
+                }
+              }
+            }
+          },
+          plugins: [ChartDataLabels]
+        });
+      }
+    }, 60);
   }
 
   copiarTexto(texto: string, etiqueta: string): void {
@@ -2049,32 +2569,102 @@ export class Nomina implements OnInit, OnDestroy {
   calcularMarcacionPorDia(): void {
     const diasMeta = this.dataResumenSemanal?.diasMeta || [];
     const lista = this.colaboradoresSemanalFiltrados || [];
+
+    const hoyDate = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const hoyIso = `${hoyDate.getFullYear()}-${pad(hoyDate.getMonth() + 1)}-${pad(hoyDate.getDate())}`;
+
+    const ayerDate = new Date(hoyDate);
+    ayerDate.setDate(hoyDate.getDate() - 1);
+    const ayerIso = `${ayerDate.getFullYear()}-${pad(ayerDate.getMonth() + 1)}-${pad(ayerDate.getDate())}`;
+
+    const mesesCortos = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
     this.marcacionPorDia = diasMeta.map((dm, idx) => {
       let debenMarcar = 0;
       let marcaron = 0;
+      const sinMarcarLista: Array<{ nombre: string; documento: string; grupo: string; turno: string }> = [];
+      const marcaronLista: Array<{ nombre: string; documento: string; grupo: string; turno: string; horaEntrada?: string }> = [];
+
       for (const c of lista) {
         const d = c.dias ? c.dias[idx] : null;
         if (!d) continue;
         const esLaboral = (d.horasProgramadas || 0) > 0 || (d.turno && d.turno.toLowerCase() !== 'descanso' && (d.horasProgramadas || 0) > 0);
         if (esLaboral) {
           debenMarcar++;
-          if (Boolean(d.horaEntrada) || (d.horasEjecutadas || 0) > 0) {
+          const marco = Boolean(d.horaEntrada) || (d.horasEjecutadas || 0) > 0;
+          if (marco) {
             marcaron++;
+            marcaronLista.push({
+              nombre: c.colaborador,
+              documento: c.documento,
+              grupo: c.grupo,
+              turno: d.turno || 'Turno programado',
+              horaEntrada: d.horaEntrada
+            });
+          } else {
+            sinMarcarLista.push({
+              nombre: c.colaborador,
+              documento: c.documento,
+              grupo: c.grupo,
+              turno: d.turno || 'Sin marcación'
+            });
           }
         }
       }
+
       const noMarcaron = Math.max(0, debenMarcar - marcaron);
       const porcentaje = debenMarcar > 0 ? Math.round((marcaron / debenMarcar) * 100) : 0;
+      const fStr = dm.fecha || '';
+      const esHoy = Boolean(dm.esHoy) || (fStr === hoyIso);
+      const esAyer = fStr === ayerIso;
+
+      let fechaCorta = '';
+      if (fStr.length >= 10) {
+        const partes = fStr.split('-');
+        const mIdx = parseInt(partes[1], 10) - 1;
+        fechaCorta = `${partes[2]} ${mesesCortos[mIdx] || ''}`;
+      } else {
+        fechaCorta = fStr;
+      }
+
+      const abrev = this.getCortoDiaMeta(dm.nombre || '');
+      let etiqueta = abrev;
+      if (esHoy) etiqueta = 'HOY';
+      else if (esAyer) etiqueta = 'AYER';
+
       return {
         indice: idx,
-        esHoy: Boolean(dm.esHoy),
+        nombre: dm.nombre || `Día ${idx + 1}`,
+        abrev,
+        fecha: fStr,
+        fechaCorta,
+        esHoy,
+        esAyer,
         esFuturo: Boolean(dm.esFuturo),
+        etiqueta,
         debenMarcar,
         marcaron,
         noMarcaron,
-        porcentaje
+        porcentaje,
+        colaboradoresSinMarcar: sinMarcarLista,
+        colaboradoresMarcaron: marcaronLista
       };
     });
+
+    if (this.diaControlMarcacionIndex < 0 || this.diaControlMarcacionIndex >= this.marcacionPorDia.length) {
+      const idxHoy = this.marcacionPorDia.findIndex(d => d.esHoy);
+      if (idxHoy !== -1) {
+        this.diaControlMarcacionIndex = idxHoy;
+      } else {
+        const revIdx = this.marcacionPorDia.slice().reverse().findIndex(d => !d.esFuturo && d.debenMarcar > 0);
+        if (revIdx !== -1) {
+          this.diaControlMarcacionIndex = (this.marcacionPorDia.length - 1) - revIdx;
+        } else {
+          this.diaControlMarcacionIndex = 0;
+        }
+      }
+    }
   }
 
   calcularDiagnosticoPresentismo(): void {

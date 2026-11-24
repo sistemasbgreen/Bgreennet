@@ -15,7 +15,7 @@
               </div>
               <div>
                 <h4 class="mc-header-title">Maestro de Configuración</h4>
-                <p class="mc-header-sub">Seguridad · Servidor · Base de Datos · Almacenamiento</p>
+                <p class="mc-header-sub">Seguridad · Servidor · Base de Datos · Almacenamiento · APIs</p>
               </div>
             </div>
 
@@ -56,6 +56,11 @@
               <i class="bi bi-person-check-fill"></i>
               <span>Supervisión de Horarios</span>
               <span class="mc-tab-badge">{{ totalSupervisoresJerarquia + totalSupervisores }}</span>
+            </button>
+            <button class="mc-tab-btn" [class.active]="activeTab === 'apis'" (click)="cambiarTab('apis')">
+              <i class="bi bi-braces-asterisk"></i>
+              <span>APIS</span>
+              <span class="mc-tab-badge">{{ apisCompartidas.length }}</span>
             </button>
           </div>
         </div>
@@ -1531,6 +1536,155 @@
             </div>
           </div>
 
+          <!-- ──────────────────────────────────────────────────────
+               TAB 5 · APIS COMPARTIDAS (EXTERNAS / INTEGRACIONES)
+               ────────────────────────────────────────────────────── -->
+          <div *ngIf="activeTab === 'apis'">
+
+            <!-- Toast copiado -->
+            <div *ngIf="copiadoReciente" class="toast-inline">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              Copiado al portapapeles: <strong>{{ copiadoReciente }}</strong>
+            </div>
+
+            <div class="section-header">
+              <div class="section-header-icon sh-green"><i class="bi bi-braces-asterisk"></i></div>
+              <div class="section-header-text">
+                <h6>APIs Compartidas (Consumo Externo)</h6>
+                <p>Endpoints expuestos por el backend que no son consumidos por este aplicativo web y están disponibles para integraciones externas.</p>
+              </div>
+            </div>
+
+            <!-- Barra de ambiente y búsqueda -->
+            <div class="apis-toolbar">
+              <div class="apis-env-group">
+                <span class="apis-env-label"><i class="bi bi-globe2"></i> Entorno base:</span>
+                <div class="apis-env-pills">
+                  <button type="button" class="apis-env-pill" [class.active]="ambienteApiSeleccionado === 'actual'" (click)="ambienteApiSeleccionado = 'actual'">Actual</button>
+                  <button type="button" class="apis-env-pill" [class.active]="ambienteApiSeleccionado === 'prod'" (click)="ambienteApiSeleccionado = 'prod'">Producción</button>
+                  <button type="button" class="apis-env-pill" [class.active]="ambienteApiSeleccionado === 'preprod'" (click)="ambienteApiSeleccionado = 'preprod'">Preprod</button>
+                  <button type="button" class="apis-env-pill" [class.active]="ambienteApiSeleccionado === 'qa'" (click)="ambienteApiSeleccionado = 'qa'">QA</button>
+                  <button type="button" class="apis-env-pill" [class.active]="ambienteApiSeleccionado === 'local'" (click)="ambienteApiSeleccionado = 'local'">Local</button>
+                </div>
+                <span class="apis-base-preview">{{ baseUrlApiActiva }}</span>
+              </div>
+
+              <div class="apis-search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" [(ngModel)]="filtroApis" placeholder="Filtrar por nombre, ruta o categoría...">
+              </div>
+            </div>
+
+            <!-- Listado de APIs -->
+            <div class="apis-list" *ngIf="apisCompartidasFiltradas.length > 0; else sinApisCoincidentes">
+              <div class="api-card" *ngFor="let api of apisCompartidasFiltradas">
+
+                <div class="api-card-head">
+                  <div class="api-card-title-wrap">
+                    <span class="api-method-badge"
+                          [class.method-post]="api.metodo === 'POST'"
+                          [class.method-get]="api.metodo === 'GET'">
+                      {{ api.metodo }}
+                    </span>
+                    <div>
+                      <h6 class="api-card-title">{{ api.nombre }}</h6>
+                      <div class="api-card-meta">
+                        <span class="api-meta-chip"><i class="bi bi-tag"></i> {{ api.categoria }}</span>
+                        <span class="api-meta-chip"><i class="bi bi-code-square"></i> {{ api.controlador }}</span>
+                        <span class="api-meta-chip chip-auth"><i class="bi bi-unlock"></i> {{ api.autenticacion }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="api-consumer-tag">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>{{ api.consumidor }}</span>
+                  </div>
+                </div>
+
+                <p class="api-card-desc">{{ api.descripcion }}</p>
+
+                <!-- URL completa + botones de copiado -->
+                <div class="api-url-bar">
+                  <code class="api-url-text">{{ getUrlCompletaApi(api) }}</code>
+                  <div class="api-url-actions">
+                    <button type="button" class="api-action-btn" (click)="copiarAlPortapapeles(getUrlCompletaApi(api), 'URL ' + api.endpoint)">
+                      <i class="bi bi-clipboard"></i> Copiar URL
+                    </button>
+                    <button type="button" class="api-action-btn btn-curl" (click)="copiarAlPortapapeles(getCurlApi(api), 'cURL ' + api.endpoint)">
+                      <i class="bi bi-terminal"></i> Copiar cURL
+                    </button>
+                  </div>
+                </div>
+
+                <div class="api-alias-note" *ngIf="api.alias">
+                  <i class="bi bi-info-circle"></i> Alias disponible: <code>{{ baseUrlApiActiva }}{{ api.alias }}</code>
+                </div>
+
+                <!-- Parámetros -->
+                <div class="api-params-section" *ngIf="api.parametros.length > 0">
+                  <div class="api-sub-label">Parámetros</div>
+                  <div class="table-responsive">
+                    <table class="api-params-table">
+                      <thead>
+                        <tr>
+                          <th>Parámetro</th>
+                          <th>Ubicación</th>
+                          <th>Tipo</th>
+                          <th>Requerido</th>
+                          <th>Descripción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let p of api.parametros">
+                          <td><code>{{ p.nombre }}</code></td>
+                          <td><span class="api-loc-pill">{{ p.ubicacion }}</span></td>
+                          <td>{{ p.tipo }}</td>
+                          <td>
+                            <span class="api-req-badge" [class.req-yes]="p.obligatorio" [class.req-no]="!p.obligatorio">
+                              {{ p.obligatorio ? 'Obligatorio' : 'Opcional' }}
+                            </span>
+                          </td>
+                          <td>{{ p.descripcion }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Ejemplo JSON Body -->
+                <div class="api-payload-grid" *ngIf="api.ejemploBody">
+                  <div class="api-payload-box">
+                    <div class="api-payload-head">
+                      <span>Ejemplo Body JSON (Postman → raw → JSON)</span>
+                      <button type="button" class="api-mini-copy" (click)="copiarAlPortapapeles(api.ejemploBody!, 'JSON ' + api.nombre)">
+                        <i class="bi bi-clipboard"></i> Copiar JSON
+                      </button>
+                    </div>
+                    <pre class="api-code-block">{{ api.ejemploBody }}</pre>
+                  </div>
+
+                  <div class="api-payload-box" *ngIf="api.ejemploBodyAlternativo">
+                    <div class="api-payload-head">
+                      <span>{{ api.etiquetaBodyAlternativo || 'Ejemplo alternativo' }}</span>
+                      <button type="button" class="api-mini-copy" (click)="copiarAlPortapapeles(api.ejemploBodyAlternativo!, 'JSON alternativo ' + api.nombre)">
+                        <i class="bi bi-clipboard"></i> Copiar JSON
+                      </button>
+                    </div>
+                    <pre class="api-code-block">{{ api.ejemploBodyAlternativo }}</pre>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <ng-template #sinApisCoincidentes>
+              <div class="apis-empty-state">
+                <i class="bi bi-search"></i>
+                <p>No se encontraron APIs que coincidan con "<strong>{{ filtroApis }}</strong>".</p>
+              </div>
+            </ng-template>
+
+          </div>
 
         </div>
       </div>

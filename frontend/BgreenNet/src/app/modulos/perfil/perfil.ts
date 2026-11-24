@@ -8,8 +8,9 @@ import { AuthService, LoginResponse } from '../../auth/authservices';
 import { UsuarioService } from '../../servicios/usuarioservices';
 import { homeservices } from '../../servicios/homeservices';
 import { Usuario } from '../../models/usuario';
-import { EventoAcceso, ResumenDiaPresentismo, EstadisticasMesPresentismo, ResumenSemanaMes, TurnoDiaInfo, SolicitudTiempoExtra, KpiPresentismoResumen, ColaboradorRankingPuntualidad, MarcacionErronea } from '../../models/presentismo';
+import { EventoAcceso, ResumenDiaPresentismo, EstadisticasMesPresentismo, ResumenSemanaMes, TurnoDiaInfo, SolicitudTiempoExtra, SolicitudNovedad, TipoNovedad, KpiPresentismoResumen, ColaboradorRankingPuntualidad, MarcacionErronea } from '../../models/presentismo';
 import { TiempoExtraService } from '../../servicios/tiempo-extra.service';
+import { SolicitudNovedadService } from '../../servicios/solicitud-novedad.service';
 import { SupervisionAsistenciaService, PermisosVisibilidadAsistencia } from '../../servicios/supervision-asistencia.service';
 import { NominaService } from '../../servicios/nomina.service';
 import { LlegadasTardeResponse } from '../../models/nomina';
@@ -95,6 +96,22 @@ export class Perfil implements OnInit {
   nuevaDescripcionExtra: string = '';
   mostrarFormularioTiempoExtra: boolean = false;
   solicitudesDiaSeleccionado: SolicitudTiempoExtra[] = [];
+
+  // Solicitudes de Novedades y Permisos (Descanso, Incapacidad, Vacaciones, Cambio de Turno)
+  mostrarFormularioNovedad: boolean = false;
+  nuevoTipoNovedad: TipoNovedad = 'DESCANSO';
+  nuevaFechaInicioNovedad: string = '';
+  nuevaFechaFinNovedad: string = '';
+  nuevoMotivoNovedad: string = '';
+  archivoSoporteSeleccionado: File | null = null;
+  archivoSoporteBase64: string | null = null;
+  archivoSoporteNombre: string | null = null;
+  archivoSoporteTipo: string | null = null;
+  archivoSoporteTamanioTexto: string | null = null;
+  solicitudesNovedadDiaSeleccionado: SolicitudNovedad[] = [];
+  aprobadorNovedadSeleccionadoId: string = '';
+  modalSoporteAbierto: boolean = false;
+  soporteVisualizar: { url: string; nombre: string; tipo: string } | null = null;
   aprobadorSeleccionadoId: string = '';
 
   // Datos del Usuario logueado (Todos los campos del formulario de usuario)
@@ -185,6 +202,7 @@ export class Perfil implements OnInit {
     private usuarioService: UsuarioService,
     private homeservice: homeservices,
     private tiempoExtraService: TiempoExtraService,
+    private solicitudNovedadService: SolicitudNovedadService,
     private nominaService: NominaService,
     private supervisionService: SupervisionAsistenciaService,
     private cdr: ChangeDetectorRef,
@@ -1764,6 +1782,13 @@ private evaluarDiaMallaCore(d: any) {
     this.diaSeleccionadoPresentismo = dia;
     this.panelDiaSlideOverOpen = true;
     this.mostrarFormularioTiempoExtra = false;
+    this.mostrarFormularioNovedad = false;
+    this.nuevoTipoNovedad = 'DESCANSO';
+    this.nuevaFechaInicioNovedad = dia.fechaKey;
+    this.nuevaFechaFinNovedad = dia.fechaKey;
+    this.nuevoMotivoNovedad = '';
+    this.quitarArchivoSoporte();
+    this.cargarSolicitudesNovedadDia(dia.fechaKey);
     this.nuevaHoraExtra = 2;
     this.nuevaDescripcionExtra = '';
     const disp = this.aprobadoresDisponibles;
@@ -2038,6 +2063,387 @@ private evaluarDiaMallaCore(d: any) {
         });
       }
     });
+  }
+
+  get aprobadorNovedadSeleccionadoActual(): { id: string; nombre: string; correo: string; cargo: string } {
+    const lista = this.aprobadoresDisponibles;
+    if (!lista || lista.length === 0) {
+      return { id: '', nombre: 'Líder / Jefe de Área', correo: '', cargo: 'Líder' };
+    }
+    const encontrado = lista.find(a => a.id === this.aprobadorNovedadSeleccionadoId);
+    if (encontrado) return encontrado;
+    return lista[0];
+  }
+
+  toggleFormularioNovedad(): void {
+    this.mostrarFormularioNovedad = !this.mostrarFormularioNovedad;
+    if (this.mostrarFormularioNovedad) {
+      const disp = this.aprobadoresDisponibles;
+      if (!this.aprobadorNovedadSeleccionadoId || !disp.some(a => a.id === this.aprobadorNovedadSeleccionadoId)) {
+        if (disp.length > 0) {
+          this.aprobadorNovedadSeleccionadoId = disp[0].id;
+        }
+      }
+      if (this.diaSeleccionadoPresentismo) {
+        if (!this.nuevaFechaInicioNovedad) this.nuevaFechaInicioNovedad = this.diaSeleccionadoPresentismo.fechaKey;
+        if (!this.nuevaFechaFinNovedad) this.nuevaFechaFinNovedad = this.diaSeleccionadoPresentismo.fechaKey;
+      }
+    }
+  }
+
+  setTipoNovedad(tipo: TipoNovedad): void {
+    this.nuevoTipoNovedad = tipo;
+  }
+
+  onArchivoSoporteSeleccionado(event: any): void {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    // Validar tamaño máx 10 MB
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Archivo demasiado grande',
+        text: 'El soporte no debe superar 10 MB de tamaño.',
+        confirmButtonColor: '#006c2c'
+      });
+      event.target.value = '';
+      return;
+    }
+
+    // Validar tipo (imágenes o PDF)
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|webp|pdf)$/i)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Formato no soportado',
+        text: 'Solo se permiten imágenes (JPG, PNG) o documentos PDF.',
+        confirmButtonColor: '#006c2c'
+      });
+      event.target.value = '';
+      return;
+    }
+
+    this.archivoSoporteSeleccionado = file;
+    this.archivoSoporteNombre = file.name;
+    this.archivoSoporteTipo = file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+
+    const sizeKb = (file.size / 1024).toFixed(1);
+    this.archivoSoporteTamanioTexto = file.size > 1024 * 1024
+      ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+      : sizeKb + ' KB';
+
+    // Leer como Base64 Data URL
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.archivoSoporteBase64 = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  quitarArchivoSoporte(): void {
+    this.archivoSoporteSeleccionado = null;
+    this.archivoSoporteBase64 = null;
+    this.archivoSoporteNombre = null;
+    this.archivoSoporteTipo = null;
+    this.archivoSoporteTamanioTexto = null;
+  }
+
+  calcularDiasNovedad(): number {
+    if (!this.nuevaFechaInicioNovedad || !this.nuevaFechaFinNovedad) return 1;
+    try {
+      const d1 = new Date(this.nuevaFechaInicioNovedad + 'T00:00:00');
+      const d2 = new Date(this.nuevaFechaFinNovedad + 'T00:00:00');
+      const diffMs = d2.getTime() - d1.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+      return diffDays > 0 ? diffDays : 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  solicitarNovedad(): void {
+    if (!this.nuevaFechaInicioNovedad) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fecha requerida',
+        text: 'Por favor indica la fecha de inicio de la novedad.',
+        confirmButtonColor: '#006c2c'
+      });
+      return;
+    }
+
+    if (!this.nuevaFechaFinNovedad) {
+      this.nuevaFechaFinNovedad = this.nuevaFechaInicioNovedad;
+    }
+
+    if (this.nuevaFechaFinNovedad < this.nuevaFechaInicioNovedad) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fechas inconsistentes',
+        text: 'La fecha de fin no puede ser anterior a la fecha de inicio.',
+        confirmButtonColor: '#006c2c'
+      });
+      return;
+    }
+
+    if (!this.nuevoMotivoNovedad || !this.nuevoMotivoNovedad.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Motivo requerido',
+        text: 'Por favor ingresa una justificación o motivo para la solicitud.',
+        confirmButtonColor: '#006c2c'
+      });
+      return;
+    }
+
+    const nombreColab = this.colaboradorSeleccionadoPresentismo
+      ? `${this.colaboradorSeleccionadoPresentismo.nombre} ${this.colaboradorSeleccionadoPresentismo.apellido}`
+      : (this.fullName || this.usuario?.nombre || 'Colaborador');
+
+    const cedulaColab = this.colaboradorSeleccionadoPresentismo
+      ? String(this.colaboradorSeleccionadoPresentismo.identificacion || '')
+      : String(this.cedulaUsuario || this.identificacion || '');
+
+    const aprobador = this.aprobadorNovedadSeleccionadoActual;
+    const dias = this.calcularDiasNovedad();
+
+    const nueva = this.solicitudNovedadService.crearSolicitud({
+      cedulaColaborador: cedulaColab,
+      nombreColaborador: nombreColab,
+      tipoNovedad: this.nuevoTipoNovedad,
+      fechaInicio: this.nuevaFechaInicioNovedad,
+      fechaFin: this.nuevaFechaFinNovedad,
+      dias: dias,
+      motivo: this.nuevoMotivoNovedad.trim(),
+      soporteUrl: this.archivoSoporteBase64,
+      soporteNombre: this.archivoSoporteNombre,
+      soporteTipo: this.archivoSoporteTipo,
+      aprobadorAsignado: aprobador.nombre,
+      correoAprobador: aprobador.correo
+    });
+
+    if (this.diaSeleccionadoPresentismo) {
+      this.cargarSolicitudesNovedadDia(this.diaSeleccionadoPresentismo.fechaKey);
+    }
+    this.mostrarFormularioNovedad = false;
+    this.nuevoMotivoNovedad = '';
+    this.quitarArchivoSoporte();
+
+    Swal.fire({
+      icon: 'success',
+      title: '¡Solicitud enviada!',
+      html: `Se registró la solicitud de <strong>${this.formatearTipoNovedad(nueva.tipoNovedad)}</strong> (${nueva.dias} ${nueva.dias === 1 ? 'día' : 'días'}) del <strong>${nueva.fechaInicio}</strong> al <strong>${nueva.fechaFin}</strong>.<br><br>
+             <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; text-align:left; font-size:13px; color:#14532d;">
+               <div><strong>Aprobador asignado:</strong> ${aprobador.nombre}</div>
+               ${aprobador.correo ? `<div><i class="bi bi-envelope-check"></i> Notificación enviada a: <em>${aprobador.correo}</em></div>` : ''}
+               ${nueva.soporteNombre ? `<div><i class="bi bi-paperclip"></i> Soporte adjunto: <em>${nueva.soporteNombre}</em></div>` : ''}
+               <div style="margin-top:6px; color:#b45309; font-weight:600;">⏳ Estado: Pendiente de Aprobación</div>
+             </div>`,
+      confirmButtonColor: '#006c2c',
+      timer: 4500
+    });
+  }
+
+  cargarSolicitudesNovedadDia(fechaKey: string): void {
+    this.solicitudesNovedadDiaSeleccionado = this.solicitudNovedadService.obtenerPorDiaCualquierColaborador(fechaKey);
+    if (this.diaSeleccionadoPresentismo) {
+      this.diaSeleccionadoPresentismo.solicitudesNovedades = this.solicitudesNovedadDiaSeleccionado;
+    }
+  }
+
+  obtenerNovedadesDia(dia: ResumenDiaPresentismo | null): SolicitudNovedad | undefined {
+    if (!dia) return undefined;
+    const sols = this.solicitudNovedadService.obtenerPorDiaCualquierColaborador(dia.fechaKey);
+    return sols.find(s => s.estado === 'APROBADO') || sols.find(s => s.estado === 'PENDIENTE') || sols[0];
+  }
+
+  esCreadorDeSolicitudNovedad(sol: SolicitudNovedad): boolean {
+    if (!sol) return false;
+    const miCedula = String(this.cedulaUsuario || this.identificacion || (this.usuario as any)?.cedula || '').trim();
+    const miNombre = (this.fullName || this.usuario?.nombre || '').trim().toLowerCase();
+    const solCedula = String(sol.cedulaColaborador || '').trim();
+    const solNombre = (sol.nombreColaborador || '').trim().toLowerCase();
+
+    if (miCedula && solCedula && miCedula === solCedula) return true;
+    if (miNombre && solNombre && (miNombre === solNombre || solNombre.includes(miNombre) || miNombre.includes(solNombre))) return true;
+    return false;
+  }
+
+  puedeAprobarSolicitudNovedad(sol: SolicitudNovedad): boolean {
+    if (!sol) return false;
+    if (this.misPermisosPresentismo?.esSupervisorConfigurado && this.misPermisosPresentismo.puedeAprobarHorasExtra) return true;
+    if (this.esCreadorDeSolicitudNovedad(sol)) return false;
+
+    const cargoId = Number(this.usuario?.id_cargo_fk || this.detallesFormulario?.id_cargo_fk || (this.usuario as any)?.idCargo || 0);
+    const nivel = Number(this.miNivelJerarquico || 0);
+    const cargoStr = (this.cargo || this.userRole || '').toLowerCase().trim();
+
+    const esCargo1 = cargoId === 1 || nivel === 1 || cargoStr.includes('presidente') || cargoStr.includes('gerente general') || cargoStr.includes('ceo');
+    const esCargo2 = cargoId === 2 || nivel === 2 || cargoStr.includes('director') || cargoStr.includes('directora');
+
+    if (!esCargo1 && !esCargo2) return false;
+    return true;
+  }
+
+  puedeRevocarSolicitudNovedad(sol: SolicitudNovedad): boolean {
+    return this.puedeAprobarSolicitudNovedad(sol);
+  }
+
+  puedeEliminarSolicitudNovedad(sol: SolicitudNovedad): boolean {
+    if (!sol || sol.estado !== 'PENDIENTE') return false;
+    return this.esCreadorDeSolicitudNovedad(sol) || this.esLiderPresentismo;
+  }
+
+  aprobarNovedad(sol: SolicitudNovedad): void {
+    const aprobador = this.fullName || this.usuario?.nombre || 'Líder / Supervisor';
+    Swal.fire({
+      title: '¿Aprobar solicitud?',
+      html: `¿Confirmas la aprobación de <strong>${this.formatearTipoNovedad(sol.tipoNovedad)}</strong> (${sol.dias} ${sol.dias === 1 ? 'día' : 'días'}) para <strong>${sol.nombreColaborador}</strong>?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#006c2c',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, aprobar',
+      cancelButtonText: 'Cancelar'
+    }).then(res => {
+      if (res.isConfirmed) {
+        this.solicitudNovedadService.aprobarSolicitud(sol.id, aprobador);
+        if (this.diaSeleccionadoPresentismo) {
+          this.cargarSolicitudesNovedadDia(this.diaSeleccionadoPresentismo.fechaKey);
+        }
+        Swal.fire({
+          icon: 'success',
+          title: 'Solicitud Aprobada',
+          text: `La solicitud de ${this.formatearTipoNovedad(sol.tipoNovedad)} fue aprobada por ${aprobador}.`,
+          confirmButtonColor: '#006c2c',
+          timer: 2000
+        });
+      }
+    });
+  }
+
+  rechazarNovedad(sol: SolicitudNovedad): void {
+    const aprobador = this.fullName || this.usuario?.nombre || 'Líder / Supervisor';
+    Swal.fire({
+      title: 'Rechazar solicitud',
+      text: `Indica el motivo de rechazo para la solicitud de ${sol.nombreColaborador}:`,
+      input: 'text',
+      inputPlaceholder: 'Motivo del rechazo (opcional)...',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Rechazar',
+      cancelButtonText: 'Cancelar'
+    }).then(res => {
+      if (res.isConfirmed) {
+        const motivo = res.value || 'No autorizado por el líder';
+        this.solicitudNovedadService.rechazarSolicitud(sol.id, aprobador, motivo);
+        if (this.diaSeleccionadoPresentismo) {
+          this.cargarSolicitudesNovedadDia(this.diaSeleccionadoPresentismo.fechaKey);
+        }
+        Swal.fire({
+          icon: 'info',
+          title: 'Solicitud rechazada',
+          text: 'La solicitud de novedad fue rechazada.',
+          confirmButtonColor: '#006c2c',
+          timer: 2000
+        });
+      }
+    });
+  }
+
+  eliminarNovedad(sol: SolicitudNovedad): void {
+    Swal.fire({
+      title: '¿Eliminar solicitud?',
+      text: 'Se eliminará esta solicitud de novedad.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then(res => {
+      if (res.isConfirmed) {
+        this.solicitudNovedadService.eliminarSolicitud(sol.id);
+        if (this.diaSeleccionadoPresentismo) {
+          this.cargarSolicitudesNovedadDia(this.diaSeleccionadoPresentismo.fechaKey);
+        }
+        Swal.fire({
+          icon: 'success',
+          title: 'Eliminada',
+          text: 'La solicitud de novedad ha sido eliminada.',
+          confirmButtonColor: '#006c2c',
+          timer: 1800
+        });
+      }
+    });
+  }
+
+  verSoporte(sol: SolicitudNovedad): void {
+    if (!sol.soporteUrl) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Sin soporte adjunto',
+        text: 'Esta solicitud no cuenta con documento de soporte adjunto.',
+        confirmButtonColor: '#006c2c'
+      });
+      return;
+    }
+
+    this.soporteVisualizar = {
+      url: sol.soporteUrl,
+      nombre: sol.soporteNombre || 'Soporte_Novedad',
+      tipo: sol.soporteTipo || (sol.soporteUrl.startsWith('data:application/pdf') ? 'application/pdf' : 'image/jpeg')
+    };
+    this.modalSoporteAbierto = true;
+  }
+
+  cerrarModalSoporte(): void {
+    this.modalSoporteAbierto = false;
+    this.soporteVisualizar = null;
+  }
+
+  descargarSoporte(sol: SolicitudNovedad): void {
+    if (!sol.soporteUrl) return;
+    const a = document.createElement('a');
+    a.href = sol.soporteUrl;
+    a.download = sol.soporteNombre || `soporte_${sol.tipoNovedad.toLowerCase()}_${sol.id}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  formatearTipoNovedad(tipo: string): string {
+    switch (tipo) {
+      case 'DESCANSO': return 'Descanso';
+      case 'INCAPACIDAD': return 'Incapacidad';
+      case 'VACACIONES': return 'Vacaciones';
+      case 'CAMBIO_TURNO': return 'Cambio de Turno';
+      default: return tipo;
+    }
+  }
+
+  iconoTipoNovedad(tipo: string): string {
+    switch (tipo) {
+      case 'DESCANSO': return 'bi-cup-hot-fill';
+      case 'INCAPACIDAD': return 'bi-heart-pulse-fill';
+      case 'VACACIONES': return 'bi-sun-fill';
+      case 'CAMBIO_TURNO': return 'bi-arrow-left-right';
+      default: return 'bi-file-text-fill';
+    }
+  }
+
+  colorBadgeTipoNovedad(tipo: string): string {
+    switch (tipo) {
+      case 'DESCANSO': return 'nov-badge-descanso';
+      case 'INCAPACIDAD': return 'nov-badge-incapacidad';
+      case 'VACACIONES': return 'nov-badge-vacaciones';
+      case 'CAMBIO_TURNO': return 'nov-badge-cambio';
+      default: return '';
+    }
   }
 
   eliminarTiempoExtra(sol: SolicitudTiempoExtra): void {
@@ -3705,8 +4111,228 @@ private evaluarDiaMallaCore(d: any) {
         return a.minutosTarde - b.minutosTarde;
       }
       return a.salidasTardes - b.salidasTardes;
-      return a.minutosTarde - b.minutosTarde;
     });
+  }
+
+  usuarioDestacadoGraficaEquipo: string | null = null;
+
+  readonly PALETA_COLORES_USUARIOS: string[] = [
+    '#2563eb', '#16a34a', '#d97706', '#9333ea', '#e11d48',
+    '#0891b2', '#4f46e5', '#0d9488', '#ea580c', '#c026d3',
+    '#65a30d', '#0284c7', '#b91c1c', '#7c3aed'
+  ];
+
+  toggleUsuarioDestacadoGrafica(cedula: string | null): void {
+    if (cedula === null || this.usuarioDestacadoGraficaEquipo === cedula) {
+      this.usuarioDestacadoGraficaEquipo = null;
+    } else {
+      this.usuarioDestacadoGraficaEquipo = cedula;
+    }
+  }
+
+  /**
+   * Eje X común (días hábiles del mes seleccionado) para las dos gráficas de línea del equipo (Entrada y Salida)
+   */
+  get diasEjeXGraficasEquipo(): {
+    dia: number;
+    fechaKey: string;
+    diaSemanaLetra: string;
+    diaSemanaNombre: string;
+    cx: number;
+  }[] {
+    const diasFiltrados = this.diasMesPresentismo.filter(d => d.esMesActual && !d.esFinDeSemana);
+    const total = diasFiltrados.length;
+    const diasNombres = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const diasLetras = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+
+    return diasFiltrados.map((d, index) => {
+      const cx = total > 1 ? Math.round(65 + (index / (total - 1)) * 895) : 500;
+      const diaSemNum = d.fechaDate.getDay();
+      return {
+        dia: d.diaNumero,
+        fechaKey: d.fechaKey,
+        diaSemanaLetra: diasLetras[diaSemNum],
+        diaSemanaNombre: diasNombres[diaSemNum],
+        cx
+      };
+    });
+  }
+
+  /**
+   * Series por usuario para las dos gráficas de línea (1: Entrada por día, 2: Salida por día)
+   */
+  get seriesTiemposEquipoPorDia(): {
+    cedula: string;
+    nombre: string;
+    nombreCorto: string;
+    cargo: string;
+    color: string;
+    polylineEntrada: string;
+    polylineSalida: string;
+    puntosEntrada: {
+      dia: number;
+      fechaKey: string;
+      cx: number;
+      cy: number;
+      horaCorta: string;
+      estado: 'ok' | 'warning' | 'late';
+    }[];
+    puntosSalida: {
+      dia: number;
+      fechaKey: string;
+      cx: number;
+      cy: number;
+      horaCorta: string;
+      estado: 'anticipada' | 'ok' | 'warning' | 'late';
+    }[];
+  }[] {
+    if (!this.areaSeleccionadaPresentismo || !this.areaSeleccionadaPresentismo.colaboradores) {
+      return [];
+    }
+
+    const diasEjeX = this.diasEjeXGraficasEquipo;
+    const colaboradores = this.areaSeleccionadaPresentismo.colaboradores;
+
+    const eventosPorDoc = new Map<string, any[]>();
+    for (const ev of this.eventosEquipoRaw) {
+      const doc = String(ev.Documento || '').trim().toLowerCase();
+      if (!doc) continue;
+      if (!eventosPorDoc.has(doc)) {
+        eventosPorDoc.set(doc, []);
+      }
+      eventosPorDoc.get(doc)!.push(ev);
+    }
+
+    return colaboradores.map((colab, idx) => {
+      const idStr = String(colab.identificacion || idx).trim();
+      const nombreCompleto = `${colab.nombre || ''} ${colab.apellido || ''}`.trim();
+      const primerNombre = (colab.nombre || '').trim().split(/\s+/)[0] || 'Usuario';
+      const primerApellido = (colab.apellido || '').trim().split(/\s+/)[0] || '';
+      const nombreCorto = primerApellido ? `${primerNombre} ${primerApellido.charAt(0)}.` : primerNombre;
+      const color = this.PALETA_COLORES_USUARIOS[idx % this.PALETA_COLORES_USUARIOS.length];
+
+      let eventosColab = eventosPorDoc.get(idStr.toLowerCase()) || [];
+      if (eventosColab.length === 0) {
+        const nomNorm = this.normalizarTexto(nombreCompleto);
+        for (const [, evs] of eventosPorDoc.entries()) {
+          if (evs.length > 0 && evs[0].Nombre && this.normalizarTexto(evs[0].Nombre) === nomNorm) {
+            eventosColab = evs;
+            break;
+          }
+        }
+      }
+
+      const eventosPorDia = new Map<string, any[]>();
+      for (const ev of eventosColab) {
+        if (!ev.Fecha_hora) continue;
+        const fechaStr = ev.Fecha_hora.substring(0, 10);
+        if (!eventosPorDia.has(fechaStr)) {
+          eventosPorDia.set(fechaStr, []);
+        }
+        eventosPorDia.get(fechaStr)!.push(ev);
+      }
+
+      const puntosEntrada: {
+        dia: number;
+        fechaKey: string;
+        cx: number;
+        cy: number;
+        horaCorta: string;
+        estado: 'ok' | 'warning' | 'late';
+      }[] = [];
+
+      const puntosSalida: {
+        dia: number;
+        fechaKey: string;
+        cx: number;
+        cy: number;
+        horaCorta: string;
+        estado: 'anticipada' | 'ok' | 'warning' | 'late';
+      }[] = [];
+
+      for (const dX of diasEjeX) {
+        const evsDia = eventosPorDia.get(dX.fechaKey) || [];
+        const ents = evsDia.filter(e => e.EVENTO === 'ENTRADA');
+        const sals = evsDia.filter(e => e.EVENTO === 'SALIDA');
+
+        if (ents.length > 0) {
+          let minE = 99999;
+          for (const e of ents) {
+            const m = this.minutosDelDia(e.Fecha_hora);
+            if (m > 0 && m < minE) minE = m;
+          }
+          if (minE < 99999) {
+            const cy = Math.round(this.calcularYParaGraficaPuntos(minE));
+            const hE = Math.floor(minE / 60);
+            const mE = minE % 60;
+            const horaCorta = `${String(hE).padStart(2, '0')}:${String(mE).padStart(2, '0')}`;
+            const difE = minE - this.HORA_ENTRADA_MIN;
+            const estado: 'ok' | 'warning' | 'late' =
+              difE <= 0 ? 'ok' : (difE <= this.GABELA_ENTRADA_MIN ? 'warning' : 'late');
+            puntosEntrada.push({
+              dia: dX.dia,
+              fechaKey: dX.fechaKey,
+              cx: dX.cx,
+              cy,
+              horaCorta,
+              estado
+            });
+          }
+        }
+
+        if (sals.length > 0) {
+          let maxS = -1;
+          for (const s of sals) {
+            const m = this.minutosDelDia(s.Fecha_hora);
+            if (m > maxS) maxS = m;
+          }
+          if (maxS > 0) {
+            const cy = Math.round(this.calcularYParaGraficaPuntosSalida(maxS));
+            const hS = Math.floor(maxS / 60);
+            const mS = maxS % 60;
+            const horaCorta = `${String(hS).padStart(2, '0')}:${String(mS).padStart(2, '0')}`;
+            const difS = maxS - this.HORA_SALIDA_MIN;
+            let estado: 'anticipada' | 'ok' | 'warning' | 'late' = 'ok';
+            if (difS < 0) estado = 'anticipada';
+            else if (difS <= this.GABELA_SALIDA_VERDE_MIN) estado = 'ok';
+            else if (difS <= this.GABELA_SALIDA_MIN) estado = 'warning';
+            else estado = 'late';
+
+            puntosSalida.push({
+              dia: dX.dia,
+              fechaKey: dX.fechaKey,
+              cx: dX.cx,
+              cy,
+              horaCorta,
+              estado
+            });
+          }
+        }
+      }
+
+      return {
+        cedula: idStr,
+        nombre: nombreCompleto,
+        nombreCorto,
+        cargo: colab.cargo || colab.descripcionCargo || 'Colaborador',
+        color,
+        polylineEntrada: puntosEntrada.map(p => `${p.cx},${p.cy}`).join(' '),
+        polylineSalida: puntosSalida.map(p => `${p.cx},${p.cy}`).join(' '),
+        puntosEntrada,
+        puntosSalida
+      };
+    });
+  }
+
+  seleccionarColaboradorPorCedula(cedula: string): void {
+    if (!this.areaSeleccionadaPresentismo?.colaboradores) return;
+    const colab = this.areaSeleccionadaPresentismo.colaboradores.find(c =>
+      String(c.identificacion || '').trim() === String(cedula || '').trim()
+    );
+    if (colab) {
+      this.seleccionarColaboradorPresentismo(colab);
+      this.activePresentismoTab = 'calendario';
+    }
   }
 
   cargarMarcacionesErroneas(): void {

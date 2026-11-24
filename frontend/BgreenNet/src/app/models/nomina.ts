@@ -298,3 +298,52 @@ export interface EnvioReporteLTPayload {
   observaciones?: string;
   asunto?: string;
 }
+
+
+// ==============================================================
+// 5. TABLERO DE CONTROL / INDICADORES Y GRÁFICOS (ASISTENCIA & PRESENTISMO)
+// ==============================================================
+
+export interface DiaTendenciaHoras {
+  fecha: string;
+  horasProgramadas: number;
+  horasLaboradas: number;
+}
+
+export interface NoAsistioItem {
+  idPersona: string;
+  documento: string;
+  nombre: string;
+  grupo: string;
+  turno: string;
+  diasSinMarcar: number;
+  ultimaFecha: string;
+}
+
+export interface MesCumplimiento {
+  mes: string;
+  porcentaje: number;
+  horasProgramadas?: number;
+  horasLaboradas?: number;
+}
+
+export interface DashboardNominaResponse {
+  periodo: string;
+  fechaInicio: string;
+  fechaFin: string;
+  horasProgramadas: number;
+  horasTrabajadas: number;
+  promedioEmpleadosProgramados: number;
+  empleadosAsistieron: number;
+  presentismo: number;
+  marcacionCompletaPct: number;
+  marcacionParcialPct: number;
+  sinMarcacionPct: number;
+  marcacionCompletaCount?: number;
+  marcacionParcialCount?: number;
+  sinMarcacionCount?: number;
+  tendenciaDiaria: DiaTendenciaHoras[];
+  cumplimientoMensual: MesCumplimiento[];
+  noAsistieron?: NoAsistioItem[];
+  noAsistieronTotal?: number;
+}

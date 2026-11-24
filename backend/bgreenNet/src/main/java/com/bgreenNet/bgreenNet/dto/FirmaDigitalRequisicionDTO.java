@@ -4,23 +4,22 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * DTO que representa el detalle de requisiciones internas y movimientos de inventario
- * consultados en Siesa para el módulo de firmas digitales.
+ * DTO que representa los movimientos de requisición interna, movimientos de inventario,
+ * documentos contables, tercero solicitante y centro de costos en Siesa.
  */
 public class FirmaDigitalRequisicionDTO {
 
+    private String f470IdUbicacionAux;
+    private BigDecimal f470CostoPromTot;
     private LocalDateTime f441FechaEntrega;
     private LocalDateTime f441Ts;
-    private Long f441Rowid;
-    private Long f441RowidDoctoReqInt;
-    private Integer f441IdCia;
-    private Long f441RowidItemExt;
-    private Long f441RowidBodega;
     private Integer f441IdConcepto;
     private String f441IdMotivo;
     private String f441IdUnidadMedida;
-    private BigDecimal f441Factor;
     private BigDecimal f441Cant1Consumida;
+    private String f150Id;
+    private String f010RazonSocial;
+    private String f010Nit;
     private String f440IdTipoDocto;
     private Integer f440ConsecDocto;
     private Long f440RowidTercero;
@@ -29,13 +28,32 @@ public class FirmaDigitalRequisicionDTO {
     private String f440UsuarioCreacion;
     private String f440UsuarioAprobacion;
     private String f440UsuarioCumplido;
-    private Long f470RowidItemExt;
-    private String f470IdUbicacionAux;
-    private String f470IdPeriodo;
-    private Long f470RowidMovtoReqInt;
-    private String f120Descripcion;
-    private String f120DescripcionCorta;
+    private Integer f440IndEstado;
+    private Long f440RowidTerceroSol;
+    private String f440UsuarioParcial;
     private String f120Id;
+    private String f120Descripcion;
+    private String f350IdTipoDocto;
+    private Integer f350ConsecDocto;
+    private LocalDateTime f350Fecha;
+    private String f200RazonSocial;
+    private String f284Id;
+
+    public String getF470IdUbicacionAux() {
+        return f470IdUbicacionAux;
+    }
+
+    public void setF470IdUbicacionAux(String f470IdUbicacionAux) {
+        this.f470IdUbicacionAux = f470IdUbicacionAux;
+    }
+
+    public BigDecimal getF470CostoPromTot() {
+        return f470CostoPromTot;
+    }
+
+    public void setF470CostoPromTot(BigDecimal f470CostoPromTot) {
+        this.f470CostoPromTot = f470CostoPromTot;
+    }
 
     public LocalDateTime getF441FechaEntrega() {
         return f441FechaEntrega;
@@ -51,46 +69,6 @@ public class FirmaDigitalRequisicionDTO {
 
     public void setF441Ts(LocalDateTime f441Ts) {
         this.f441Ts = f441Ts;
-    }
-
-    public Long getF441Rowid() {
-        return f441Rowid;
-    }
-
-    public void setF441Rowid(Long f441Rowid) {
-        this.f441Rowid = f441Rowid;
-    }
-
-    public Long getF441RowidDoctoReqInt() {
-        return f441RowidDoctoReqInt;
-    }
-
-    public void setF441RowidDoctoReqInt(Long f441RowidDoctoReqInt) {
-        this.f441RowidDoctoReqInt = f441RowidDoctoReqInt;
-    }
-
-    public Integer getF441IdCia() {
-        return f441IdCia;
-    }
-
-    public void setF441IdCia(Integer f441IdCia) {
-        this.f441IdCia = f441IdCia;
-    }
-
-    public Long getF441RowidItemExt() {
-        return f441RowidItemExt;
-    }
-
-    public void setF441RowidItemExt(Long f441RowidItemExt) {
-        this.f441RowidItemExt = f441RowidItemExt;
-    }
-
-    public Long getF441RowidBodega() {
-        return f441RowidBodega;
-    }
-
-    public void setF441RowidBodega(Long f441RowidBodega) {
-        this.f441RowidBodega = f441RowidBodega;
     }
 
     public Integer getF441IdConcepto() {
@@ -117,20 +95,36 @@ public class FirmaDigitalRequisicionDTO {
         this.f441IdUnidadMedida = f441IdUnidadMedida;
     }
 
-    public BigDecimal getF441Factor() {
-        return f441Factor;
-    }
-
-    public void setF441Factor(BigDecimal f441Factor) {
-        this.f441Factor = f441Factor;
-    }
-
     public BigDecimal getF441Cant1Consumida() {
         return f441Cant1Consumida;
     }
 
     public void setF441Cant1Consumida(BigDecimal f441Cant1Consumida) {
         this.f441Cant1Consumida = f441Cant1Consumida;
+    }
+
+    public String getF150Id() {
+        return f150Id;
+    }
+
+    public void setF150Id(String f150Id) {
+        this.f150Id = f150Id;
+    }
+
+    public String getF010RazonSocial() {
+        return f010RazonSocial;
+    }
+
+    public void setF010RazonSocial(String f010RazonSocial) {
+        this.f010RazonSocial = f010RazonSocial;
+    }
+
+    public String getF010Nit() {
+        return f010Nit;
+    }
+
+    public void setF010Nit(String f010Nit) {
+        this.f010Nit = f010Nit;
     }
 
     public String getF440IdTipoDocto() {
@@ -197,36 +191,36 @@ public class FirmaDigitalRequisicionDTO {
         this.f440UsuarioCumplido = f440UsuarioCumplido;
     }
 
-    public Long getF470RowidItemExt() {
-        return f470RowidItemExt;
+    public Integer getF440IndEstado() {
+        return f440IndEstado;
     }
 
-    public void setF470RowidItemExt(Long f470RowidItemExt) {
-        this.f470RowidItemExt = f470RowidItemExt;
+    public void setF440IndEstado(Integer f440IndEstado) {
+        this.f440IndEstado = f440IndEstado;
     }
 
-    public String getF470IdUbicacionAux() {
-        return f470IdUbicacionAux;
+    public Long getF440RowidTerceroSol() {
+        return f440RowidTerceroSol;
     }
 
-    public void setF470IdUbicacionAux(String f470IdUbicacionAux) {
-        this.f470IdUbicacionAux = f470IdUbicacionAux;
+    public void setF440RowidTerceroSol(Long f440RowidTerceroSol) {
+        this.f440RowidTerceroSol = f440RowidTerceroSol;
     }
 
-    public String getF470IdPeriodo() {
-        return f470IdPeriodo;
+    public String getF440UsuarioParcial() {
+        return f440UsuarioParcial;
     }
 
-    public void setF470IdPeriodo(String f470IdPeriodo) {
-        this.f470IdPeriodo = f470IdPeriodo;
+    public void setF440UsuarioParcial(String f440UsuarioParcial) {
+        this.f440UsuarioParcial = f440UsuarioParcial;
     }
 
-    public Long getF470RowidMovtoReqInt() {
-        return f470RowidMovtoReqInt;
+    public String getF120Id() {
+        return f120Id;
     }
 
-    public void setF470RowidMovtoReqInt(Long f470RowidMovtoReqInt) {
-        this.f470RowidMovtoReqInt = f470RowidMovtoReqInt;
+    public void setF120Id(String f120Id) {
+        this.f120Id = f120Id;
     }
 
     public String getF120Descripcion() {
@@ -237,19 +231,43 @@ public class FirmaDigitalRequisicionDTO {
         this.f120Descripcion = f120Descripcion;
     }
 
-    public String getF120DescripcionCorta() {
-        return f120DescripcionCorta;
+    public String getF350IdTipoDocto() {
+        return f350IdTipoDocto;
     }
 
-    public void setF120DescripcionCorta(String f120DescripcionCorta) {
-        this.f120DescripcionCorta = f120DescripcionCorta;
+    public void setF350IdTipoDocto(String f350IdTipoDocto) {
+        this.f350IdTipoDocto = f350IdTipoDocto;
     }
 
-    public String getF120Id() {
-        return f120Id;
+    public Integer getF350ConsecDocto() {
+        return f350ConsecDocto;
     }
 
-    public void setF120Id(String f120Id) {
-        this.f120Id = f120Id;
+    public void setF350ConsecDocto(Integer f350ConsecDocto) {
+        this.f350ConsecDocto = f350ConsecDocto;
+    }
+
+    public LocalDateTime getF350Fecha() {
+        return f350Fecha;
+    }
+
+    public void setF350Fecha(LocalDateTime f350Fecha) {
+        this.f350Fecha = f350Fecha;
+    }
+
+    public String getF200RazonSocial() {
+        return f200RazonSocial;
+    }
+
+    public void setF200RazonSocial(String f200RazonSocial) {
+        this.f200RazonSocial = f200RazonSocial;
+    }
+
+    public String getF284Id() {
+        return f284Id;
+    }
+
+    public void setF284Id(String f284Id) {
+        this.f284Id = f284Id;
     }
 }

@@ -66,6 +66,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 	                .requestMatchers("/api/presentismo/**", "/presentismo/**").permitAll()
 	                .requestMatchers("/api/nomina/**", "/nomina/**").permitAll()
 	                .requestMatchers("/api/firmasdigital/**", "/firmasdigital/**").permitAll()
+	                .requestMatchers("/api/svision/**", "/svision/**").permitAll()
+	                .requestMatchers("/api/items/**", "/items/**").permitAll()
 	                .requestMatchers("/error").permitAll()
 	                .anyRequest().authenticated()
 	            )
